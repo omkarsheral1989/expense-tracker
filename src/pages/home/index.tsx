@@ -1,4 +1,6 @@
+import { PlusOutlined } from '@ant-design/icons'
 import { Avatar, Button, Card, Flex, Typography } from 'antd'
+import { useNavigate } from 'react-router'
 import { useAuthStore } from '../../stores/useAuthStore'
 import type { Profile } from '../../services/googleProfileService/types.ts'
 
@@ -8,6 +10,7 @@ const { Title, Text } = Typography
 export function HomePage() {
   const profile = useAuthStore((state) => state.profile)
   const signOut = useAuthStore((state) => state.signOut)
+  const navigate = useNavigate()
 
   if (!profile) return null
 
@@ -41,6 +44,13 @@ export function HomePage() {
             Your groups will appear here. Signing out keeps your data on this
             device.
           </Text>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => navigate('/groups/new')}
+          >
+            Create group
+          </Button>
           <Button onClick={signOut}>Sign out</Button>
         </Flex>
       </Card>

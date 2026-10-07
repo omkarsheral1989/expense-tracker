@@ -7,7 +7,7 @@ import type { CreateGroupErrors, CreateGroupField } from './types.ts'
 const GMAIL_ADDRESS = new RegExp(`^[a-z0-9._+-]+@${MEMBER_EMAIL_DOMAIN.replace('.', '\\.')}$`)
 
 /** Trims, lower-cases and drops repeats, keeping the first of each. */
-function normalizeEmails(emails: string[]): string[] {
+export function normalizeEmails(emails: string[]): string[] {
   const cleaned = emails.map((email) => email.trim().toLowerCase())
   return [...new Set(cleaned.filter((email) => email !== ''))]
 }
@@ -19,13 +19,13 @@ function normalizeEmails(emails: string[]): string[] {
  */
 export const createGroupSchema = z.object({
   name: z
-    .string()
+    .string({ error: 'Enter a group name.' })
     .trim()
     .min(1, 'Enter a group name.')
     .max(GROUP_NAME_MAX_LENGTH, `Use at most ${GROUP_NAME_MAX_LENGTH} characters.`),
   type: z.enum(GROUP_TYPES, { error: 'Choose a group type.' }),
   defaultCurrency: z
-    .string()
+    .string({ error: 'Choose a currency.' })
     .refine(currencyService.isValid, 'Choose a currency.'),
   memberEmails: z
     .array(z.string())

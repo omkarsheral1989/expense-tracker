@@ -2,7 +2,8 @@ import { and, eq, isNull, ne, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import type { Database } from '../../db/client.ts'
 import { groupMembers, groups, people } from '../../db/schema.ts'
-import { createGroupSchema, toFieldErrors } from './schemas.ts'
+import { MEMBER_EMAIL_DOMAIN } from './constants.ts'
+import { createGroupSchema, normalizeEmails, toFieldErrors } from './schemas.ts'
 import type {
   CreateGroupInput,
   CreateGroupResult,
@@ -46,6 +47,12 @@ async function findOrAddPerson(
 }
 
 export const groupService = {
+  /** The domain every member's address must have. */
+  memberEmailDomain: MEMBER_EMAIL_DOMAIN,
+
+  /** Trims and lower-cases addresses and drops repeats, as creating a group does. */
+  normalizeMemberEmails: normalizeEmails,
+
   /**
    * Creates a group with its members, all or nothing. The creator is always a
    * member. Anything wrong with the input comes back as one message per field,
@@ -76,7 +83,7 @@ export const groupService = {
       // Done in the same transaction as the insert, so nothing can slip in
       // between the check and the save. Only groups this person belongs to count.
       const [sameName] = await tx
-        .select({ id: groups.id })
+        .select({ name: groups.name })
         .from(groups)
         .innerJoin(groupMembers, eq(groupMembers.groupId, groups.id))
         .where(
@@ -91,7 +98,7 @@ export const groupService = {
       if (sameName) {
         return {
           ok: false,
-          errors: { name: `You already have a group called ${name}.` },
+          errors: { name: `You already have a group called ${sameName.name}.` },
         }
       }
 

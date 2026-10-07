@@ -93,17 +93,18 @@ Until the real home page exists, a successful sign-in routes to `/home`, which s
 - A "Create group" button.
 
 ### 5.3 Create group
-- Route `/groups/new`, reached from a "Create group" button on the home page.
+- Route `/groups/new`, reached from a "Create group" button on the home page (for now the placeholder home page has one). Back and the browser's reload warning work as described under Leaving.
 - **Name:** required, 1 to 60 characters.
 - **Type:** trip / home / couple / other, each shown as an Ant Design icon in a colored tile. "Trip" is preselected.
-- **Default currency:** required. A searchable list of all ISO currencies, with the one matching the device's region preselected (for example INR in India). New expenses in the group start with it; an expense can still use any other currency, since each expense carries its own.
+- **Default currency:** required. A searchable list (by code or name) of all ISO currencies, each shown as code, name and symbol (for example "INR – Indian Rupee (₹)"), with names in the user's language. The currency of the device's region (for example INR in India) is preselected and listed first; the rest follow A to Z. New expenses in the group start with it; an expense can still use any other currency, since each expense carries its own.
 - **Members:** one searchable multi-select. It lists people already known on this device (everyone from the user's other groups, with name and email, never the user themself). Typing a new `@gmail.com` address adds that person in the same field. A duplicate is ignored. The creator is added automatically and cannot be removed.
 - **Validation:** checked only when "Create" is pressed. Every problem (empty name, an address that is not `@gmail.com`, no currency) is then shown at once, beside its field.
-  - **Same name:** a group cannot have the same name as another group the user belongs to (ignoring case, extra spaces and deleted groups). The message "You already have a group called <name>" appears beside the name field. This is a convenience check on this device; another member can still create a group with the same name elsewhere, and both groups then simply exist.
+  - **Same name:** a group cannot have the same name as another group the user belongs to (ignoring case, extra spaces and deleted groups). The message names the existing group ("You already have a group called Goa trip.") and appears beside the name field. This is a convenience check on this device; another member can still create a group with the same name elsewhere, and both groups then simply exist.
   - **Duplicate members:** adding the same person twice (compared ignoring case) is ignored, and so is adding the user's own address, since they are added automatically.
-- **Leaving:** Cancel and Back leave immediately while the form is untouched. Once a name, type, currency or member has been entered or changed, they ask "Discard this group?" first.
+- **Leaving:** the page's Cancel and Back buttons leave immediately while the form is untouched. Once a name, type, currency or member has been entered or changed, they ask "Discard this group?" first, and reloading or closing the tab shows the browser's own warning. The browser's Back button is not intercepted: that needs React Router's data router, which the app does not use yet.
 - Creating a group only saves it on this device. Sharing it through Drive happens later, at the first sync.
-- After creating, the app opens the new group's page (`/groups/<id>`), a simple placeholder for now that shows the name, type, default currency and members.
+- After creating, a "Group created." message appears and the app returns to the home page. Opening the new group's own page (`/groups/<id>`, a placeholder showing name, type, default currency and members) is the next step.
+- A message under a field disappears as soon as that field is edited.
 
 ### 5.4 Group page
 - Opens from a group on the home page. Contains the group's expenses and other sections (to be defined).

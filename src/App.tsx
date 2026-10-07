@@ -1,6 +1,7 @@
 import { Navigate, Outlet, Route, Routes } from 'react-router'
 import { RequireAuth } from './components/RequireAuth'
 import { DatabaseGate } from './components/DatabaseGate'
+import { CreateGroupPage } from './pages/createGroup'
 import { HomePage } from './pages/home'
 import { WelcomePage } from './pages/welcome'
 import { useSyncSessionAcrossTabs } from './hooks/useSyncSessionAcrossTabs'
@@ -25,6 +26,7 @@ function App() {
           }
         >
           <Route path="/home" element={<HomePage />} />
+          <Route path="/groups/new" element={<CreateGroupPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

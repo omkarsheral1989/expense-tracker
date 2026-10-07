@@ -132,6 +132,18 @@ describe('createGroup', () => {
       })
     })
 
+    it('asks for a name and a currency that were never filled in', async () => {
+      const result = await groupService.createGroup(db, omkar, {
+        type: 'trip',
+        memberEmails: [],
+      } as unknown as CreateGroupInput)
+
+      expect(result).toEqual({
+        ok: false,
+        errors: { name: 'Enter a group name.', defaultCurrency: 'Choose a currency.' },
+      })
+    })
+
     it('refuses a name over 60 characters but accepts exactly 60', async () => {
       const tooLong = await groupService.createGroup(db, omkar, {
         ...validInput,
@@ -173,7 +185,7 @@ describe('createGroup', () => {
         const result = await groupService.createGroup(db, omkar, { ...validInput, name })
         expect(result).toEqual({
           ok: false,
-          errors: { name: `You already have a group called ${name.trim()}.` },
+          errors: { name: 'You already have a group called Goa trip.' },
         })
       }
       expect(await db.select().from(groups)).toHaveLength(1)
@@ -251,5 +263,13 @@ describe('listKnownPeople', () => {
 
     const known = await groupService.listKnownPeople(db, 'omkar@gmail.com')
     expect(known.map((person) => person.email)).toEqual(['lee@gmail.com'])
+  })
+})
+
+describe('normalizeMemberEmails', () => {
+  it('trims, lower-cases and drops repeats and blanks', () => {
+    expect(
+      groupService.normalizeMemberEmails([' A@Gmail.com', 'a@gmail.com ', '', 'b@gmail.com']),
+    ).toEqual(['a@gmail.com', 'b@gmail.com'])
   })
 })
