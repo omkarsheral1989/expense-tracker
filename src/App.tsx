@@ -1,11 +1,12 @@
-import { Navigate, Outlet, Route, Routes } from 'react-router'
+import { Navigate, Route, Routes } from 'react-router'
+import { PwaUpdatePrompt } from './components/PwaUpdatePrompt'
 import { RequireAuth } from './components/RequireAuth'
-import { DatabaseGate } from './components/DatabaseGate'
+import { SignedInLayout } from './components/SignedInLayout'
+import { useSyncSessionAcrossTabs } from './hooks/useSyncSessionAcrossTabs'
 import { CreateGroupPage } from './pages/createGroup'
 import { HomePage } from './pages/home'
 import { WelcomePage } from './pages/welcome'
-import { useSyncSessionAcrossTabs } from './hooks/useSyncSessionAcrossTabs'
-import { PwaUpdatePrompt } from './components/PwaUpdatePrompt'
+import { ROUTES } from './routes.ts'
 
 function App() {
   useSyncSessionAcrossTabs()
@@ -14,21 +15,19 @@ function App() {
     <>
       <PwaUpdatePrompt />
       <Routes>
-        <Route path="/" element={<WelcomePage />} />
-        {/* Everything inside needs a signed-in user and an open database. */}
+        <Route path={ROUTES.welcome} element={<WelcomePage />} />
+        {/* Everything inside needs a signed-in user, the header and open data. */}
         <Route
           element={
             <RequireAuth>
-              <DatabaseGate>
-                <Outlet />
-              </DatabaseGate>
+              <SignedInLayout />
             </RequireAuth>
           }
         >
-          <Route path="/home" element={<HomePage />} />
-          <Route path="/groups/new" element={<CreateGroupPage />} />
+          <Route path={ROUTES.home} element={<HomePage />} />
+          <Route path={ROUTES.newGroup} element={<CreateGroupPage />} />
         </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to={ROUTES.welcome} replace />} />
       </Routes>
     </>
   )

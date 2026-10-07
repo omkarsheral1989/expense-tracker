@@ -1,59 +1,97 @@
 import { PlusOutlined } from '@ant-design/icons'
-import { Avatar, Button, Card, Flex, Typography } from 'antd'
+import { Button, Card, Flex, Result, Skeleton, Typography } from 'antd'
 import { useNavigate } from 'react-router'
+import { getDb } from '../../db/client.ts'
+import { useAsyncData } from '../../hooks/useAsyncData'
+import { ROUTES } from '../../routes.ts'
+import { groupService } from '../../services/groupService'
 import { useAuthStore } from '../../stores/useAuthStore'
-import type { Profile } from '../../services/googleProfileService/types.ts'
+import { EmptyGroups } from './components/EmptyGroups'
+import { GroupList } from './components/GroupList'
 
-const { Title, Text } = Typography
+const { Title } = Typography
 
-/** Placeholder until the real home page (group list) is built. */
+/** The signed-in user's groups, most recently active first. */
 export function HomePage() {
   const profile = useAuthStore((state) => state.profile)
-  const signOut = useAuthStore((state) => state.signOut)
   const navigate = useNavigate()
 
+  const email = profile?.email ?? ''
+  const { state, retry } = useAsyncData(
+    async () => groupService.listGroups(await getDb(), email),
+    email,
+  )
+
+  // Signed-out visitors are sent away by `RequireAuth` before this matters.
   if (!profile) return null
 
-  // Google profile pictures only load without a referrer; the first letter of
-  // the name is shown when there is no picture or it fails to load.
-  function renderAvatar({ name, picture }: Profile) {
+  const createGroup = () => navigate(ROUTES.newGroup)
+  const hasGroups = state.status === 'ready' && state.data.length > 0
+
+  function renderHeading() {
     return (
-      <Avatar
-        size={72}
-        src={
-          picture ? (
-            <img src={picture} alt="" referrerPolicy="no-referrer" />
-          ) : undefined
-        }
-      >
-        {name.charAt(0).toUpperCase()}
-      </Avatar>
+      <Flex justify="space-between" align="center" style={{ marginBottom: 16 }}>
+        <Title level={3} style={{ margin: 0 }}>
+          Your groups
+        </Title>
+        {hasGroups && (
+          <Button type="primary" icon={<PlusOutlined />} onClick={createGroup}>
+            Create group
+          </Button>
+        )}
+      </Flex>
     )
   }
 
-  return (
-    <Flex justify="center" style={{ padding: '64px 16px' }}>
-      <Card style={{ width: '100%', maxWidth: 420 }}>
-        <Flex vertical align="center" gap={12} style={{ textAlign: 'center' }}>
-          {renderAvatar(profile)}
-          <Title level={3} style={{ margin: 0 }}>
-            Signed in as {profile.name}
-          </Title>
-          <Text type="secondary">{profile.email}</Text>
-          <Text type="secondary">
-            Your groups will appear here. Signing out keeps your data on this
-            device.
-          </Text>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => navigate('/groups/new')}
-          >
-            Create group
+  function renderLoading() {
+    return (
+      <Flex vertical gap={12} role="status" aria-label="Loading your groups">
+        {[0, 1, 2].map((row) => (
+          <Card key={row}>
+            <Skeleton active avatar paragraph={{ rows: 1 }} />
+          </Card>
+        ))}
+      </Flex>
+    )
+  }
+
+  function renderError() {
+    return (
+      <Result
+        status="error"
+        title="Couldn't load your groups"
+        subTitle="Nothing was lost. Try again."
+        extra={
+          <Button type="primary" onClick={retry}>
+            Try again
           </Button>
-          <Button onClick={signOut}>Sign out</Button>
-        </Flex>
-      </Card>
+        }
+      />
+    )
+  }
+
+  function renderGroups() {
+    switch (state.status) {
+      case 'loading':
+        return renderLoading()
+      case 'error':
+        return renderError()
+      case 'ready':
+        return state.data.length === 0 ? (
+          <EmptyGroups onCreate={createGroup} />
+        ) : (
+          <GroupList groups={state.data} />
+        )
+    }
+  }
+
+  return (
+    <Flex justify="center" style={{ padding: '24px 16px' }}>
+      <title>Your groups · OwnLedger</title>
+      <div style={{ width: '100%', maxWidth: 720 }}>
+        {renderHeading()}
+        {renderGroups()}
+      </div>
     </Flex>
   )
 }

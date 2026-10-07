@@ -11,6 +11,7 @@ export function CreateGroupPage() {
 
   return (
     <Flex justify="center" style={{ padding: '32px 16px' }}>
+      <title>Create a group · OwnLedger</title>
       <div style={{ width: '100%', maxWidth: 560 }}>
         <CreateGroupForm creator={{ email: profile.email, name: profile.name }} />
       </div>

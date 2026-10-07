@@ -3,6 +3,7 @@ import { Navigate } from 'react-router'
 import { useAuthStore } from '../../stores/useAuthStore'
 import { REQUIRE_INSTALL } from '../../config.ts'
 import { useInstall } from '../../hooks/useInstall'
+import { ROUTES } from '../../routes.ts'
 import { Faq } from './components/Faq'
 import { Features } from './components/Features'
 import { Footer } from './components/Footer'
@@ -24,7 +25,7 @@ export function WelcomePage() {
   const gated = REQUIRE_INSTALL && platform === 'ios' && !installed && !skipped
 
   // Signed-in users go straight to the app.
-  if (signedIn) return <Navigate to="/home" replace />
+  if (signedIn) return <Navigate to={ROUTES.home} replace />
 
   // Nothing to install once the app is running as an installed app.
   function renderInstallCard() {

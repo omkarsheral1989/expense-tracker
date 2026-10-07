@@ -5,10 +5,11 @@ import { useNavigate } from 'react-router'
 import { getDb } from '../../../../db/client.ts'
 import { useKnownPeople } from '../../../../hooks/useKnownPeople'
 import { useLeaveWarning } from '../../../../hooks/useLeaveWarning'
+import { ROUTES } from '../../../../routes.ts'
 import { currencyService } from '../../../../services/currencyService'
 import { groupService } from '../../../../services/groupService'
 import type { Creator } from '../../../../services/groupService/types.ts'
-import { DEFAULT_GROUP_TYPE, HOME_PATH } from './constants.ts'
+import { DEFAULT_GROUP_TYPE } from './constants.ts'
 import { CurrencySelect } from './CurrencySelect'
 import { GroupTypeSelector } from './GroupTypeSelector'
 import { MemberSelect } from './MemberSelect'
@@ -45,7 +46,7 @@ export function CreateGroupForm({ creator }: Props) {
 
   function handleLeave() {
     if (!hasInput) {
-      navigate(HOME_PATH)
+      navigate(ROUTES.home)
       return
     }
     modal.confirm({
@@ -54,7 +55,7 @@ export function CreateGroupForm({ creator }: Props) {
       okText: 'Discard',
       okButtonProps: { danger: true },
       cancelText: 'Keep editing',
-      onOk: () => navigate(HOME_PATH),
+      onOk: () => navigate(ROUTES.home),
     })
   }
 
@@ -71,7 +72,7 @@ export function CreateGroupForm({ creator }: Props) {
       if (!result.ok) return
 
       message.success('Group created.')
-      navigate(HOME_PATH)
+      navigate(ROUTES.home)
     } catch {
       message.error("Couldn't create the group. Please try again.")
     } finally {

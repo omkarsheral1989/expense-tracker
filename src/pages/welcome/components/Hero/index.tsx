@@ -1,10 +1,8 @@
-import { WalletOutlined } from '@ant-design/icons'
 import { Flex, theme, Typography } from 'antd'
 import type { ReactNode } from 'react'
-import { RADIUS } from '../../../../theme/radius.ts'
+import { BrandLogo } from '../../../../components/BrandLogo'
 import { HIGHLIGHTS, type Highlight } from './content.tsx'
 import { SignInButton } from './SignInButton'
-import { LOGO_GRADIENT_END_COLOR } from './style.ts'
 
 const { Title, Paragraph, Text, Link } = Typography
 
@@ -24,26 +22,6 @@ type HeroProps = {
 
 export function Hero({ gated, installCard }: HeroProps) {
   const { token } = theme.useToken()
-
-  function renderLogo() {
-    return (
-      <Flex
-        align="center"
-        justify="center"
-        style={{
-          width: 128,
-          height: 128,
-          borderRadius: RADIUS.outer,
-          fontSize: 64,
-          color: '#fff',
-          background: `linear-gradient(135deg, ${token.colorPrimary}, ${LOGO_GRADIENT_END_COLOR})`,
-          boxShadow: token.boxShadowSecondary,
-        }}
-      >
-        <WalletOutlined />
-      </Flex>
-    )
-  }
 
   function renderTitles() {
     return (
@@ -106,7 +84,7 @@ export function Hero({ gated, installCard }: HeroProps) {
         gap={20}
         style={{ maxWidth: 640, margin: '0 auto', textAlign: 'center' }}
       >
-        {renderLogo()}
+        <BrandLogo size={128} />
         {renderTitles()}
         <Flex vertical gap={12} style={{ maxWidth: 460, textAlign: 'left' }}>
           {HIGHLIGHTS.map(renderHighlight)}
