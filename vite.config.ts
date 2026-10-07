@@ -5,6 +5,9 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
+  // PGlite loads its WebAssembly and data files relative to its own module, so
+  // Vite must not pre-bundle it.
+  optimizeDeps: { exclude: ['@electric-sql/pglite'] },
   plugins: [
     react(),
     babel({ presets: [reactCompilerPreset()] }),
@@ -24,7 +27,11 @@ export default defineConfig({
         scope: '/',
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,wasm,webmanifest}'],
+        // PGlite's WebAssembly (about 10 MB) and data (about 6 MB) files must be
+        // cached for the app to open its database offline, so the default 2 MB
+        // limit per file is raised.
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,wasm,data,webmanifest}'],
+        maximumFileSizeToCacheInBytes: 20 * 1024 * 1024,
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,
       },

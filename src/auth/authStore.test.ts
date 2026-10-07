@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { useAuth, validToken } from './authStore.ts'
+import { syncSessionFromOtherTab, useAuth, validToken } from './authStore.ts'
 
 const profile = { id: '1', email: 'a@example.com', name: 'A' }
 
@@ -17,6 +17,30 @@ describe('auth store', () => {
     useAuth.getState().signOut()
     expect(useAuth.getState().profile).toBeNull()
     expect(useAuth.getState().token).toBeNull()
+  })
+})
+
+describe('sync between tabs', () => {
+  const signedIn = () =>
+    useAuth.getState().signIn(profile, { value: 't', expiresAt: 1 })
+
+  it('signs out when another tab removes the stored session', () => {
+    signedIn()
+    syncSessionFromOtherTab({ key: 'ownledger-session', newValue: null })
+    expect(useAuth.getState().profile).toBeNull()
+    expect(useAuth.getState().token).toBeNull()
+  })
+
+  it('signs out when the whole storage is cleared', () => {
+    signedIn()
+    syncSessionFromOtherTab({ key: null, newValue: null })
+    expect(useAuth.getState().profile).toBeNull()
+  })
+
+  it('ignores changes to other stored items', () => {
+    signedIn()
+    syncSessionFromOtherTab({ key: 'something-else', newValue: null })
+    expect(useAuth.getState().profile).toEqual(profile)
   })
 })
 

@@ -19,6 +19,7 @@ _Last updated: 2026-10-07_
 - Google sign-in asks for profile and email only. Google Drive access is requested later, the first time the user backs up or syncs.
 - The signed-in user's email, name and photo are used as identity. The app remembers the user on the device, so it opens offline without signing in again.
 - Sign out clears the session but keeps the account's local data on the device.
+- Signing in or out in one browser tab applies to all open tabs of the app. Only one tab at a time can open the account's data; another tab shows a message with a "Try again" button.
 - Each Google account on a device has its own local database.
 
 ### 4.2 Groups
