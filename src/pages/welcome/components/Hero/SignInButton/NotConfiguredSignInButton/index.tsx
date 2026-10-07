@@ -1,5 +1,5 @@
 import { App, Button } from 'antd'
-import { GoogleLogo } from '../../../../../../components/GoogleLogo.tsx'
+import { GoogleLogo } from '../../../../../../components/GoogleLogo'
 import { SIGN_IN_LABEL } from '../content.ts'
 
 /**

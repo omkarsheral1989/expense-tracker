@@ -5,7 +5,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google'
 import './index.css'
 import App from './App.tsx'
 import { GOOGLE_CLIENT_ID } from './config.ts'
-import { ThemeProvider } from './theme/ThemeProvider.tsx'
+import { ThemeProvider } from './components/ThemeProvider'
 
 const app = (
   <BrowserRouter>

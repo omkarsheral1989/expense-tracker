@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { Button, Flex, Result, Spin, Typography } from 'antd'
 import { useAuthStore } from '../../stores/useAuthStore'
 import type { Profile } from '../../services/googleProfileService/types.ts'
-import { useDatabaseSession } from '../../db/useDatabaseSession.ts'
+import { useDatabaseSession } from '../../hooks/useDatabaseSession'
 
 const { Text } = Typography
 

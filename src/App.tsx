@@ -4,7 +4,7 @@ import { DatabaseGate } from './components/DatabaseGate'
 import { HomePage } from './pages/home'
 import { WelcomePage } from './pages/welcome'
 import { useSyncSessionAcrossTabs } from './hooks/useSyncSessionAcrossTabs'
-import { PwaUpdatePrompt } from './pwa/PwaUpdatePrompt.tsx'
+import { PwaUpdatePrompt } from './components/PwaUpdatePrompt'
 
 function App() {
   useSyncSessionAcrossTabs()

@@ -1,12 +1,6 @@
 import { useEffect, useState } from 'react'
-import type { Database } from './client.ts'
-import { databaseSession } from './session.ts'
-
-export type DatabaseSessionState =
-  | { status: 'loading' }
-  | { status: 'ready'; db: Database }
-  | { status: 'locked' }
-  | { status: 'error'; error: Error }
+import { databaseSession } from '../../db/session.ts'
+import type { DatabaseSessionState } from './types.ts'
 
 /**
  * Opens the account's database while the component is mounted and closes it

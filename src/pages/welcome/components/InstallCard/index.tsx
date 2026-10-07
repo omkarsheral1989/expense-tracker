@@ -44,7 +44,7 @@ type Props = {
    * support such as Firefox. It is also false once the prompt has been used,
    * because a browser prompt can only be shown once.
    *
-   * It comes from `useInstall()` (`pwa/useInstall.ts`).
+   * It comes from `useInstall()` (`hooks/useInstall`).
    */
   canPrompt: boolean
   onInstall: () => void

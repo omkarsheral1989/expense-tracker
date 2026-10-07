@@ -3,6 +3,8 @@ import { persist } from 'zustand/middleware'
 import { SESSION_KEY } from './constants.ts'
 import type { AccessToken, AuthState } from './types.ts'
 
+export { SESSION_KEY }
+
 /**
  * The signed-in profile is kept on the device so the app opens offline without
  * a new Google login. The access token lives in memory only: it lasts about an

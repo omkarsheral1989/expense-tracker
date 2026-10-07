@@ -1,6 +1,5 @@
 import { useEffect } from 'react'
-import { useAuthStore } from '../../stores/useAuthStore'
-import { SESSION_KEY } from '../../stores/useAuthStore/constants.ts'
+import { SESSION_KEY, useAuthStore } from '../../stores/useAuthStore'
 
 /**
  * Keeps every open tab in step with the stored session. The browser tells the

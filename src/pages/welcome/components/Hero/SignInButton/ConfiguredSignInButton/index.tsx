@@ -1,6 +1,6 @@
 import { Button } from 'antd'
 import { useSignIn } from '../../../../../../hooks/useSignIn'
-import { GoogleLogo } from '../../../../../../components/GoogleLogo.tsx'
+import { GoogleLogo } from '../../../../../../components/GoogleLogo'
 import { SIGN_IN_LABEL } from '../content.ts'
 
 export function ConfiguredSignInButton() {

@@ -4,13 +4,8 @@ import {
   devOverrides,
   isStandalone,
   type Platform,
-} from './platform.ts'
-
-/** Chromium's install prompt event, which TypeScript's DOM types do not include. */
-type BeforeInstallPromptEvent = Event & {
-  prompt(): Promise<void>
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
-}
+} from '../../pwa/platform.ts'
+import type { BeforeInstallPromptEvent, InstallState } from './types.ts'
 
 // The browser fires `beforeinstallprompt` once, possibly before React mounts,
 // so it is captured at module load and shared through a tiny store.
@@ -43,15 +38,6 @@ function subscribe(onChange: () => void) {
 
 const getCanPrompt = () => deferredPrompt !== null
 const getInstalled = () => installedThisSession || isStandalone()
-
-export type InstallState = {
-  platform: Platform
-  /** Running as an installed home-screen app. */
-  installed: boolean
-  /** The browser offered a native install prompt (Chromium on Android/desktop). */
-  canPrompt: boolean
-  promptInstall: () => Promise<void>
-}
 
 export function useInstall(): InstallState {
   const [overrides] = useState(devOverrides)

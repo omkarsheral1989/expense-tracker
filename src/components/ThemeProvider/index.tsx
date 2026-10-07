@@ -1,7 +1,7 @@
 import { useEffect, type ReactNode } from 'react'
 import { App as AntApp, ConfigProvider, theme } from 'antd'
-import { useColorScheme } from '../hooks/useColorScheme'
-import { RADIUS } from './radius.ts'
+import { useColorScheme } from '../../hooks/useColorScheme'
+import { RADIUS } from '../../theme/radius.ts'
 
 const PRIMARY = '#0d9488'
 
