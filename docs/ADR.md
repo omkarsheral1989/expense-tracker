@@ -94,9 +94,15 @@ _Last updated: 2026-10-07_. Each entry: context, decision, alternatives rejected
 - **Consequences:** Adding analytics or a backend later requires updating the welcome page and this ADR first. Avoid unqualified claims such as "very secure".
 
 ## ADR-019: Google sign-in button and token flow
-- **Decision:** A custom Ant Design button with the Google "G" logo, following Google's branding rules for wording and logo, started by `useGoogleLogin` from `@react-oauth/google`, which provides an access token with the Drive scope.
+- **Decision:** A custom Ant Design button with the Google "G" logo, following Google's branding rules for wording and logo, started by `useGoogleLogin` (implicit flow) from `@react-oauth/google`. Sign-in asks for **basic scopes only** (`openid email profile`); the Drive scope is requested later, at the first backup or sync (incremental consent, a second prompt). The profile is read from Google's userinfo endpoint and validated with zod.
+- **Without a client ID:** `useGoogleLogin` throws while rendering when the client ID is empty, which would blank the page. The provider and Google's script are skipped, and a separate button only explains that sign-in is not configured.
 - **Rejected:** Google's official rendered button (`GoogleLogin`), which returns an ID token and fits poorly with the token flow needed for Drive access.
 - **Consequences:** The button must be triggered directly by a user click (popup blockers). Tokens last about an hour with no refresh token, so Drive actions may re-prompt. Because the OAuth app stays in Testing mode (ADR-009), users see Google's "hasn't verified this app" screen, and only people added as test users can sign in ("Access blocked" otherwise). The FAQ explains both and points people who are blocked to the GitHub issues page (https://github.com/omkarsheral1989/expense-tracker/issues) to request access.
+
+## ADR-024: Session handling
+- **Decision:** The signed-in profile (Google id, email, name, picture) is persisted in `localStorage` (zustand `persist`, key `ownledger-session`) so the app opens offline without a new Google login. The access token is kept in memory only and is requested again when a Drive action needs it (`validToken` treats a token with under a minute left as expired). Signed-in visitors to `/` are redirected to `/home`; signed-out visitors to `/home` go back to `/` (`RequireAuth`).
+- **Sign-out:** clears the session and token only. The account's local database and photos stay on the device, and signing back in restores them. Google's access is not revoked.
+- **Consequences:** "Signed in" means "this device remembers who you are"; it is not proof of a current Google session. Anyone with access to the browser profile can open the app, so a future app lock may be wanted (see PRD open questions).
 
 ## ADR-020: Placeholder home route
 - **Decision:** Until the home page is built, a successful sign-in routes to `/home`, a simple "Signed in as <name>" page with a sign-out button.

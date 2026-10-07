@@ -16,7 +16,9 @@ _Last updated: 2026-10-07_
 ## 4. Features
 
 ### 4.1 Authentication
-- Google sign-in. The signed-in user's email, name and photo are used as identity.
+- Google sign-in asks for profile and email only. Google Drive access is requested later, the first time the user backs up or syncs.
+- The signed-in user's email, name and photo are used as identity. The app remembers the user on the device, so it opens offline without signing in again.
+- Sign out clears the session but keeps the account's local data on the device.
 - Each Google account on a device has its own local database.
 
 ### 4.2 Groups
