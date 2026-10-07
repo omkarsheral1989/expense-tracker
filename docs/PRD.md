@@ -23,7 +23,8 @@ _Last updated: 2026-10-07_
 
 ### 4.2 Groups
 - Create a group with a name, a type (trip / home / couple / other, each with its own icon) and members.
-- Members are picked from people already in the user's other groups, or added by Gmail address.
+- Members are picked from people already known on this device (people from the user's other groups), or added by Gmail address. Only `@gmail.com` addresses are accepted, which means Google Workspace accounts with other domains cannot be added.
+- The creator is always a member of the new group.
 - Any member can edit group details and add members.
 - Members added by email who have not opened the app yet are shown as pending.
 
@@ -91,7 +92,10 @@ Until the real home page exists, a successful sign-in routes to `/home`, which s
 - A "Create group" button.
 
 ### 5.3 Create group
-- Group name, group type, members (existing or new by Gmail address).
+- Route `/groups/new`, reached from a "Create group" button on the home page.
+- **Name** (required, 1 to 60 characters), **type** (trip / home / couple / other, each shown as an Ant Design icon in a colored tile), and **members** (pick someone already known, or add a `@gmail.com` address; the creator is added automatically and cannot be removed).
+- Creating a group only saves it on this device. Sharing it through Drive happens later, at the first sync.
+- After creating, the app opens the new group's page (`/groups/<id>`), a simple placeholder for now that shows the name, type and members.
 
 ### 5.4 Group page
 - Opens from a group on the home page. Contains the group's expenses and other sections (to be defined).
