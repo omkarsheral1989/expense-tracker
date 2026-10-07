@@ -1,5 +1,6 @@
 import { DownloadOutlined, ExclamationCircleFilled } from '@ant-design/icons'
 import { Button, Card, Flex, Steps, theme, Typography } from 'antd'
+import { useColorScheme } from '../../hooks/useColorScheme.ts'
 import type { Platform } from '../../pwa/platform.ts'
 
 const { Title, Paragraph, Text } = Typography
@@ -14,6 +15,10 @@ type Props = {
   /** Rendered inside the hero (full width, left-aligned text) instead of as its own section. */
   embedded?: boolean
 }
+
+// The default warning amber clashes with the teal card, so use a deeper orange
+// (and a lighter one in dark mode, where the card is dark).
+const WARNING_ICON = { light: '#d46b08', dark: '#ffa940' } as const
 
 const IOS_STEPS = [
   {
@@ -37,6 +42,7 @@ export function InstallCard({
   embedded,
 }: Props) {
   const { token } = theme.useToken()
+  const scheme = useColorScheme()
 
   const Wrapper = embedded ? 'div' : 'section'
   const wrapperStyle = embedded
@@ -60,7 +66,7 @@ export function InstallCard({
               {gated ? (
                 <ExclamationCircleFilled
                   aria-label="Action needed"
-                  style={{ color: token.colorWarning, fontSize: 24 }}
+                  style={{ color: WARNING_ICON[scheme], fontSize: 24 }}
                 />
               ) : (
                 <DownloadOutlined
@@ -84,6 +90,14 @@ export function InstallCard({
                 orientation="vertical"
                 size="small"
                 current={-1}
+                // These steps are required, so they must not look greyed out
+                // like upcoming steps do by default.
+                styles={{
+                  itemIcon: { background: token.colorPrimary, color: '#fff' },
+                  itemTitle: { color: token.colorText, fontWeight: 600 },
+                  itemContent: { color: token.colorText },
+                  itemRail: { background: token.colorPrimary },
+                }}
                 items={IOS_STEPS.map(({ title, content }) => ({
                   title,
                   content,
