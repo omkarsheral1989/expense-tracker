@@ -22,6 +22,7 @@ Details: @docs/PRD.md (features, pages, open questions) and @docs/ADR.md (archit
 
 ## Rules
 - **UI:** Ant Design components only. No Tailwind, no SCSS. Use `ConfigProvider` tokens for theming; plain CSS or CSS modules for small custom styles.
+- **Corner radius:** only two values, from `src/theme/radius.ts`: `RADIUS.inner` (12) for small things inside others (buttons, inputs, icon tiles) and `RADIUS.outer` (24) for containers (cards, panels). Never hard-code another radius, and don't use `shape="round"` buttons.
 - **Money:** integer minor units, always with a currency code. Respect each currency's decimal places. Multi-currency has no conversion; balances are per currency.
 - **IDs:** UUID primary keys, never auto-increment.
 - **Rows:** every synced row has `updated_at` and `updated_by`. Delete by setting `deleted_at` (soft delete), never hard delete synced rows.

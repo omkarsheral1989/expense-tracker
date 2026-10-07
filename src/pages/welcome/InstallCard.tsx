@@ -84,7 +84,6 @@ export function InstallCard({
               <Button
                 type="primary"
                 size="large"
-                shape="round"
                 icon={<DownloadOutlined />}
                 onClick={onInstall}
               >

@@ -1,4 +1,5 @@
 import { Card, Col, Flex, Row, theme, Typography } from 'antd'
+import { RADIUS } from '../../theme/radius.ts'
 import { FEATURES } from './content.tsx'
 import { Section } from './Section.tsx'
 
@@ -20,7 +21,7 @@ export function Features() {
                   style={{
                     width: 48,
                     height: 48,
-                    borderRadius: 14,
+                    borderRadius: RADIUS.inner,
                     fontSize: 24,
                     background: token.colorPrimaryBg,
                   }}

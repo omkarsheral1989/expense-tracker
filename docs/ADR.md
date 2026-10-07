@@ -82,6 +82,7 @@ _Last updated: 2026-10-07_. Each entry: context, decision, alternatives rejected
 
 ## ADR-016: Name, look and visuals
 - **Decision:** The app is called **OwnLedger**. Friendly, colourful look with a teal/green accent, applied through Ant Design `ConfigProvider` tokens; follows the system light/dark setting. Visuals come from Ant Design icons, gradients and emoji.
+- **Corner radius:** two tiers only, defined in `src/theme/radius.ts`: **inner 12 px** for small things inside other things (buttons, inputs, icon tiles) and **outer 24 px** for containers (cards, panels, collapse, the hero logo tile). They are applied as Ant Design tokens (`borderRadius`, `borderRadiusSM`, `borderRadiusXS` = inner; `borderRadiusLG` = outer). Large buttons and inputs would otherwise inherit the outer radius and look like pills, so `Button`, `Input`, `InputNumber`, `Select` and `DatePicker` override `borderRadiusLG` back to inner. Buttons use the default shape, not `shape="round"`. Circles (avatars) are exempt.
 - **Rejected:** Custom SVG illustrations or supplied image assets (more work, no need yet), Ant Design's default blue.
 - **Consequences:** No image assets to maintain. Visual polish is limited to what icons, colour and layout can do. The name's trademark and domain availability were not checked.
 

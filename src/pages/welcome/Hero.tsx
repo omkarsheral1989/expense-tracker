@@ -7,6 +7,7 @@ import {
 } from '@ant-design/icons'
 import { Button, Flex, theme, Typography } from 'antd'
 import type { ReactNode } from 'react'
+import { RADIUS } from '../../theme/radius.ts'
 import { SignInButton } from './SignInButton.tsx'
 
 const { Title, Paragraph, Text, Link } = Typography
@@ -48,10 +49,10 @@ export function Hero({ gated }: HeroProps) {
           align="center"
           justify="center"
           style={{
-            width: 80,
-            height: 80,
-            borderRadius: 24,
-            fontSize: 40,
+            width: 128,
+            height: 128,
+            borderRadius: RADIUS.outer,
+            fontSize: 64,
             color: '#fff',
             background: `linear-gradient(135deg, ${token.colorPrimary}, #34d399)`,
             boxShadow: token.boxShadowSecondary,
@@ -94,7 +95,6 @@ export function Hero({ gated }: HeroProps) {
           <Button
             type="primary"
             size="large"
-            shape="round"
             icon={<DownloadOutlined />}
             href="#install"
           >

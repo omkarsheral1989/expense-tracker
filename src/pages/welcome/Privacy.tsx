@@ -1,4 +1,5 @@
 import { Col, Flex, Row, theme, Typography } from 'antd'
+import { RADIUS } from '../../theme/radius.ts'
 import { PRIVACY } from './content.tsx'
 import { Section } from './Section.tsx'
 
@@ -24,7 +25,7 @@ export function Privacy() {
                   flex: 'none',
                   width: 44,
                   height: 44,
-                  borderRadius: 12,
+                  borderRadius: RADIUS.inner,
                   fontSize: 20,
                   color: '#fff',
                   background: token.colorPrimary,

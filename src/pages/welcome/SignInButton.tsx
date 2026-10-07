@@ -11,7 +11,6 @@ function ConfiguredSignInButton() {
   return (
     <Button
       size="large"
-      shape="round"
       icon={<GoogleLogo />}
       loading={loading}
       onClick={signIn}
@@ -31,7 +30,6 @@ function NotConfiguredSignInButton() {
   return (
     <Button
       size="large"
-      shape="round"
       icon={<GoogleLogo />}
       onClick={() =>
         message.error(
