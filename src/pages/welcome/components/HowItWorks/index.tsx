@@ -1,6 +1,6 @@
 import { Grid, Steps } from 'antd'
-import { STEPS } from './content.tsx'
-import { Section } from './Section.tsx'
+import { STEPS } from './content.ts'
+import { Section } from '../Section'
 
 export function HowItWorks() {
   const screens = Grid.useBreakpoint()

@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router'
 import { RequireAuth } from './auth/RequireAuth.tsx'
-import { HomePage } from './pages/home/HomePage.tsx'
-import { WelcomePage } from './pages/welcome/WelcomePage.tsx'
+import { HomePage } from './pages/home'
+import { WelcomePage } from './pages/welcome'
 import { PwaUpdatePrompt } from './pwa/PwaUpdatePrompt.tsx'
 
 function App() {

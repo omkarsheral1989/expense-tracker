@@ -1,7 +1,7 @@
 import { App, Button } from 'antd'
-import { useSignIn } from '../../auth/useSignIn.ts'
-import { GoogleLogo } from '../../components/GoogleLogo.tsx'
-import { GOOGLE_CLIENT_ID } from '../../config.ts'
+import { useSignIn } from '../../../../../auth/useSignIn.ts'
+import { GoogleLogo } from '../../../../../components/GoogleLogo.tsx'
+import { GOOGLE_CLIENT_ID } from '../../../../../config.ts'
 
 const LABEL = 'Sign in with Google'
 

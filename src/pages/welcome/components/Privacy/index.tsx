@@ -1,7 +1,7 @@
 import { Col, Flex, Row, theme, Typography } from 'antd'
-import { RADIUS } from '../../theme/radius.ts'
+import { RADIUS } from '../../../../theme/radius.ts'
 import { PRIVACY } from './content.tsx'
-import { Section } from './Section.tsx'
+import { Section } from '../Section'
 
 const { Text } = Typography
 

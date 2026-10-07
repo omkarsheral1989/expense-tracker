@@ -21,6 +21,7 @@ Details: @docs/PRD.md (features, pages, open questions) and @docs/ADR.md (archit
 - `bun run preview` serve the production build (the service worker only runs there)
 
 ## Rules
+- **Folder structure:** each page is `src/pages/<name>/index.tsx` (the entry point, a named export such as `WelcomePage`). Its components live in `src/pages/<name>/components/<Component>/index.tsx`, one folder per component, nested by use: a component used only by one parent sits inside that parent's folder (`components/Hero/SignInButton/index.tsx`). Anything shared by several components lives at their lowest common parent (`components/Section`). A component's own data sits beside it (`Faq/content.tsx`); constants used by several components sit beside the page entry (`constants.ts`). Shared code stays outside pages: `src/components`, `src/auth`, `src/pwa`, `src/theme`, `src/hooks`. Import a component folder without a file name (`'../Section'`).
 - **UI:** Ant Design components only. No Tailwind, no SCSS. Use `ConfigProvider` tokens for theming; plain CSS or CSS modules for small custom styles.
 - **Corner radius:** only two values, from `src/theme/radius.ts`: `RADIUS.inner` (12) for small things inside others (buttons, inputs, icon tiles) and `RADIUS.outer` (24) for containers (cards, panels). Never hard-code another radius, and don't use `shape="round"` buttons.
 - **Money:** integer minor units, always with a currency code. Respect each currency's decimal places. Multi-currency has no conversion; balances are per currency.

@@ -6,8 +6,8 @@ import {
 } from '@ant-design/icons'
 import { Flex, theme, Typography } from 'antd'
 import type { ReactNode } from 'react'
-import { RADIUS } from '../../theme/radius.ts'
-import { SignInButton } from './SignInButton.tsx'
+import { RADIUS } from '../../../../theme/radius.ts'
+import { SignInButton } from './SignInButton'
 
 const { Title, Paragraph, Text, Link } = Typography
 

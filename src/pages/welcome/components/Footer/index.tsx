@@ -1,5 +1,5 @@
 import { Divider, Typography } from 'antd'
-import { REPO_URL } from './content.tsx'
+import { REPO_URL } from '../../constants.ts'
 
 const { Text, Link } = Typography
 

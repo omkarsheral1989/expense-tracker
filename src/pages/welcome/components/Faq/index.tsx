@@ -1,6 +1,6 @@
 import { Collapse, Typography } from 'antd'
 import { FAQ } from './content.tsx'
-import { Section } from './Section.tsx'
+import { Section } from '../Section'
 
 const { Paragraph } = Typography
 

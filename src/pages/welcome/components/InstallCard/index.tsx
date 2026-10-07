@@ -1,7 +1,7 @@
 import { DownloadOutlined, ExclamationCircleFilled } from '@ant-design/icons'
 import { Button, Card, Flex, Steps, theme, Typography } from 'antd'
-import { useColorScheme } from '../../hooks/useColorScheme.ts'
-import type { Platform } from '../../pwa/platform.ts'
+import { useColorScheme } from '../../../../hooks/useColorScheme.ts'
+import type { Platform } from '../../../../pwa/platform.ts'
 
 const { Title, Paragraph, Text } = Typography
 
