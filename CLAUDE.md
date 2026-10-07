@@ -21,7 +21,7 @@ Details: @docs/PRD.md (features, pages, open questions) and @docs/ADR.md (archit
 - `bun run preview` serve the production build (the service worker only runs there)
 
 ## Rules
-- **Folder structure:** each page is `src/pages/<name>/index.tsx` (the entry point, a named export such as `WelcomePage`). Its components live in `src/pages/<name>/components/<Component>/index.tsx`, one folder per component, nested by use: a component used only by one parent sits inside that parent's folder (`components/Hero/SignInButton/index.tsx`). Anything shared by several components lives at their lowest common parent (`components/Section`). A component's own data sits beside it (`Faq/content.tsx`); constants used by several components sit beside the page entry (`constants.ts`). Shared code stays outside pages: `src/components`, `src/auth`, `src/pwa`, `src/theme`, `src/hooks`. Import a component folder without a file name (`'../Section'`).
+- **Folder structure:** each page is `src/pages/<name>/index.tsx` (the entry point, a named export such as `WelcomePage`). Its components live in `src/pages/<name>/components/<Component>/index.tsx`, one folder per component, nested by use: a component used only by one parent sits inside that parent's folder (`components/Hero/SignInButton/index.tsx`). Anything shared by several components lives at their lowest common parent (`components/Section`). A component's own files sit beside its `index.tsx`: copy and data in `content.ts(x)` (`Faq/content.tsx`), styling constants such as colors in `style.ts` (`InstallCard/style.ts`). Constants used by several components sit beside the page entry (`constants.ts`). Shared code stays outside pages: `src/components`, `src/auth`, `src/pwa`, `src/theme`, `src/hooks`. Import a component folder without a file name (`'../Section'`).
 - **UI:** Ant Design components only. No Tailwind, no SCSS. Use `ConfigProvider` tokens for theming; plain CSS or CSS modules for small custom styles.
 - **Corner radius:** only two values, from `src/theme/radius.ts`: `RADIUS.inner` (12) for small things inside others (buttons, inputs, icon tiles) and `RADIUS.outer` (24) for containers (cards, panels). Never hard-code another radius, and don't use `shape="round"` buttons.
 - **Money:** integer minor units, always with a currency code. Respect each currency's decimal places. Multi-currency has no conversion; balances are per currency.
@@ -36,9 +36,21 @@ Details: @docs/PRD.md (features, pages, open questions) and @docs/ADR.md (archit
 - **Secrets:** never commit `.env*` files or tokens. The Google client ID goes in `VITE_GOOGLE_CLIENT_ID`.
 - **Tests:** split calculations, balance maths and the sync merge must have unit tests.
 
+## Component code style
+- **Keep `return` short.** When a component's `return` grows past roughly 10–20 lines, move parts into `render<Section>()` functions (`renderHeading()`, `renderIosInstructions()`) defined inside the component, above the `return`. Prefer a plain `if` inside a render function over nested ternaries. Example: `pages/welcome/components/InstallCard/index.tsx`.
+- **Inline one-off styles.** Write a small style object directly on the element (`style={{ … }}`). Don't create a `wrapperStyle` or `cardStyle` variable for something used once.
+- **No dead code.** Remove props and branches that no caller uses (the old `embedded` prop on `InstallCard` was removed once only one layout remained).
+- **Move data out of the component.** Copy, step lists and other data go in `content.ts(x)`; colors and similar constants go in `style.ts`.
+- **Type constants explicitly and reuse shared types.** For example `WARNING_ICON_COLOR: Record<ColorScheme, string>`, where `ColorScheme` is exported from `src/hooks/useColorScheme.ts`, so a missing key or a typo is a compile error.
+- **Document non-obvious props.** Add a `/** … */` comment that says what the prop means, what changes when it is true and when it is false, and where its value comes from (`gated` and `canPrompt` on `InstallCard`).
+- **Descriptive names.** Name constants for what they hold (`WARNING_ICON_COLOR`, not `WARNING_ICON`).
+- **Spelling:** use "color" (not "colour") everywhere: identifiers, comments, docs and copy.
+
 ## Working agreement
 - Do not implement features until the user says where to start. Work on one feature at a time.
 - Ask lots of clarifying questions before implementing any code. Settle requirements, edge cases and copy first, record decisions in `docs/PRD.md` and `docs/ADR.md`, and start coding only when the user says so.
 - Ask before big or irreversible changes (deleting data, changing the schema shape, swapping a library).
 - When a decision changes, update `docs/ADR.md` (and `docs/PRD.md` if behaviour changes) in the same change.
-- Only commit when asked.
+- Only commit when asked. Before every commit read `git status` and stage files by name; never use a blind `git add -A`. Files such as `google-settings.json` (a Google OAuth download with a client secret) and `.env*` must never be staged.
+- Run shell commands from the project root (give the full path with `cd`), because the working directory persists between commands.
+- After a UI change, check it in the browser pane (dev server, `?platform=ios|android|desktop` and `?installed=1` simulate the install cases), and run `bunx tsc -b`, `bun run lint` and `bun run test` before saying it is done.

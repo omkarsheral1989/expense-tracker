@@ -82,10 +82,10 @@ _Last updated: 2026-10-07_. Each entry: context, decision, alternatives rejected
 - **Consequences:** The skip choice is not persisted, so iOS users see the gate on every browser visit. User-agent detection can be wrong for unusual browsers; `detectPlatform` has unit tests. Native install prompts exist only in Chromium browsers; others get written instructions.
 
 ## ADR-016: Name, look and visuals
-- **Decision:** The app is called **OwnLedger**. Friendly, colourful look with a teal/green accent, applied through Ant Design `ConfigProvider` tokens; follows the system light/dark setting. Visuals come from Ant Design icons, gradients and emoji.
+- **Decision:** The app is called **OwnLedger**. Friendly, colorful look with a teal/green accent, applied through Ant Design `ConfigProvider` tokens; follows the system light/dark setting. Visuals come from Ant Design icons, gradients and emoji.
 - **Corner radius:** two tiers only, defined in `src/theme/radius.ts`: **inner 12 px** for small things inside other things (buttons, inputs, icon tiles) and **outer 24 px** for containers (cards, panels, collapse, the hero logo tile). They are applied as Ant Design tokens (`borderRadius`, `borderRadiusSM`, `borderRadiusXS` = inner; `borderRadiusLG` = outer). Large buttons and inputs would otherwise inherit the outer radius and look like pills, so `Button`, `Input`, `InputNumber`, `Select` and `DatePicker` override `borderRadiusLG` back to inner. Buttons use the default shape, not `shape="round"`. Circles (avatars) are exempt.
 - **Rejected:** Custom SVG illustrations or supplied image assets (more work, no need yet), Ant Design's default blue.
-- **Consequences:** No image assets to maintain. Visual polish is limited to what icons, colour and layout can do. The name's trademark and domain availability were not checked.
+- **Consequences:** No image assets to maintain. Visual polish is limited to what icons, color and layout can do. The name's trademark and domain availability were not checked.
 
 ## ADR-017: Open source under GPL-3.0, public repository
 - **Decision:** The code is public at https://github.com/omkarsheral1989/expense-tracker under GPL-3.0 (`license` field is `GPL-3.0-only`). The welcome page says so and links to the repository.

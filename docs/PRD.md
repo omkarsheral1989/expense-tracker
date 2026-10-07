@@ -65,7 +65,7 @@ _Last updated: 2026-10-07_
 ## 5. Pages
 
 ### 5.1 Welcome (logged out)
-Single scrolling page, English only, friendly and colourful look (teal/green accent, Ant Design components, icons, gradients and emoji; no image assets). Follows the system light/dark setting. Sections, in order:
+Single scrolling page, English only, friendly and colorful look (teal/green accent, Ant Design components, icons, gradients and emoji; no image assets). Follows the system light/dark setting. Sections, in order:
 
 1. **Hero:** name "OwnLedger", tagline "Split expenses with friends. Keep your data.", a one-line description that includes "free and open source", and a single **Sign in with Google** button (Ant Design button with the Google "G" logo). A short note beneath it says the app uses the user's Google Drive to back up and share groups and sends nothing to any server, with a link to the Drive FAQ entry.
 2. **Install card** (only when not installed). It sits inside the hero, between the highlight lines and the sign-in button, to put the emphasis on installing before signing in. Its heading has an icon: an amber warning icon when installing is required (iPhone/iPad), a teal download icon when it is optional.

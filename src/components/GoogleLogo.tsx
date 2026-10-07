@@ -1,4 +1,4 @@
-/** The multicolour Google "G", as required by Google's sign-in branding guidelines. */
+/** The multicolor Google "G", as required by Google's sign-in branding guidelines. */
 export function GoogleLogo({ size = 18 }: { size?: number }) {
   return (
     <svg
