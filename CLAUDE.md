@@ -1,4 +1,4 @@
-# Expense Tracker
+# OwnLedger
 
 Client-only, installable PWA for personal and shared (group) expenses. All data is stored on the device. Group data is shared through Google Drive. No backend.
 
@@ -29,6 +29,7 @@ Details: @docs/PRD.md (features, pages, open questions) and @docs/ADR.md (archit
 - **Sync:** one JSON file per member per group in the group's Drive folder; each file has a single writer. Merge by newest `updated_at` per row (user id as tie-breaker), keep edit history. Validate all downloaded JSON with zod; treat it as untrusted.
 - **Storage:** one database per signed-in Google account on a device. Only one tab may open the database.
 - **Offline:** the app must render and work offline. Network failures (sign-in, Drive, sync) must degrade gracefully.
+- **Privacy promises:** the welcome page promises no backend, no ads and no tracking. Never add analytics, tracking or a server that stores user data without updating the welcome page and `docs/ADR.md` first.
 - **Secrets:** never commit `.env*` files or tokens. The Google client ID goes in `VITE_GOOGLE_CLIENT_ID`.
 - **Tests:** split calculations, balance maths and the sync merge must have unit tests.
 

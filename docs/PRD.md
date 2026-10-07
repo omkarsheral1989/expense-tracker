@@ -1,9 +1,9 @@
-# Product Requirements: Expense Tracker
+# Product Requirements: OwnLedger
 
 _Last updated: 2026-10-07_
 
 ## 1. Overview
-An installable, offline-capable web app (PWA) for tracking personal expenses and expenses shared in groups (trips, home, couples, others). Everything is stored locally on the user's device. Groups are shared between members through a Google Drive folder. There is no backend.
+**OwnLedger** is an installable, offline-capable web app (PWA) for tracking personal expenses and expenses shared in groups (trips, home, couples, others). Everything is stored locally on the user's device. Groups are shared between members through a Google Drive folder. There is no backend.
 
 ## 2. Users
 - A person tracking their own spending.
@@ -63,10 +63,24 @@ An installable, offline-capable web app (PWA) for tracking personal expenses and
 ## 5. Pages
 
 ### 5.1 Welcome (logged out)
-- App name, short description, Google sign-in button.
-- **Not installed on iPhone/iPad:** install instructions ("Share, then Add to Home Screen") with a small "Continue in browser anyway" link. The login button appears once the app runs as an installed PWA.
-- **Not installed on Android/desktop:** an "Install app" button plus instructions, and a "Continue in browser" option.
-- **Installed:** the login button.
+Single scrolling page, English only, friendly and colourful look (teal/green accent, Ant Design components, icons, gradients and emoji; no image assets). Follows the system light/dark setting. Sections, in order:
+
+1. **Hero:** name "OwnLedger", tagline "Split expenses with friends. Keep your data.", a one-line description that includes "free and open source", and a single **Sign in with Google** button (Ant Design button with the Google "G" logo). A short note beneath it says the app uses the user's Google Drive to back up and share groups and sends nothing to any server, with a link to the Drive FAQ entry.
+2. **Install** (only when not installed):
+   - **iPhone/iPad:** steps "Share, then Add to Home Screen, then open from the home screen", with the reason (installed iOS apps have separate storage) and a small "Continue in browser anyway" link. The sign-in button appears only once the app runs as an installed PWA.
+   - **Android/desktop:** an "Install app" button (from `beforeinstallprompt`) plus instructions, and a "Continue in browser" option.
+   - **Installed (standalone):** this section is hidden and the sign-in button is shown.
+   - A dev flag (`VITE_REQUIRE_INSTALL=false`) turns the iOS gate off locally.
+3. **Feature highlights:** cards for groups, flexible splitting, settle-up, any currency, receipts, budgets and reports, offline use.
+4. **Privacy and ownership:** offline first, no OwnLedger servers, privacy first (no ads, no tracking), you own your data, shared on your terms through your own Drive, and open source with a link to https://github.com/omkarsheral1989/expense-tracker (GPL-3.0).
+5. **How it works:** sign in, create a group, add expenses, sync.
+6. **FAQ:** why Drive access is needed (says the permission is broad and that the app only uses its own folders), where data is stored, what happens if browser data is cleared, who can see group expenses, whether personal spending is shared, offline behaviour, deleting data, why Google shows "hasn't verified this app", what "Access blocked" means (while the app is unverified only approved users can sign in; the entry links to https://github.com/omkarsheral1989/expense-tracker/issues to request access), and whether the app is open source.
+7. **Footer:** "free and open source (GPL-3.0)" with a link to the GitHub repository.
+
+Copy rules: claims must stay true. "No ads and no tracking" holds only while no analytics or tracking is added to the app.
+
+### 5.1a Post-login placeholder
+Until the real home page exists, a successful sign-in routes to `/home`, which shows "Signed in as <name>" and a sign-out button.
 
 ### 5.2 Home (logged in)
 - A list of groups: icon, name, and either "you are owed X", "you owe X" (one line per currency) or "Settled up".
@@ -80,6 +94,7 @@ An installable, offline-capable web app (PWA) for tracking personal expenses and
 - Opens from a group on the home page. Contains the group's expenses and other sections (to be defined).
 
 ## 6. Open questions
+- Google Cloud setup: the OAuth client ID is not created yet (Drive API, consent screen in Testing mode, authorized origins, test users).
 - Member removal: what happens to a removed member's access and local data.
 - Group page layout and sections.
 - Add-expense form details.

@@ -71,7 +71,29 @@ _Last updated: 2026-10-07_. Each entry: context, decision, alternatives rejected
 - **Reason:** An installed iOS PWA has its own storage, separate from Safari, so data entered in a tab would not carry over.
 - **Consequences:** Google sign-in in a standalone iOS PWA needs early testing on a real iPhone; fallback is a redirect-based flow. Keep the signed-in profile locally so the app opens offline.
 
-## ADR-015: Libraries
+## ADR-016: Name, look and visuals
+- **Decision:** The app is called **OwnLedger**. Friendly, colourful look with a teal/green accent, applied through Ant Design `ConfigProvider` tokens; follows the system light/dark setting. Visuals come from Ant Design icons, gradients and emoji.
+- **Rejected:** Custom SVG illustrations or supplied image assets (more work, no need yet), Ant Design's default blue.
+- **Consequences:** No image assets to maintain. Visual polish is limited to what icons, colour and layout can do. The name's trademark and domain availability were not checked.
+
+## ADR-017: Open source under GPL-3.0, public repository
+- **Decision:** The code is public at https://github.com/omkarsheral1989/expense-tracker under GPL-3.0 (`license` field is `GPL-3.0-only`). The welcome page says so and links to the repository.
+- **Consequences:** Derivative works must also be GPL. The privacy claims on the welcome page are verifiable by reading the code, which also means they must stay true (see ADR-018).
+
+## ADR-018: Welcome page privacy claims are commitments
+- **Decision:** The welcome page states: offline first, no OwnLedger servers, no ads and no tracking, user owns the data. These constrain the codebase: no backend storing user data, and no analytics, tracking or ad SDKs. The FAQ states honestly that the Google Drive permission is broad (full `drive` scope) and that the app only uses its own folders.
+- **Consequences:** Adding analytics or a backend later requires updating the welcome page and this ADR first. Avoid unqualified claims such as "very secure".
+
+## ADR-019: Google sign-in button and token flow
+- **Decision:** A custom Ant Design button with the Google "G" logo, following Google's branding rules for wording and logo, started by `useGoogleLogin` from `@react-oauth/google`, which provides an access token with the Drive scope.
+- **Rejected:** Google's official rendered button (`GoogleLogin`), which returns an ID token and fits poorly with the token flow needed for Drive access.
+- **Consequences:** The button must be triggered directly by a user click (popup blockers). Tokens last about an hour with no refresh token, so Drive actions may re-prompt. Because the OAuth app stays in Testing mode (ADR-009), users see Google's "hasn't verified this app" screen, and only people added as test users can sign in ("Access blocked" otherwise). The FAQ explains both and points people who are blocked to the GitHub issues page (https://github.com/omkarsheral1989/expense-tracker/issues) to request access.
+
+## ADR-020: Placeholder home route
+- **Decision:** Until the home page is built, a successful sign-in routes to `/home`, a simple "Signed in as <name>" page with a sign-out button.
+- **Consequences:** Temporary; replace when the real home page is implemented.
+
+## ADR-021: Libraries
 - **Runtime:** `@electric-sql/pglite`, `@electric-sql/pglite-react`, `@electric-sql/pglite-tools`, `drizzle-orm`, `@react-oauth/google`, `zod`, `idb`, `papaparse`, `zustand`, plus `antd`, `@ant-design/icons`, `react-router`.
 - **Dev:** `drizzle-kit`, `vite-plugin-pwa`, `vitest`, `jsdom`, `@testing-library/react`, `@types/papaparse`.
 - **Config still to add:** `optimizeDeps: { exclude: ['@electric-sql/pglite'] }` in `vite.config.ts`, the PWA plugin, a Vitest setup, and `VITE_GOOGLE_CLIENT_ID` in `.env`.
