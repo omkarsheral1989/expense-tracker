@@ -38,6 +38,7 @@ Details: @docs/PRD.md (features, pages, open questions) and @docs/ADR.md (archit
 
 ## Component code style
 - **Keep `return` short.** When a component's `return` grows past roughly 10–20 lines, move parts into `render<Section>()` functions (`renderHeading()`, `renderIosInstructions()`) defined inside the component, above the `return`. Prefer a plain `if` inside a render function over nested ternaries. Example: `pages/welcome/components/InstallCard/index.tsx`.
+- **Render one list item with a function.** When mapping a list, write `render<Item>(item: Type)` and use `LIST.map(renderItem)`. Export the item type from the content file (`Feature`, `PrivacyPoint`, `Highlight`). Pass values the function needs as parameters (`renderAvatar(profile)`) when TypeScript would lose a narrowing check inside a nested function.
 - **Inline one-off styles.** Write a small style object directly on the element (`style={{ … }}`). Don't create a `wrapperStyle` or `cardStyle` variable for something used once.
 - **No dead code.** Remove props and branches that no caller uses (the old `embedded` prop on `InstallCard` was removed once only one layout remained).
 - **Move data out of the component.** Copy, step lists and other data go in `content.ts(x)`; colors and similar constants go in `style.ts`.

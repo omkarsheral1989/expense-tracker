@@ -1,5 +1,5 @@
 import { Avatar, Button, Card, Flex, Typography } from 'antd'
-import { useAuth } from '../../auth/authStore.ts'
+import { useAuth, type Profile } from '../../auth/authStore.ts'
 
 const { Title, Text } = Typography
 
@@ -10,20 +10,28 @@ export function HomePage() {
 
   if (!profile) return null
 
+  // Google profile pictures only load without a referrer; the first letter of
+  // the name is shown when there is no picture or it fails to load.
+  function renderAvatar({ name, picture }: Profile) {
+    return (
+      <Avatar
+        size={72}
+        src={
+          picture ? (
+            <img src={picture} alt="" referrerPolicy="no-referrer" />
+          ) : undefined
+        }
+      >
+        {name.charAt(0).toUpperCase()}
+      </Avatar>
+    )
+  }
+
   return (
     <Flex justify="center" style={{ padding: '64px 16px' }}>
       <Card style={{ width: '100%', maxWidth: 420 }}>
         <Flex vertical align="center" gap={12} style={{ textAlign: 'center' }}>
-          <Avatar
-            size={72}
-            src={
-              profile.picture ? (
-                <img src={profile.picture} alt="" referrerPolicy="no-referrer" />
-              ) : undefined
-            }
-          >
-            {profile.name.charAt(0).toUpperCase()}
-          </Avatar>
+          {renderAvatar(profile)}
           <Title level={3} style={{ margin: 0 }}>
             Signed in as {profile.name}
           </Title>

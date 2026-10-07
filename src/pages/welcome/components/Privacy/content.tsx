@@ -12,7 +12,9 @@ import { REPO_URL } from '../../constants.ts'
 
 const { Link } = Typography
 
-export const PRIVACY: { icon: ReactNode; title: string; text: ReactNode }[] = [
+export type PrivacyPoint = { icon: ReactNode; title: string; text: ReactNode }
+
+export const PRIVACY: PrivacyPoint[] = [
   {
     icon: <DisconnectOutlined />,
     title: 'Offline first',

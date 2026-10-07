@@ -1,4 +1,6 @@
-export const FEATURES: { emoji: string; title: string; text: string }[] = [
+export type Feature = { emoji: string; title: string; text: string }
+
+export const FEATURES: Feature[] = [
   {
     emoji: '👥',
     title: 'Groups for every occasion',
