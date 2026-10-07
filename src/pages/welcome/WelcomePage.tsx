@@ -25,16 +25,21 @@ export function WelcomePage() {
 
   return (
     <main>
-      <Hero gated={gated} />
-      {!installed && (
-        <InstallCard
-          platform={platform}
-          gated={gated}
-          canPrompt={canPrompt}
-          onInstall={promptInstall}
-          onSkip={() => setSkipped(true)}
-        />
-      )}
+      <Hero
+        gated={gated}
+        installCard={
+          !installed && (
+            <InstallCard
+              embedded
+              platform={platform}
+              gated={gated}
+              canPrompt={canPrompt}
+              onInstall={promptInstall}
+              onSkip={() => setSkipped(true)}
+            />
+          )
+        }
+      />
       <Features />
       <Privacy />
       <HowItWorks />

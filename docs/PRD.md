@@ -68,11 +68,11 @@ _Last updated: 2026-10-07_
 Single scrolling page, English only, friendly and colourful look (teal/green accent, Ant Design components, icons, gradients and emoji; no image assets). Follows the system light/dark setting. Sections, in order:
 
 1. **Hero:** name "OwnLedger", tagline "Split expenses with friends. Keep your data.", a one-line description that includes "free and open source", and a single **Sign in with Google** button (Ant Design button with the Google "G" logo). A short note beneath it says the app uses the user's Google Drive to back up and share groups and sends nothing to any server, with a link to the Drive FAQ entry.
-2. **Install** (only when not installed):
+2. **Install card** (only when not installed). It sits inside the hero, between the highlight lines and the sign-in button, to put the emphasis on installing before signing in. Its heading has an icon: an amber warning icon when installing is required (iPhone/iPad), a teal download icon when it is optional.
    - **iPhone/iPad:** steps "Share, then Add to Home Screen, then open from the home screen", with the reason (installed iOS apps have separate storage) and a small "Continue in browser anyway" link. The sign-in button appears only once the app runs as an installed PWA.
    - **Android/desktop:** an "Install app" button when the browser offers a native install prompt (`beforeinstallprompt`), otherwise a line telling the user which browser menu entry to use. Sign-in stays visible in the hero, so no skip link is needed.
    - **Installed (standalone):** this section is hidden and the sign-in button is shown.
-   - On iPhone/iPad while gated, the hero's button reads "Install to get started" and scrolls to the install card. "Continue in browser anyway" reveals sign-in until the page is reloaded (the choice is not remembered); the card then stays with its skip link removed.
+   - On iPhone/iPad while gated, the install card replaces the sign-in button (there is no separate "Install to get started" button). "Continue in browser anyway" reveals sign-in until the page is reloaded (the choice is not remembered); the card then stays with its skip link removed and its normal heading.
    - A dev flag (`VITE_REQUIRE_INSTALL=false`) turns the iOS gate off locally. In development, `?platform=ios|android|desktop` and `?installed=1` simulate each case.
 3. **Feature highlights:** cards for groups, flexible splitting, settle-up, any currency, receipts, budgets and reports, offline use.
 4. **Privacy and ownership:** offline first, no OwnLedger servers, privacy first (no ads, no tracking), you own your data, shared on your terms through your own Drive, and open source with a link to https://github.com/omkarsheral1989/expense-tracker (GPL-3.0).

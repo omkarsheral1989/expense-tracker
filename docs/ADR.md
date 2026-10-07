@@ -78,6 +78,7 @@ _Last updated: 2026-10-07_. Each entry: context, decision, alternatives rejected
 
 ## ADR-023: Install detection and iOS gate
 - **Decision:** `src/pwa/platform.ts` detects the platform from the user agent (iPadOS reports as a touch-screen Mac) and standalone mode from `display-mode: standalone` or `navigator.standalone`. `src/pwa/useInstall.ts` captures `beforeinstallprompt` at module load, because it can fire before React mounts. Sign-in is gated only on iOS when not installed and not skipped; `VITE_REQUIRE_INSTALL=false` disables the gate. In development, `?platform=` and `?installed=1` simulate each case.
+- **Placement:** the install card is rendered inside the hero, above the sign-in button, so installing is the first thing a visitor acts on (it was originally a separate section below the hero). While gated, the card is the call to action and the sign-in button is not rendered.
 - **Consequences:** The skip choice is not persisted, so iOS users see the gate on every browser visit. User-agent detection can be wrong for unusual browsers; `detectPlatform` has unit tests. Native install prompts exist only in Chromium browsers; others get written instructions.
 
 ## ADR-016: Name, look and visuals

@@ -1,4 +1,4 @@
-import { DownloadOutlined } from '@ant-design/icons'
+import { DownloadOutlined, ExclamationCircleFilled } from '@ant-design/icons'
 import { Button, Card, Flex, Steps, theme, Typography } from 'antd'
 import type { Platform } from '../../pwa/platform.ts'
 
@@ -11,6 +11,8 @@ type Props = {
   canPrompt: boolean
   onInstall: () => void
   onSkip: () => void
+  /** Rendered inside the hero (full width, left-aligned text) instead of as its own section. */
+  embedded?: boolean
 }
 
 const IOS_STEPS = [
@@ -32,11 +34,17 @@ export function InstallCard({
   canPrompt,
   onInstall,
   onSkip,
+  embedded,
 }: Props) {
   const { token } = theme.useToken()
 
+  const Wrapper = embedded ? 'div' : 'section'
+  const wrapperStyle = embedded
+    ? { width: '100%', textAlign: 'left' as const, scrollMarginTop: 16 }
+    : { padding: '32px 16px 0', scrollMarginTop: 16 }
+
   return (
-    <section id="install" style={{ padding: '32px 16px 0', scrollMarginTop: 16 }}>
+    <Wrapper id="install" style={wrapperStyle}>
       <Card
         style={{
           maxWidth: 640,
@@ -47,9 +55,23 @@ export function InstallCard({
       >
         <Flex vertical gap={16}>
           <div>
-            <Title level={3} style={{ margin: 0 }}>
-              {gated ? 'Install OwnLedger first' : 'Install OwnLedger'}
-            </Title>
+            <Flex align="center" gap={10}>
+              {/* A warning while the install is required, a plain cue when optional. */}
+              {gated ? (
+                <ExclamationCircleFilled
+                  aria-label="Action needed"
+                  style={{ color: token.colorWarning, fontSize: 24 }}
+                />
+              ) : (
+                <DownloadOutlined
+                  aria-hidden="true"
+                  style={{ color: token.colorPrimary, fontSize: 24 }}
+                />
+              )}
+              <Title level={3} style={{ margin: 0 }}>
+                {gated ? 'Install OwnLedger first' : 'Install OwnLedger'}
+              </Title>
+            </Flex>
             <Paragraph style={{ margin: '4px 0 0' }}>
               Add it to your home screen so it works like a regular app, even
               offline.
@@ -99,6 +121,6 @@ export function InstallCard({
           )}
         </Flex>
       </Card>
-    </section>
+    </Wrapper>
   )
 }
