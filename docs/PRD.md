@@ -66,6 +66,8 @@ _Last updated: 2026-10-07_
 
 ## 5. Pages
 
+**Browser tab titles:** each signed-in page sets the tab's title: "Your groups · OwnLedger" (home), the group's name followed by " · OwnLedger" (group page) and "Create a group · OwnLedger".
+
 ### 5.1 Welcome (logged out)
 Single scrolling page, English only, friendly and colorful look (teal/green accent, Ant Design components, icons, gradients and emoji; no image assets). Follows the system light/dark setting. Sections, in order:
 
@@ -84,13 +86,15 @@ Single scrolling page, English only, friendly and colorful look (teal/green acce
 
 Copy rules: claims must stay true. "No ads and no tracking" holds only while no analytics or tracking is added to the app.
 
-### 5.1a Post-login placeholder
-Until the real home page exists, a successful sign-in routes to `/home`, which shows "Signed in as <name>" and a sign-out button.
+### 5.1a Signed-in header
+Every signed-in page has a header. On the left is the small OwnLedger logo tile and the name "OwnLedger", which link to the home page from anywhere. On the right is the user's avatar; clicking it opens a menu with the user's name and email and a "Sign out" action (which keeps the account's data on the device) and nothing else. The group page has no actions yet (edit, add member, leave and delete come later).
 
 ### 5.2 Home (logged in)
-- A list of groups: icon, name, and either "you are owed X", "you owe X" (one line per currency) or "Settled up".
-- A **Personal** row showing this month's spending per currency.
-- A "Create group" button.
+- A "Your groups" heading with the primary "Create group" button on its right. Below it, one centered column (about 720 px wide, the same on phone and desktop) listing the groups the user belongs to, **most recently active first**. A group's activity is the latest change to it or to anything in it; until expenses exist that is when it was created or last edited, so the order looks like newest first. Each row shows the group-type icon, the name, and underneath it "N members · CUR" (for example "3 members · GBP"); it opens the group's page (`/groups/<id>`).
+- Each row ends with the user's balance in that group: "you are owed X" or "you owe X" (one line per currency), or "Settled up". Until expenses exist every group reads "Settled up".
+- **Loading:** while the groups load, grey placeholder rows in the shape of the list are shown. The list is loaded once when the page opens (coming back to it reloads it), and a failed load shows an error message with a "Try again" button.
+- **Empty state:** with no groups, a friendly message ("No groups yet. Create one to start sharing expenses.") and a primary "Create group" button in the middle of the page.
+- The **Personal** row (this month's spending per currency) is not shown yet; it arrives with personal expenses.
 
 ### 5.3 Create group
 - Route `/groups/new`, reached from a "Create group" button on the home page (for now the placeholder home page has one). Back and the browser's reload warning work as described under Leaving.
@@ -103,11 +107,15 @@ Until the real home page exists, a successful sign-in routes to `/home`, which s
   - **Duplicate members:** adding the same person twice (compared ignoring case) is ignored, and so is adding the user's own address, since they are added automatically.
 - **Leaving:** the page's Cancel and Back buttons leave immediately while the form is untouched. Once a name, type, currency or member has been entered or changed, they ask "Discard this group?" first, and reloading or closing the tab shows the browser's own warning. The browser's Back button is not intercepted: that needs React Router's data router, which the app does not use yet.
 - Creating a group only saves it on this device. Sharing it through Drive happens later, at the first sync.
-- After creating, a "Group created." message appears and the app returns to the home page. Opening the new group's own page (`/groups/<id>`, a placeholder showing name, type, default currency and members) is the next step.
+- After creating, a "Group created." message appears and the app opens the new group's page.
 - A message under a field disappears as soon as that field is edited.
 
 ### 5.4 Group page
-- Opens from a group on the home page. Contains the group's expenses and other sections (to be defined).
+- Route `/groups/<id>`, opened from a group on the home page and after creating a group. A back button returns to the home page.
+- For now it shows details only: the group-type icon, the name, the type and the default currency, and the list of members. Expenses, balances and the other sections are added later.
+- Members are listed with the user first, then the others A to Z. Each has an avatar with their initial, their name (or email when no name is known) and their email. The user is tagged "You"; everyone else is tagged "Pending" until they have signed in and synced, which cannot happen before sync exists.
+- The page loads once when it opens, with the same placeholder and "Try again" behavior as the home page.
+- A group that does not exist, was deleted, or that the user does not belong to shows a "Group not found" message with a link back to the home page.
 
 ## 6. Open questions
 - Google Cloud setup: the OAuth client ID is not created yet (Drive API, consent screen in Testing mode, authorized origins, test users).

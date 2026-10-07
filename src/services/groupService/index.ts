@@ -1,4 +1,4 @@
-import { and, eq, isNull, ne, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, isNull, ne, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import type { Database } from '../../db/client.ts'
 import { groupMembers, groups, people } from '../../db/schema.ts'
@@ -8,6 +8,9 @@ import type {
   CreateGroupInput,
   CreateGroupResult,
   Creator,
+  GroupDetails,
+  GroupMember,
+  GroupSummary,
   KnownPerson,
   Transaction,
 } from './types.ts'
@@ -15,6 +18,17 @@ import type {
 /** A group name as compared for "already exists": no case, no extra spaces. */
 function comparableName(name: string) {
   return name.trim().replace(/\s+/g, ' ').toLowerCase()
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/** The id of the person with this email, or null when nobody has it. */
+async function findPersonId(db: Database, email: string): Promise<string | null> {
+  const [person] = await db
+    .select({ id: people.id })
+    .from(people)
+    .where(eq(people.email, email.trim().toLowerCase()))
+  return person?.id ?? null
 }
 
 /** Finds the person with this email, or adds them. Returns their id. */
@@ -160,5 +174,85 @@ export const groupService = {
 
     const label = (person: KnownPerson) => (person.name ?? person.email).toLowerCase()
     return rows.sort((a, b) => label(a).localeCompare(label(b)))
+  },
+
+  /**
+   * The groups this user belongs to, most recently changed first (ties by
+   * name). Deleted groups, groups the user has left, and groups they were
+   * never in are left out.
+   */
+  async listGroups(db: Database, userEmail: string): Promise<GroupSummary[]> {
+    const userId = await findPersonId(db, userEmail)
+    if (!userId) return []
+
+    const myMembership = alias(groupMembers, 'my_membership')
+    return db
+      .select({
+        id: groups.id,
+        name: groups.name,
+        type: groups.type,
+        defaultCurrency: groups.defaultCurrency,
+        updatedAt: groups.updatedAt,
+        memberCount: sql<number>`(
+          select count(*) from ${groupMembers}
+          where ${groupMembers.groupId} = ${groups.id} and ${groupMembers.deletedAt} is null
+        )`.mapWith(Number),
+      })
+      .from(groups)
+      .innerJoin(
+        myMembership,
+        and(
+          eq(myMembership.groupId, groups.id),
+          eq(myMembership.personId, userId),
+          isNull(myMembership.deletedAt),
+        ),
+      )
+      .where(isNull(groups.deletedAt))
+      .orderBy(desc(groups.updatedAt), asc(groups.name), asc(groups.id))
+  },
+
+  /**
+   * One group with its members, for the group page. Null when there is no such
+   * group for this user: an unknown id, a deleted group, or one they are not in
+   * (or have left). The three cases look the same on purpose, so the page does
+   * not reveal whether a group exists.
+   */
+  async getGroup(
+    db: Database,
+    userEmail: string,
+    groupId: string,
+  ): Promise<GroupDetails | null> {
+    const userId = await findPersonId(db, userEmail)
+    if (!userId || !UUID.test(groupId)) return null
+
+    const [group] = await db
+      .select({
+        id: groups.id,
+        name: groups.name,
+        type: groups.type,
+        defaultCurrency: groups.defaultCurrency,
+      })
+      .from(groups)
+      .where(and(eq(groups.id, groupId), isNull(groups.deletedAt)))
+    if (!group) return null
+
+    const rows = await db
+      .select({ personId: people.id, email: people.email, name: people.name })
+      .from(groupMembers)
+      .innerJoin(people, and(eq(people.id, groupMembers.personId), isNull(people.deletedAt)))
+      .where(and(eq(groupMembers.groupId, groupId), isNull(groupMembers.deletedAt)))
+
+    if (!rows.some((row) => row.personId === userId)) return null
+
+    const members: GroupMember[] = rows.map((row) => ({
+      ...row,
+      isYou: row.personId === userId,
+    }))
+    const label = (member: GroupMember) => (member.name ?? member.email).toLowerCase()
+    members.sort(
+      (a, b) => Number(b.isYou) - Number(a.isYou) || label(a).localeCompare(label(b)),
+    )
+
+    return { ...group, members }
   },
 }
