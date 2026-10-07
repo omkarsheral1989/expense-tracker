@@ -35,6 +35,7 @@ Details: @docs/PRD.md (features, pages, open questions) and @docs/ADR.md (archit
 
 ## Working agreement
 - Do not implement features until the user says where to start. Work on one feature at a time.
+- Ask lots of clarifying questions before implementing any code. Settle requirements, edge cases and copy first, record decisions in `docs/PRD.md` and `docs/ADR.md`, and start coding only when the user says so.
 - Ask before big or irreversible changes (deleting data, changing the schema shape, swapping a library).
 - When a decision changes, update `docs/ADR.md` (and `docs/PRD.md` if behaviour changes) in the same change.
 - Only commit when asked.
