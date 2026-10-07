@@ -53,6 +53,11 @@ export const groups = pgTable(
     ...syncColumns(),
     name: text('name').notNull(),
     type: text('type').$type<GroupType>().notNull(),
+    /**
+     * Pre-fills the currency of new expenses in the group. An ISO 4217 code such
+     * as 'INR'. Expenses can still use any other currency.
+     */
+    defaultCurrency: text('default_currency').notNull(),
     createdBy: uuid('created_by')
       .notNull()
       .references(() => people.id),
@@ -61,6 +66,12 @@ export const groups = pgTable(
     check(
       'groups_name_length',
       sql`char_length(${table.name}) between 1 and ${sql.raw(String(GROUP_NAME_MAX_LENGTH))}`,
+    ),
+    // Only the shape (three upper-case letters). Whether it is a real currency
+    // is checked by the application, which knows the list.
+    check(
+      'groups_default_currency_format',
+      sql`${table.defaultCurrency} ~ '^[A-Z]{3}$'`,
     ),
     check(
       'groups_type_valid',

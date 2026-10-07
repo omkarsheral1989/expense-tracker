@@ -28,7 +28,14 @@ async function addPerson(email: string) {
 async function addGroup(createdBy: string, overrides = {}) {
   const [group] = await db
     .insert(groups)
-    .values({ name: 'Goa trip', type: 'trip', createdBy, updatedBy: createdBy, ...overrides })
+    .values({
+      name: 'Goa trip',
+      type: 'trip',
+      defaultCurrency: 'INR',
+      createdBy,
+      updatedBy: createdBy,
+      ...overrides,
+    })
     .returning()
   return group
 }
@@ -37,7 +44,7 @@ describe('migrations', () => {
   it('can run again without changing anything', async () => {
     await runMigrations(pg)
     const { rows } = await pg.query('select name from ownledger_migrations')
-    expect(rows).toHaveLength(1)
+    expect(rows).toHaveLength(2)
   })
 
   it('does not record a file that fails, and applies nothing from it', async () => {
@@ -49,6 +56,43 @@ describe('migrations', () => {
       "select 1 from information_schema.tables where table_name = 'half'",
     )
     expect(rows).toHaveLength(0)
+  })
+})
+
+describe('upgrading a database that already has the first migration', () => {
+  const all = import.meta.glob('../migrations/*.sql', {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  }) as Record<string, string>
+
+  it('applies only the newer migration and keeps the existing data', async () => {
+    const old = new PGlite()
+    const [first, ...rest] = Object.keys(all).sort()
+    await runMigrations(old, { [first]: all[first] })
+
+    const person = crypto.randomUUID()
+    await old.query(
+      'insert into people (id, email, updated_by) values ($1, $2, $1)',
+      [person, 'omkar@gmail.com'],
+    )
+
+    await runMigrations(old, all)
+
+    const { rows } = await old.query<{ name: string }>(
+      'select name from ownledger_migrations order by name',
+    )
+    expect(rows).toHaveLength(rest.length + 1)
+    const people = await old.query('select email from people')
+    expect(people.rows).toEqual([{ email: 'omkar@gmail.com' }])
+    // The new column exists and enforces its format.
+    await expect(
+      old.query(
+        "insert into groups (name, type, default_currency, created_by, updated_by) values ('G', 'trip', 'inr', $1, $1)",
+        [person],
+      ),
+    ).rejects.toThrow()
+    await old.close()
   })
 })
 
@@ -93,6 +137,14 @@ describe('groups', () => {
   it('rejects an unknown type', async () => {
     const owner = await addPerson('omkar@gmail.com')
     await expect(addGroup(owner, { type: 'boat' })).rejects.toThrow()
+  })
+
+  it('rejects a default currency that is not three upper-case letters', async () => {
+    const owner = await addPerson('omkar@gmail.com')
+    for (const defaultCurrency of ['inr', 'IN', 'INRR', 'I1R', '']) {
+      await expect(addGroup(owner, { defaultCurrency })).rejects.toThrow()
+    }
+    await expect(addGroup(owner, { defaultCurrency: 'USD' })).resolves.toBeDefined()
   })
 
   it('rejects a creator who is not a known person', async () => {

@@ -1,0 +1,2 @@
+ALTER TABLE "groups" ADD COLUMN "default_currency" text NOT NULL;--> statement-breakpoint
+ALTER TABLE "groups" ADD CONSTRAINT "groups_default_currency_format" CHECK ("groups"."default_currency" ~ '^[A-Z]{3}$');

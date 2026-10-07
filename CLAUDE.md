@@ -26,7 +26,7 @@ Details: @docs/PRD.md (features, pages, open questions) and @docs/ADR.md (archit
   - Common components: `src/components/<Component>/index.tsx` (`RequireAuth`).
   - Common zustand stores: `src/stores/<useXStore>/index.ts` (`useAuthStore`).
   - Common hooks: `src/hooks/<useX>/index.ts` (`useSignIn`).
-  - API wrappers: `src/services/<xService>/index.ts`, exporting one object (`googleProfileService`).
+  - Services: `src/services/<xService>/index.ts`, exporting one object. They wrap an outside API (`googleProfileService`), hold rules and business logic (`currencyService`), or read and write the database (`groupService`). A service that touches the database takes `db` (from `getDb()`) as its first argument, validates its input with a zod schema in `schemas.ts`, and returns problems with the input as field errors rather than throwing; only unexpected failures throw.
   - Database code: `src/db` (schema, migrations, client, session and tab lock, with `constants.ts` and `types.ts` beside them; tests in `src/db/__tests__`). The hook that opens it is `src/hooks/useDatabaseSession`.
   - Other shared code: `src/pwa` (platform detection), `src/theme` (the `radius.ts` constants).
   - App-level files stay in `src`: `main.tsx`, `App.tsx`, `config.ts`, `env.d.ts`, `index.css`.
