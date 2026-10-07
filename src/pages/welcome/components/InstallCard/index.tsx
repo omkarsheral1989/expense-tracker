@@ -1,6 +1,6 @@
 import { DownloadOutlined, ExclamationCircleFilled } from '@ant-design/icons'
 import { Button, Card, Flex, Steps, theme, Typography } from 'antd'
-import { useColorScheme } from '../../../../hooks/useColorScheme.ts'
+import { useColorScheme } from '../../../../hooks/useColorScheme'
 import type { Platform } from '../../../../pwa/platform.ts'
 import { IOS_STEPS } from './content.ts'
 import { WARNING_ICON_COLOR } from './style.ts'

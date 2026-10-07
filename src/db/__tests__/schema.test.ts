@@ -1,10 +1,10 @@
 import { PGlite } from '@electric-sql/pglite'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import { createDatabase, type Database } from './client.ts'
-import { GROUP_NAME_MAX_LENGTH } from './constants.ts'
-import { runMigrations } from './migrate.ts'
-import { groupMembers, groups, people } from './schema.ts'
+import { createDatabase, type Database } from '../client.ts'
+import { GROUP_NAME_MAX_LENGTH } from '../constants.ts'
+import { runMigrations } from '../migrate.ts'
+import { groupMembers, groups, people } from '../schema.ts'
 
 let pg: PGlite
 let db: Database

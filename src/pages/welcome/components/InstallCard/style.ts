@@ -1,4 +1,4 @@
-import type { ColorScheme } from '../../../../hooks/useColorScheme.ts'
+import type { ColorScheme } from '../../../../hooks/useColorScheme'
 
 /**
  * Color of the warning icon in the install card, as CSS colors, keyed by the

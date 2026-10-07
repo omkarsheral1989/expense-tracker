@@ -1,12 +1,13 @@
 import { Avatar, Button, Card, Flex, Typography } from 'antd'
-import { useAuth, type Profile } from '../../auth/authStore.ts'
+import { useAuthStore } from '../../stores/useAuthStore'
+import type { Profile } from '../../services/googleProfileService/types.ts'
 
 const { Title, Text } = Typography
 
 /** Placeholder until the real home page (group list) is built. */
 export function HomePage() {
-  const profile = useAuth((state) => state.profile)
-  const signOut = useAuth((state) => state.signOut)
+  const profile = useAuthStore((state) => state.profile)
+  const signOut = useAuthStore((state) => state.signOut)
 
   if (!profile) return null
 

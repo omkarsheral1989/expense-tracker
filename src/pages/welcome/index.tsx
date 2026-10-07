@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Navigate } from 'react-router'
-import { useAuth } from '../../auth/authStore.ts'
+import { useAuthStore } from '../../stores/useAuthStore'
 import { REQUIRE_INSTALL } from '../../config.ts'
 import { useInstall } from '../../pwa/useInstall.ts'
 import { Faq } from './components/Faq'
@@ -16,7 +16,7 @@ export function WelcomePage() {
   // Only lasts until the page is reloaded; the choice is not remembered.
   const [skipped, setSkipped] = useState(false)
 
-  const signedIn = useAuth((state) => state.profile !== null)
+  const signedIn = useAuthStore((state) => state.profile !== null)
 
   // Signing in is locked behind installing the app: only on iPhone/iPad, only
   // while not installed, and only until the user chooses to skip. See `gated`

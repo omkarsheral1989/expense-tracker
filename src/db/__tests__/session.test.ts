@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import type { Database } from './client.ts'
-import type { DatabaseLock } from './lock.ts'
-import { createSessionManager } from './session.ts'
+import type { Database } from '../client.ts'
+import type { DatabaseLock } from '../lock.ts'
+import { createSessionManager } from '../session.ts'
 
 const fakeDb = {} as Database
 

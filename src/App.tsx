@@ -1,11 +1,14 @@
 import { Navigate, Outlet, Route, Routes } from 'react-router'
-import { RequireAuth } from './auth/RequireAuth.tsx'
+import { RequireAuth } from './components/RequireAuth'
 import { DatabaseGate } from './components/DatabaseGate'
 import { HomePage } from './pages/home'
 import { WelcomePage } from './pages/welcome'
+import { useSyncSessionAcrossTabs } from './hooks/useSyncSessionAcrossTabs'
 import { PwaUpdatePrompt } from './pwa/PwaUpdatePrompt.tsx'
 
 function App() {
+  useSyncSessionAcrossTabs()
+
   return (
     <>
       <PwaUpdatePrompt />

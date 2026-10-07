@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { App } from 'antd'
 import { useGoogleLogin } from '@react-oauth/google'
-import { useAuth } from './authStore.ts'
-import { fetchProfile } from './googleProfile.ts'
+import { useAuthStore } from '../../stores/useAuthStore'
+import { googleProfileService } from '../../services/googleProfileService'
 
 // Basic sign-in only. Drive access is requested later, when it is first needed.
 const SIGN_IN_SCOPE = 'openid email profile'
@@ -14,7 +14,7 @@ function googleScriptLoaded() {
 
 export function useSignIn() {
   const { message } = App.useApp()
-  const signInToStore = useAuth((state) => state.signIn)
+  const signInToStore = useAuthStore((state) => state.signIn)
   const [loading, setLoading] = useState(false)
 
   const login = useGoogleLogin({
@@ -22,7 +22,7 @@ export function useSignIn() {
     scope: SIGN_IN_SCOPE,
     onSuccess: async (response) => {
       try {
-        const profile = await fetchProfile(response.access_token)
+        const profile = await googleProfileService.fetchProfile(response.access_token)
         signInToStore(profile, {
           value: response.access_token,
           expiresAt: Date.now() + response.expires_in * 1000,

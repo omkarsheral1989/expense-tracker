@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Button, Flex, Result, Spin, Typography } from 'antd'
-import { useAuth, type Profile } from '../../auth/authStore.ts'
+import { useAuthStore } from '../../stores/useAuthStore'
+import type { Profile } from '../../services/googleProfileService/types.ts'
 import { useDatabaseSession } from '../../db/useDatabaseSession.ts'
 
 const { Text } = Typography
@@ -15,7 +16,7 @@ type Props = {
  * open in another tab, or the database could not be opened.
  */
 export function DatabaseGate({ children }: Props) {
-  const profile = useAuth((state) => state.profile)
+  const profile = useAuthStore((state) => state.profile)
 
   // Signed-out visitors are sent away by `RequireAuth` before this matters.
   return profile ? (
@@ -28,7 +29,7 @@ function OpenDatabase({
   children,
 }: Props & { profile: Profile }) {
   const { state, retry } = useDatabaseSession(profile.id)
-  const signOut = useAuth((authState) => authState.signOut)
+  const signOut = useAuthStore((authState) => authState.signOut)
 
   function renderLoading() {
     return (
