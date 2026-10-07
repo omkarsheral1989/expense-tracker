@@ -1,10 +1,11 @@
 import {
+  DownloadOutlined,
   GithubOutlined,
   LockOutlined,
   TeamOutlined,
   WalletOutlined,
 } from '@ant-design/icons'
-import { Flex, theme, Typography } from 'antd'
+import { Button, Flex, theme, Typography } from 'antd'
 import type { ReactNode } from 'react'
 import { SignInButton } from './SignInButton.tsx'
 
@@ -22,7 +23,12 @@ const HIGHLIGHTS: { icon: ReactNode; text: string }[] = [
   { icon: <GithubOutlined />, text: 'Free and open source.' },
 ]
 
-export function Hero() {
+type HeroProps = {
+  /** Sign-in is hidden until the app is installed (iPhone/iPad). */
+  gated: boolean
+}
+
+export function Hero({ gated }: HeroProps) {
   const { token } = theme.useToken()
 
   return (
@@ -84,7 +90,19 @@ export function Hero() {
           ))}
         </Flex>
 
-        <SignInButton />
+        {gated ? (
+          <Button
+            type="primary"
+            size="large"
+            shape="round"
+            icon={<DownloadOutlined />}
+            href="#install"
+          >
+            Install to get started
+          </Button>
+        ) : (
+          <SignInButton />
+        )}
 
         <Text type="secondary" style={{ maxWidth: 440, fontSize: 13 }}>
           OwnLedger uses your Google Drive to back up and share your groups.

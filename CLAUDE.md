@@ -17,7 +17,8 @@ Details: @docs/PRD.md (features, pages, open questions) and @docs/ADR.md (archit
 - `bun run dev` start the dev server
 - `bun run build` type-check and build
 - `bun run lint` lint
-- `bunx vitest` run tests
+- `bun run test` run tests (Vitest)
+- `bun run preview` serve the production build (the service worker only runs there)
 
 ## Rules
 - **UI:** Ant Design components only. No Tailwind, no SCSS. Use `ConfigProvider` tokens for theming; plain CSS or CSS modules for small custom styles.

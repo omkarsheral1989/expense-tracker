@@ -71,6 +71,15 @@ _Last updated: 2026-10-07_. Each entry: context, decision, alternatives rejected
 - **Reason:** An installed iOS PWA has its own storage, separate from Safari, so data entered in a tab would not carry over.
 - **Consequences:** Google sign-in in a standalone iOS PWA needs early testing on a real iPhone; fallback is a redirect-based flow. Keep the signed-in profile locally so the app opens offline.
 
+## ADR-022: PWA tooling and update behaviour
+- **Decision:** `vite-plugin-pwa` (Workbox `generateSW`) precaches the built files and falls back to `index.html`. `registerType: 'prompt'`: a new version is announced with a notification and applied only when the user taps Reload. Icons (64, 192, 512, maskable, Apple touch, favicon) are generated at build time by `@vite-pwa/assets-generator` from `public/logo.svg`, with no extra padding because the source already respects the maskable safe zone.
+- **Rejected:** `autoUpdate` (could replace the app while the user is mid-entry); hand-made icon PNGs.
+- **Consequences:** The service worker exists only in production builds, so test offline behaviour with `bun run build && bun run preview`. The precache size limit must be raised when the PGlite WASM files are added. Offline caching was not confirmed in the embedded preview browser and should be checked in real Chrome (DevTools, Application, Offline).
+
+## ADR-023: Install detection and iOS gate
+- **Decision:** `src/pwa/platform.ts` detects the platform from the user agent (iPadOS reports as a touch-screen Mac) and standalone mode from `display-mode: standalone` or `navigator.standalone`. `src/pwa/useInstall.ts` captures `beforeinstallprompt` at module load, because it can fire before React mounts. Sign-in is gated only on iOS when not installed and not skipped; `VITE_REQUIRE_INSTALL=false` disables the gate. In development, `?platform=` and `?installed=1` simulate each case.
+- **Consequences:** The skip choice is not persisted, so iOS users see the gate on every browser visit. User-agent detection can be wrong for unusual browsers; `detectPlatform` has unit tests. Native install prompts exist only in Chromium browsers; others get written instructions.
+
 ## ADR-016: Name, look and visuals
 - **Decision:** The app is called **OwnLedger**. Friendly, colourful look with a teal/green accent, applied through Ant Design `ConfigProvider` tokens; follows the system light/dark setting. Visuals come from Ant Design icons, gradients and emoji.
 - **Rejected:** Custom SVG illustrations or supplied image assets (more work, no need yet), Ant Design's default blue.
