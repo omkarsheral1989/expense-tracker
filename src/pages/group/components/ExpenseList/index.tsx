@@ -7,12 +7,13 @@ const { Text } = Typography
 type Props = {
   /** Newest day first, as the service returns them. */
   expenses: ExpenseListItem[]
+  groupId: string
 }
 
 /** The group's expenses, newest first, or a message when there are none yet. */
-export function ExpenseList({ expenses }: Props) {
+export function ExpenseList({ expenses, groupId }: Props) {
   function renderExpense(expense: ExpenseListItem) {
-    return <ExpenseRow key={expense.id} expense={expense} />
+    return <ExpenseRow key={expense.id} expense={expense} groupId={groupId} />
   }
 
   if (expenses.length === 0) {

@@ -71,7 +71,7 @@ _Last updated: 2026-10-08_
 
 ## 5. Pages
 
-**Browser tab titles:** each signed-in page sets the tab's title: "Your groups · OwnLedger" (home), the group's name followed by " · OwnLedger" (group page), "Create a group · OwnLedger" and "Add expense · OwnLedger".
+**Browser tab titles:** each signed-in page sets the tab's title: "Your groups · OwnLedger" (home), the group's name followed by " · OwnLedger" (group page), "Create a group · OwnLedger", "Add expense · OwnLedger" and the expense's description followed by " · OwnLedger" (expense details; "Expense not found · OwnLedger" for a missing one).
 
 ### 5.1 Welcome (logged out)
 Single scrolling page, English only, friendly and colorful look (teal/green accent, Ant Design components, icons, gradients and emoji; no image assets). Follows the system light/dark setting. Sections, in order:
@@ -154,7 +154,7 @@ Route `/groups/<id>/expenses/new`, opened from the group page's "Add expense" bu
 - Default: you paid, split equally among all members.
 - **3 or more members:** the sentence has two buttons, "Paid by [you]" and "split [equally]".
 - **2 members:** one button showing the current quick choice; it opens the four choices "You paid, split equally", "You are owed the full amount", "Priya paid, split equally" and "Priya is owed the full amount", plus "More options" (the split dialog). Once the split is not one of the four, the form shows the two-button sentence instead. Any non-equal split reads "unequally"; an equal split between only some people still reads "equally".
-- People are named by first name; without a name, by the part of the email before the "@", with a capital letter when the name starts a sentence ("Sam paid, split equally").
+- People are named by first name; without a name, by the part of the email before the "@", with a capital first letter ("Sam" for sam@gmail.com).
 - "Multiple people" as payer is shown switched off.
 - A group with one member can still get expenses; the split buttons are switched off, with the tip "You are the only member of this group."
 - **Who paid** (the "[you]" button): a dialog "Who paid?" listing the members ("You" first) and "Multiple people" switched off.
@@ -171,7 +171,14 @@ Route `/groups/<id>/expenses/new`, opened from the group page's "Add expense" bu
 
 **Expense list on the group page (replaces the empty list once expenses exist)**
 - Flat list, newest date first (the most recently added first within a day). Each row: date (month over day), a colored category tile, the title with "You paid …" (or "Priya paid …") under it, and on the right "you lent" (green), "you borrowed" (orange-red), "no balance" (the user paid exactly their own share, for example in a group of one) or "not involved", with the amount.
-- Tapping a row opens a placeholder details page at `/groups/<id>/expenses/<expenseId>`. Real details, editing, deleting and the edit history table come later.
+- Tapping a row opens the expense's details page at `/groups/<id>/expenses/<expenseId>` (below). Editing, deleting and the edit history come later.
+
+**Expense details (first version)**
+- Back (to the group), and Edit and Delete buttons switched off ("Coming soon").
+- The category tile, the description, the amount in large type, the category's name and the day ("Dining out · Mon, 5 Oct 2026"), and "Added by you" (or the person's name).
+- How it was split ("Split equally", "Split by exact amounts", "Split by percentages", "Split by shares", "Split by adjustment") and one line per person who paid or owes something, the user first: "You paid £9.00 and owe £3.00", "Priya Shah owes £6.00". People with no part are left out.
+- The notes, keeping their line breaks, under "Notes" (left out when there are none).
+- An expense that does not exist, was deleted, is in another group, or is in a group the user is not in shows "Expense not found" ("It may have been deleted, or you may not be a member of its group.") with a "Back to the group" button. Loading shows grey placeholders; a failed load shows "Couldn't load this expense" with "Try again".
 
 **Balance line (group page)**
 - One line per person per currency: "Priya owes you …" with the amount in bold green, or "You owe Priya …" with the amount in bold orange-red; "You're all settled up" when there is nothing owed. Debts between two other members are not shown.
@@ -180,6 +187,7 @@ Route `/groups/<id>/expenses/new`, opened from the group page's "Add expense" bu
 1. A simple expense (equal split, you paid) saved and listed. **Done.** The "Paid by [you] and split [equally]" buttons are shown switched off ("Coming soon") for every group size until phase 3; rows cannot be opened until phase 4.
    Phase 2 **done**: the group page's balance lines and the home page's per-currency balances.
    Phase 3 **done**: who paid, the quick choices of a group of two, and the split dialog with all five methods.
+   Phase 4 **done**: expense rows open the expense details page.
 2. Balances: the balance line and the home page rows.
 3. Who paid, and the other split methods.
 4. The placeholder details page.

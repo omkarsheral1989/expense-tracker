@@ -91,7 +91,7 @@ export function GroupPage() {
           <Flex vertical gap={16}>
             <BalanceLine balances={balances} />
             <ActionPills />
-            <ExpenseList expenses={expenses} />
+            <ExpenseList expenses={expenses} groupId={group.id} />
           </Flex>
         </div>
         <AddExpenseButton groupId={group.id} />

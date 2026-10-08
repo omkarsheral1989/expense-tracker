@@ -11,4 +11,8 @@ export const ROUTES = {
   newExpense: (groupId: string) => `/groups/${groupId}/expenses/new`,
   /** The same address as a pattern for the router, with the group's id as a parameter. */
   newExpensePattern: '/groups/:id/expenses/new',
+  /** The details of one expense of a group. */
+  expense: (groupId: string, expenseId: string) => `/groups/${groupId}/expenses/${expenseId}`,
+  /** The same address as a pattern for the router. "new" above is matched first. */
+  expensePattern: '/groups/:id/expenses/:expenseId',
 } as const

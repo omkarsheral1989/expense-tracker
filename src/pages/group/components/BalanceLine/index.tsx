@@ -23,7 +23,7 @@ export function BalanceLine({ balances }: Props) {
 
   function renderBalance(balance: PersonBalance) {
     const owedToYou = balance.amountMinor > 0
-    const name = groupService.shortName(balance, { sentenceStart: owedToYou })
+    const name = groupService.shortName(balance)
     const amount = (
       <strong style={{ color: owedToYou ? OWED_TO_YOU_COLOR[scheme] : YOU_OWE_COLOR[scheme] }}>
         {moneyService.format(Math.abs(balance.amountMinor), balance.currency)}

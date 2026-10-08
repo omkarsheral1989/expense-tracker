@@ -8,11 +8,14 @@ import type {
   CreateExpenseInput,
   CreateExpenseResult,
   CurrencyBalance,
+  ExpenseDetails,
   ExpenseListItem,
   ExpensePayer,
   PersonBalance,
 } from './types.ts'
 import { CATEGORIES, categoryOf, computeShares, pairBalances } from './utils.ts'
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 /** The id of the person with this email, or null when nobody has it. */
 async function findPersonId(db: Database | Transaction, email: string): Promise<string | null> {
@@ -179,6 +182,80 @@ export const expenseService = {
         involved: !!mine && (mine.paidMinor > 0 || mine.owedMinor > 0),
       }
     })
+  },
+
+  /**
+   * One expense with every member's part, for its details page. Null when the
+   * user cannot see it: an unknown or malformed id, a deleted expense, one of
+   * another group, or a group the user is not a member of (they all look the
+   * same, as for groups).
+   */
+  async getExpense(
+    db: Database,
+    userEmail: string,
+    groupId: string,
+    expenseId: string,
+  ): Promise<ExpenseDetails | null> {
+    const userId = await findPersonId(db, userEmail)
+    if (!userId || !UUID.test(groupId) || !UUID.test(expenseId)) return null
+
+    const [membership] = await db
+      .select({ id: groupMembers.id })
+      .from(groupMembers)
+      .innerJoin(groups, and(eq(groups.id, groupMembers.groupId), isNull(groups.deletedAt)))
+      .where(
+        and(
+          eq(groupMembers.groupId, groupId),
+          eq(groupMembers.personId, userId),
+          isNull(groupMembers.deletedAt),
+        ),
+      )
+    if (!membership) return null
+
+    const [expense] = await db
+      .select({
+        id: expenses.id,
+        groupId: expenses.groupId,
+        description: expenses.description,
+        category: expenses.category,
+        amountMinor: expenses.amountMinor,
+        currency: expenses.currency,
+        date: expenses.date,
+        notes: expenses.notes,
+        method: expenses.method,
+        createdById: expenses.createdBy,
+        createdByEmail: people.email,
+        createdByName: people.name,
+      })
+      .from(expenses)
+      .innerJoin(people, eq(people.id, expenses.createdBy))
+      .where(and(eq(expenses.id, expenseId), eq(expenses.groupId, groupId), isNull(expenses.deletedAt)))
+    if (!expense) return null
+
+    const rows = await db
+      .select({
+        personId: expenseShares.personId,
+        email: people.email,
+        name: people.name,
+        paidMinor: expenseShares.paidMinor,
+        owedMinor: expenseShares.owedMinor,
+      })
+      .from(expenseShares)
+      .innerJoin(people, eq(people.id, expenseShares.personId))
+      .where(and(eq(expenseShares.expenseId, expenseId), isNull(expenseShares.deletedAt)))
+
+    const label = (share: { name: string | null; email: string }) => (share.name ?? share.email).toLowerCase()
+    const shares = rows
+      .filter((row) => row.paidMinor > 0 || row.owedMinor > 0)
+      .map((row) => ({ ...row, isYou: row.personId === userId }))
+      .sort((a, b) => Number(b.isYou) - Number(a.isYou) || label(a).localeCompare(label(b)))
+
+    const { createdById, createdByEmail, createdByName, ...details } = expense
+    return {
+      ...details,
+      createdBy: { email: createdByEmail, name: createdByName, isYou: createdById === userId },
+      shares,
+    }
   },
 
   /**

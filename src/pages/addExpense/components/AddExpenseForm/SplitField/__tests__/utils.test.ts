@@ -7,10 +7,10 @@ const priya: GroupMember = { personId: 'priya', email: 'priya@gmail.com', name: 
 const sam: GroupMember = { personId: 'sam', email: 'sam.k@gmail.com', name: null, isYou: false }
 
 describe('nameInSentence', () => {
-  it('says "you" for the user, and the first name (or email before the @) for others', () => {
+  it('says "you" for the user, and the first name (or email before the @, with a capital) for others', () => {
     expect(nameInSentence(you)).toBe('you')
     expect(nameInSentence(priya)).toBe('Priya')
-    expect(nameInSentence(sam)).toBe('sam.k')
+    expect(nameInSentence(sam)).toBe('Sam.k')
   })
 })
 
@@ -25,7 +25,7 @@ describe('initialSplit', () => {
 })
 
 describe('quickChoices', () => {
-  it('capitalizes a name taken from an email, as it starts the sentence', () => {
+  it('names someone without a name by their email, with a capital', () => {
     expect(quickChoices(you, sam)[2].label).toBe('Sam.k paid, split equally')
   })
 

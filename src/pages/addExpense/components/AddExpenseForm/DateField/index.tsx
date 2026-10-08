@@ -3,7 +3,7 @@ import { Button, Calendar } from 'antd'
 import dayjs from 'dayjs'
 import { useState } from 'react'
 import { AdaptiveDialog } from '../../../../../components/AdaptiveDialog'
-import { formatDay, toDay } from '../utils.ts'
+import { dateService } from '../../../../../services/dateService'
 
 type Props = {
   /** Given by the form item, so that its messages are tied to the button. */
@@ -17,9 +17,9 @@ type Props = {
  * The day of the expense, written out ("Today, 8 Oct 2026"); tapping it opens
  * a calendar. Any day can be chosen. Works as an Ant Design form field.
  */
-export function DateField({ id, value = toDay(new Date()), onChange }: Props) {
+export function DateField({ id, value = dateService.toDay(new Date()), onChange }: Props) {
   const [open, setOpen] = useState(false)
-  const shown = formatDay(value, toDay(new Date()))
+  const shown = dateService.formatDay(value, dateService.toDay(new Date()))
 
   return (
     <>

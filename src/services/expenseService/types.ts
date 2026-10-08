@@ -109,3 +109,31 @@ export type CurrencyBalance = {
   /** Positive: the user is owed this. Negative: the user owes it. Never zero. */
   amountMinor: number
 }
+
+/** One member's part in an expense, for its details page. */
+export type ExpenseShareDetails = {
+  personId: string
+  email: string
+  name: string | null
+  isYou: boolean
+  paidMinor: number
+  owedMinor: number
+}
+
+/** Everything the details page shows about one expense. */
+export type ExpenseDetails = {
+  id: string
+  groupId: string
+  description: string
+  category: string
+  amountMinor: number
+  currency: string
+  /** 'YYYY-MM-DD'. */
+  date: string
+  notes: string | null
+  method: SplitMethod
+  /** Who added it. */
+  createdBy: { email: string; name: string | null; isYou: boolean }
+  /** The user first, then the others A to Z; only those who paid or owe something. */
+  shares: ExpenseShareDetails[]
+}

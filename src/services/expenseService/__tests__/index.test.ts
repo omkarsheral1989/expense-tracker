@@ -502,3 +502,60 @@ describe('balancesByGroup', () => {
     expect(await expenseService.balancesByGroup(db, 'omkar@gmail.com')).toEqual({})
   })
 })
+
+describe('getExpense', () => {
+  it('gives the expense with each person who paid or owes, you first', async () => {
+    const groupId = await createGroup(omkar, ['priya@gmail.com', 'sam@gmail.com', 'ana@gmail.com'])
+    const [me, priyaId, samId] = await Promise.all(
+      ['omkar@gmail.com', 'priya@gmail.com', 'sam@gmail.com'].map(personId),
+    )
+    const id = await addExpense('omkar@gmail.com', groupId, {
+      description: 'Dinner',
+      notes: 'Card',
+      amountMinor: 900,
+      paidBy: samId,
+      split: { method: 'shares', values: { [me]: 1, [priyaId]: 2 } },
+    })
+
+    const details = await expenseService.getExpense(db, 'omkar@gmail.com', groupId, id)
+
+    expect(details).toEqual({
+      id,
+      groupId,
+      description: 'Dinner',
+      category: 'food.dining_out',
+      amountMinor: 900,
+      currency: 'INR',
+      date: '2026-10-08',
+      notes: 'Card',
+      method: 'shares',
+      createdBy: { email: 'omkar@gmail.com', name: 'Omkar', isYou: true },
+      // Ana neither paid nor owes, so she is left out.
+      shares: [
+        { personId: me, email: 'omkar@gmail.com', name: 'Omkar', isYou: true, paidMinor: 0, owedMinor: 300 },
+        { personId: priyaId, email: 'priya@gmail.com', name: null, isYou: false, paidMinor: 0, owedMinor: 600 },
+        { personId: samId, email: 'sam@gmail.com', name: null, isYou: false, paidMinor: 900, owedMinor: 0 },
+      ],
+    })
+  })
+
+  it('is null for an unknown, malformed or deleted expense, another group\'s, or a group you are not in', async () => {
+    const groupId = await createGroup(omkar, ['priya@gmail.com'])
+    const other = await createGroup(omkar)
+    const id = await addExpense('omkar@gmail.com', groupId)
+    const priyas = await createGroup(priya)
+    const hers = await addExpense('priya@gmail.com', priyas)
+    const deleted = await addExpense('omkar@gmail.com', groupId)
+    await db.update(expenses).set({ deletedAt: new Date() }).where(eq(expenses.id, deleted))
+
+    const get = (group: string, expense: string, email = 'omkar@gmail.com') =>
+      expenseService.getExpense(db, email, group, expense)
+    expect(await get(groupId, id)).not.toBeNull()
+    expect(await get(groupId, crypto.randomUUID())).toBeNull()
+    expect(await get(groupId, 'not-an-id')).toBeNull()
+    expect(await get(groupId, deleted)).toBeNull()
+    expect(await get(other, id)).toBeNull()
+    expect(await get(priyas, hers)).toBeNull()
+    expect(await get(groupId, id, 'nobody@gmail.com')).toBeNull()
+  })
+})

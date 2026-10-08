@@ -24,7 +24,7 @@ export function initialSplit(members: readonly GroupMember[]): SplitValue {
  * split equally, or either of them paid and the other owes it all.
  */
 export function quickChoices(you: GroupMember, other: GroupMember): QuickChoice[] {
-  const name = groupService.shortName(other, { sentenceStart: true })
+  const name = groupService.shortName(other)
   const equal = (paidBy: string, youShare: number, otherShare: number): SplitValue => ({
     paidBy,
     method: 'equal',

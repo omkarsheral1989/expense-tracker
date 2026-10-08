@@ -47,7 +47,7 @@ function renderGroup(groupId: string) {
   return renderPage(<GroupPage />, {
     path: ROUTES.group(groupId),
     pattern: ROUTES.groupPattern,
-    routes: [ROUTES.home, ROUTES.newExpensePattern],
+    routes: [ROUTES.home, ROUTES.newExpensePattern, ROUTES.expensePattern],
   })
 }
 
@@ -370,6 +370,16 @@ describe('GroupPage', () => {
       ])
       const borrowed = screen.getByText('you borrowed').parentElement as HTMLElement
       expect(borrowed).toHaveStyle({ color: 'rgb(232, 89, 12)' })
+    })
+
+    it('opens an expense\'s details when its row is tapped', async () => {
+      const id = await createGroup(me, { name: 'Goa trip' })
+      const expenseId = await addExpense(me.email, id, { description: 'Taxi' })
+      const { currentPath } = renderGroup(id)
+
+      await userEvent.click(await screen.findByRole('link', { name: /Taxi/ }))
+
+      expect(currentPath()).toBe(ROUTES.expense(id, expenseId))
     })
 
     it('shows lent amounts in green', async () => {

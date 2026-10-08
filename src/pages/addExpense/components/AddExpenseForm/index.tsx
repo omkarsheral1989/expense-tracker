@@ -6,6 +6,7 @@ import { EXPENSE_NOTES_MAX_LENGTH } from '../../../../db/constants.ts'
 import { getDb } from '../../../../db/client.ts'
 import { useLeaveWarning } from '../../../../hooks/useLeaveWarning'
 import { ROUTES } from '../../../../routes.ts'
+import { dateService } from '../../../../services/dateService'
 import { expenseService } from '../../../../services/expenseService'
 import type { GroupDetails } from '../../../../services/groupService/types.ts'
 import { moneyService } from '../../../../services/moneyService'
@@ -18,7 +19,7 @@ import { ReceiptsRow } from './ReceiptsRow'
 import { SplitField } from './SplitField'
 import { initialSplit, splitProblem } from './SplitField/utils.ts'
 import type { FormValues } from './types.ts'
-import { hasUnsavedInput, recentCurrencyCodes, toDay, toFormFields } from './utils.ts'
+import { hasUnsavedInput, recentCurrencyCodes, toFormFields } from './utils.ts'
 import { WithChip } from './WithChip'
 
 const { Title } = Typography
@@ -46,7 +47,7 @@ export function AddExpenseForm({ group, userEmail, recentCurrencies }: Props) {
     category: expenseService.defaultCategory,
     amount: '',
     currency: group.defaultCurrency,
-    date: toDay(new Date()),
+    date: dateService.toDay(new Date()),
     notes: '',
     split: initialSplit(group.members),
   }))
