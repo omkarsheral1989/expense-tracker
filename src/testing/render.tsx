@@ -1,4 +1,5 @@
 import { render } from '@testing-library/react'
+import { ConfigProvider } from 'antd'
 import type { ReactElement } from 'react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { ThemeProvider } from '../components/ThemeProvider'
@@ -14,17 +15,21 @@ export function renderPage(
   { path = '/', routes = [] }: { path?: string; routes?: string[] } = {},
 ) {
   const result = render(
-    <ThemeProvider>
-      <MemoryRouter initialEntries={[path]}>
-        <Routes>
-          <Route path={path.replace(/\/[0-9a-f-]{36}$/i, '/:id')} element={page} />
-          {routes.map((route) => (
-            <Route key={route} path={route} element={<div>Page: {route}</div>} />
-          ))}
-        </Routes>
-        <CurrentPath />
-      </MemoryRouter>
-    </ThemeProvider>,
+    // Animations off, so a closed dialog or a cleared message is gone at once
+    // instead of lingering on screen while it "animates" in jsdom.
+    <ConfigProvider theme={{ token: { motion: false } }}>
+      <ThemeProvider>
+        <MemoryRouter initialEntries={[path]}>
+          <Routes>
+            <Route path={path.replace(/\/[0-9a-f-]{36}$/i, '/:id')} element={page} />
+            {routes.map((route) => (
+              <Route key={route} path={route} element={<div>Page: {route}</div>} />
+            ))}
+          </Routes>
+          <CurrentPath />
+        </MemoryRouter>
+      </ThemeProvider>
+    </ConfigProvider>,
   )
 
   return {

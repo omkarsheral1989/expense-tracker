@@ -6,6 +6,8 @@ import type { KnownPerson } from '../../../../../services/groupService/types.ts'
 const { Text } = Typography
 
 type Props = {
+  /** Given by the form item, so that its label is tied to the input. */
+  id?: string
   /** The signed-in user. They are added automatically, so their own address is ignored. */
   creatorEmail: string
   /** People the user already shares a group with, offered as suggestions. */
@@ -23,6 +25,7 @@ type Props = {
  * Gmail addresses is checked when the form is submitted.
  */
 export function MemberSelect({
+  id,
   creatorEmail,
   knownPeople,
   loading,
@@ -57,6 +60,7 @@ export function MemberSelect({
 
   return (
     <Select
+      id={id}
       mode="tags"
       loading={loading}
       placeholder="Search, or type a Gmail address"

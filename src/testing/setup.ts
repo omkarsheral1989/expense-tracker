@@ -24,6 +24,11 @@ if (typeof window !== 'undefined') {
     disconnect() {}
   }
 
+  // Ant Design asks for the styles of pseudo-elements to measure scrollbars;
+  // jsdom cannot answer and prints a warning each time, so ask without them.
+  const getComputedStyle = window.getComputedStyle.bind(window)
+  window.getComputedStyle = (element) => getComputedStyle(element)
+
   // Ant Design scrolls items into view; jsdom has no layout to scroll.
   Element.prototype.scrollIntoView ??= () => {}
 }

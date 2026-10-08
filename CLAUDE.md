@@ -54,6 +54,7 @@ Details: @docs/PRD.md (features, pages, open questions) and @docs/ADR.md (archit
 - **No dead code.** Remove props and branches that no caller uses (the old `embedded` prop on `InstallCard` was removed once only one layout remained).
 - **Move data out of the component.** Copy, step lists and other data go in `content.ts(x)`; colors and similar constants go in `style.ts`.
 - **Type constants explicitly and reuse shared types.** For example `WARNING_ICON_COLOR: Record<ColorScheme, string>`, where `ColorScheme` is exported from `src/hooks/useColorScheme`, so a missing key or a typo is a compile error.
+- **Form fields take `id`.** A component used as an Ant Design form field takes `id`, `value` and `onChange`, and passes `id` to the control inside it (`CurrencySelect`, `MemberSelect`). The form item hands the `id` down so its label is tied to the input: clicking the label focuses the field and screen readers can name it.
 - **Document non-obvious props.** Add a `/** … */` comment that says what the prop means, what changes when it is true and when it is false, and where its value comes from (`gated` and `canPrompt` on `InstallCard`).
 - **Descriptive names.** Name constants for what they hold (`WARNING_ICON_COLOR`, not `WARNING_ICON`).
 - **Spelling:** use "color" (not "colour") everywhere: identifiers, comments, docs and copy.
