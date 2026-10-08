@@ -579,6 +579,25 @@ describe('AddExpensePage', () => {
       expect(await testDb.db.select().from(expensePhotos)).toEqual([])
     })
 
+    it('takes the photos off the device again when saving fails', async () => {
+      const id = await createGroup()
+      renderForm(id)
+      await user.type(await screen.findByRole('textbox', { name: 'Description' }), 'Dinner')
+      await user.type(amountInput(), '12')
+      await user.upload(chooser(), photo('a.jpg'))
+      const removeReceipts = vi.spyOn(photoService, 'removeReceipts')
+      vi.mocked(getDb).mockRejectedValueOnce(new Error('database is closed'))
+
+      await user.click(saveButton())
+
+      expect(await screen.findByText("Couldn't add the expense. Please try again.")).toBeInTheDocument()
+      await waitFor(() => expect(removeReceipts).toHaveBeenCalledTimes(1))
+      const [, ids] = removeReceipts.mock.calls[0]
+      expect(await photoService.open(me.id).getPhoto(ids[0])).toBeNull()
+      // The chosen photos stay on the form, to try again.
+      expect(previews()).toEqual(['Receipt photo 1'])
+    })
+
     it('counts chosen photos as input when leaving', async () => {
       const id = await createGroup()
       renderForm(id)

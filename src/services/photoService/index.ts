@@ -94,14 +94,21 @@ async function makeThumbnail(photo: Blob): Promise<Blob> {
 
 /**
  * Keeps the chosen photos in the store, each with a thumbnail and a new id,
- * and returns how to describe them in the database, in the same order.
+ * and returns how to describe them in the database, in the same order. All or
+ * nothing: if one cannot be kept (for example the device is full), those
+ * already kept are removed again before the error is passed on.
  */
 async function storeReceipts(store: PhotoStore, files: readonly File[]): Promise<ReceiptInput[]> {
   const receipts: ReceiptInput[] = []
-  for (const file of files) {
-    const id = crypto.randomUUID()
-    await store.savePhoto(id, file, await makeThumbnail(file))
-    receipts.push({ id, mimeType: file.type, sizeBytes: file.size })
+  try {
+    for (const file of files) {
+      const id = crypto.randomUUID()
+      await store.savePhoto(id, file, await makeThumbnail(file))
+      receipts.push({ id, mimeType: file.type, sizeBytes: file.size })
+    }
+  } catch (error) {
+    await removeReceipts(store, receipts.map((receipt) => receipt.id)).catch(() => undefined)
+    throw error
   }
   return receipts
 }

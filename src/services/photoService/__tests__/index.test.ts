@@ -1,6 +1,7 @@
 import 'fake-indexeddb/auto'
 import { describe, expect, it } from 'vitest'
 import { photoService } from '../index.ts'
+import type { PhotoStore } from '../types.ts'
 
 /** A store for a new, unique account, so tests do not share photos. */
 function newStore() {
@@ -77,5 +78,27 @@ describe('storeReceipts and removeReceipts', () => {
 
     await photoService.removeReceipts(store, receipts.map((receipt) => receipt.id))
     expect(await store.getPhoto(receipts[0].id)).toBeNull()
+  })
+})
+
+describe('storeReceipts when the device cannot keep a photo', () => {
+  it('removes the photos it already kept and passes the error on', async () => {
+    const store = newStore()
+    const kept: string[] = []
+    let saves = 0
+    const failingSecond: PhotoStore = {
+      ...store,
+      async savePhoto(id, photo, thumbnail) {
+        if (++saves === 2) throw new Error('QuotaExceededError')
+        kept.push(id)
+        await store.savePhoto(id, photo, thumbnail)
+      },
+    }
+    const files = ['a', 'b', 'c'].map((name) => new File([name], `${name}.jpg`, { type: 'image/jpeg' }))
+
+    await expect(photoService.storeReceipts(failingSecond, files)).rejects.toThrow('QuotaExceededError')
+
+    expect(kept).toHaveLength(1)
+    expect(await store.getPhoto(kept[0])).toBeNull()
   })
 })
