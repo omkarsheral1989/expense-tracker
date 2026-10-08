@@ -113,9 +113,9 @@ Every signed-in page has a header. On the left is the small OwnLedger logo tile 
 ### 5.4 Group page
 - Route `/groups/<id>`, opened from a group on the home page and after creating a group. A back button returns to the home page.
 - For now it shows details only: the group-type icon, the name, the type and the default currency, and the list of members. Expenses, balances and the other sections are added later.
-- Members are listed with the user first, then the others A to Z. Each has an avatar with their initial, their name (or email when no name is known) and their email. The user is tagged "You"; everyone else is tagged "Pending" until they have signed in and synced, which cannot happen before sync exists.
-- The page loads once when it opens, with the same placeholder and "Try again" behavior as the home page.
-- A group that does not exist, was deleted, or that the user does not belong to shows a "Group not found" message with a link back to the home page.
+- Members are listed with the user first, then the others A to Z. Each has an avatar with their initial and their name, with their email under it; a member with no known name shows just the email, once. The user's own row uses the name saved for them, or else the name from their Google profile (someone else may have added them before they ever opened the app). A heading shows the member count ("Members (3)"). The user is tagged "You"; everyone else is tagged "Pending" until they have signed in and synced, which cannot happen before sync exists.
+- The page loads once when it opens, with grey placeholders while loading and, if loading fails, "Couldn't load this group" with a "Try again" button. The tab title is the group's name followed by " · OwnLedger" ("Group not found · OwnLedger" for a missing group).
+- A group that does not exist, was deleted, or that the user does not belong to shows "Group not found" ("It may have been deleted, or you may not be a member of it.") with a "Back to your groups" button. All three cases look the same.
 
 ## 6. Open questions
 - Google Cloud setup: the OAuth client ID is not created yet (Drive API, consent screen in Testing mode, authorized origins, test users).

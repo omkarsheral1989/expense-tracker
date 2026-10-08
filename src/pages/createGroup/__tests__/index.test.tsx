@@ -32,7 +32,7 @@ function setLanguages(languages: string[]) {
 function renderForm() {
   return renderPage(<CreateGroupPage />, {
     path: ROUTES.newGroup,
-    routes: [ROUTES.home],
+    routes: [ROUTES.home, ROUTES.groupPattern],
   })
 }
 
@@ -327,7 +327,7 @@ describe('CreateGroupPage', () => {
   })
 
   describe('creating the group', () => {
-    it('saves it with the chosen type, currency and members, then opens the home page', async () => {
+    it('saves it with the chosen type, currency and members, then opens the new group\'s page', async () => {
       const page = renderForm()
       await user.type(nameInput(), 'Goa trip')
       await user.click(screen.getByText('Home'))
@@ -337,9 +337,9 @@ describe('CreateGroupPage', () => {
       await user.click(createButton())
 
       expect(await screen.findByText('Group created.')).toBeInTheDocument()
-      await waitFor(() => expect(page.currentPath()).toBe(ROUTES.home))
 
       const [group] = await groupService.listGroups(testDb.db, me.email)
+      await waitFor(() => expect(page.currentPath()).toBe(ROUTES.group(group.id)))
       expect(group).toMatchObject({ name: 'Goa trip', type: 'home', defaultCurrency: 'INR', memberCount: 3 })
       const details = await groupService.getGroup(testDb.db, me.email, group.id)
       expect(details?.members.map((member) => member.email)).toEqual([
@@ -361,7 +361,12 @@ describe('CreateGroupPage', () => {
       expect(nameInput()).toHaveValue('Goa trip')
 
       await user.click(createButton())
-      await waitFor(() => expect(page.currentPath()).toBe(ROUTES.home))
+      const [group] = await waitFor(async () => {
+        const groups = await groupService.listGroups(testDb.db, me.email)
+        expect(groups).toHaveLength(1)
+        return groups
+      })
+      await waitFor(() => expect(page.currentPath()).toBe(ROUTES.group(group.id)))
     })
   })
 

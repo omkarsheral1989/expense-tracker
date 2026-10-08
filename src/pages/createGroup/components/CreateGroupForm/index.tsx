@@ -72,7 +72,7 @@ export function CreateGroupForm({ creator }: Props) {
       if (!result.ok) return
 
       message.success('Group created.')
-      navigate(ROUTES.home)
+      navigate(ROUTES.group(result.groupId))
     } catch {
       message.error("Couldn't create the group. Please try again.")
     } finally {
