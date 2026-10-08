@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-_Last updated: 2026-10-07_. Each entry: context, decision, alternatives rejected, consequences. Update an entry (or add a new one) whenever a decision changes.
+_Last updated: 2026-10-08_. Each entry: context, decision, alternatives rejected, consequences. Update an entry (or add a new one) whenever a decision changes.
 
 ## ADR-001: React + Vite, client-only (no Next.js)
 - **Context:** The app stores everything locally and has no server work to do.
@@ -150,6 +150,22 @@ _Last updated: 2026-10-07_. Each entry: context, decision, alternatives rejected
 - **Not decided yet:** the bottom tab bar (Groups, Friends, Activity, Account) and a redesign of the whole app shell. The top header stays for now; the tab bar is a separate decision because it touches every page and needs Friends and Activity to exist.
 - **Radius exception:** the band's round buttons and pill chips, the action pills and the Add expense pill use fully round corners (`PILL_RADIUS`, 999) to match the design; they are the only exception to the two-radius rule of ADR-016.
 - **Consequences:** the band's text is white on the type's color, which needs enough contrast for each of the four colors; the title is large, where the lower contrast of orange still passes. Pattern and gradient are CSS only, so there are no image assets to cache or maintain.
+
+## ADR-031: Expense data model and split rules
+- **Context:** group expenses need per-member shares, several split methods, per-currency balances and later sync and edit history (ADR-010, ADR-012).
+- **Decision:** migration 0002 adds two tables, both with a UUID primary key, `updated_at`, `updated_by` and `deleted_at` (ADR-025).
+  - `expenses`: `group_id`, `description` (1 to 100), `category` (a stable text key, not a label), `amount_minor` (bigint), `currency` (ISO code), `date`, `notes` (up to 1000), `method` (`equal`, `exact`, `percent`, `shares`, `adjustment`), `created_by`.
+  - `expense_shares`: one row per member of the expense, with `paid_minor`, `owed_minor` and `input_value` (what the user typed for the method, so the split can be shown and edited later).
+- **Rounding:** all amounts are integer minor units. When a split leaves a remainder, the payer absorbs it, even when the payer is not part of the split. The user chose this knowingly; it keeps shares summing exactly to the amount.
+- **Balances:** computed from the shares, pairwise between members, per currency, never converted. Derived on read, not stored, so edits and sync merges cannot leave them stale. The home page nets them per currency.
+- **Money formatting:** one shared formatter handles parsing and display for the amount field: "." as the only decimal mark, the currency's decimal places, thousands separators while typing (lakh grouping for INR, western otherwise), maximum 1 billion.
+- **Categories:** a fixed list of about 45 in 7 groups, kept in code with stable keys, our own Ant Design icons and colors (ADR-030: no copied artwork or names). Stored by key so labels can change.
+- **Recent currencies:** up to 3 per account on this device, kept locally, with the group's default listed first.
+- **Pickers:** category, currency, date, payer and split use one shared adaptive dialog (centered on desktop, bottom sheet on phones), the same pattern as the members sheet (ADR-030).
+- **Validation:** the expense schema in `schemas.ts` follows ADR-027: Save validates with zod and returns field errors, including "The split no longer adds up". Split rules per method live in pure, unit-tested functions.
+- **Delivery:** five phases (simple expense, balances, payer and other split methods, placeholder details page, receipt photos). Receipts use the `PhotoStore` (ADR-006); until phase 5 the receipts row is switched off.
+- **Rejected:** storing balances (stale after edits or sync), storing only the final owed amounts without the inputs (the split could not be re-opened), a separate rounding-remainder person (more rows, no benefit).
+- **Consequences:** editing an expense rewrites its shares in one transaction. Pairwise balances do not simplify debts across three or more people; that can be added later in the balance query only.
 
 ## ADR-021: Libraries
 - **Runtime (added later):** `country-to-currency` (MIT, 16 KB, no dependencies) maps a device's region to its currency, to preselect the default currency in create-group. The browser can list currencies but cannot say which one a region uses. Region comes from the browser's locale.
