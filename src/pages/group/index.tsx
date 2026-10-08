@@ -1,20 +1,26 @@
-import { ArrowLeftOutlined } from '@ant-design/icons'
 import { Button, Card, Flex, Result, Skeleton } from 'antd'
-import { useNavigate, useParams } from 'react-router'
+import { useState } from 'react'
+import { useParams } from 'react-router'
 import { getDb } from '../../db/client.ts'
 import { useAsyncData } from '../../hooks/useAsyncData'
-import { ROUTES } from '../../routes.ts'
 import { groupService } from '../../services/groupService'
 import type { GroupDetails } from '../../services/groupService/types.ts'
 import { useAuthStore } from '../../stores/useAuthStore'
-import { GroupHeading } from './components/GroupHeading'
+import { ActionPills } from './components/ActionPills'
+import { AddExpenseButton } from './components/AddExpenseButton'
+import { BalanceLine } from './components/BalanceLine'
+import { ExpenseList } from './components/ExpenseList'
+import { GroupBand } from './components/GroupBand'
 import { GroupNotFound } from './components/GroupNotFound'
-import { MemberList } from './components/MemberList'
+import { MembersSheet } from './components/MembersSheet'
 
-/** One group: its details and its members. */
+/** A column about 720 px wide, centered, which holds everything below the band. */
+const COLUMN_STYLE = { maxWidth: 720, margin: '0 auto', padding: '16px 16px 112px' } as const
+
+/** One group: a colored band with its name and chips, the balance, actions and expenses. */
 export function GroupPage() {
   const profile = useAuthStore((state) => state.profile)
-  const navigate = useNavigate()
+  const [membersOpen, setMembersOpen] = useState(false)
   const { id = '' } = useParams()
 
   const email = profile?.email ?? ''
@@ -26,40 +32,33 @@ export function GroupPage() {
   // Signed-out visitors are sent away by `RequireAuth` before this matters.
   if (!profile) return null
 
-  function renderBackButton() {
-    return (
-      <Button
-        type="text"
-        icon={<ArrowLeftOutlined />}
-        aria-label="Back"
-        onClick={() => navigate(ROUTES.home)}
-      />
-    )
-  }
-
   function renderLoading() {
     return (
-      <Flex vertical gap={16} role="status" aria-label="Loading the group">
-        <Skeleton active avatar paragraph={{ rows: 1 }} />
-        <Card>
-          <Skeleton active paragraph={{ rows: 3 }} />
-        </Card>
-      </Flex>
+      <div style={COLUMN_STYLE}>
+        <Flex vertical gap={16} role="status" aria-label="Loading the group">
+          <Skeleton active avatar paragraph={{ rows: 1 }} />
+          <Card>
+            <Skeleton active paragraph={{ rows: 3 }} />
+          </Card>
+        </Flex>
+      </div>
     )
   }
 
   function renderError() {
     return (
-      <Result
-        status="error"
-        title="Couldn't load this group"
-        subTitle="Nothing was lost. Try again."
-        extra={
-          <Button type="primary" onClick={retry}>
-            Try again
-          </Button>
-        }
-      />
+      <div style={COLUMN_STYLE}>
+        <Result
+          status="error"
+          title="Couldn't load this group"
+          subTitle="Nothing was lost. Try again."
+          extra={
+            <Button type="primary" onClick={retry}>
+              Try again
+            </Button>
+          }
+        />
+      </div>
     )
   }
 
@@ -71,13 +70,33 @@ export function GroupPage() {
     )
 
     return (
-      <Flex vertical gap={16}>
-        <Flex align="center" gap={8}>
-          {renderBackButton()}
-          <GroupHeading group={group} />
-        </Flex>
-        <MemberList members={members} />
-      </Flex>
+      <>
+        <GroupBand
+          group={{ ...group, members }}
+          onOpenMembers={() => setMembersOpen(true)}
+        />
+        <div style={COLUMN_STYLE}>
+          <Flex vertical gap={16}>
+            <BalanceLine />
+            <ActionPills />
+            <ExpenseList />
+          </Flex>
+        </div>
+        <AddExpenseButton />
+        <MembersSheet
+          open={membersOpen}
+          onClose={() => setMembersOpen(false)}
+          members={members}
+        />
+      </>
+    )
+  }
+
+  function renderNotFound() {
+    return (
+      <div style={COLUMN_STYLE}>
+        <GroupNotFound />
+      </div>
     )
   }
 
@@ -88,7 +107,7 @@ export function GroupPage() {
       case 'error':
         return renderError()
       case 'ready':
-        return state.data ? renderGroup(state.data) : <GroupNotFound />
+        return state.data ? renderGroup(state.data) : renderNotFound()
     }
   }
 
@@ -99,9 +118,9 @@ export function GroupPage() {
   }
 
   return (
-    <Flex justify="center" style={{ padding: '24px 16px' }}>
+    <>
       {renderTitle()}
-      <div style={{ width: '100%', maxWidth: 720 }}>{renderContent()}</div>
-    </Flex>
+      {renderContent()}
+    </>
   )
 }

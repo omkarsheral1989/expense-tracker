@@ -111,16 +111,25 @@ Every signed-in page has a header. On the left is the small OwnLedger logo tile 
 - A message under a field disappears as soon as that field is edited.
 
 ### 5.4 Group page
-- Route `/groups/<id>`, opened from a group on the home page and after creating a group. A back button returns to the home page.
-- For now it shows details only: the group-type icon, the name, the type and the default currency, and the list of members. Expenses, balances and the other sections are added later.
-- Members are listed with the user first, then the others A to Z. Each has an avatar with their initial and their name, with their email under it; a member with no known name shows just the email, once. The user's own row uses the name saved for them, or else the name from their Google profile (someone else may have added them before they ever opened the app). A heading shows the member count ("Members (3)"). The user is tagged "You"; everyone else is tagged "Pending" until they have signed in and synced, which cannot happen before sync exists.
+Route `/groups/<id>`, opened from a group on the home page and after creating a group. The layout follows a phone-first design: a colored band at the top, then the balance, then the actions and the list of expenses. Parts that depend on features that do not exist yet are shown switched off with a "Coming soon" tip, so the page already has its final shape.
+
+- **Colored band** across the full width, colored by the group's type (the same colors as the type tiles: teal for trip, orange for home, pink for couple, blue for other), with a soft gradient and a faint pattern drawn with CSS (no image files). It holds:
+  - a round white **back** button on the left (to the home page), and round **search** and **settings (gear)** buttons on the right, both switched off for now ("Coming soon");
+  - the group's **type icon tile** beside the group's **name**, which is large and white and wraps onto more lines when long (never cut off or running off the screen);
+  - a row of translucent pill chips: **Add trip dates** (switched off; it exists for any group type for now), **"N people"** ("1 person" for one), and the group's **default currency** (for example "GBP").
+- **"N people" opens the member list**: a bottom sheet on phones and a side panel on desktop, titled "Members (N)". It lists the user first, then the others A to Z; each member has an avatar with their initial, their name with their email under it (just the email, once, when no name is known), and a tag: "You" for the user (whose own row uses the name saved for them, or else their Google profile name) and "Pending" for everyone else until they have signed in and synced. It closes with its close button or by tapping outside.
+- **Balance line** under the band: "You're all settled up" while there are no expenses. Later it becomes a sentence such as "Priya owes you ₹14,517.50", with the amount in bold green.
+- **Action pills**, a row that scrolls sideways when it does not fit: for now only **Settle up**, switched off.
+- **Expense list:** empty for now, with the message "No expenses yet" and "Expenses you add will appear here." Later each row shows the date (month over day), a colored category tile, the title with "You paid …" under it, and on the right "you lent" (green) or "you borrowed" (orange-red) with the amount.
+- **Add expense:** a floating green pill button at the bottom right of the content, switched off for now ("Coming soon").
+- **Wide screens:** the band stretches edge to edge; the content below it sits in one centered column about 720 px wide, as on the other pages. The app's top header (logo and avatar menu) stays above the band.
 - The page loads once when it opens, with grey placeholders while loading and, if loading fails, "Couldn't load this group" with a "Try again" button. The tab title is the group's name followed by " · OwnLedger" ("Group not found · OwnLedger" for a missing group).
 - A group that does not exist, was deleted, or that the user does not belong to shows "Group not found" ("It may have been deleted, or you may not be a member of it.") with a "Back to your groups" button. All three cases look the same.
 
 ## 6. Open questions
 - Google Cloud setup: the OAuth client ID is not created yet (Drive API, consent screen in Testing mode, authorized origins, test users).
 - Member removal: what happens to a removed member's access and local data.
-- Group page layout and sections.
+- Group page: what the search and settings buttons open, how trip dates work (which group types, start and end), and what else the pill row holds (balances, totals, charts).
 - Add-expense form details.
 - Budget details (personal vs group, alerts).
 - Charts library.

@@ -49,22 +49,52 @@ function renderGroup(groupId: string) {
   })
 }
 
+/**
+ * Matches a button by its text. Ant Design icons add their own name in front
+ * ("team 2 people", "plus Add expense"), so the text is matched at the end.
+ */
+function named(text: string) {
+  return new RegExp(`(^|\\s)${text}$`)
+}
+
+/** Opens the member list by pressing the "N people" chip, and returns the sheet. */
+async function openMembers(count: number) {
+  await userEvent.click(await screen.findByRole('button', { name: named(`${count} (people|person)`) }))
+  return screen.findByRole('dialog', { name: `Members (${count})` })
+}
+
 /** The rows of the member list: [name or email, email line or null, tag]. */
-function memberRows() {
-  const card = screen.getByText(/^Members \(/).closest('.ant-card') as HTMLElement
-  return [...card.querySelectorAll('.ant-tag')].map((tag) => {
+function memberRows(sheet: HTMLElement) {
+  return [...sheet.querySelectorAll('.ant-tag')].map((tag) => {
     const row = tag.parentElement as HTMLElement
     const texts = [...row.querySelectorAll('.ant-typography')].map((text) => text.textContent)
     return [texts[0], texts[1] ?? null, tag.textContent]
   })
 }
 
+/** Pretends the screen is wide (desktop) or narrow (phone) for Ant Design's breakpoints. */
+function setScreenWide(wide: boolean) {
+  window.matchMedia = ((query: string) => ({
+    matches: wide && /min-width/.test(query),
+    media: query,
+    onchange: null,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    addListener: () => {},
+    removeListener: () => {},
+    dispatchEvent: () => false,
+  })) as typeof window.matchMedia
+}
+
 describe('GroupPage', () => {
+  const originalMatchMedia = window.matchMedia
+
   beforeEach(() => {
     useAuthStore.setState({ profile: me, token: null })
   })
   afterEach(() => {
     cleanup()
+    window.matchMedia = originalMatchMedia
     vi.mocked(getDb).mockClear()
   })
 
@@ -80,27 +110,31 @@ describe('GroupPage', () => {
     })
   })
 
-  describe('the group\'s details', () => {
-    it('shows its name, type and default currency', async () => {
-      const id = await createGroup(me, { name: 'Goa trip', type: 'couple', defaultCurrency: 'EUR' })
+  describe('the colored band', () => {
+    it('shows the group\'s name and its default currency as a chip', async () => {
+      const id = await createGroup(me, { name: 'Goa trip', defaultCurrency: 'EUR' })
       renderGroup(id)
 
       expect(await screen.findByRole('heading', { name: 'Goa trip' })).toBeInTheDocument()
-      expect(screen.getByText('Couple · EUR')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'EUR' })).toBeInTheDocument()
     })
 
     it.each([
-      ['trip', 'Trip'],
-      ['home', 'Home'],
-      ['couple', 'Couple'],
-      ['other', 'Other'],
-    ] as const)('shows the %s icon for a %s group', async (type, label) => {
+      ['trip', 'Trip', 'rgb(13, 148, 136)'],
+      ['home', 'Home', 'rgb(212, 107, 8)'],
+      ['couple', 'Couple', 'rgb(196, 29, 127)'],
+      ['other', 'Other', 'rgb(59, 91, 219)'],
+    ] as const)('shows the %s icon, in its color, for a %s group', async (type, label, color) => {
       const id = await createGroup(me, { name: 'A group', type })
       renderGroup(id)
 
       await screen.findByRole('heading', { name: 'A group' })
-      expect(screen.getByRole('img', { name: label })).toBeInTheDocument()
-      expect(screen.getByText(`${label} · GBP`)).toBeInTheDocument()
+      const icon = screen.getByRole('img', { name: label })
+      expect(icon).toHaveStyle({ background: color })
+      // The band behind it is in the same color.
+      const band = icon.closest('div[style*="gradient"]') as HTMLElement
+      expect(band).not.toBeNull()
+      expect(band.style.background).toContain(color)
     })
 
     it('lets a long name wrap onto more lines instead of cutting it off or running off the screen', async () => {
@@ -115,6 +149,16 @@ describe('GroupPage', () => {
       expect(heading).toHaveTextContent(name)
     })
 
+    it('aligns the icon with the top of the name, not its middle', async () => {
+      const id = await createGroup(me, { name: 'Goa trip' })
+      renderGroup(id)
+
+      const heading = await screen.findByRole('heading', { name: 'Goa trip' })
+      const row = heading.parentElement as HTMLElement
+      expect(row).toHaveClass('ant-flex-align-flex-start')
+      expect(row).toContainElement(screen.getByRole('img', { name: 'Trip' }))
+    })
+
     it('goes back to the home page with the Back button', async () => {
       const id = await createGroup(me, { name: 'Goa trip' })
       const page = renderGroup(id)
@@ -124,14 +168,177 @@ describe('GroupPage', () => {
 
       expect(page.currentPath()).toBe(ROUTES.home)
     })
+
+    it.each([
+      [1, '1 person'],
+      [2, '2 people'],
+      [3, '3 people'],
+    ])('counts %i member(s) as "%s" on its chip', async (count, text) => {
+      const id = await createGroup(me, {
+        name: 'Goa',
+        memberEmails: ['priya@gmail.com', 'sam@gmail.com'].slice(0, count - 1),
+      })
+      renderGroup(id)
+
+      expect(await screen.findByRole('button', { name: named(text) })).toBeInTheDocument()
+    })
+
+    it('does not count a member who has left', async () => {
+      const id = await createGroup(me, { name: 'Goa', memberEmails: ['priya@gmail.com', 'sam@gmail.com'] })
+      const [sam] = await testDb.db.select({ id: people.id }).from(people).where(eq(people.email, 'sam@gmail.com'))
+      await testDb.db.update(groupMembers).set({ deletedAt: new Date() }).where(eq(groupMembers.personId, sam.id))
+      renderGroup(id)
+
+      expect(await screen.findByRole('button', { name: named('2 people') })).toBeInTheDocument()
+    })
+  })
+
+  describe('what is switched off for now', () => {
+    it.each([
+      ['button', 'Search'],
+      ['button', 'Group settings'],
+      ['button', 'Add trip dates'],
+      ['button', 'Settle up'],
+      ['button', 'Add expense'],
+    ] as const)('switches off the %s "%s"', async (role, name) => {
+      const id = await createGroup(me, { name: 'Goa trip' })
+      renderGroup(id)
+
+      expect(await screen.findByRole(role, { name: named(name) })).toBeDisabled()
+    })
+
+    it.each(['Search', 'Group settings', 'Add trip dates', 'Settle up', 'Add expense'])(
+      'says "Coming soon" when the pointer rests on "%s"',
+      async (name) => {
+        const id = await createGroup(me, { name: 'Goa trip' })
+        renderGroup(id)
+
+        const button = await screen.findByRole('button', { name: named(name) })
+        expect(screen.queryByText('Coming soon')).not.toBeInTheDocument()
+        // A disabled button gets no pointer events, so the tip hangs on its wrapper.
+        await userEvent.hover(button.parentElement as HTMLElement)
+
+        expect(await screen.findByText('Coming soon')).toBeInTheDocument()
+      },
+    )
+
+    it('keeps the working controls switched on, with no "Coming soon" tip', async () => {
+      const id = await createGroup(me, { name: 'Goa trip' })
+      renderGroup(id)
+      await screen.findByRole('heading', { name: 'Goa trip' })
+
+      expect(screen.getByRole('button', { name: 'Back' })).toBeEnabled()
+      expect(screen.getByRole('button', { name: named('1 person') })).toBeEnabled()
+      await userEvent.hover(screen.getByRole('button', { name: 'Back' }))
+      await userEvent.hover(screen.getByRole('button', { name: named('1 person') }))
+      expect(screen.queryByText('Coming soon')).not.toBeInTheDocument()
+    })
+
+    it('does nothing when the currency chip is pressed', async () => {
+      const id = await createGroup(me, { name: 'Goa trip' })
+      renderGroup(id)
+
+      await userEvent.click(await screen.findByRole('button', { name: 'GBP' }))
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('below the band', () => {
+    it('says you are all settled up while there are no expenses', async () => {
+      const id = await createGroup(me, { name: 'Goa trip', memberEmails: ['priya@gmail.com'] })
+      renderGroup(id)
+
+      expect(await screen.findByText("You're all settled up")).toBeInTheDocument()
+    })
+
+    it('says there are no expenses yet', async () => {
+      const id = await createGroup(me, { name: 'Goa trip' })
+      renderGroup(id)
+
+      expect(await screen.findByText('No expenses yet')).toBeInTheDocument()
+      expect(screen.getByText('Expenses you add will appear here.')).toBeInTheDocument()
+    })
+
+    it('puts the balance, the action pills and the expenses in that order', async () => {
+      const id = await createGroup(me, { name: 'Goa trip' })
+      renderGroup(id)
+
+      const balance = await screen.findByText("You're all settled up")
+      const settleUp = screen.getByRole('button', { name: named('Settle up') })
+      const empty = screen.getByText('No expenses yet')
+      expect(balance.compareDocumentPosition(settleUp) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      expect(settleUp.compareDocumentPosition(empty) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
   })
 
   describe('the members', () => {
-    it('counts the members in the heading of the list', async () => {
+    it('stays closed until the "N people" chip is pressed', async () => {
+      const id = await createGroup(me, { name: 'Goa', memberEmails: ['priya@gmail.com'] })
+      renderGroup(id)
+      await screen.findByRole('button', { name: named('2 people') })
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      expect(screen.queryByText('priya@gmail.com')).not.toBeInTheDocument()
+    })
+
+    it('opens with the count in its title', async () => {
       const id = await createGroup(me, { name: 'Goa', memberEmails: ['priya@gmail.com', 'sam@gmail.com'] })
       renderGroup(id)
 
-      expect(await screen.findByText('Members (3)')).toBeInTheDocument()
+      const sheet = await openMembers(3)
+
+      expect(within(sheet).getByText('Members (3)')).toBeInTheDocument()
+    })
+
+    it('closes with its close button', async () => {
+      const id = await createGroup(me, { name: 'Goa', memberEmails: ['priya@gmail.com'] })
+      renderGroup(id)
+      const sheet = await openMembers(2)
+
+      await userEvent.click(within(sheet).getByRole('button', { name: 'Close' }))
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    })
+
+    it('closes when the dimmed area outside it is pressed', async () => {
+      const id = await createGroup(me, { name: 'Goa', memberEmails: ['priya@gmail.com'] })
+      renderGroup(id)
+      await openMembers(2)
+
+      await userEvent.click(document.querySelector('.ant-drawer-mask') as HTMLElement)
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    })
+
+    it('can be opened again after it was closed', async () => {
+      const id = await createGroup(me, { name: 'Goa', memberEmails: ['priya@gmail.com'] })
+      renderGroup(id)
+      const sheet = await openMembers(2)
+      await userEvent.click(within(sheet).getByRole('button', { name: 'Close' }))
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+
+      await openMembers(2)
+
+      expect(screen.getByText('priya@gmail.com')).toBeInTheDocument()
+    })
+
+    it('slides up from the bottom on a phone', async () => {
+      setScreenWide(false)
+      const id = await createGroup(me, { name: 'Goa', memberEmails: ['priya@gmail.com'] })
+      renderGroup(id)
+      await openMembers(2)
+
+      expect(document.querySelector('.ant-drawer')).toHaveClass('ant-drawer-bottom')
+    })
+
+    it('slides in from the right on a wide screen', async () => {
+      setScreenWide(true)
+      const id = await createGroup(me, { name: 'Goa', memberEmails: ['priya@gmail.com'] })
+      renderGroup(id)
+      await openMembers(2)
+
+      expect(document.querySelector('.ant-drawer')).toHaveClass('ant-drawer-right')
     })
 
     it('lists you first, then the others A to Z, with a name and an email each', async () => {
@@ -142,9 +349,9 @@ describe('GroupPage', () => {
       await testDb.db.update(people).set({ name: 'Zoe' }).where(eq(people.email, 'amy@gmail.com'))
       await testDb.db.update(people).set({ name: 'Bea' }).where(eq(people.email, 'zed@gmail.com'))
       renderGroup(id)
-      await screen.findByText('Members (4)')
+      const sheet = await openMembers(4)
 
-      expect(memberRows().map(([primary]) => primary)).toEqual([
+      expect(memberRows(sheet).map(([primary]) => primary)).toEqual([
         'Omkar Sheral',
         'Bea',
         'priya@gmail.com',
@@ -155,19 +362,19 @@ describe('GroupPage', () => {
     it('tags you as "You" and everyone else as "Pending"', async () => {
       const id = await createGroup(me, { name: 'Goa', memberEmails: ['priya@gmail.com', 'sam@gmail.com'] })
       renderGroup(id)
-      await screen.findByText('Members (3)')
+      const sheet = await openMembers(3)
 
-      expect(memberRows().map(([, , tag]) => tag)).toEqual(['You', 'Pending', 'Pending'])
-      expect(screen.getAllByText('You')).toHaveLength(1)
+      expect(memberRows(sheet).map(([, , tag]) => tag)).toEqual(['You', 'Pending', 'Pending'])
+      expect(within(sheet).getAllByText('You')).toHaveLength(1)
     })
 
     it('shows a member\'s name with their email under it, and just the email when there is no name', async () => {
       const id = await createGroup(me, { name: 'Goa', memberEmails: ['priya@gmail.com', 'sam@gmail.com'] })
       await testDb.db.update(people).set({ name: 'Priya Shah' }).where(eq(people.email, 'priya@gmail.com'))
       renderGroup(id)
-      await screen.findByText('Members (3)')
+      const sheet = await openMembers(3)
 
-      expect(memberRows()).toEqual([
+      expect(memberRows(sheet)).toEqual([
         ['Omkar Sheral', 'omkar@gmail.com', 'You'],
         ['Priya Shah', 'priya@gmail.com', 'Pending'],
         // No name: the email is the title, and is not repeated underneath.
@@ -179,10 +386,9 @@ describe('GroupPage', () => {
       const id = await createGroup(me, { name: 'Goa', memberEmails: ['priya@gmail.com'] })
       await testDb.db.update(people).set({ name: 'Priya Shah' }).where(eq(people.email, 'priya@gmail.com'))
       renderGroup(id)
-      await screen.findByText('Members (2)')
+      const sheet = await openMembers(2)
 
-      const card = screen.getByText(/^Members \(/).closest('.ant-card') as HTMLElement
-      const initials = [...card.querySelectorAll('.ant-avatar')].map((avatar) => avatar.textContent)
+      const initials = [...sheet.querySelectorAll('.ant-avatar')].map((avatar) => avatar.textContent)
       expect(initials).toEqual(['O', 'P'])
     })
 
@@ -191,19 +397,19 @@ describe('GroupPage', () => {
       const [sam] = await testDb.db.select({ id: people.id }).from(people).where(eq(people.email, 'sam@gmail.com'))
       await testDb.db.update(groupMembers).set({ deletedAt: new Date() }).where(eq(groupMembers.personId, sam.id))
       renderGroup(id)
+      const sheet = await openMembers(2)
 
-      expect(await screen.findByText('Members (2)')).toBeInTheDocument()
-      expect(screen.queryByText('sam@gmail.com')).not.toBeInTheDocument()
+      expect(within(sheet).queryByText('sam@gmail.com')).not.toBeInTheDocument()
     })
 
     it('shows the group from the point of view of whoever opens it', async () => {
       const id = await createGroup(priya, { name: 'Flat', memberEmails: ['omkar@gmail.com'] })
       renderGroup(id)
-      await screen.findByText('Members (2)')
+      const sheet = await openMembers(2)
 
       // The user's own record has no name (Priya added them by email), so the
       // name comes from their Google profile.
-      expect(memberRows()).toEqual([
+      expect(memberRows(sheet)).toEqual([
         ['Omkar Sheral', 'omkar@gmail.com', 'You'],
         ['Priya', 'priya@gmail.com', 'Pending'],
       ])
@@ -213,16 +419,16 @@ describe('GroupPage', () => {
       const id = await createGroup(me, { name: 'Goa' })
       await testDb.db.update(people).set({ name: 'Omkar S.' }).where(eq(people.email, me.email))
       renderGroup(id)
-      await screen.findByText('Members (1)')
+      const sheet = await openMembers(1)
 
-      expect(memberRows()).toEqual([['Omkar S.', 'omkar@gmail.com', 'You']])
+      expect(memberRows(sheet)).toEqual([['Omkar S.', 'omkar@gmail.com', 'You']])
     })
   })
 
   describe('a group that is not there for this user', () => {
     async function expectNotFound(page: ReturnType<typeof renderGroup>) {
       expect(await screen.findByText('Group not found')).toBeInTheDocument()
-      expect(screen.queryByText(/^Members \(/)).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: named('(people|person)') })).not.toBeInTheDocument()
 
       await userEvent.click(screen.getByRole('link', { name: 'Back to your groups' }))
       expect(page.currentPath()).toBe(ROUTES.home)

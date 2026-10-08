@@ -1,5 +1,5 @@
 import { Avatar, Flex, Tag, theme, Typography } from 'antd'
-import type { GroupMember } from '../../../../../services/groupService/types.ts'
+import type { GroupMember } from '../../../../../../services/groupService/types.ts'
 
 const { Text } = Typography
 
