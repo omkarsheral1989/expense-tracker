@@ -42,6 +42,7 @@ describe('hasUnsavedInput', () => {
     currency: 'GBP',
     date: '2026-10-08',
     notes: '',
+    split: { paidBy: 'me', method: 'equal', values: { me: 1, priya: 1 } },
   }
 
   it('is false for an untouched form, and for spaces only', () => {
@@ -57,6 +58,8 @@ describe('hasUnsavedInput', () => {
     ['category', { category: 'food.groceries' }],
     ['currency', { currency: 'EUR' }],
     ['date', { date: '2026-10-07' }],
+    ['payer', { split: { paidBy: 'priya', method: 'equal' as const, values: { me: 1, priya: 1 } } }],
+    ['split', { split: { paidBy: 'me', method: 'equal' as const, values: { me: 0, priya: 1 } } }],
   ])('is true once the %s changes', (_, change) => {
     expect(hasUnsavedInput({ ...initial, ...change }, initial)).toBe(true)
   })
@@ -71,6 +74,14 @@ describe('toFormFields', () => {
       { name: 'currency', errors: [] },
       { name: 'date', errors: [] },
       { name: 'notes', errors: [] },
+      { name: 'split', errors: [] },
     ])
+  })
+
+  it('puts problems with who paid under the split', () => {
+    expect(toFormFields({ paidBy: 'Choose who paid.' }).find((field) => field.name === 'split')).toEqual({
+      name: 'split',
+      errors: ['Choose who paid.'],
+    })
   })
 })

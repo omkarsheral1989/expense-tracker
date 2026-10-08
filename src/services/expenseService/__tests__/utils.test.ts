@@ -1,59 +1,164 @@
 import { describe, expect, it } from 'vitest'
 import { CATEGORY_GROUPS, DEFAULT_CATEGORY } from '../constants.ts'
-import { CATEGORIES, categoryOf, debtsOf, isCategoryKey, pairBalances, splitEqually } from '../utils.ts'
+import type { SplitMethod } from '../../../db/types.ts'
+import { CATEGORIES, categoryOf, computeShares, debtsOf, isCategoryKey, pairBalances, SPLIT_DOES_NOT_ADD_UP } from '../utils.ts'
 
-/** The shares as [person, paid, owed, input] for easy reading. */
-function table(shares: ReturnType<typeof splitEqually>) {
-  return shares.map((share) => [share.personId, share.paidMinor, share.owedMinor, share.inputValue])
+const MEMBERS = ['me', 'priya', 'sam']
+
+/** Works out a split of the members above, failing the test if it is refused. */
+function shares(amountMinor: number, method: SplitMethod, values: Record<string, number>, payer = 'me', members = MEMBERS) {
+  const result = computeShares(amountMinor, { method, values }, payer, members)
+  if (!result.ok) throw new Error(result.message)
+  return result.shares
 }
 
-describe('splitEqually', () => {
-  it('divides an even amount equally, with the payer paying it all', () => {
-    expect(table(splitEqually(900, ['me', 'priya', 'sam'], 'me'))).toEqual([
-      ['me', 900, 300, 1],
-      ['priya', 0, 300, 1],
-      ['sam', 0, 300, 1],
-    ])
+/** The shares as [person, paid, owed, input] for easy reading. */
+function table(list: { personId: string; paidMinor: number; owedMinor: number; inputValue: number | null }[]) {
+  return list.map((share) => [share.personId, share.paidMinor, share.owedMinor, share.inputValue])
+}
+
+/** Why a split is refused, or 'ok'. */
+function problem(amountMinor: number, method: SplitMethod, values: Record<string, number>, payer = 'me') {
+  const result = computeShares(amountMinor, { method, values }, payer, MEMBERS)
+  return result.ok ? 'ok' : result.message
+}
+
+const everyone = { me: 1, priya: 1, sam: 1 }
+
+describe('computeShares', () => {
+  describe('equally', () => {
+    it('divides an even amount equally, with the payer paying it all', () => {
+      expect(table(shares(900, 'equal', everyone))).toEqual([
+        ['me', 900, 300, 1],
+        ['priya', 0, 300, 1],
+        ['sam', 0, 300, 1],
+      ])
+    })
+
+    it('gives the minor units left over to the payer', () => {
+      expect(table(shares(1000, 'equal', everyone, 'priya'))).toEqual([
+        ['me', 0, 333, 1],
+        ['priya', 1000, 334, 1],
+        ['sam', 0, 333, 1],
+      ])
+    })
+
+    it('gives the left over to a payer who is not in the split, and keeps every member', () => {
+      expect(table(shares(1000, 'equal', { priya: 1, sam: 1, me: 0 }, 'me'))).toEqual([
+        ['me', 1000, 0, 0],
+        ['priya', 0, 500, 1],
+        ['sam', 0, 500, 1],
+      ])
+      expect(table(shares(1001, 'equal', { priya: 1, sam: 1 }, 'me'))).toEqual([
+        ['me', 1001, 1, 0],
+        ['priya', 0, 500, 1],
+        ['sam', 0, 500, 1],
+      ])
+    })
+
+    it('needs at least one person', () => {
+      expect(problem(1000, 'equal', {})).toBe('Choose at least one person.')
+      expect(problem(1000, 'equal', { me: 2 })).toBe(SPLIT_DOES_NOT_ADD_UP)
+    })
   })
 
-  it('gives the minor units left over to the payer', () => {
-    expect(table(splitEqually(1000, ['priya', 'me', 'sam'], 'me'))).toEqual([
-      ['priya', 0, 333, 1],
-      ['me', 1000, 334, 1],
-      ['sam', 0, 333, 1],
-    ])
-    expect(table(splitEqually(1001, ['me', 'priya', 'sam'], 'me'))).toEqual([
-      ['me', 1001, 335, 1],
-      ['priya', 0, 333, 1],
-      ['sam', 0, 333, 1],
-    ])
+  describe('by exact amounts', () => {
+    it('uses the amounts as they are', () => {
+      expect(table(shares(1000, 'exact', { me: 200, priya: 800 }, 'priya'))).toEqual([
+        ['me', 0, 200, 200],
+        ['priya', 1000, 800, 800],
+        ['sam', 0, 0, 0],
+      ])
+    })
+
+    it('must add up to the amount exactly', () => {
+      expect(problem(1000, 'exact', { me: 200, priya: 700 })).toBe(SPLIT_DOES_NOT_ADD_UP)
+      expect(problem(1000, 'exact', { me: 200, priya: 900 })).toBe(SPLIT_DOES_NOT_ADD_UP)
+    })
   })
 
-  it('gives the left over to a payer who is not in the split', () => {
-    expect(table(splitEqually(1000, ['priya', 'sam', 'ana'], 'me'))).toEqual([
-      ['priya', 0, 333, 1],
-      ['sam', 0, 333, 1],
-      ['ana', 0, 333, 1],
-      ['me', 1000, 1, 0],
-    ])
+  describe('by percentages', () => {
+    it('divides by whole percentages, the payer taking what is left over', () => {
+      expect(table(shares(1001, 'percent', { me: 50, priya: 25, sam: 25 }, 'priya'))).toEqual([
+        ['me', 0, 500, 50],
+        ['priya', 1001, 251, 25],
+        ['sam', 0, 250, 25],
+      ])
+    })
+
+    it('must come to 100%', () => {
+      expect(problem(1000, 'percent', { me: 50, priya: 49 })).toBe(SPLIT_DOES_NOT_ADD_UP)
+      expect(problem(1000, 'percent', { me: 50, priya: 51 })).toBe(SPLIT_DOES_NOT_ADD_UP)
+      expect(problem(1000, 'percent', { me: 100 })).toBe('ok')
+    })
+  })
+
+  describe('by shares', () => {
+    it('divides in proportion to the shares', () => {
+      expect(table(shares(1000, 'shares', { me: 2, priya: 1, sam: 1 }))).toEqual([
+        ['me', 1000, 500, 2],
+        ['priya', 0, 250, 1],
+        ['sam', 0, 250, 1],
+      ])
+      expect(table(shares(1000, 'shares', { me: 1, priya: 2 }))).toEqual([
+        ['me', 1000, 334, 1],
+        ['priya', 0, 666, 2],
+        ['sam', 0, 0, 0],
+      ])
+    })
+
+    it('needs at least one share, and at most 1000 each', () => {
+      expect(problem(1000, 'shares', { me: 0 })).toBe('Give at least one share.')
+      expect(problem(1000, 'shares', { me: 1001 })).toBe('Use at most 1000 shares each.')
+      expect(problem(1000, 'shares', { me: 1000 })).toBe('ok')
+    })
+  })
+
+  describe('by adjustment', () => {
+    it('adds each person\'s extra to an equal part of what remains', () => {
+      // 10.00 with 1.00 extra for Priya: 9.00 split three ways, plus Priya's 1.00.
+      expect(table(shares(1000, 'adjustment', { priya: 100 }))).toEqual([
+        ['me', 1000, 300, 0],
+        ['priya', 0, 400, 100],
+        ['sam', 0, 300, 0],
+      ])
+      expect(table(shares(1000, 'adjustment', {}))).toEqual([
+        ['me', 1000, 334, 0],
+        ['priya', 0, 333, 0],
+        ['sam', 0, 333, 0],
+      ])
+    })
+
+    it('allows extras up to the whole amount, and no more', () => {
+      expect(problem(1000, 'adjustment', { priya: 600, sam: 400 })).toBe('ok')
+      expect(problem(1000, 'adjustment', { priya: 600, sam: 401 })).toBe(SPLIT_DOES_NOT_ADD_UP)
+    })
   })
 
   it('always adds up to the amount', () => {
+    const splits: [SplitMethod, Record<string, number>][] = [
+      ['equal', { me: 1, sam: 1 }],
+      ['percent', { me: 33, priya: 33, sam: 34 }],
+      ['shares', { me: 3, priya: 7, sam: 11 }],
+      ['adjustment', { priya: 1 }],
+    ]
     for (const amount of [1, 2, 7, 99, 100, 101, 12345, 100_000_000_000]) {
-      for (const people of [['a'], ['a', 'b'], ['a', 'b', 'c'], ['a', 'b', 'c', 'd', 'e', 'f', 'g']]) {
-        const shares = splitEqually(amount, people, 'a')
-        expect(shares.reduce((sum, share) => sum + share.owedMinor, 0)).toBe(amount)
-        expect(shares.reduce((sum, share) => sum + share.paidMinor, 0)).toBe(amount)
+      for (const [method, values] of splits) {
+        for (const payer of MEMBERS) {
+          const list = shares(amount, method, values, payer)
+          expect(list.reduce((sum, share) => sum + share.owedMinor, 0)).toBe(amount)
+          expect(list.reduce((sum, share) => sum + share.paidMinor, 0)).toBe(amount)
+          expect(list.every((share) => share.owedMinor >= 0)).toBe(true)
+        }
       }
     }
   })
 
-  it('gives everything to a single person', () => {
-    expect(table(splitEqually(1234, ['me'], 'me'))).toEqual([['me', 1234, 1234, 1]])
-  })
-
-  it('refuses to split between nobody', () => {
-    expect(() => splitEqually(100, [], 'me')).toThrow()
+  it('refuses a payer or a person who is not a member, and numbers that are not whole', () => {
+    expect(problem(1000, 'equal', everyone, 'stranger')).toBe('Choose who paid.')
+    expect(problem(1000, 'equal', { ...everyone, stranger: 1 })).toBe('Only members of the group can be in the split.')
+    expect(problem(1000, 'exact', { me: 500.5, priya: 499.5 })).toBe('Use whole numbers of 0 or more.')
+    expect(problem(1000, 'exact', { me: 1100, priya: -100 })).toBe('Use whole numbers of 0 or more.')
   })
 })
 
@@ -143,7 +248,7 @@ describe('debtsOf', () => {
 describe('pairBalances', () => {
   const lunch = (payer: string, amount: number, people: string[], currency = 'GBP') => ({
     currency,
-    shares: splitEqually(amount, people, payer),
+    shares: shares(amount, 'equal', Object.fromEntries(people.map((person) => [person, 1])), payer, people),
   })
 
   it('adds up what each person owes the user and what the user owes them', () => {

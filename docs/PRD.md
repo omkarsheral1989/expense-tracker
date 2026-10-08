@@ -153,18 +153,19 @@ Route `/groups/<id>/expenses/new`, opened from the group page's "Add expense" bu
 **Splitting**
 - Default: you paid, split equally among all members.
 - **3 or more members:** the sentence has two buttons, "Paid by [you]" and "split [equally]".
-- **2 members:** one button with four quick choices plus "More options". Choosing anything that is not a quick choice, or any non-equal split, switches to the two-button sentence. Any non-equal split reads "unequally".
-- People are named by first name; without a name, by the part of the email before the "@".
+- **2 members:** one button showing the current quick choice; it opens the four choices "You paid, split equally", "You are owed the full amount", "Priya paid, split equally" and "Priya is owed the full amount", plus "More options" (the split dialog). Once the split is not one of the four, the form shows the two-button sentence instead. Any non-equal split reads "unequally"; an equal split between only some people still reads "equally".
+- People are named by first name; without a name, by the part of the email before the "@", with a capital letter when the name starts a sentence ("Sam paid, split equally").
 - "Multiple people" as payer is shown switched off.
-- A group with one member can still get expenses; the split buttons are switched off.
-- **Split dialog:** a "Paid by" dropdown on top (the "[you]" button opens the same choice), then tabs:
+- A group with one member can still get expenses; the split buttons are switched off, with the tip "You are the only member of this group."
+- **Who paid** (the "[you]" button): a dialog "Who paid?" listing the members ("You" first) and "Multiple people" switched off.
+- **Split dialog** ("Split options"): a "Paid by" dropdown on top, then tabs Equally, Amounts, Percent, Shares, Adjust (each with a heading, a one-line explanation and an icon), one line per member with their avatar and name, and what their part comes to under the name once the split works:
   - **Equally:** tick who shares; the payer may be unticked; at least one person must be ticked.
   - **Exact amounts:** must total the expense amount.
   - **Percentages:** whole numbers, total 100.
   - **Shares:** whole numbers from 0 to 1000, at least one share in total.
   - **Adjustment:** each "+" amount is 0 or more, the adjustments add up to at most the amount, and the remainder is split equally.
 - Footers show "X of TOTAL" and "N left" (green at 0) or "N over" (red). No illustrations: a heading, a one-line explanation and an Ant Design icon.
-- If the split is not balanced, pressing the dialog's tick shows an error and the dialog stays open.
+- If the split is not balanced, pressing the dialog's tick shows why ("The split no longer adds up.", "Choose at least one person.", "Give at least one share.", or "Enter the amount first." for amounts and adjustments before an amount is typed) and the dialog stays open. Editing clears the message.
 - If the amount changes after exact amounts were entered, the form shows "The split no longer adds up" and Save is blocked until it is fixed.
 - The method and the user's inputs are stored, so the split can be shown and edited later.
 
@@ -178,6 +179,7 @@ Route `/groups/<id>/expenses/new`, opened from the group page's "Add expense" bu
 **Phases** (each phase: tests with break-checks, a browser check, and the user reviews the UX first)
 1. A simple expense (equal split, you paid) saved and listed. **Done.** The "Paid by [you] and split [equally]" buttons are shown switched off ("Coming soon") for every group size until phase 3; rows cannot be opened until phase 4.
    Phase 2 **done**: the group page's balance lines and the home page's per-currency balances.
+   Phase 3 **done**: who paid, the quick choices of a group of two, and the split dialog with all five methods.
 2. Balances: the balance line and the home page rows.
 3. Who paid, and the other split methods.
 4. The placeholder details page.

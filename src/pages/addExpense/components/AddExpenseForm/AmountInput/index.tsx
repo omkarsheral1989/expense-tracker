@@ -11,6 +11,15 @@ type Props = {
   /** The amount cleaned to digits and one "." ('1234.5'), as the form holds it. */
   value?: string
   onChange?: (value: string) => void
+  /** What screen readers call the field. */
+  label?: string
+  /**
+   * True for the amount of the expense itself: large type on an underline.
+   * False for a smaller boxed field, such as one person's amount in the split.
+   */
+  large?: boolean
+  /** Shown before the number inside a small field, such as "+" for an adjustment. */
+  prefix?: string
 }
 
 /**
@@ -18,7 +27,15 @@ type Props = {
  * no more decimals than the currency has, and thousands separators appear as
  * the user types (lakhs for INR). Works as an Ant Design form field.
  */
-export function AmountInput({ id, currency, value = '', onChange }: Props) {
+export function AmountInput({
+  id,
+  currency,
+  value = '',
+  onChange,
+  label = 'Amount',
+  large = true,
+  prefix,
+}: Props) {
   const inputRef = useRef<InputRef>(null)
   // After a change the field is reformatted, which would throw the caret to
   // the end; this remembers how many digits it came after, to put it back.
@@ -43,14 +60,16 @@ export function AmountInput({ id, currency, value = '', onChange }: Props) {
     <Input
       ref={inputRef}
       id={id}
-      aria-label="Amount"
+      aria-label={label}
       inputMode="decimal"
       autoComplete="off"
-      variant="underlined"
+      variant={large ? 'underlined' : 'outlined'}
+      prefix={prefix}
       placeholder={moneyService.placeholder(currency)}
       value={moneyService.formatInput(value, currency)}
       onChange={handleChange}
-      style={{ fontSize: 32, fontWeight: 600 }}
+      style={large ? { fontSize: 32, fontWeight: 600 } : undefined}
+      styles={large ? undefined : { input: { textAlign: 'end' } }}
     />
   )
 }

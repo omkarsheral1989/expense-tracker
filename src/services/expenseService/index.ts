@@ -12,7 +12,7 @@ import type {
   ExpensePayer,
   PersonBalance,
 } from './types.ts'
-import { CATEGORIES, categoryOf, pairBalances, splitEqually } from './utils.ts'
+import { CATEGORIES, categoryOf, computeShares, pairBalances } from './utils.ts'
 
 /** The id of the person with this email, or null when nobody has it. */
 async function findPersonId(db: Database | Transaction, email: string): Promise<string | null> {
@@ -37,11 +37,12 @@ export const expenseService = {
   categoryOf,
 
   /**
-   * Adds an expense to a group, paid in full by the user and split equally
-   * between every member, all or nothing. Anything wrong with the input comes
-   * back as one message per field, to show beside it. A user who is not a
-   * member of the group, or a group that does not exist, is unexpected (the
-   * page only offers groups the user is in) and throws.
+   * Adds an expense to a group, with who paid and how it is split, all or
+   * nothing. Anything wrong with the input, including a split that does not
+   * add up, comes back as one message per field, to show beside it; every
+   * problem is reported at once. A user who is not a member of the group, or a
+   * group that does not exist, is unexpected (the page only offers groups the
+   * user is in) and throws.
    */
   async createExpense(
     db: Database,
@@ -50,8 +51,6 @@ export const expenseService = {
     input: CreateExpenseInput,
   ): Promise<CreateExpenseResult> {
     const parsed = createExpenseSchema.safeParse(input)
-    if (!parsed.success) return { ok: false, errors: toFieldErrors(parsed.error) }
-    const expense = parsed.data
 
     return db.transaction(async (tx): Promise<CreateExpenseResult> => {
       const userId = await findPersonId(tx, userEmail)
@@ -65,19 +64,38 @@ export const expenseService = {
       const memberIds = members.map((member) => member.personId)
       if (!memberIds.includes(userId)) throw new Error('The user is not a member of this group.')
 
+      const errors = parsed.success ? {} : toFieldErrors(parsed.error)
+      // The split can only be checked against a usable amount.
+      const amountMinor = parsed.success ? parsed.data.amountMinor : input.amountMinor
+      const result =
+        typeof amountMinor === 'number' && Number.isSafeInteger(amountMinor) && amountMinor > 0 && !errors.split
+          ? computeShares(amountMinor, input.split, input.paidBy, memberIds)
+          : null
+      if (result && !result.ok) {
+        if (result.message === 'Choose who paid.') errors.paidBy ??= result.message
+        else errors.split = result.message
+      }
+      if (!parsed.success || !result?.ok) return { ok: false, errors }
+
+      const { description, category, currency, date, notes, split } = parsed.data
       const id = crypto.randomUUID()
       const updatedAt = new Date()
       await tx.insert(expenses).values({
         id,
         groupId,
-        ...expense,
-        method: 'equal',
+        description,
+        category,
+        amountMinor: parsed.data.amountMinor,
+        currency,
+        date,
+        notes,
+        method: split.method,
         createdBy: userId,
         updatedBy: userId,
         updatedAt,
       })
       await tx.insert(expenseShares).values(
-        splitEqually(expense.amountMinor, memberIds, userId).map((share) => ({
+        result.shares.map((share) => ({
           ...share,
           expenseId: id,
           updatedBy: userId,

@@ -15,7 +15,8 @@ import { NOTES_COUNTER_FROM } from './constants.ts'
 import { CurrencyField } from './CurrencyField'
 import { DateField } from './DateField'
 import { ReceiptsRow } from './ReceiptsRow'
-import { SplitSentence } from './SplitSentence'
+import { SplitField } from './SplitField'
+import { initialSplit, splitProblem } from './SplitField/utils.ts'
 import type { FormValues } from './types.ts'
 import { hasUnsavedInput, recentCurrencyCodes, toDay, toFormFields } from './utils.ts'
 import { WithChip } from './WithChip'
@@ -32,8 +33,7 @@ type Props = {
 
 /**
  * A new expense in a group: what it was for, how much, and when. Saved with
- * the tick in the header. For now the user pays and it is split equally
- * between every member.
+ * the tick in the header, with who paid and how it is split.
  */
 export function AddExpenseForm({ group, userEmail, recentCurrencies }: Props) {
   const [form] = Form.useForm<FormValues>()
@@ -48,8 +48,15 @@ export function AddExpenseForm({ group, userEmail, recentCurrencies }: Props) {
     currency: group.defaultCurrency,
     date: toDay(new Date()),
     notes: '',
+    split: initialSplit(group.members),
   }))
   const currency = Form.useWatch('currency', form) ?? initialValues.currency
+  const amount = Form.useWatch('amount', form) ?? ''
+  const split = Form.useWatch('split', form) ?? initialValues.split
+  const amountMinor = moneyService.toMinor(amount, currency)
+  // Shown under the split as soon as it stops adding up, for example after the
+  // amount changed under exact amounts. Saving refuses it too.
+  const liveSplitProblem = splitProblem(amountMinor, split, group.members)
 
   const hasInput = hasUnsavedInput(Form.useWatch([], form), initialValues)
   useLeaveWarning(hasInput)
@@ -83,6 +90,8 @@ export function AddExpenseForm({ group, userEmail, recentCurrencies }: Props) {
         currency: values.currency,
         date: values.date,
         notes: values.notes,
+        paidBy: values.split.paidBy,
+        split: { method: values.split.method, values: values.split.values },
       })
 
       // Every problem is shown at once, each beside its own field.
@@ -99,8 +108,11 @@ export function AddExpenseForm({ group, userEmail, recentCurrencies }: Props) {
   }
 
   function handleValuesChange(changed: Partial<FormValues>, all: FormValues) {
-    // A message disappears as soon as its field is edited.
+    // A message disappears as soon as its field is edited. The split is
+    // checked against the amount, so a new amount or currency clears its
+    // message too; it comes back at once if the split still does not add up.
     const fields = Object.keys(changed) as (keyof FormValues)[]
+    if (changed.amount !== undefined || changed.currency) fields.push('split')
     form.setFields(fields.map((name) => ({ name, errors: [] })))
 
     // The amount keeps to the decimals of the new currency.
@@ -196,7 +208,14 @@ export function AddExpenseForm({ group, userEmail, recentCurrencies }: Props) {
         <WithChip groupName={group.name} />
         <Divider style={{ margin: '16px 0' }} />
         {renderWhatAndHowMuch()}
-        <SplitSentence />
+        <Form.Item
+          name="split"
+          style={{ marginBottom: 0 }}
+          help={liveSplitProblem ?? undefined}
+          validateStatus={liveSplitProblem ? 'error' : undefined}
+        >
+          <SplitField members={group.members} amountMinor={amountMinor} currency={currency} />
+        </Form.Item>
         <Divider style={{ margin: '16px 0' }} />
         {renderDetails()}
       </Form>

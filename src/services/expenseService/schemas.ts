@@ -2,6 +2,7 @@ import { z } from 'zod'
 import {
   EXPENSE_DESCRIPTION_MAX_LENGTH,
   EXPENSE_NOTES_MAX_LENGTH,
+  SPLIT_METHODS,
 } from '../../db/constants.ts'
 import { currencyService } from '../currencyService'
 import { moneyService } from '../moneyService'
@@ -18,7 +19,8 @@ function isRealDay(day: string): boolean {
 
 /**
  * The rules for a new expense. The form and the save function share it.
- * Parsing trims the description and notes; empty notes become null.
+ * Parsing trims the description and notes; empty notes become null. The split
+ * is checked against the group's members by the save function.
  */
 export const createExpenseSchema = z
   .object({
@@ -46,6 +48,16 @@ export const createExpenseSchema = z
       .trim()
       .max(EXPENSE_NOTES_MAX_LENGTH, `Use at most ${EXPENSE_NOTES_MAX_LENGTH} characters.`)
       .transform((notes) => notes || null),
+    paidBy: z.string({ error: 'Choose who paid.' }).min(1, 'Choose who paid.'),
+    // Whether the numbers add up is checked against the group's members by
+    // `computeShares`, once the amount is known.
+    split: z.object(
+      {
+        method: z.enum(SPLIT_METHODS),
+        values: z.record(z.string(), z.number()),
+      },
+      { error: 'Choose how to split it.' },
+    ),
   })
   .superRefine((expense, context) => {
     // The limit depends on the currency's decimals, so it is checked here. It

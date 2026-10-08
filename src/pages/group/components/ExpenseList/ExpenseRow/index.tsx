@@ -36,7 +36,7 @@ export function ExpenseRow({ expense }: Props) {
 
   function renderPaidBy() {
     if (!expense.payer) return null
-    const who = expense.payer.isYou ? 'You' : groupService.shortName(expense.payer)
+    const who = expense.payer.isYou ? 'You' : groupService.shortName(expense.payer, { sentenceStart: true })
     return (
       <Text type="secondary" style={{ fontSize: 13 }}>
         {who} paid {moneyService.format(expense.amountMinor, expense.currency)}

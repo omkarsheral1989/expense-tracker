@@ -1,38 +1,88 @@
 import { CATEGORY_GROUPS, DEFAULT_CATEGORY } from './constants.ts'
-import type { Category, CategoryKey, ShareAmounts } from './types.ts'
+import type { Category, CategoryKey, SplitInput, SplitResult } from './types.ts'
+
+/** Most shares one person can be given with the "shares" method. */
+const MAX_SHARES = 1000
+
+/** Shown when the parts of a split do not come to the expense's amount (or 100%). */
+export const SPLIT_DOES_NOT_ADD_UP = 'The split no longer adds up.'
 
 /**
- * Divides an amount equally between people, in whole minor units. When it does
- * not divide evenly, the few minor units left over go to the payer's share,
- * even when the payer is not one of the people splitting it, so the shares
- * always add up to the amount. Everyone listed in `splitBetween` gets an
- * `inputValue` of 1; a payer outside the split gets 0. The payer paid the whole
- * amount.
+ * Works out every member's part of an expense from what the user entered for
+ * the split method, in whole minor units:
+ * - 'equal': 1 for each person in the split, 0 for the others; the amount is
+ *   divided equally between those with 1.
+ * - 'exact': each person's amount in minor units; they must add up to the amount.
+ * - 'percent': whole percentages that add up to 100.
+ * - 'shares': whole numbers of shares (0 to 1000, at least one in all); the
+ *   amount is divided in proportion.
+ * - 'adjustment': an extra amount in minor units for each person, together at
+ *   most the amount; what remains is divided equally between every member and
+ *   each person's extra is added to their part.
+ * Parts that do not divide evenly leave a few minor units over; they go to the
+ * payer's part, even when the payer is not in the split, so the parts always
+ * add up to the amount. The payer paid all of it. Every member gets a share,
+ * with what was entered for them as `inputValue` (0 when nothing was).
  */
-export function splitEqually(
+export function computeShares(
   amountMinor: number,
-  splitBetween: readonly string[],
+  split: SplitInput,
   payerId: string,
-): ShareAmounts[] {
-  if (splitBetween.length === 0) throw new Error('An expense must be split between at least one person.')
-
-  const each = Math.floor(amountMinor / splitBetween.length)
-  const leftOver = amountMinor - each * splitBetween.length
-
-  const shares: ShareAmounts[] = splitBetween.map((personId) => ({
-    personId,
-    paidMinor: 0,
-    owedMinor: each,
-    inputValue: 1,
-  }))
-  let payer = shares.find((share) => share.personId === payerId)
-  if (!payer) {
-    payer = { personId: payerId, paidMinor: 0, owedMinor: 0, inputValue: 0 }
-    shares.push(payer)
+  memberIds: readonly string[],
+): SplitResult {
+  if (!memberIds.includes(payerId)) return { ok: false, message: 'Choose who paid.' }
+  if (Object.keys(split.values).some((personId) => !memberIds.includes(personId))) {
+    return { ok: false, message: 'Only members of the group can be in the split.' }
   }
-  payer.paidMinor = amountMinor
-  payer.owedMinor += leftOver
-  return shares
+
+  const values = memberIds.map((personId) => split.values[personId] ?? 0)
+  if (values.some((value) => !Number.isSafeInteger(value) || value < 0)) {
+    return { ok: false, message: 'Use whole numbers of 0 or more.' }
+  }
+  const total = values.reduce((sum, value) => sum + value, 0)
+
+  let owed: number[]
+  switch (split.method) {
+    case 'equal': {
+      if (values.some((value) => value > 1)) return { ok: false, message: SPLIT_DOES_NOT_ADD_UP }
+      if (total === 0) return { ok: false, message: 'Choose at least one person.' }
+      const each = Math.floor(amountMinor / total)
+      owed = values.map((value) => value * each)
+      break
+    }
+    case 'exact':
+      if (total !== amountMinor) return { ok: false, message: SPLIT_DOES_NOT_ADD_UP }
+      owed = values
+      break
+    case 'percent':
+      if (total !== 100) return { ok: false, message: SPLIT_DOES_NOT_ADD_UP }
+      owed = values.map((value) => Math.floor((amountMinor * value) / 100))
+      break
+    case 'shares':
+      if (values.some((value) => value > MAX_SHARES)) {
+        return { ok: false, message: `Use at most ${MAX_SHARES} shares each.` }
+      }
+      if (total === 0) return { ok: false, message: 'Give at least one share.' }
+      owed = values.map((value) => Math.floor((amountMinor * value) / total))
+      break
+    case 'adjustment': {
+      if (total > amountMinor) return { ok: false, message: SPLIT_DOES_NOT_ADD_UP }
+      const each = Math.floor((amountMinor - total) / memberIds.length)
+      owed = values.map((value) => each + value)
+      break
+    }
+  }
+
+  const leftOver = amountMinor - owed.reduce((sum, part) => sum + part, 0)
+  return {
+    ok: true,
+    shares: memberIds.map((personId, index) => ({
+      personId,
+      paidMinor: personId === payerId ? amountMinor : 0,
+      owedMinor: owed[index] + (personId === payerId ? leftOver : 0),
+      inputValue: values[index],
+    })),
+  }
 }
 
 /** Every category, group by group, in the order the picker shows them. */

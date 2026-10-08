@@ -6,11 +6,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getDb } from '../../../db/client.ts'
 import { groups } from '../../../db/schema.ts'
 import { ROUTES } from '../../../routes.ts'
-import { expenseService } from '../../../services/expenseService'
 import { groupService } from '../../../services/groupService'
 import type { CreateGroupInput } from '../../../services/groupService/types.ts'
 import { useAuthStore } from '../../../stores/useAuthStore'
 import { setUpTestDatabase } from '../../../testing/database.ts'
+import { addTestExpense } from '../../../testing/expenses.ts'
 import { renderPage } from '../../../testing/render.tsx'
 import { HomePage } from '../index.tsx'
 
@@ -47,15 +47,7 @@ async function changedAt(groupId: string, iso: string) {
 }
 
 async function addExpense(email: string, groupId: string, amountMinor: number, currency: string) {
-  const result = await expenseService.createExpense(testDb.db, email, groupId, {
-    description: 'Dinner',
-    category: 'general',
-    amountMinor,
-    currency,
-    date: '2026-10-08',
-    notes: '',
-  })
-  if (!result.ok) throw new Error(JSON.stringify(result.errors))
+  await addTestExpense(testDb.db, email, groupId, { amountMinor, currency })
 }
 
 /** The balance text at the end of a group's row. */

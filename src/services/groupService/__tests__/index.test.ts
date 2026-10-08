@@ -3,7 +3,7 @@ import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createDatabase, type Database } from '../../../db/client.ts'
 import { expenses, groupMembers, groups, people } from '../../../db/schema.ts'
-import { expenseService } from '../../expenseService'
+import { addTestExpense } from '../../../testing/expenses.ts'
 import { groupService } from '../index.ts'
 import type { CreateGroupInput, Creator } from '../types.ts'
 
@@ -343,21 +343,13 @@ describe('listGroups', () => {
     const busy = await create(omkar, { name: 'Busy' })
     await changedAt(quiet, '2026-03-01T00:00:00Z')
     await changedAt(busy, '2026-01-01T00:00:00Z')
-    const expense = await expenseService.createExpense(db, omkar.email, busy, {
-      description: 'Dinner',
-      category: 'general',
-      amountMinor: 1000,
-      currency: 'INR',
-      date: '2026-01-01',
-      notes: '',
-    })
-    if (!expense.ok) throw new Error(JSON.stringify(expense.errors))
+    const expenseId = await addTestExpense(db, omkar.email, busy, { date: '2026-01-01' })
 
     // An expense changed after both groups pulls its group to the top.
     await db
       .update(expenses)
       .set({ updatedAt: new Date('2026-04-01T00:00:00Z') })
-      .where(eq(expenses.id, expense.expenseId))
+      .where(eq(expenses.id, expenseId))
     let names = (await groupService.listGroups(db, 'omkar@gmail.com')).map((group) => group.name)
     expect(names).toEqual(['Busy', 'Quiet'])
 
@@ -365,7 +357,7 @@ describe('listGroups', () => {
     await db
       .update(expenses)
       .set({ updatedAt: new Date('2026-02-01T00:00:00Z') })
-      .where(eq(expenses.id, expense.expenseId))
+      .where(eq(expenses.id, expenseId))
     names = (await groupService.listGroups(db, 'omkar@gmail.com')).map((group) => group.name)
     expect(names).toEqual(['Quiet', 'Busy'])
     const busyRow = (await groupService.listGroups(db, 'omkar@gmail.com'))[1]

@@ -1,3 +1,4 @@
+import type { SplitMethod } from '../../db/types.ts'
 import type { CATEGORY_GROUPS } from './constants.ts'
 
 /** A group of categories, such as 'food'. */
@@ -16,6 +17,21 @@ export type Category = {
   groupLabel: string
 }
 
+/**
+ * How an expense is divided, as the user entered it: the method and, per
+ * member (by person id), the number entered for them (see `computeShares`).
+ * Members left out count as 0.
+ */
+export type SplitInput = {
+  method: SplitMethod
+  values: Readonly<Record<string, number>>
+}
+
+/** Every member's part of an expense, or why the split cannot be used. */
+export type SplitResult =
+  | { ok: true; shares: ShareAmounts[] }
+  | { ok: false; message: string }
+
 /** What the add-expense form sends. */
 export type CreateExpenseInput = {
   description: string
@@ -27,6 +43,9 @@ export type CreateExpenseInput = {
   /** The day of the expense, 'YYYY-MM-DD'. */
   date: string
   notes: string
+  /** The person id of the member who paid. */
+  paidBy: string
+  split: SplitInput
 }
 
 /** The fields of the form a problem can be attached to. */

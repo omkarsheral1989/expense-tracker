@@ -5,6 +5,7 @@ import { getDb } from '../../db/client.ts'
 import { useAsyncData } from '../../hooks/useAsyncData'
 import { expenseService } from '../../services/expenseService'
 import { groupService } from '../../services/groupService'
+import type { GroupDetails } from '../../services/groupService/types.ts'
 import { useAuthStore } from '../../stores/useAuthStore'
 import { AddExpenseForm } from './components/AddExpenseForm'
 
@@ -26,6 +27,15 @@ export function AddExpensePage() {
 
   // Signed-out visitors are sent away by `RequireAuth` before this matters.
   if (!profile) return null
+
+  // Someone else may have added the user before they ever used the app, so
+  // their record has no name yet; their Google profile has.
+  function withYourName(group: GroupDetails): GroupDetails {
+    const members = group.members.map((member) =>
+      member.isYou ? { ...member, name: member.name ?? profile?.name ?? null } : member,
+    )
+    return { ...group, members }
+  }
 
   function renderContent() {
     switch (state.status) {
@@ -59,7 +69,7 @@ export function AddExpensePage() {
         }
         return (
           <AddExpenseForm
-            group={state.data.group}
+            group={withYourName(state.data.group)}
             userEmail={email}
             recentCurrencies={state.data.recentCurrencies}
           />

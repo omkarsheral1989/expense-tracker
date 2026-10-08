@@ -2,12 +2,13 @@ import type { FormInstance } from 'antd'
 import { RECENT_CURRENCY_COUNT } from '../../../../services/expenseService/constants.ts'
 import type { CreateExpenseErrors } from '../../../../services/expenseService/types.ts'
 import { MONTH_NAMES, WEEKDAY_NAMES } from './constants.ts'
+import { sameSplit } from './SplitField/utils.ts'
 import type { FormValues } from './types.ts'
 
 /** What `form.setFields` takes: a name and its messages for each field. */
 type FieldData = Parameters<FormInstance['setFields']>[0][number]
 
-const FIELDS = ['description', 'category', 'amount', 'currency', 'date', 'notes'] as const
+const FIELDS = ['description', 'category', 'amount', 'currency', 'date', 'notes', 'split'] as const
 
 /** A day as 'YYYY-MM-DD', in the device's own time zone. */
 export function toDay(date: Date): string {
@@ -63,19 +64,23 @@ export function hasUnsavedInput(
     (values.notes ?? '').trim() !== '' ||
     values.category !== initial.category ||
     values.currency !== initial.currency ||
-    values.date !== initial.date
+    values.date !== initial.date ||
+    (values.split !== undefined && !sameSplit(values.split, initial.split))
   )
 }
 
 /**
  * Turns the service's messages into what the form needs: the message under each
  * field that has a problem, and no message under the others. The service names
- * the amount `amountMinor`; the form calls it `amount`.
+ * the amount `amountMinor`; the form calls it `amount`, and shows problems with
+ * who paid under the split.
  */
 export function toFormFields(errors: CreateExpenseErrors): FieldData[] {
   const byField: Partial<Record<(typeof FIELDS)[number], string>> = {
     ...errors,
     amount: errors.amountMinor,
+    // Who paid and the split share one place on the form.
+    split: errors.split ?? errors.paidBy,
   }
   return FIELDS.map((name) => ({
     name,

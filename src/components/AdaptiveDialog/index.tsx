@@ -12,6 +12,8 @@ type Props = {
    * (a calendar): the sheet is only as tall as what it holds.
    */
   tall?: boolean
+  /** Shown under the content, always in view (for example totals and a Done button). */
+  footer?: ReactNode
 }
 
 /**
@@ -19,7 +21,7 @@ type Props = {
  * slides up from the bottom on phones. Closes with its close button or by
  * tapping outside.
  */
-export function AdaptiveDialog({ open, onClose, title, children, tall = false }: Props) {
+export function AdaptiveDialog({ open, onClose, title, children, tall = false, footer }: Props) {
   const screens = Grid.useBreakpoint()
 
   if (screens.md) {
@@ -28,7 +30,7 @@ export function AdaptiveDialog({ open, onClose, title, children, tall = false }:
         open={open}
         onCancel={onClose}
         title={title}
-        footer={null}
+        footer={footer ?? null}
         centered
         destroyOnHidden
         styles={{ body: { maxHeight: '70vh', overflowY: 'auto' } }}
@@ -46,6 +48,7 @@ export function AdaptiveDialog({ open, onClose, title, children, tall = false }:
       placement="bottom"
       size={tall ? '85vh' : 'auto'}
       destroyOnHidden
+      footer={footer}
       styles={{ wrapper: { maxHeight: '85vh' } }}
     >
       {children}

@@ -6,12 +6,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getDb } from '../../../db/client.ts'
 import { expenseShares, groupMembers, groups, people } from '../../../db/schema.ts'
 import { ROUTES } from '../../../routes.ts'
-import { expenseService } from '../../../services/expenseService'
 import type { CreateExpenseInput } from '../../../services/expenseService/types.ts'
 import { groupService } from '../../../services/groupService'
 import type { CreateGroupInput } from '../../../services/groupService/types.ts'
 import { useAuthStore } from '../../../stores/useAuthStore'
 import { setUpTestDatabase } from '../../../testing/database.ts'
+import { addTestExpense } from '../../../testing/expenses.ts'
 import { renderPage } from '../../../testing/render.tsx'
 import { GroupPage } from '../index.tsx'
 
@@ -51,19 +51,15 @@ function renderGroup(groupId: string) {
   })
 }
 
-const dinner: CreateExpenseInput = {
+const dinner: Partial<CreateExpenseInput> = {
   description: 'Dinner',
   category: 'food.dining_out',
   amountMinor: 3000,
   currency: 'GBP',
-  date: '2026-10-08',
-  notes: '',
 }
 
 async function addExpense(email: string, groupId: string, input: Partial<CreateExpenseInput> = {}) {
-  const result = await expenseService.createExpense(testDb.db, email, groupId, { ...dinner, ...input })
-  if (!result.ok) throw new Error(JSON.stringify(result.errors))
-  return result.expenseId
+  return addTestExpense(testDb.db, email, groupId, { ...dinner, ...input })
 }
 
 /** The rows of the expense list, each as its text with spaces between the parts. */
@@ -291,7 +287,7 @@ describe('GroupPage', () => {
       renderGroup(id)
 
       expect(await screen.findByText(/^Priya owes you/)).toHaveTextContent('Priya owes you £3.00')
-      expect(screen.getByText(/^sam owes you/)).toHaveTextContent('sam owes you £3.00')
+      expect(screen.getByText(/^Sam owes you/)).toHaveTextContent('Sam owes you £3.00')
       expect(screen.getByText(/^You owe Priya/)).toHaveTextContent('You owe Priya ₹10.00')
       expect(screen.queryByText("You're all settled up")).not.toBeInTheDocument()
 
@@ -402,7 +398,7 @@ describe('GroupPage', () => {
       await testDb.db.update(expenseShares).set({ deletedAt: new Date() }).where(and(eq(expenseShares.expenseId, expenseId), ne(expenseShares.personId, priyaRow.id)))
       renderGroup(id)
 
-      expect(await expenseRows()).toEqual(['Oct | 8 | Dinner | priya paid £30.00 | not involved'])
+      expect(await expenseRows()).toEqual(['Oct | 8 | Dinner | Priya paid £30.00 | not involved'])
     })
   })
 
