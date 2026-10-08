@@ -19,6 +19,7 @@ export function ExpensePage() {
   const { id = '', expenseId = '' } = useParams()
 
   const email = profile?.email ?? ''
+  const accountId = profile?.id ?? ''
   const { state, retry } = useAsyncData(
     async () => expenseService.getExpense(await getDb(), email, id, expenseId),
     `${email}:${id}:${expenseId}`,
@@ -49,7 +50,11 @@ export function ExpensePage() {
           />
         )
       case 'ready':
-        return state.data ? <ExpenseDetailsCard expense={state.data} /> : <ExpenseNotFound groupId={id} />
+        return state.data ? (
+          <ExpenseDetailsCard expense={state.data} accountId={accountId} />
+        ) : (
+          <ExpenseNotFound groupId={id} />
+        )
     }
   }
 

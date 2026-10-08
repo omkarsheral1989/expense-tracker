@@ -19,6 +19,7 @@ describe('hasUnsavedInput', () => {
     date: '2026-10-08',
     notes: '',
     split: { paidBy: 'me', method: 'equal', values: { me: 1, priya: 1 } },
+    receipts: [],
   }
 
   it('is false for an untouched form, and for spaces only', () => {
@@ -36,6 +37,7 @@ describe('hasUnsavedInput', () => {
     ['date', { date: '2026-10-07' }],
     ['payer', { split: { paidBy: 'priya', method: 'equal' as const, values: { me: 1, priya: 1 } } }],
     ['split', { split: { paidBy: 'me', method: 'equal' as const, values: { me: 0, priya: 1 } } }],
+    ['receipts', { receipts: [new File(['x'], 'r.jpg', { type: 'image/jpeg' })] }],
   ])('is true once the %s changes', (_, change) => {
     expect(hasUnsavedInput({ ...initial, ...change }, initial)).toBe(true)
   })
@@ -51,6 +53,7 @@ describe('toFormFields', () => {
       { name: 'date', errors: [] },
       { name: 'notes', errors: [] },
       { name: 'split', errors: [] },
+      { name: 'receipts', errors: [] },
     ])
   })
 

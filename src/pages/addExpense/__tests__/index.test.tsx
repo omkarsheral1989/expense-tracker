@@ -1,12 +1,14 @@
 // @vitest-environment jsdom
+import 'fake-indexeddb/auto'
 import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getDb } from '../../../db/client.ts'
-import { expenseShares, expenses, people } from '../../../db/schema.ts'
+import { expensePhotos, expenseShares, expenses, people } from '../../../db/schema.ts'
 import { ROUTES } from '../../../routes.ts'
 import { groupService } from '../../../services/groupService'
+import { photoService } from '../../../services/photoService'
 import type { CreateGroupInput } from '../../../services/groupService/types.ts'
 import { useAuthStore } from '../../../stores/useAuthStore'
 import { setUpTestDatabase } from '../../../testing/database.ts'
@@ -183,15 +185,6 @@ describe('AddExpensePage', () => {
       expect(await screen.findByText('You are the only member of this group.')).toBeInTheDocument()
     })
 
-    it('switches off adding receipt photos, saying "Coming soon"', async () => {
-      const id = await createGroup()
-      renderForm(id)
-
-      const button = await screen.findByRole('button', { name: named('Add receipt photos') })
-      expect(button).toBeDisabled()
-      await user.hover(button.parentElement as HTMLElement)
-      expect(await screen.findByText('Coming soon')).toBeInTheDocument()
-    })
   })
 
   describe('who paid and the split', () => {
@@ -482,6 +475,115 @@ describe('AddExpensePage', () => {
       renderForm(id)
       await user.click(await screen.findByRole('button', { name: 'you' }))
       await user.click(within(await screen.findByRole('dialog', { name: 'Who paid?' })).getByRole('button', { name: 'Priya Shah' }))
+
+      await user.click(screen.getByRole('button', { name: 'Back' }))
+
+      expect(await screen.findByRole('dialog', { name: 'Discard this expense?' })).toBeInTheDocument()
+    })
+  })
+
+  describe('receipt photos', () => {
+    const photo = (name: string, type = 'image/jpeg') => new File([`picture ${name}`], name, { type })
+    const chooser = () => screen.getByTestId('receipt-chooser') as HTMLInputElement
+    const previews = () => screen.queryAllByRole('img', { name: /^Receipt photo/ }).map((img) => img.getAttribute('alt'))
+
+    it('opens the device\'s file chooser for pictures, several at a time', async () => {
+      const id = await createGroup()
+      renderForm(id)
+      await screen.findByRole('heading', { name: 'Add expense' })
+
+      const click = vi.spyOn(chooser(), 'click')
+      await user.click(screen.getByRole('button', { name: named('Add receipt photos') }))
+
+      expect(click).toHaveBeenCalled()
+      expect(chooser()).toHaveAttribute('accept', 'image/*')
+      expect(chooser()).toHaveAttribute('multiple')
+    })
+
+    it('shows the chosen photos in order, each with an x that takes it out', async () => {
+      const id = await createGroup()
+      renderForm(id)
+      await screen.findByRole('heading', { name: 'Add expense' })
+
+      await user.upload(chooser(), [photo('a.jpg'), photo('b.png', 'image/png')])
+      await user.upload(chooser(), photo('c.jpg'))
+      expect(previews()).toEqual(['Receipt photo 1', 'Receipt photo 2', 'Receipt photo 3'])
+      expect(screen.getByRole('img', { name: 'Receipt photo 1' })).toHaveAttribute('src', expect.stringMatching(/^blob:/))
+
+      await user.click(screen.getByRole('button', { name: named('Remove receipt photo 1') }))
+      expect(previews()).toEqual(['Receipt photo 1', 'Receipt photo 2'])
+    })
+
+    it('ignores files that are not pictures', async () => {
+      const id = await createGroup()
+      renderForm(id)
+      await screen.findByRole('heading', { name: 'Add expense' })
+      // As a browser might when its chooser lets any file through.
+      const anyFile = userEvent.setup({ applyAccept: false })
+
+      await anyFile.upload(chooser(), [photo('bill.pdf', 'application/pdf'), photo('a.jpg')])
+
+      expect(previews()).toEqual(['Receipt photo 1'])
+    })
+
+    it('takes up to 10 photos, then says so and switches the button off', async () => {
+      const id = await createGroup()
+      renderForm(id)
+      await screen.findByRole('heading', { name: 'Add expense' })
+
+      await user.upload(chooser(), Array.from({ length: 11 }, (_, index) => photo(`${index}.jpg`)))
+
+      expect(previews()).toHaveLength(10)
+      expect(await screen.findByText('An expense can have up to 10 photos.')).toBeInTheDocument()
+      const button = screen.getByRole('button', { name: named('Add receipt photos') })
+      expect(button).toBeDisabled()
+      await user.hover(button.parentElement as HTMLElement)
+      expect(await screen.findByText('Up to 10 photos.')).toBeInTheDocument()
+    })
+
+    it('keeps the photos on the device with the expense when it is saved', async () => {
+      const id = await createGroup()
+      renderForm(id)
+      await user.type(await screen.findByRole('textbox', { name: 'Description' }), 'Dinner')
+      await user.type(amountInput(), '12')
+      await user.upload(chooser(), [photo('a.jpg'), photo('b.png', 'image/png')])
+
+      await user.click(saveButton())
+      await screen.findByText('Expense added.')
+
+      const photos = await testDb.db.select().from(expensePhotos).orderBy(expensePhotos.position)
+      expect(photos.map((row) => [row.mimeType, row.sizeBytes])).toEqual([
+        ['image/jpeg', 13],
+        ['image/png', 13],
+      ])
+      const store = photoService.open(me.id)
+      expect(await (await store.getPhoto(photos[1].id))?.text()).toBe('picture b.png')
+      expect(await store.getThumbnail(photos[0].id)).not.toBeNull()
+    })
+
+    it('takes the photos off the device again when the expense is not saved', async () => {
+      const id = await createGroup()
+      renderForm(id)
+      await user.type(await screen.findByRole('textbox', { name: 'Description' }), 'Dinner')
+      await user.upload(chooser(), photo('a.jpg'))
+      const removeReceipts = vi.spyOn(photoService, 'removeReceipts')
+
+      // No amount: the expense is refused.
+      await user.click(saveButton())
+
+      await screen.findByText('Enter an amount.')
+      await waitFor(() => expect(removeReceipts).toHaveBeenCalledTimes(1))
+      const [, ids] = removeReceipts.mock.calls[0]
+      expect(ids).toHaveLength(1)
+      expect(await photoService.open(me.id).getPhoto(ids[0])).toBeNull()
+      expect(await testDb.db.select().from(expensePhotos)).toEqual([])
+    })
+
+    it('counts chosen photos as input when leaving', async () => {
+      const id = await createGroup()
+      renderForm(id)
+      await screen.findByRole('heading', { name: 'Add expense' })
+      await user.upload(chooser(), photo('a.jpg'))
 
       await user.click(screen.getByRole('button', { name: 'Back' }))
 

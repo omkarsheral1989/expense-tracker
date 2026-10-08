@@ -17,7 +17,7 @@ beforeAll(async () => {
 
 afterAll(() => pg.close())
 
-beforeEach(() => pg.exec('truncate expense_shares, expenses, group_members, groups, people cascade'))
+beforeEach(() => pg.exec('truncate expense_photos, expense_shares, expenses, group_members, groups, people cascade'))
 
 const omkar: Creator = { email: 'omkar@gmail.com', name: 'Omkar' }
 const priya: Creator = { email: 'priya@gmail.com', name: 'Priya' }

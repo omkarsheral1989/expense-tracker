@@ -4,6 +4,7 @@ import {
   check,
   date,
   index,
+  integer,
   pgTable,
   text,
   timestamp,
@@ -185,5 +186,30 @@ export const expenseShares = pgTable(
     index('expense_shares_person_idx').on(table.personId),
     check('expense_shares_paid_not_negative', sql`${table.paidMinor} >= 0`),
     check('expense_shares_owed_not_negative', sql`${table.owedMinor} >= 0`),
+  ],
+)
+
+/**
+ * A receipt photo of an expense. Only what describes the photo is kept here;
+ * the photo itself and its thumbnail are in the account's photo store
+ * (IndexedDB), under this row's id.
+ */
+export const expensePhotos = pgTable(
+  'expense_photos',
+  {
+    ...syncColumns(),
+    expenseId: uuid('expense_id')
+      .notNull()
+      .references(() => expenses.id),
+    /** The photo's place among the expense's photos, from 0. */
+    position: integer('position').notNull(),
+    /** Such as 'image/jpeg'. */
+    mimeType: text('mime_type').notNull(),
+    sizeBytes: bigint('size_bytes', { mode: 'number' }).notNull(),
+  },
+  (table) => [
+    index('expense_photos_expense_idx').on(table.expenseId),
+    check('expense_photos_is_image', sql`${table.mimeType} like 'image/%'`),
+    check('expense_photos_size_not_negative', sql`${table.sizeBytes} >= 0`),
   ],
 )

@@ -31,4 +31,10 @@ if (typeof window !== 'undefined') {
 
   // Ant Design scrolls items into view; jsdom has no layout to scroll.
   Element.prototype.scrollIntoView ??= () => {}
+
+  // jsdom cannot show Blobs, so it has no blob addresses; give each a unique
+  // one, so photos can be shown and their addresses freed as in a browser.
+  let blobUrls = 0
+  URL.createObjectURL ??= () => `blob:test/${++blobUrls}`
+  URL.revokeObjectURL ??= () => {}
 }

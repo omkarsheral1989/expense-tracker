@@ -25,3 +25,6 @@ export const EXPENSE_NOTES_MAX_LENGTH = 1000
  * for the method (`input_value`), so the split can be shown and edited again.
  */
 export const SPLIT_METHODS = ['equal', 'exact', 'percent', 'shares', 'adjustment'] as const
+
+/** Most receipt photos one expense can have. */
+export const MAX_RECEIPTS_PER_EXPENSE = 10

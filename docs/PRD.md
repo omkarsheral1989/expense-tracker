@@ -148,7 +148,7 @@ Route `/groups/<id>/expenses/new`, opened from the group page's "Add expense" bu
 - **Currency:** a picker with a search box (code or name), a "Recent" section first (up to 3: the group's default, then the currencies of the user's own latest expenses on this device), then all ISO currencies A to Z. The chosen one is ticked.
 - **Date:** any date; today by default; shown as "Today, 8 Oct 2026", "Yesterday, 7 Oct 2026", or with the weekday for other days ("Mon, 5 Oct 2026"); chosen in a calendar dialog, whose header can move to other months and years without choosing a day.
 - **Notes:** a box of 2 to 6 rows, at most 1000 characters, with a counter near the limit.
-- **Receipts:** up to 10 photos through the native file chooser. Switched off with a "Coming soon" tip until the receipt phase.
+- **Receipts:** a camera button opens the device's own file chooser (pictures only; it offers the camera on phones), several at a time. Chosen photos appear beside it as small squares in order, each with an x to take it out. Up to 10: choosing more keeps the first ones and says "An expense can have up to 10 photos."; with 10 the button is switched off ("Up to 10 photos."). Files that are not pictures are ignored. Photos are kept on the device at original size with a thumbnail when the expense is saved, and taken off again if it is not.
 
 **Splitting**
 - Default: you paid, split equally among all members.
@@ -178,6 +178,7 @@ Route `/groups/<id>/expenses/new`, opened from the group page's "Add expense" bu
 - The category tile, the description, the amount in large type, the category's name and the day ("Dining out · Mon, 5 Oct 2026"), and "Added by you" (or the person's name).
 - How it was split ("Split equally", "Split by exact amounts", "Split by percentages", "Split by shares", "Split by adjustment") and one line per person who paid or owes something, the user first: "You paid £9.00 and owe £3.00", "Priya Shah owes £6.00". People with no part are left out.
 - The notes, keeping their line breaks, under "Notes" (left out when there are none).
+- The receipt photos under "Receipts" as thumbnails in order; tapping one shows it at full size, with the others a swipe away. A photo that is not on this device (for example added by another member and not yet synced) shows a grey square "Not on this device". Left out when there are none.
 - An expense that does not exist, was deleted, is in another group, or is in a group the user is not in shows "Expense not found" ("It may have been deleted, or you may not be a member of its group.") with a "Back to the group" button. Loading shows grey placeholders; a failed load shows "Couldn't load this expense" with "Try again".
 
 **Balance line (group page)**
@@ -188,6 +189,7 @@ Route `/groups/<id>/expenses/new`, opened from the group page's "Add expense" bu
    Phase 2 **done**: the group page's balance lines and the home page's per-currency balances.
    Phase 3 **done**: who paid, the quick choices of a group of two, and the split dialog with all five methods.
    Phase 4 **done**: expense rows open the expense details page.
+   Phase 5 **done**: receipt photos on the add-expense page and the details page (on this device; upload and download come with sync).
 2. Balances: the balance line and the home page rows.
 3. Who paid, and the other split methods.
 4. The placeholder details page.

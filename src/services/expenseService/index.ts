@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, inArray, isNull, max, sql } from 'drizzle-orm'
 import type { Database } from '../../db/client.ts'
-import { expenseShares, expenses, groupMembers, groups, people } from '../../db/schema.ts'
+import { expensePhotos, expenseShares, expenses, groupMembers, groups, people } from '../../db/schema.ts'
 import { CATEGORY_GROUPS, DEFAULT_CATEGORY, RECENT_CURRENCY_COUNT } from './constants.ts'
 import type { Transaction } from '../groupService/types.ts'
 import { createExpenseSchema, toFieldErrors } from './schemas.ts'
@@ -80,7 +80,7 @@ export const expenseService = {
       }
       if (!parsed.success || !result?.ok) return { ok: false, errors }
 
-      const { description, category, currency, date, notes, split } = parsed.data
+      const { description, category, currency, date, notes, split, receipts } = parsed.data
       const id = crypto.randomUUID()
       const updatedAt = new Date()
       await tx.insert(expenses).values({
@@ -105,6 +105,19 @@ export const expenseService = {
           updatedAt,
         })),
       )
+      if (receipts.length > 0) {
+        await tx.insert(expensePhotos).values(
+          receipts.map((receipt, position) => ({
+            id: receipt.id,
+            expenseId: id,
+            position,
+            mimeType: receipt.mimeType,
+            sizeBytes: receipt.sizeBytes,
+            updatedBy: userId,
+            updatedAt,
+          })),
+        )
+      }
       return { ok: true, expenseId: id }
     })
   },
@@ -250,11 +263,18 @@ export const expenseService = {
       .map((row) => ({ ...row, isYou: row.personId === userId }))
       .sort((a, b) => Number(b.isYou) - Number(a.isYou) || label(a).localeCompare(label(b)))
 
+    const receipts = await db
+      .select({ id: expensePhotos.id, mimeType: expensePhotos.mimeType })
+      .from(expensePhotos)
+      .where(and(eq(expensePhotos.expenseId, expenseId), isNull(expensePhotos.deletedAt)))
+      .orderBy(asc(expensePhotos.position), asc(expensePhotos.id))
+
     const { createdById, createdByEmail, createdByName, ...details } = expense
     return {
       ...details,
       createdBy: { email: createdByEmail, name: createdByName, isYou: createdById === userId },
       shares,
+      receipts,
     }
   },
 

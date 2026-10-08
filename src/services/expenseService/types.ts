@@ -1,4 +1,5 @@
 import type { SplitMethod } from '../../db/types.ts'
+import type { ReceiptInput } from '../photoService/types.ts'
 import type { CATEGORY_GROUPS } from './constants.ts'
 
 /** A group of categories, such as 'food'. */
@@ -46,6 +47,8 @@ export type CreateExpenseInput = {
   /** The person id of the member who paid. */
   paidBy: string
   split: SplitInput
+  /** Receipt photos already kept in the photo store, in order (at most 10). */
+  receipts: ReceiptInput[]
 }
 
 /** The fields of the form a problem can be attached to. */
@@ -136,4 +139,6 @@ export type ExpenseDetails = {
   createdBy: { email: string; name: string | null; isYou: boolean }
   /** The user first, then the others A to Z; only those who paid or owe something. */
   shares: ExpenseShareDetails[]
+  /** Its receipt photos, in order; the pictures are in the photo store under these ids. */
+  receipts: { id: string; mimeType: string }[]
 }

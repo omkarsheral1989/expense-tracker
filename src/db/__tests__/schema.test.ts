@@ -20,7 +20,7 @@ beforeAll(async () => {
 
 afterAll(() => pg.close())
 
-beforeEach(() => pg.exec('truncate expense_shares, expenses, group_members, groups, people cascade'))
+beforeEach(() => pg.exec('truncate expense_photos, expense_shares, expenses, group_members, groups, people cascade'))
 
 /** A person who made their own row, the way the signed-in user does. */
 async function addPerson(email: string) {
@@ -48,7 +48,7 @@ describe('migrations', () => {
   it('can run again without changing anything', async () => {
     await runMigrations(pg)
     const { rows } = await pg.query('select name from ownledger_migrations')
-    expect(rows).toHaveLength(3)
+    expect(rows).toHaveLength(4)
   })
 
   it('does not record a file that fails, and applies nothing from it', async () => {

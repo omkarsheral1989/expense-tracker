@@ -27,4 +27,6 @@ export type FormValues = {
   date: string
   notes: string
   split: SplitValue
+  /** Receipt photos chosen on the device, in order; kept in the photo store on save. */
+  receipts: File[]
 }

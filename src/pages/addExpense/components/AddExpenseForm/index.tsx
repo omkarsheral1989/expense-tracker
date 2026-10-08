@@ -10,12 +10,14 @@ import { dateService } from '../../../../services/dateService'
 import { expenseService } from '../../../../services/expenseService'
 import type { GroupDetails } from '../../../../services/groupService/types.ts'
 import { moneyService } from '../../../../services/moneyService'
+import { photoService } from '../../../../services/photoService'
+import type { ReceiptInput } from '../../../../services/photoService/types.ts'
 import { AmountInput } from './AmountInput'
 import { CategoryField } from './CategoryField'
 import { NOTES_COUNTER_FROM } from './constants.ts'
 import { CurrencyField } from './CurrencyField'
 import { DateField } from './DateField'
-import { ReceiptsRow } from './ReceiptsRow'
+import { ReceiptsField } from './ReceiptsField'
 import { SplitField } from './SplitField'
 import { initialSplit, splitProblem } from './SplitField/utils.ts'
 import type { FormValues } from './types.ts'
@@ -26,6 +28,8 @@ const { Title } = Typography
 
 type Props = {
   group: GroupDetails
+  /** The signed-in user's Google account id: receipt photos go in that account's photo store. */
+  accountId: string
   /** The signed-in user's email: they pay, and the expense is saved as theirs. */
   userEmail: string
   /** The currencies of the user's latest expenses, most recent first. */
@@ -36,7 +40,7 @@ type Props = {
  * A new expense in a group: what it was for, how much, and when. Saved with
  * the tick in the header, with who paid and how it is split.
  */
-export function AddExpenseForm({ group, userEmail, recentCurrencies }: Props) {
+export function AddExpenseForm({ group, accountId, userEmail, recentCurrencies }: Props) {
   const [form] = Form.useForm<FormValues>()
   const { message, modal } = App.useApp()
   const navigate = useNavigate()
@@ -50,6 +54,7 @@ export function AddExpenseForm({ group, userEmail, recentCurrencies }: Props) {
     date: dateService.toDay(new Date()),
     notes: '',
     split: initialSplit(group.members),
+    receipts: [],
   }))
   const currency = Form.useWatch('currency', form) ?? initialValues.currency
   const amount = Form.useWatch('amount', form) ?? ''
@@ -83,7 +88,12 @@ export function AddExpenseForm({ group, userEmail, recentCurrencies }: Props) {
 
   async function handleFinish(values: FormValues) {
     setSubmitting(true)
+    const photos = photoService.open(accountId)
+    let receipts: ReceiptInput[] = []
     try {
+      // The photos are kept first, so the expense never points at a photo
+      // that is not there; they are removed again if the expense is not saved.
+      receipts = await photoService.storeReceipts(photos, values.receipts)
       const result = await expenseService.createExpense(await getDb(), userEmail, group.id, {
         description: values.description,
         category: values.category,
@@ -93,15 +103,22 @@ export function AddExpenseForm({ group, userEmail, recentCurrencies }: Props) {
         notes: values.notes,
         paidBy: values.split.paidBy,
         split: { method: values.split.method, values: values.split.values },
+        receipts,
       })
 
       // Every problem is shown at once, each beside its own field.
       form.setFields(toFormFields(result.ok ? {} : result.errors))
-      if (!result.ok) return
+      if (!result.ok) {
+        await photoService.removeReceipts(photos, receipts.map((receipt) => receipt.id))
+        return
+      }
 
       message.success('Expense added.')
       leave()
     } catch {
+      await photoService
+        .removeReceipts(photos, receipts.map((receipt) => receipt.id))
+        .catch(() => undefined)
       message.error("Couldn't add the expense. Please try again.")
     } finally {
       setSubmitting(false)
@@ -190,7 +207,9 @@ export function AddExpenseForm({ group, userEmail, recentCurrencies }: Props) {
             }}
           />
         </Form.Item>
-        <ReceiptsRow />
+        <Form.Item name="receipts" style={{ marginBottom: 0 }}>
+          <ReceiptsField />
+        </Form.Item>
       </>
     )
   }

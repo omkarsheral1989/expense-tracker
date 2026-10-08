@@ -43,6 +43,7 @@ export async function expenseInput(
     notes: '',
     paidBy: await personIdOf(db, userEmail),
     split: await equalSplitOf(db, groupId),
+    receipts: [],
     ...overrides,
   }
 }

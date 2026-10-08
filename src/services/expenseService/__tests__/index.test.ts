@@ -2,7 +2,7 @@ import { PGlite } from '@electric-sql/pglite'
 import { and, eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createDatabase, type Database } from '../../../db/client.ts'
-import { expenseShares, expenses, groupMembers, groups, people } from '../../../db/schema.ts'
+import { expensePhotos, expenseShares, expenses, groupMembers, groups, people } from '../../../db/schema.ts'
 import { groupService } from '../../groupService'
 import type { Creator } from '../../groupService/types.ts'
 import { expenseService } from '../index.ts'
@@ -19,7 +19,7 @@ beforeAll(async () => {
 
 afterAll(() => pg.close())
 
-beforeEach(() => pg.exec('truncate expense_shares, expenses, group_members, groups, people cascade'))
+beforeEach(() => pg.exec('truncate expense_photos, expense_shares, expenses, group_members, groups, people cascade'))
 
 const omkar: Creator = { email: 'omkar@gmail.com', name: 'Omkar' }
 const priya: Creator = { email: 'priya@gmail.com', name: 'Priya' }
@@ -167,6 +167,40 @@ describe('createExpense', () => {
       await input('omkar@gmail.com', groupId, { paidBy: await personId('priya@gmail.com') }),
     )
     expect(result).toEqual({ ok: false, errors: { paidBy: 'Choose who paid.' } })
+  })
+
+  it('describes the receipt photos in the database, in order', async () => {
+    const groupId = await createGroup(omkar)
+    const ids = [crypto.randomUUID(), crypto.randomUUID()]
+    const id = await addExpense('omkar@gmail.com', groupId, {
+      receipts: [
+        { id: ids[0], mimeType: 'image/jpeg', sizeBytes: 3_000_000 },
+        { id: ids[1], mimeType: 'image/heic', sizeBytes: 12 },
+      ],
+    })
+
+    const photos = await db.select().from(expensePhotos).orderBy(expensePhotos.position)
+    expect(photos.map(({ id: photoId, expenseId, position, mimeType, sizeBytes }) => ({ photoId, expenseId, position, mimeType, sizeBytes }))).toEqual([
+      { photoId: ids[0], expenseId: id, position: 0, mimeType: 'image/jpeg', sizeBytes: 3_000_000 },
+      { photoId: ids[1], expenseId: id, position: 1, mimeType: 'image/heic', sizeBytes: 12 },
+    ])
+  })
+
+  it('refuses more than 10 photos, or a file that is not a photo', async () => {
+    const groupId = await createGroup(omkar)
+    const photo = () => ({ id: crypto.randomUUID(), mimeType: 'image/jpeg', sizeBytes: 1 })
+    const save = async (receipts: CreateExpenseInput['receipts']) =>
+      expenseService.createExpense(db, 'omkar@gmail.com', groupId, await input('omkar@gmail.com', groupId, { receipts }))
+
+    expect((await save(Array.from({ length: 10 }, photo))).ok).toBe(true)
+    expect(await save(Array.from({ length: 11 }, photo))).toEqual({
+      ok: false,
+      errors: { receipts: 'Add at most 10 photos.' },
+    })
+    expect(await save([{ ...photo(), mimeType: 'application/pdf' }])).toEqual({
+      ok: false,
+      errors: { receipts: 'Only photos can be added.' },
+    })
   })
 
   it('stores empty notes as nothing', async () => {
@@ -536,7 +570,23 @@ describe('getExpense', () => {
         { personId: priyaId, email: 'priya@gmail.com', name: null, isYou: false, paidMinor: 0, owedMinor: 600 },
         { personId: samId, email: 'sam@gmail.com', name: null, isYou: false, paidMinor: 900, owedMinor: 0 },
       ],
+      receipts: [],
     })
+  })
+
+  it('lists the receipt photos in the order they were added, leaving out deleted ones', async () => {
+    const groupId = await createGroup(omkar)
+    const ids = [crypto.randomUUID(), crypto.randomUUID(), crypto.randomUUID()]
+    const id = await addExpense('omkar@gmail.com', groupId, {
+      receipts: ids.map((photoId, index) => ({ id: photoId, mimeType: index === 1 ? 'image/png' : 'image/jpeg', sizeBytes: 100 })),
+    })
+    await db.update(expensePhotos).set({ deletedAt: new Date() }).where(eq(expensePhotos.id, ids[2]))
+
+    const details = await expenseService.getExpense(db, 'omkar@gmail.com', groupId, id)
+    expect(details?.receipts).toEqual([
+      { id: ids[0], mimeType: 'image/jpeg' },
+      { id: ids[1], mimeType: 'image/png' },
+    ])
   })
 
   it('is null for an unknown, malformed or deleted expense, another group\'s, or a group you are not in', async () => {

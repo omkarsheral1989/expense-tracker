@@ -18,6 +18,7 @@ export function AddExpensePage() {
   const { id = '' } = useParams()
 
   const email = profile?.email ?? ''
+  const accountId = profile?.id ?? ''
   const { state, retry } = useAsyncData(async () => {
     const db = await getDb()
     const group = await groupService.getGroup(db, email, id)
@@ -70,6 +71,7 @@ export function AddExpensePage() {
         return (
           <AddExpenseForm
             group={withYourName(state.data.group)}
+            accountId={accountId}
             userEmail={email}
             recentCurrencies={state.data.recentCurrencies}
           />

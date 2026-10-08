@@ -2,6 +2,7 @@ import { z } from 'zod'
 import {
   EXPENSE_DESCRIPTION_MAX_LENGTH,
   EXPENSE_NOTES_MAX_LENGTH,
+  MAX_RECEIPTS_PER_EXPENSE,
   SPLIT_METHODS,
 } from '../../db/constants.ts'
 import { currencyService } from '../currencyService'
@@ -58,6 +59,15 @@ export const createExpenseSchema = z
       },
       { error: 'Choose how to split it.' },
     ),
+    receipts: z
+      .array(
+        z.object({
+          id: z.uuid(),
+          mimeType: z.string().startsWith('image/', 'Only photos can be added.'),
+          sizeBytes: z.number().int().nonnegative(),
+        }),
+      )
+      .max(MAX_RECEIPTS_PER_EXPENSE, `Add at most ${MAX_RECEIPTS_PER_EXPENSE} photos.`),
   })
   .superRefine((expense, context) => {
     // The limit depends on the currency's decimals, so it is checked here. It

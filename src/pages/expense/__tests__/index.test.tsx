@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import 'fake-indexeddb/auto'
 import { cleanup, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { eq } from 'drizzle-orm'
@@ -7,6 +8,7 @@ import { getDb } from '../../../db/client.ts'
 import { expenses, people } from '../../../db/schema.ts'
 import { ROUTES } from '../../../routes.ts'
 import { groupService } from '../../../services/groupService'
+import { photoService } from '../../../services/photoService'
 import type { CreateExpenseInput } from '../../../services/expenseService/types.ts'
 import { useAuthStore } from '../../../stores/useAuthStore'
 import { setUpTestDatabase } from '../../../testing/database.ts'
@@ -122,6 +124,55 @@ describe('ExpensePage', () => {
     renderExpense(id, without)
     await screen.findByRole('heading', { name: 'Taxi' })
     expect(screen.queryByText('Notes')).not.toBeInTheDocument()
+  })
+
+  it('shows the receipt photos as thumbnails, each opening the photo at full size', async () => {
+    const id = await createGroup()
+    const store = photoService.open(me.id)
+    const receipts = await photoService.storeReceipts(store, [
+      new File(['first'], 'a.jpg', { type: 'image/jpeg' }),
+      new File(['second'], 'b.jpg', { type: 'image/jpeg' }),
+    ])
+    const expenseId = await addExpense(id, { receipts })
+    renderExpense(id, expenseId)
+
+    expect(await screen.findByText('Receipts')).toBeInTheDocument()
+    const gallery = screen.getByRole('list', { name: 'Receipt photos' })
+    const first = await within(gallery).findByRole('img', { name: 'Receipt photo 1' })
+    expect(await within(gallery).findByRole('img', { name: 'Receipt photo 2' })).toBeInTheDocument()
+    expect(first.getAttribute('src')).toMatch(/^blob:/)
+
+    await userEvent.click(first)
+
+    // The preview shows the original photo, a different picture from the thumbnail.
+    const preview = await waitFor(() => {
+      const image = document.querySelector('.ant-image-preview img')
+      expect(image).not.toBeNull()
+      return image as HTMLImageElement
+    })
+    expect(preview.getAttribute('src')).toMatch(/^blob:/)
+    expect(preview.getAttribute('src')).not.toBe(first.getAttribute('src'))
+  })
+
+  it('says when a receipt photo is not on this device', async () => {
+    const id = await createGroup()
+    const expenseId = await addExpense(id, {
+      receipts: [{ id: crypto.randomUUID(), mimeType: 'image/jpeg', sizeBytes: 10 }],
+    })
+    renderExpense(id, expenseId)
+
+    expect(await screen.findByRole('img', { name: 'Receipt photo 1, not on this device' })).toHaveTextContent(
+      'Not on this device',
+    )
+  })
+
+  it('has no receipts section for an expense without photos', async () => {
+    const id = await createGroup()
+    const expenseId = await addExpense(id)
+    renderExpense(id, expenseId)
+
+    await screen.findByRole('heading', { name: 'Beach shack dinner' })
+    expect(screen.queryByText('Receipts')).not.toBeInTheDocument()
   })
 
   it('names who added it when it was someone else', async () => {

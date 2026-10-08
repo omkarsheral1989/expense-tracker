@@ -9,20 +9,23 @@ import { expenseService } from '../../../../services/expenseService'
 import type { ExpenseDetails, ExpenseShareDetails } from '../../../../services/expenseService/types.ts'
 import { moneyService } from '../../../../services/moneyService'
 import { SPLIT_METHOD_LABELS } from './content.ts'
+import { ReceiptGallery } from './ReceiptGallery'
 import { displayName, shareSentence } from './utils.ts'
 
 const { Paragraph, Text, Title } = Typography
 
 type Props = {
   expense: ExpenseDetails
+  /** The signed-in user's Google account id, whose photo store holds the receipts. */
+  accountId: string
 }
 
 /**
  * One expense: its category, description, amount and day, who added it, how
- * it was split and each person's part, and its notes. Editing and deleting are
+ * it was split and each person's part, its notes and its receipt photos. Editing and deleting are
  * shown switched off ("Coming soon").
  */
-export function ExpenseDetailsCard({ expense }: Props) {
+export function ExpenseDetailsCard({ expense, accountId }: Props) {
   const navigate = useNavigate()
   const { token } = theme.useToken()
   const category = expenseService.categoryOf(expense.category)
@@ -98,6 +101,19 @@ export function ExpenseDetailsCard({ expense }: Props) {
     )
   }
 
+  function renderReceipts() {
+    if (expense.receipts.length === 0) return null
+    return (
+      <>
+        <Divider style={{ margin: '16px 0' }} />
+        <Text strong style={{ display: 'block', marginBottom: 8 }}>
+          Receipts
+        </Text>
+        <ReceiptGallery receipts={expense.receipts} accountId={accountId} />
+      </>
+    )
+  }
+
   return (
     <Card>
       {renderHeader()}
@@ -108,6 +124,7 @@ export function ExpenseDetailsCard({ expense }: Props) {
         {expense.shares.map(renderShare)}
       </Flex>
       {renderNotes()}
+      {renderReceipts()}
     </Card>
   )
 }
