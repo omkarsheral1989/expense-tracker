@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router'
 import { getDb } from '../../db/client.ts'
 import { useAsyncData } from '../../hooks/useAsyncData'
 import { ROUTES } from '../../routes.ts'
+import { expenseService } from '../../services/expenseService'
 import { groupService } from '../../services/groupService'
 import { useAuthStore } from '../../stores/useAuthStore'
 import { EmptyGroups } from './components/EmptyGroups'
@@ -17,16 +18,19 @@ export function HomePage() {
   const navigate = useNavigate()
 
   const email = profile?.email ?? ''
-  const { state, retry } = useAsyncData(
-    async () => groupService.listGroups(await getDb(), email),
-    email,
-  )
+  const { state, retry } = useAsyncData(async () => {
+    const db = await getDb()
+    return {
+      groups: await groupService.listGroups(db, email),
+      balances: await expenseService.balancesByGroup(db, email),
+    }
+  }, email)
 
   // Signed-out visitors are sent away by `RequireAuth` before this matters.
   if (!profile) return null
 
   const createGroup = () => navigate(ROUTES.newGroup)
-  const hasGroups = state.status === 'ready' && state.data.length > 0
+  const hasGroups = state.status === 'ready' && state.data.groups.length > 0
 
   function renderHeading() {
     return (
@@ -77,10 +81,10 @@ export function HomePage() {
       case 'error':
         return renderError()
       case 'ready':
-        return state.data.length === 0 ? (
+        return state.data.groups.length === 0 ? (
           <EmptyGroups onCreate={createGroup} />
         ) : (
-          <GroupList groups={state.data} />
+          <GroupList groups={state.data.groups} balances={state.data.balances} />
         )
     }
   }

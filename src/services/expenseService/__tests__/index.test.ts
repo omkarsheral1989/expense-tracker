@@ -1,5 +1,5 @@
 import { PGlite } from '@electric-sql/pglite'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createDatabase, type Database } from '../../../db/client.ts'
 import { expenseShares, expenses, groupMembers, groups, people } from '../../../db/schema.ts'
@@ -354,5 +354,88 @@ describe('recentCurrencies', () => {
 
     expect(await expenseService.recentCurrencies(db, 'omkar@gmail.com')).toEqual([])
     expect(await expenseService.recentCurrencies(db, 'nobody@gmail.com')).toEqual([])
+  })
+})
+
+describe('groupBalances', () => {
+  it('is empty with no expenses, and for an unknown user', async () => {
+    const groupId = await createGroup(omkar, ['priya@gmail.com'])
+    expect(await expenseService.groupBalances(db, 'omkar@gmail.com', groupId)).toEqual([])
+    await addExpense('omkar@gmail.com', groupId)
+    expect(await expenseService.groupBalances(db, 'nobody@gmail.com', groupId)).toEqual([])
+  })
+
+  it('says what each other member owes you, or you owe them, per currency', async () => {
+    const groupId = await createGroup(omkar, ['priya@gmail.com', 'sam@gmail.com'])
+    // Priya joins the app (she is then a known user who can add expenses).
+    await db.update(people).set({ name: 'Priya Shah' }).where(eq(people.email, 'priya@gmail.com'))
+
+    await addExpense('omkar@gmail.com', groupId, { amountMinor: 900, currency: 'GBP' })
+    await addExpense('priya@gmail.com', groupId, { amountMinor: 3000, currency: 'INR' })
+    await addExpense('priya@gmail.com', groupId, { amountMinor: 600, currency: 'GBP' })
+
+    const balances = await expenseService.groupBalances(db, 'omkar@gmail.com', groupId)
+    expect(balances.map(({ email, name, currency, amountMinor }) => ({ email, name, currency, amountMinor }))).toEqual([
+      // GBP: Priya owes 300 for the first, you owe her 200 for the third.
+      { email: 'priya@gmail.com', name: 'Priya Shah', currency: 'GBP', amountMinor: 100 },
+      { email: 'priya@gmail.com', name: 'Priya Shah', currency: 'INR', amountMinor: -1000 },
+      { email: 'sam@gmail.com', name: null, currency: 'GBP', amountMinor: 300 },
+    ])
+  })
+
+  it('leaves out settled pairs, deleted expenses and other groups', async () => {
+    const groupId = await createGroup(omkar, ['priya@gmail.com'])
+    const other = await createGroup(omkar, ['priya@gmail.com'])
+    await addExpense('omkar@gmail.com', groupId, { amountMinor: 1000 })
+    await addExpense('priya@gmail.com', groupId, { amountMinor: 1000 })
+    const deleted = await addExpense('omkar@gmail.com', groupId, { amountMinor: 5000 })
+    await db.update(expenses).set({ deletedAt: new Date() }).where(eq(expenses.id, deleted))
+    await addExpense('omkar@gmail.com', other, { amountMinor: 7000 })
+
+    expect(await expenseService.groupBalances(db, 'omkar@gmail.com', groupId)).toEqual([])
+    expect(await expenseService.groupBalances(db, 'omkar@gmail.com', other)).toHaveLength(1)
+  })
+
+  it('leaves out deleted shares', async () => {
+    const groupId = await createGroup(omkar, ['priya@gmail.com'])
+    const id = await addExpense('omkar@gmail.com', groupId, { amountMinor: 1000 })
+    await db
+      .update(expenseShares)
+      .set({ deletedAt: new Date() })
+      .where(and(eq(expenseShares.expenseId, id), eq(expenseShares.personId, await personId('priya@gmail.com'))))
+
+    expect(await expenseService.groupBalances(db, 'omkar@gmail.com', groupId)).toEqual([])
+  })
+})
+
+describe('balancesByGroup', () => {
+  it('nets the user\'s balance per group and currency, leaving out zeros', async () => {
+    const goa = await createGroup(omkar, ['priya@gmail.com', 'sam@gmail.com'])
+    const flat = await createGroup(omkar, ['priya@gmail.com'])
+    const settled = await createGroup(omkar, ['priya@gmail.com'])
+    await createGroup(omkar)
+
+    await addExpense('omkar@gmail.com', goa, { amountMinor: 900, currency: 'GBP' })
+    await addExpense('priya@gmail.com', goa, { amountMinor: 3000, currency: 'INR' })
+    await addExpense('priya@gmail.com', flat, { amountMinor: 1001, currency: 'EUR' })
+    await addExpense('omkar@gmail.com', settled, { amountMinor: 1000 })
+    await addExpense('priya@gmail.com', settled, { amountMinor: 1000 })
+
+    expect(await expenseService.balancesByGroup(db, 'omkar@gmail.com')).toEqual({
+      [goa]: [
+        { currency: 'GBP', amountMinor: 600 },
+        { currency: 'INR', amountMinor: -1000 },
+      ],
+      // 10.01 split in two: Priya, who paid, keeps the extra cent.
+      [flat]: [{ currency: 'EUR', amountMinor: -500 }],
+    })
+    expect(await expenseService.balancesByGroup(db, 'nobody@gmail.com')).toEqual({})
+  })
+
+  it('leaves out deleted expenses', async () => {
+    const groupId = await createGroup(omkar, ['priya@gmail.com'])
+    const id = await addExpense('omkar@gmail.com', groupId)
+    await db.update(expenses).set({ deletedAt: new Date() }).where(eq(expenses.id, id))
+    expect(await expenseService.balancesByGroup(db, 'omkar@gmail.com')).toEqual({})
   })
 })

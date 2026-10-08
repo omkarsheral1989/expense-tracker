@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getDb } from '../../../db/client.ts'
 import { groups } from '../../../db/schema.ts'
 import { ROUTES } from '../../../routes.ts'
+import { expenseService } from '../../../services/expenseService'
 import { groupService } from '../../../services/groupService'
 import type { CreateGroupInput } from '../../../services/groupService/types.ts'
 import { useAuthStore } from '../../../stores/useAuthStore'
@@ -43,6 +44,24 @@ async function createGroup(
 
 async function changedAt(groupId: string, iso: string) {
   await testDb.db.update(groups).set({ updatedAt: new Date(iso) }).where(eq(groups.id, groupId))
+}
+
+async function addExpense(email: string, groupId: string, amountMinor: number, currency: string) {
+  const result = await expenseService.createExpense(testDb.db, email, groupId, {
+    description: 'Dinner',
+    category: 'general',
+    amountMinor,
+    currency,
+    date: '2026-10-08',
+    notes: '',
+  })
+  if (!result.ok) throw new Error(JSON.stringify(result.errors))
+}
+
+/** The balance text at the end of a group's row. */
+function balanceOf(groupName: string) {
+  const row = screen.getByText(groupName).closest('.ant-card') as HTMLElement
+  return row.querySelector('.ant-card-body > .ant-flex > :last-child')?.textContent
 }
 
 function renderHome() {
@@ -113,6 +132,26 @@ describe('HomePage', () => {
       // One member is "1 member", not "1 members".
       expect(screen.getByText('1 member · INR')).toBeInTheDocument()
       expect(screen.getAllByText('Settled up')).toHaveLength(2)
+    })
+
+    it('ends each row with what you are owed or owe there, one line per currency', async () => {
+      const goa = await createGroup(me, { name: 'Goa trip', memberEmails: ['priya@gmail.com'] })
+      const flat = await createGroup(me, { name: 'Flat', memberEmails: ['priya@gmail.com'] })
+      await createGroup(me, { name: 'Quiet' })
+      await addExpense(me.email, goa, 3000, 'GBP')
+      await addExpense(priya.email, goa, 100000, 'INR')
+      await addExpense(priya.email, flat, 1001, 'EUR')
+      renderHome()
+
+      await screen.findByText('Goa trip')
+      expect(balanceOf('Goa trip')).toBe('you are owed£15.00you owe₹500.00')
+      expect(balanceOf('Flat')).toBe('you owe€5.00')
+      expect(balanceOf('Quiet')).toBe('Settled up')
+
+      const owed = screen.getByText('£15.00').parentElement as HTMLElement
+      expect(owed).toHaveStyle({ color: 'rgb(47, 158, 68)' })
+      const owe = screen.getByText('€5.00').parentElement as HTMLElement
+      expect(owe).toHaveStyle({ color: 'rgb(232, 89, 12)' })
     })
 
     it('shows the icon of each group\'s type', async () => {

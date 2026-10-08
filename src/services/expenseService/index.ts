@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, isNull, max } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, isNull, max, sql } from 'drizzle-orm'
 import type { Database } from '../../db/client.ts'
 import { expenseShares, expenses, groupMembers, groups, people } from '../../db/schema.ts'
 import { CATEGORY_GROUPS, DEFAULT_CATEGORY, RECENT_CURRENCY_COUNT } from './constants.ts'
@@ -7,10 +7,12 @@ import { createExpenseSchema, toFieldErrors } from './schemas.ts'
 import type {
   CreateExpenseInput,
   CreateExpenseResult,
+  CurrencyBalance,
   ExpenseListItem,
   ExpensePayer,
+  PersonBalance,
 } from './types.ts'
-import { CATEGORIES, categoryOf, splitEqually } from './utils.ts'
+import { CATEGORIES, categoryOf, pairBalances, splitEqually } from './utils.ts'
 
 /** The id of the person with this email, or null when nobody has it. */
 async function findPersonId(db: Database | Transaction, email: string): Promise<string | null> {
@@ -159,6 +161,107 @@ export const expenseService = {
         involved: !!mine && (mine.paidMinor > 0 || mine.owedMinor > 0),
       }
     })
+  },
+
+  /**
+   * What the user and each other person in a group owe each other, one entry
+   * per person and currency that is not settled, in the order of the people's
+   * names (or emails) and then currency codes. Worked out from the live shares
+   * of the group's live expenses each time, never stored, so edits and synced
+   * changes can never leave it out of date. Empty for an unknown user.
+   */
+  async groupBalances(
+    db: Database,
+    userEmail: string,
+    groupId: string,
+  ): Promise<PersonBalance[]> {
+    const userId = await findPersonId(db, userEmail)
+    if (!userId) return []
+
+    const rows = await db
+      .select({
+        expenseId: expenses.id,
+        currency: expenses.currency,
+        personId: expenseShares.personId,
+        paidMinor: expenseShares.paidMinor,
+        owedMinor: expenseShares.owedMinor,
+      })
+      .from(expenseShares)
+      .innerJoin(expenses, eq(expenses.id, expenseShares.expenseId))
+      .where(
+        and(
+          eq(expenses.groupId, groupId),
+          isNull(expenses.deletedAt),
+          isNull(expenseShares.deletedAt),
+        ),
+      )
+
+    const byExpense = new Map<string, { currency: string; shares: typeof rows }>()
+    for (const row of rows) {
+      const expense = byExpense.get(row.expenseId) ?? { currency: row.currency, shares: [] }
+      expense.shares.push(row)
+      byExpense.set(row.expenseId, expense)
+    }
+    const balances = pairBalances(userId, [...byExpense.values()])
+    if (balances.length === 0) return []
+
+    const named = await db
+      .select({ id: people.id, email: people.email, name: people.name })
+      .from(people)
+      .where(inArray(people.id, [...new Set(balances.map((balance) => balance.personId))]))
+    const label = (person: { name: string | null; email: string }) =>
+      (person.name ?? person.email).toLowerCase()
+
+    return balances
+      .map((balance) => {
+        const person = named.find((one) => one.id === balance.personId)
+        return {
+          ...balance,
+          email: person?.email ?? '',
+          name: person?.name ?? null,
+        }
+      })
+      .sort(
+        (a, b) =>
+          label(a).localeCompare(label(b)) ||
+          a.personId.localeCompare(b.personId) ||
+          a.currency.localeCompare(b.currency),
+      )
+  },
+
+  /**
+   * The user's overall balance in each of their groups, per currency: what
+   * they paid minus their shares, across the group's live expenses. Groups and
+   * currencies that come to zero are left out. Keyed by group id.
+   */
+  async balancesByGroup(
+    db: Database,
+    userEmail: string,
+  ): Promise<Record<string, CurrencyBalance[]>> {
+    const userId = await findPersonId(db, userEmail)
+    if (!userId) return {}
+
+    const net = sql<number>`sum(${expenseShares.paidMinor} - ${expenseShares.owedMinor})`.mapWith(Number)
+    const rows = await db
+      .select({ groupId: expenses.groupId, currency: expenses.currency, amountMinor: net })
+      .from(expenseShares)
+      .innerJoin(expenses, eq(expenses.id, expenseShares.expenseId))
+      .where(
+        and(
+          eq(expenseShares.personId, userId),
+          isNull(expenseShares.deletedAt),
+          isNull(expenses.deletedAt),
+        ),
+      )
+      .groupBy(expenses.groupId, expenses.currency)
+      .orderBy(asc(expenses.currency))
+
+    const balances: Record<string, CurrencyBalance[]> = {}
+    for (const row of rows) {
+      if (row.amountMinor === 0) continue
+      ;(balances[row.groupId] ??= []).push({ currency: row.currency, amountMinor: row.amountMinor })
+    }
+    return balances
   },
 
   /**

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { CATEGORY_GROUPS, DEFAULT_CATEGORY } from '../constants.ts'
-import { CATEGORIES, categoryOf, isCategoryKey, splitEqually } from '../utils.ts'
+import { CATEGORIES, categoryOf, debtsOf, isCategoryKey, pairBalances, splitEqually } from '../utils.ts'
 
 /** The shares as [person, paid, owed, input] for easy reading. */
 function table(shares: ReturnType<typeof splitEqually>) {
@@ -95,5 +95,79 @@ describe('categories', () => {
     expect(categoryOf('food.future_thing').key).toBe(DEFAULT_CATEGORY)
     expect(isCategoryKey('food.dining_out')).toBe(true)
     expect(isCategoryKey('food.future_thing')).toBe(false)
+  })
+})
+
+describe('debtsOf', () => {
+  it('makes everyone else owe the one payer their share', () => {
+    expect(
+      debtsOf([
+        { personId: 'me', paidMinor: 1000, owedMinor: 334 },
+        { personId: 'priya', paidMinor: 0, owedMinor: 333 },
+        { personId: 'sam', paidMinor: 0, owedMinor: 333 },
+      ]),
+    ).toEqual([
+      { from: 'priya', to: 'me', amountMinor: 333 },
+      { from: 'sam', to: 'me', amountMinor: 333 },
+    ])
+  })
+
+  it('has no debts when the payer owes it all', () => {
+    expect(debtsOf([{ personId: 'me', paidMinor: 500, owedMinor: 500 }])).toEqual([])
+  })
+
+  it('makes the people in the split owe a payer who is not in it', () => {
+    expect(
+      debtsOf([
+        { personId: 'priya', paidMinor: 0, owedMinor: 500 },
+        { personId: 'me', paidMinor: 1000, owedMinor: 0 },
+        { personId: 'sam', paidMinor: 0, owedMinor: 500 },
+      ]),
+    ).toEqual([
+      { from: 'priya', to: 'me', amountMinor: 500 },
+      { from: 'sam', to: 'me', amountMinor: 500 },
+    ])
+  })
+
+  it('matches those who are short with those ahead when several paid', () => {
+    expect(
+      debtsOf([
+        { personId: 'a', paidMinor: 600, owedMinor: 300 },
+        { personId: 'b', paidMinor: 300, owedMinor: 300 },
+        { personId: 'c', paidMinor: 0, owedMinor: 300 },
+      ]),
+    ).toEqual([{ from: 'c', to: 'a', amountMinor: 300 }])
+  })
+})
+
+describe('pairBalances', () => {
+  const lunch = (payer: string, amount: number, people: string[], currency = 'GBP') => ({
+    currency,
+    shares: splitEqually(amount, people, payer),
+  })
+
+  it('adds up what each person owes the user and what the user owes them', () => {
+    expect(
+      pairBalances('me', [
+        lunch('me', 900, ['me', 'priya', 'sam']),
+        lunch('priya', 600, ['me', 'priya']),
+      ]),
+    ).toEqual([
+      // Priya owes 300, the user owes her 300 back: settled, so left out.
+      { personId: 'sam', currency: 'GBP', amountMinor: 300 },
+    ])
+  })
+
+  it('keeps currencies apart, with no conversion', () => {
+    expect(
+      pairBalances('me', [lunch('me', 1000, ['me', 'priya']), lunch('priya', 3000, ['me', 'priya'], 'INR')]),
+    ).toEqual([
+      { personId: 'priya', currency: 'GBP', amountMinor: 500 },
+      { personId: 'priya', currency: 'INR', amountMinor: -1500 },
+    ])
+  })
+
+  it('ignores debts between two other people', () => {
+    expect(pairBalances('me', [lunch('priya', 1000, ['priya', 'sam'])])).toEqual([])
   })
 })

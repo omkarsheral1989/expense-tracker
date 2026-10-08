@@ -73,3 +73,20 @@ export type ShareAmounts = {
   owedMinor: number
   inputValue: number | null
 }
+
+/** What the user and one other member owe each other in one currency. */
+export type PersonBalance = {
+  personId: string
+  email: string
+  name: string | null
+  currency: string
+  /** Positive: they owe the user. Negative: the user owes them. Never zero. */
+  amountMinor: number
+}
+
+/** The user's overall balance in a group in one currency. */
+export type CurrencyBalance = {
+  currency: string
+  /** Positive: the user is owed this. Negative: the user owes it. Never zero. */
+  amountMinor: number
+}

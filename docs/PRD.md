@@ -96,7 +96,7 @@ Every signed-in page has a header. On the left is the small OwnLedger logo tile 
 
 ### 5.2 Home (logged in)
 - A "Your groups" heading with the primary "Create group" button on its right. Below it, one centered column (about 720 px wide, the same on phone and desktop) listing the groups the user belongs to, **most recently active first**. A group's activity is the latest change to it or to anything in it; until expenses exist that is when it was created or last edited, so the order looks like newest first. Each row shows the group-type icon, the name, and underneath it "N members · CUR" (for example "3 members · GBP"); it opens the group's page (`/groups/<id>`).
-- Each row ends with the user's balance in that group: "you are owed X" or "you owe X" (one line per currency), or "Settled up". Until expenses exist every group reads "Settled up".
+- Each row ends with the user's balance in that group: "you are owed" over the amount (green) or "you owe" over the amount (orange-red), once per currency, or "Settled up" (grey) when the user's paid and owed amounts there come to zero in every currency.
 - **Loading:** while the groups load, grey placeholder rows in the shape of the list are shown. The list is loaded once when the page opens (coming back to it reloads it), and a failed load shows an error message with a "Try again" button.
 - **Empty state:** with no groups, a friendly message ("No groups yet. Create one to start sharing expenses.") and a primary "Create group" button in the middle of the page.
 - The **Personal** row (this month's spending per currency) is not shown yet; it arrives with personal expenses.
@@ -123,7 +123,7 @@ Route `/groups/<id>`, opened from a group on the home page and after creating a 
   - the group's **type icon tile** beside the group's **name**, which is large and white and wraps onto more lines when long (never cut off or running off the screen);
   - a row of translucent pill chips: **Add trip dates** (switched off; it exists for any group type for now), **"N people"** ("1 person" for one), and the group's **default currency** (for example "GBP").
 - **"N people" opens the member list**: a bottom sheet on phones and a side panel on desktop, titled "Members (N)". It lists the user first, then the others A to Z; each member has an avatar with their initial, their name with their email under it (just the email, once, when no name is known), and a tag: "You" for the user (whose own row uses the name saved for them, or else their Google profile name) and "Pending" for everyone else until they have signed in and synced. It closes with its close button or by tapping outside.
-- **Balance line** under the band: "You're all settled up" while there are no expenses. Later it becomes a sentence such as "Priya owes you ₹14,517.50", with the amount in bold green.
+- **Balance line** under the band: one sentence per other person and currency that is not settled, "Priya owes you ₹14,517.50" (amount in bold green) or "You owe Priya ₹500.00" (amount in bold orange-red), people A to Z and then currencies A to Z. "You're all settled up" when nothing is owed either way.
 - **Action pills**, a row that scrolls sideways when it does not fit: for now only **Settle up**, switched off.
 - **Expense list:** the group's expenses as described in 5.5. With none, the message "No expenses yet" and "Expenses you add will appear here."
 - **Add expense:** a floating green pill button at the bottom right of the content. It opens the add-expense page (5.5).
@@ -173,10 +173,11 @@ Route `/groups/<id>/expenses/new`, opened from the group page's "Add expense" bu
 - Tapping a row opens a placeholder details page at `/groups/<id>/expenses/<expenseId>`. Real details, editing, deleting and the edit history table come later.
 
 **Balance line (group page)**
-- One line per person per currency, with the amount in bold green; "You're all settled up" when there is nothing owed.
+- One line per person per currency: "Priya owes you …" with the amount in bold green, or "You owe Priya …" with the amount in bold orange-red; "You're all settled up" when there is nothing owed. Debts between two other members are not shown.
 
 **Phases** (each phase: tests with break-checks, a browser check, and the user reviews the UX first)
-1. A simple expense (equal split, you paid) saved and listed. **Done.** The "Paid by [you] and split [equally]" buttons are shown switched off ("Coming soon") for every group size until phase 3; the balance line still reads "You're all settled up" until phase 2; rows cannot be opened until phase 4.
+1. A simple expense (equal split, you paid) saved and listed. **Done.** The "Paid by [you] and split [equally]" buttons are shown switched off ("Coming soon") for every group size until phase 3; rows cannot be opened until phase 4.
+   Phase 2 **done**: the group page's balance lines and the home page's per-currency balances.
 2. Balances: the balance line and the home page rows.
 3. Who paid, and the other split methods.
 4. The placeholder details page.

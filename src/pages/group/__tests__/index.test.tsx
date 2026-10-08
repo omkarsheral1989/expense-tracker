@@ -283,6 +283,36 @@ describe('GroupPage', () => {
       expect(await screen.findByText("You're all settled up")).toBeInTheDocument()
     })
 
+    it('says who owes you and whom you owe, one line per person and currency', async () => {
+      const id = await createGroup(me, { name: 'Goa trip', memberEmails: ['priya@gmail.com', 'sam@gmail.com'] })
+      await testDb.db.update(people).set({ name: 'Priya Shah' }).where(eq(people.email, priya.email))
+      await addExpense(me.email, id, { amountMinor: 900 })
+      await addExpense(priya.email, id, { amountMinor: 3000, currency: 'INR' })
+      renderGroup(id)
+
+      expect(await screen.findByText(/^Priya owes you/)).toHaveTextContent('Priya owes you £3.00')
+      expect(screen.getByText(/^sam owes you/)).toHaveTextContent('sam owes you £3.00')
+      expect(screen.getByText(/^You owe Priya/)).toHaveTextContent('You owe Priya ₹10.00')
+      expect(screen.queryByText("You're all settled up")).not.toBeInTheDocument()
+
+      // The amount is bold, green when owed to you and orange-red when you owe.
+      const owedToYou = within(screen.getByText(/^Priya owes you/)).getByText('£3.00')
+      expect(owedToYou.tagName).toBe('STRONG')
+      expect(owedToYou).toHaveStyle({ color: 'rgb(47, 158, 68)' })
+      const youOwe = within(screen.getByText(/^You owe Priya/)).getByText('₹10.00')
+      expect(youOwe.tagName).toBe('STRONG')
+      expect(youOwe).toHaveStyle({ color: 'rgb(232, 89, 12)' })
+    })
+
+    it('says you are all settled up when the expenses cancel out', async () => {
+      const id = await createGroup(me, { name: 'Goa trip', memberEmails: ['priya@gmail.com'] })
+      await addExpense(me.email, id, { amountMinor: 1000 })
+      await addExpense(priya.email, id, { amountMinor: 1000 })
+      renderGroup(id)
+
+      expect(await screen.findByText("You're all settled up")).toBeInTheDocument()
+    })
+
     it('says there are no expenses yet', async () => {
       const id = await createGroup(me, { name: 'Goa trip' })
       renderGroup(id)

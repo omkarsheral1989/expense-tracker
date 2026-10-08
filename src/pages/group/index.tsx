@@ -4,7 +4,7 @@ import { useParams } from 'react-router'
 import { getDb } from '../../db/client.ts'
 import { useAsyncData } from '../../hooks/useAsyncData'
 import { expenseService } from '../../services/expenseService'
-import type { ExpenseListItem } from '../../services/expenseService/types.ts'
+import type { ExpenseListItem, PersonBalance } from '../../services/expenseService/types.ts'
 import { groupService } from '../../services/groupService'
 import type { GroupDetails } from '../../services/groupService/types.ts'
 import { useAuthStore } from '../../stores/useAuthStore'
@@ -30,7 +30,11 @@ export function GroupPage() {
     const db = await getDb()
     const group = await groupService.getGroup(db, email, id)
     if (!group) return null
-    return { group, expenses: await expenseService.listExpenses(db, email, id) }
+    return {
+      group,
+      expenses: await expenseService.listExpenses(db, email, id),
+      balances: await expenseService.groupBalances(db, email, id),
+    }
   }, `${email}:${id}`)
 
   // Signed-out visitors are sent away by `RequireAuth` before this matters.
@@ -66,7 +70,11 @@ export function GroupPage() {
     )
   }
 
-  function renderGroup(group: GroupDetails, expenses: ExpenseListItem[]) {
+  function renderGroup(
+    group: GroupDetails,
+    expenses: ExpenseListItem[],
+    balances: PersonBalance[],
+  ) {
     // Someone else may have added the user before they ever used the app, so
     // their record has no name yet; their Google profile has.
     const members = group.members.map((member) =>
@@ -81,7 +89,7 @@ export function GroupPage() {
         />
         <div style={COLUMN_STYLE}>
           <Flex vertical gap={16}>
-            <BalanceLine />
+            <BalanceLine balances={balances} />
             <ActionPills />
             <ExpenseList expenses={expenses} />
           </Flex>
@@ -111,7 +119,9 @@ export function GroupPage() {
       case 'error':
         return renderError()
       case 'ready':
-        return state.data ? renderGroup(state.data.group, state.data.expenses) : renderNotFound()
+        return state.data
+          ? renderGroup(state.data.group, state.data.expenses, state.data.balances)
+          : renderNotFound()
     }
   }
 

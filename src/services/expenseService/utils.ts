@@ -60,3 +60,69 @@ export function categoryOf(key: string): Category {
     (CATEGORIES.find((category) => category.key === DEFAULT_CATEGORY) as Category)
   )
 }
+
+/** One person's part in one expense, as the balance maths needs it. */
+type SharePart = { personId: string; paidMinor: number; owedMinor: number }
+
+/** Money one person owes another because of an expense. */
+export type Debt = { from: string; to: string; amountMinor: number }
+
+/**
+ * Who owes whom because of one expense. Each person's net is what they paid
+ * minus their share; those who are short pay those who are ahead, matched in
+ * the order of the shares. With one payer (the only case the app creates) this
+ * is simply: everyone else owes the payer their share.
+ */
+export function debtsOf(shares: readonly SharePart[]): Debt[] {
+  const creditors = shares
+    .map((share) => ({ personId: share.personId, left: share.paidMinor - share.owedMinor }))
+    .filter((creditor) => creditor.left > 0)
+  const debts: Debt[] = []
+
+  for (const share of shares) {
+    let owes = share.owedMinor - share.paidMinor
+    for (const creditor of creditors) {
+      if (owes <= 0) break
+      if (creditor.left <= 0) continue
+      const amountMinor = Math.min(owes, creditor.left)
+      debts.push({ from: share.personId, to: creditor.personId, amountMinor })
+      creditor.left -= amountMinor
+      owes -= amountMinor
+    }
+  }
+  return debts
+}
+
+/** What one other person and the user owe each other in one currency. */
+export type PairBalance = {
+  personId: string
+  currency: string
+  /** Positive: they owe the user. Negative: the user owes them. Never zero. */
+  amountMinor: number
+}
+
+/**
+ * The user's balance with each other person, per currency, from the shares of
+ * many expenses. Debts between two other people are left out. Pairs that come
+ * to zero are dropped.
+ */
+export function pairBalances(
+  userId: string,
+  expenses: readonly { currency: string; shares: readonly SharePart[] }[],
+): PairBalance[] {
+  const totals = new Map<string, PairBalance>()
+  function add(personId: string, currency: string, amountMinor: number) {
+    const key = `${personId}|${currency}`
+    const total = totals.get(key) ?? { personId, currency, amountMinor: 0 }
+    total.amountMinor += amountMinor
+    totals.set(key, total)
+  }
+
+  for (const expense of expenses) {
+    for (const debt of debtsOf(expense.shares)) {
+      if (debt.to === userId) add(debt.from, expense.currency, debt.amountMinor)
+      else if (debt.from === userId) add(debt.to, expense.currency, -debt.amountMinor)
+    }
+  }
+  return [...totals.values()].filter((total) => total.amountMinor !== 0)
+}

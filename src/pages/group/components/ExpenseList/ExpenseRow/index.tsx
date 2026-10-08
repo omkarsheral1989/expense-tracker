@@ -4,7 +4,7 @@ import { useColorScheme } from '../../../../../hooks/useColorScheme'
 import { groupService } from '../../../../../services/groupService'
 import type { ExpenseListItem } from '../../../../../services/expenseService/types.ts'
 import { moneyService } from '../../../../../services/moneyService'
-import { BORROWED_COLOR, LENT_COLOR } from './style.ts'
+import { OWED_TO_YOU_COLOR, YOU_OWE_COLOR } from '../../../../../theme/balanceColors.ts'
 import { dateParts, expenseStatus } from './utils.ts'
 
 const { Text } = Typography
@@ -52,7 +52,7 @@ export function ExpenseRow({ expense }: Props) {
         </Text>
       )
     }
-    const color = status.kind === 'lent' ? LENT_COLOR[scheme] : BORROWED_COLOR[scheme]
+    const color = status.kind === 'lent' ? OWED_TO_YOU_COLOR[scheme] : YOU_OWE_COLOR[scheme]
     return (
       <Flex vertical align="flex-end" style={{ color }}>
         <span style={{ fontSize: 12 }}>{status.kind === 'lent' ? 'you lent' : 'you borrowed'}</span>
