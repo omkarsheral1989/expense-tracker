@@ -19,6 +19,7 @@
     "@react-oauth/google": "^0.13.5",
     "antd": "^6.6.5",
     "country-to-currency": "^3.0.1",
+    "dayjs": "^1.11.23",
     "drizzle-orm": "^0.45.3",
     "idb": "^8.0.4",
     "papaparse": "^5.7.0",

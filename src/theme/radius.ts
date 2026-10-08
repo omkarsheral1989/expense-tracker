@@ -8,3 +8,10 @@ export const RADIUS = {
   inner: 12,
   outer: 24,
 } as const
+
+/**
+ * Fully rounded, for the phone-first pages' chips, pills and round buttons
+ * (the group page and the add-expense page). The one deliberate exception to
+ * the two radii above (ADR-030).
+ */
+export const PILL_RADIUS = 999

@@ -10,6 +10,3 @@ export function bandBackground(color: string): string {
     `linear-gradient(160deg, ${color}, color-mix(in srgb, ${color} 68%, black))`,
   ].join(', ')
 }
-
-/** Fully rounded, for the chips and pills (a deliberate exception to the two corner radii). */
-export const PILL_RADIUS = 999

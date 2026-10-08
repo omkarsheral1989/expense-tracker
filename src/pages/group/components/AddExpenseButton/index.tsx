@@ -1,14 +1,21 @@
 import { PlusOutlined } from '@ant-design/icons'
 import { Button } from 'antd'
-import { ComingSoon } from '../../../../components/ComingSoon'
-import { PILL_RADIUS } from '../GroupBand/style.ts'
+import { useNavigate } from 'react-router'
+import { ROUTES } from '../../../../routes.ts'
+import { PILL_RADIUS } from '../../../../theme/radius.ts'
+
+type Props = {
+  groupId: string
+}
 
 /**
- * The floating green button that will open the add-expense form. It stays at
- * the bottom of the screen, lined up with the right edge of the 720 px content
- * column (or 16 px from the screen's edge on a phone). Switched off for now.
+ * The floating green button that opens the add-expense page. It stays at the
+ * bottom of the screen, lined up with the right edge of the 720 px content
+ * column (or 16 px from the screen's edge on a phone).
  */
-export function AddExpenseButton() {
+export function AddExpenseButton({ groupId }: Props) {
+  const navigate = useNavigate()
+
   return (
     <div
       style={{
@@ -18,17 +25,15 @@ export function AddExpenseButton() {
         zIndex: 10,
       }}
     >
-      <ComingSoon>
-        <Button
-          type="primary"
-          size="large"
-          icon={<PlusOutlined />}
-          disabled
-          style={{ borderRadius: PILL_RADIUS, boxShadow: '0 6px 16px rgba(0, 0, 0, 0.2)' }}
-        >
-          Add expense
-        </Button>
-      </ComingSoon>
+      <Button
+        type="primary"
+        size="large"
+        icon={<PlusOutlined />}
+        onClick={() => navigate(ROUTES.newExpense(groupId))}
+        style={{ borderRadius: PILL_RADIUS, boxShadow: '0 6px 16px rgba(0, 0, 0, 0.2)' }}
+      >
+        Add expense
+      </Button>
     </div>
   )
 }

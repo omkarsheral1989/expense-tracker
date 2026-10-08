@@ -1,6 +1,6 @@
 import { Button, Result } from 'antd'
 import { Link } from 'react-router'
-import { ROUTES } from '../../../../routes.ts'
+import { ROUTES } from '../../routes.ts'
 
 /**
  * Shown for a group that does not exist, was deleted, or that the user does not

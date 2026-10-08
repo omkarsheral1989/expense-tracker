@@ -2,9 +2,13 @@ import { PGlite } from '@electric-sql/pglite'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createDatabase, type Database } from '../client.ts'
-import { GROUP_NAME_MAX_LENGTH } from '../constants.ts'
+import {
+  EXPENSE_DESCRIPTION_MAX_LENGTH,
+  EXPENSE_NOTES_MAX_LENGTH,
+  GROUP_NAME_MAX_LENGTH,
+} from '../constants.ts'
 import { runMigrations } from '../migrate.ts'
-import { groupMembers, groups, people } from '../schema.ts'
+import { expenseShares, expenses, groupMembers, groups, people } from '../schema.ts'
 
 let pg: PGlite
 let db: Database
@@ -16,7 +20,7 @@ beforeAll(async () => {
 
 afterAll(() => pg.close())
 
-beforeEach(() => pg.exec('truncate group_members, groups, people cascade'))
+beforeEach(() => pg.exec('truncate expense_shares, expenses, group_members, groups, people cascade'))
 
 /** A person who made their own row, the way the signed-in user does. */
 async function addPerson(email: string) {
@@ -44,7 +48,7 @@ describe('migrations', () => {
   it('can run again without changing anything', async () => {
     await runMigrations(pg)
     const { rows } = await pg.query('select name from ownledger_migrations')
-    expect(rows).toHaveLength(2)
+    expect(rows).toHaveLength(3)
   })
 
   it('does not record a file that fails, and applies nothing from it', async () => {
@@ -188,5 +192,79 @@ describe('group members', () => {
         updatedBy: owner,
       }),
     ).rejects.toThrow()
+  })
+})
+
+describe('expenses', () => {
+  async function addExpense(overrides = {}) {
+    const owner = await addPerson('omkar@gmail.com')
+    const group = await addGroup(owner)
+    const [expense] = await db
+      .insert(expenses)
+      .values({
+        groupId: group.id,
+        description: 'Dinner',
+        category: 'food.dining_out',
+        amountMinor: 123456,
+        currency: 'INR',
+        date: '2026-10-08',
+        method: 'equal',
+        createdBy: owner,
+        updatedBy: owner,
+        ...overrides,
+      })
+      .returning()
+    return { owner, expense }
+  }
+
+  it('stores an expense with its amount in minor units and its day', async () => {
+    const { expense } = await addExpense()
+    expect(expense).toMatchObject({ amountMinor: 123456, date: '2026-10-08', notes: null })
+  })
+
+  it('keeps amounts above the 32-bit range exactly', async () => {
+    // One billion rupees in paise.
+    const { expense } = await addExpense({ amountMinor: 100_000_000_000 })
+    expect(expense.amountMinor).toBe(100_000_000_000)
+  })
+
+  it.each([
+    ['an empty description', { description: '' }],
+    ['a description that is too long', { description: 'a'.repeat(EXPENSE_DESCRIPTION_MAX_LENGTH + 1) }],
+    ['notes that are too long', { notes: 'a'.repeat(EXPENSE_NOTES_MAX_LENGTH + 1) }],
+    ['a zero amount', { amountMinor: 0 }],
+    ['a negative amount', { amountMinor: -5 }],
+    ['a lower-case currency', { currency: 'inr' }],
+    ['an unknown split method', { method: 'random' }],
+  ])('rejects %s', async (_, overrides) => {
+    await expect(addExpense(overrides)).rejects.toThrow()
+  })
+
+  it('accepts the longest description and notes', async () => {
+    await expect(
+      addExpense({
+        description: 'a'.repeat(EXPENSE_DESCRIPTION_MAX_LENGTH),
+        notes: 'a'.repeat(EXPENSE_NOTES_MAX_LENGTH),
+      }),
+    ).resolves.toBeDefined()
+  })
+
+  it('keeps one share per person per expense, with no negative amounts', async () => {
+    const { owner, expense } = await addExpense()
+    const share = { expenseId: expense.id, personId: owner, updatedBy: owner }
+
+    await db.insert(expenseShares).values({ ...share, paidMinor: 123456, owedMinor: 123456, inputValue: 1 })
+    await expect(db.insert(expenseShares).values(share)).rejects.toThrow()
+
+    const friend = await addPerson('friend@gmail.com')
+    await expect(
+      db.insert(expenseShares).values({ ...share, personId: friend, owedMinor: -1 }),
+    ).rejects.toThrow()
+    await expect(
+      db.insert(expenseShares).values({ ...share, personId: friend, paidMinor: -1 }),
+    ).rejects.toThrow()
+
+    const [stored] = await db.select().from(expenseShares).where(eq(expenseShares.personId, owner))
+    expect(stored).toMatchObject({ paidMinor: 123456, owedMinor: 123456, inputValue: 1 })
   })
 })

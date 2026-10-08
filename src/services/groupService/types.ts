@@ -43,8 +43,11 @@ export type GroupSummary = {
   defaultCurrency: string
   /** Everyone currently in the group, the user included. */
   memberCount: number
-  /** When the group was last changed. The list is ordered by it, newest first. */
-  updatedAt: Date
+  /**
+   * The latest change to the group or to anything in it (its expenses). The
+   * list is ordered by it, newest first.
+   */
+  lastActivityAt: Date
 }
 
 /** A person in a group, as the group page shows them. */

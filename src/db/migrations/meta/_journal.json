@@ -15,6 +15,13 @@
       "when": 1791400593132,
       "tag": "0001_group_default_currency",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791478164559,
+      "tag": "0002_expenses",
+      "breakpoints": true
     }
   ]
 }

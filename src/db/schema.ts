@@ -1,6 +1,8 @@
 import { sql } from 'drizzle-orm'
 import {
+  bigint,
   check,
+  date,
   index,
   pgTable,
   text,
@@ -9,8 +11,14 @@ import {
   uuid,
   type AnyPgColumn,
 } from 'drizzle-orm/pg-core'
-import { GROUP_NAME_MAX_LENGTH, GROUP_TYPES } from './constants.ts'
-import type { GroupType } from './types.ts'
+import {
+  EXPENSE_DESCRIPTION_MAX_LENGTH,
+  EXPENSE_NOTES_MAX_LENGTH,
+  GROUP_NAME_MAX_LENGTH,
+  GROUP_TYPES,
+  SPLIT_METHODS,
+} from './constants.ts'
+import type { GroupType, SplitMethod } from './types.ts'
 
 /**
  * Columns every synced table has: a UUID primary key (never auto-increment, so
@@ -95,5 +103,87 @@ export const groupMembers = pgTable(
   (table) => [
     unique('group_members_group_person').on(table.groupId, table.personId),
     index('group_members_person_idx').on(table.personId),
+  ],
+)
+
+/** Amounts are whole minor units (cents, paise), never fractions. */
+function money(name: string) {
+  return bigint(name, { mode: 'number' })
+}
+
+/**
+ * One expense of a group. The amount is in minor units of its own currency,
+ * which need not be the group's default. How it is divided is in
+ * `expense_shares`; `method` says how those shares were worked out.
+ */
+export const expenses = pgTable(
+  'expenses',
+  {
+    ...syncColumns(),
+    groupId: uuid('group_id')
+      .notNull()
+      .references(() => groups.id),
+    description: text('description').notNull(),
+    /** A stable key from the app's category list, such as 'food.dining_out'. */
+    category: text('category').notNull(),
+    amountMinor: money('amount_minor').notNull(),
+    /** An ISO 4217 code such as 'INR'. */
+    currency: text('currency').notNull(),
+    /** The day the money was spent, without a time ('2026-10-08'). */
+    date: date('date', { mode: 'string' }).notNull(),
+    notes: text('notes'),
+    method: text('method').$type<SplitMethod>().notNull(),
+    createdBy: uuid('created_by')
+      .notNull()
+      .references(() => people.id),
+  },
+  (table) => [
+    check(
+      'expenses_description_length',
+      sql`char_length(${table.description}) between 1 and ${sql.raw(String(EXPENSE_DESCRIPTION_MAX_LENGTH))}`,
+    ),
+    check(
+      'expenses_notes_length',
+      sql`char_length(${table.notes}) <= ${sql.raw(String(EXPENSE_NOTES_MAX_LENGTH))}`,
+    ),
+    check('expenses_amount_positive', sql`${table.amountMinor} > 0`),
+    check('expenses_currency_format', sql`${table.currency} ~ '^[A-Z]{3}$'`),
+    check(
+      'expenses_method_valid',
+      sql`${table.method} in (${sql.raw(SPLIT_METHODS.map((method) => `'${method}'`).join(', '))})`,
+    ),
+    index('expenses_group_idx').on(table.groupId),
+  ],
+)
+
+/**
+ * One person's part in an expense: what they paid towards it and what they
+ * owe of it. Across an expense's live rows both add up to its amount.
+ */
+export const expenseShares = pgTable(
+  'expense_shares',
+  {
+    ...syncColumns(),
+    expenseId: uuid('expense_id')
+      .notNull()
+      .references(() => expenses.id),
+    personId: uuid('person_id')
+      .notNull()
+      .references(() => people.id),
+    paidMinor: money('paid_minor').notNull().default(0),
+    owedMinor: money('owed_minor').notNull().default(0),
+    /**
+     * What the user entered for this person under the expense's method: 1 or 0
+     * (in the split or not) for 'equal', minor units for 'exact' and
+     * 'adjustment', a whole percentage for 'percent', a number of shares for
+     * 'shares'. Null when the person only paid.
+     */
+    inputValue: bigint('input_value', { mode: 'number' }),
+  },
+  (table) => [
+    unique('expense_shares_expense_person').on(table.expenseId, table.personId),
+    index('expense_shares_person_idx').on(table.personId),
+    check('expense_shares_paid_not_negative', sql`${table.paidMinor} >= 0`),
+    check('expense_shares_owed_not_negative', sql`${table.owedMinor} >= 0`),
   ],
 )
