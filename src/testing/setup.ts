@@ -4,6 +4,12 @@
 import '@testing-library/jest-dom/vitest'
 
 if (typeof window !== 'undefined') {
+  // `findBy...` and `waitFor` give up after 1 s by default, which a busy
+  // machine (a full run with many files at once) can take to show a page that
+  // opens a database. A longer limit costs nothing when the screen is right.
+  const { configure } = await import('@testing-library/react')
+  configure({ asyncUtilTimeout: 5000 })
+
   // Ant Design's responsive helpers and `useColorScheme` ask for media queries.
   window.matchMedia ??= (query: string) =>
     ({

@@ -22,7 +22,7 @@ export function renderPage(
   const result = render(
     // Animations off, so a closed dialog or a cleared message is gone at once
     // instead of lingering on screen while it "animates" in jsdom.
-    <ConfigProvider theme={{ token: { motion: false } }}>
+    <ConfigProvider theme={{ zeroRuntime: true, token: { motion: false } }}>
       <ThemeProvider>
         <MemoryRouter initialEntries={[path]}>
           <Routes>

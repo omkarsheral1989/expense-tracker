@@ -77,10 +77,23 @@ async function expenseRows() {
 
 /**
  * Matches a button by its text. Ant Design icons add their own name in front
- * ("team 2 people", "plus Add expense"), so the text is matched at the end.
+ * ("team 2 people", "plus Add expense"), with or without a space between them
+ * (only the page's styles make it a space), so the text is matched at the end,
+ * and not as the end of a longer number ("12 people").
  */
 function named(text: string) {
-  return new RegExp(`(^|\\s)${text}$`)
+  return new RegExp(`(?<!\\d)${text}$`)
+}
+
+/**
+ * Whether the members sheet is closed. Ant Design keeps a closed drawer in the
+ * page and only marks it hidden (its styles then hide it), so look for that mark
+ * rather than for the dialog, which only disappears from role queries when the
+ * styles are loaded.
+ */
+function membersSheetIsClosed() {
+  const sheet = document.querySelector('.ant-drawer-content-wrapper')
+  return !sheet || sheet.classList.contains('ant-drawer-content-wrapper-hidden')
 }
 
 /** Opens the member list by pressing the "N people" chip, and returns the sheet. */
@@ -438,7 +451,7 @@ describe('GroupPage', () => {
 
       await userEvent.click(within(sheet).getByRole('button', { name: 'Close' }))
 
-      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+      await waitFor(() => expect(membersSheetIsClosed()).toBe(true))
     })
 
     it('closes when the dimmed area outside it is pressed', async () => {
@@ -448,7 +461,7 @@ describe('GroupPage', () => {
 
       await userEvent.click(document.querySelector('.ant-drawer-mask') as HTMLElement)
 
-      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+      await waitFor(() => expect(membersSheetIsClosed()).toBe(true))
     })
 
     it('can be opened again after it was closed', async () => {
@@ -456,7 +469,7 @@ describe('GroupPage', () => {
       renderGroup(id)
       const sheet = await openMembers(2)
       await userEvent.click(within(sheet).getByRole('button', { name: 'Close' }))
-      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+      await waitFor(() => expect(membersSheetIsClosed()).toBe(true))
 
       await openMembers(2)
 
