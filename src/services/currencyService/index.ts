@@ -63,24 +63,37 @@ export const currencyService = {
    * sorted by code. `firstCode`, when given, is moved to the top.
    */
   options(locale: string, firstCode?: string | null): CurrencyOption[] {
-    const names = new Intl.DisplayNames([locale], { type: 'currency' })
-
-    const options = codes()
-      .toSorted()
-      .map((code) => {
-        const symbol = symbolOf(code, locale)
-        const name = names.of(code) ?? code
-        return {
-          value: code,
-          label: `${code} – ${name}${symbol ? ` (${symbol})` : ''}`,
-        }
-      })
+    const options = optionsFor(locale)
 
     const first = options.find((option) => option.value === firstCode)
+    // A new array each time, so a caller cannot change the cached list.
     return first
       ? [first, ...options.filter((option) => option !== first)]
-      : options
+      : [...options]
   },
+}
+
+// Building every label formats a few hundred currencies, so each locale's
+// list is made once and reused.
+const cachedOptions = new Map<string, CurrencyOption[]>()
+
+function optionsFor(locale: string): CurrencyOption[] {
+  const cached = cachedOptions.get(locale)
+  if (cached) return cached
+
+  const names = new Intl.DisplayNames([locale], { type: 'currency' })
+  const options = codes()
+    .toSorted()
+    .map((code) => {
+      const symbol = symbolOf(code, locale)
+      const name = names.of(code) ?? code
+      return {
+        value: code,
+        label: `${code} – ${name}${symbol ? ` (${symbol})` : ''}`,
+      }
+    })
+  cachedOptions.set(locale, options)
+  return options
 }
 
 function maximizedRegion(locale: string): string | null {

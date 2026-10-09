@@ -17,7 +17,7 @@ export function setUpTestDatabase() {
     testDatabase.current = await createDatabase(pg)
   })
 
-  beforeEach(() => pg.exec('truncate group_members, groups, people cascade'))
+  beforeEach(() => pg.exec('truncate expense_photos, expense_shares, expenses, group_members, groups, people cascade'))
 
   afterAll(async () => {
     testDatabase.current = null

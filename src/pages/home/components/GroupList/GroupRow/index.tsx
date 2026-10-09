@@ -2,6 +2,7 @@ import { Card, Flex, Typography } from 'antd'
 import { Link } from 'react-router'
 import { GroupTypeIcon } from '../../../../../components/GroupTypeIcon'
 import { ROUTES } from '../../../../../routes.ts'
+import type { CurrencyBalance } from '../../../../../services/expenseService/types.ts'
 import type { GroupSummary } from '../../../../../services/groupService/types.ts'
 import { GroupBalance } from './GroupBalance'
 
@@ -9,10 +10,12 @@ const { Text } = Typography
 
 type Props = {
   group: GroupSummary
+  /** The user's balance in the group, one entry per currency not settled. */
+  balances: CurrencyBalance[]
 }
 
 /** One group in the list. The whole row is a link to the group's page. */
-export function GroupRow({ group }: Props) {
+export function GroupRow({ group, balances }: Props) {
   const members = `${group.memberCount} ${group.memberCount === 1 ? 'member' : 'members'}`
 
   return (
@@ -28,7 +31,7 @@ export function GroupRow({ group }: Props) {
               {members} · {group.defaultCurrency}
             </Text>
           </Flex>
-          <GroupBalance />
+          <GroupBalance balances={balances} />
         </Flex>
       </Card>
     </Link>

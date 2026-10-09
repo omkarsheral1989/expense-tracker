@@ -2,7 +2,8 @@ import { PGlite } from '@electric-sql/pglite'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createDatabase, type Database } from '../../../db/client.ts'
-import { groupMembers, groups, people } from '../../../db/schema.ts'
+import { expenses, groupMembers, groups, people } from '../../../db/schema.ts'
+import { addTestExpense } from '../../../testing/expenses.ts'
 import { groupService } from '../index.ts'
 import type { CreateGroupInput, Creator } from '../types.ts'
 
@@ -16,7 +17,7 @@ beforeAll(async () => {
 
 afterAll(() => pg.close())
 
-beforeEach(() => pg.exec('truncate group_members, groups, people cascade'))
+beforeEach(() => pg.exec('truncate expense_photos, expense_shares, expenses, group_members, groups, people cascade'))
 
 const omkar: Creator = { email: 'omkar@gmail.com', name: 'Omkar' }
 const priya: Creator = { email: 'priya@gmail.com', name: 'Priya' }
@@ -315,7 +316,7 @@ describe('listGroups', () => {
       defaultCurrency: 'INR',
       memberCount: 1,
     })
-    expect(list[0].updatedAt).toBeInstanceOf(Date)
+    expect(list[0].lastActivityAt).toBeInstanceOf(Date)
   })
 
   it('puts the most recently changed group first, then orders ties by name', async () => {
@@ -335,6 +336,32 @@ describe('listGroups', () => {
     await changedAt(old, '2026-06-01T00:00:00Z')
     const after = (await groupService.listGroups(db, 'omkar@gmail.com')).map((group) => group.name)
     expect(after[0]).toBe('Old')
+  })
+
+  it('counts a change to an expense as activity in its group', async () => {
+    const quiet = await create(omkar, { name: 'Quiet' })
+    const busy = await create(omkar, { name: 'Busy' })
+    await changedAt(quiet, '2026-03-01T00:00:00Z')
+    await changedAt(busy, '2026-01-01T00:00:00Z')
+    const expenseId = await addTestExpense(db, omkar.email, busy, { date: '2026-01-01' })
+
+    // An expense changed after both groups pulls its group to the top.
+    await db
+      .update(expenses)
+      .set({ updatedAt: new Date('2026-04-01T00:00:00Z') })
+      .where(eq(expenses.id, expenseId))
+    let names = (await groupService.listGroups(db, 'omkar@gmail.com')).map((group) => group.name)
+    expect(names).toEqual(['Busy', 'Quiet'])
+
+    // An older expense does not pull the group up past a newer change.
+    await db
+      .update(expenses)
+      .set({ updatedAt: new Date('2026-02-01T00:00:00Z') })
+      .where(eq(expenses.id, expenseId))
+    names = (await groupService.listGroups(db, 'omkar@gmail.com')).map((group) => group.name)
+    expect(names).toEqual(['Quiet', 'Busy'])
+    const busyRow = (await groupService.listGroups(db, 'omkar@gmail.com'))[1]
+    expect(busyRow.lastActivityAt).toEqual(new Date('2026-02-01T00:00:00Z'))
   })
 
   it('includes groups someone else made, when you are a member', async () => {

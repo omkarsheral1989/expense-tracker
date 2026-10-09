@@ -1,9 +1,10 @@
 import { and, asc, desc, eq, isNull, ne, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import type { Database } from '../../db/client.ts'
-import { groupMembers, groups, people } from '../../db/schema.ts'
+import { expenses, groupMembers, groups, people } from '../../db/schema.ts'
 import { MEMBER_EMAIL_DOMAIN } from './constants.ts'
 import { createGroupSchema, normalizeEmails, toFieldErrors } from './schemas.ts'
+import { shortName } from './utils.ts'
 import type {
   CreateGroupInput,
   CreateGroupResult,
@@ -66,6 +67,9 @@ export const groupService = {
 
   /** Trims and lower-cases addresses and drops repeats, as creating a group does. */
   normalizeMemberEmails: normalizeEmails,
+
+  /** A person's first name, or their email before the "@" when no name is known. */
+  shortName,
 
   /**
    * Creates a group with its members, all or nothing. The creator is always a
@@ -177,8 +181,8 @@ export const groupService = {
   },
 
   /**
-   * The groups this user belongs to, most recently changed first (ties by
-   * name). Deleted groups, groups the user has left, and groups they were
+   * The groups this user belongs to, most recently active first (ties by
+   * name): a group's activity is the latest change to it or its expenses. Deleted groups, groups the user has left, and groups they were
    * never in are left out.
    */
   async listGroups(db: Database, userEmail: string): Promise<GroupSummary[]> {
@@ -186,13 +190,19 @@ export const groupService = {
     if (!userId) return []
 
     const myMembership = alias(groupMembers, 'my_membership')
+    // The latest change to the group or to any of its expenses (deleted ones
+    // too: deleting is a change).
+    const lastActivityAt = sql<Date>`greatest(${groups.updatedAt}, (
+      select max(${expenses.updatedAt}) from ${expenses}
+      where ${expenses.groupId} = ${groups.id}
+    ))`.mapWith(groups.updatedAt)
     return db
       .select({
         id: groups.id,
         name: groups.name,
         type: groups.type,
         defaultCurrency: groups.defaultCurrency,
-        updatedAt: groups.updatedAt,
+        lastActivityAt,
         memberCount: sql<number>`(
           select count(*) from ${groupMembers}
           where ${groupMembers.groupId} = ${groups.id} and ${groupMembers.deletedAt} is null
@@ -208,7 +218,7 @@ export const groupService = {
         ),
       )
       .where(isNull(groups.deletedAt))
-      .orderBy(desc(groups.updatedAt), asc(groups.name), asc(groups.id))
+      .orderBy(desc(lastActivityAt), asc(groups.name), asc(groups.id))
   },
 
   /**

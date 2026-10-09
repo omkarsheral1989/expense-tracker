@@ -1,15 +1,17 @@
 // @vitest-environment jsdom
 import { cleanup, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { eq } from 'drizzle-orm'
+import { and, eq, ne } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getDb } from '../../../db/client.ts'
-import { groupMembers, groups, people } from '../../../db/schema.ts'
+import { expenseShares, groupMembers, groups, people } from '../../../db/schema.ts'
 import { ROUTES } from '../../../routes.ts'
+import type { CreateExpenseInput } from '../../../services/expenseService/types.ts'
 import { groupService } from '../../../services/groupService'
 import type { CreateGroupInput } from '../../../services/groupService/types.ts'
 import { useAuthStore } from '../../../stores/useAuthStore'
 import { setUpTestDatabase } from '../../../testing/database.ts'
+import { addTestExpense } from '../../../testing/expenses.ts'
 import { renderPage } from '../../../testing/render.tsx'
 import { GroupPage } from '../index.tsx'
 
@@ -45,8 +47,32 @@ function renderGroup(groupId: string) {
   return renderPage(<GroupPage />, {
     path: ROUTES.group(groupId),
     pattern: ROUTES.groupPattern,
-    routes: [ROUTES.home],
+    routes: [ROUTES.home, ROUTES.newExpensePattern, ROUTES.expensePattern],
   })
+}
+
+const dinner: Partial<CreateExpenseInput> = {
+  description: 'Dinner',
+  category: 'food.dining_out',
+  amountMinor: 3000,
+  currency: 'GBP',
+}
+
+async function addExpense(email: string, groupId: string, input: Partial<CreateExpenseInput> = {}) {
+  return addTestExpense(testDb.db, email, groupId, { ...dinner, ...input })
+}
+
+/** The rows of the expense list, each as its text with spaces between the parts. */
+async function expenseRows() {
+  const list = await screen.findByRole('list', { name: 'Expenses' })
+  return within(list)
+    .getAllByRole('listitem')
+    .map((row) =>
+      [...row.querySelectorAll('span, strong')]
+        .filter((part) => part.children.length === 0 && part.textContent)
+        .map((part) => part.textContent)
+        .join(' | '),
+    )
 }
 
 /**
@@ -199,7 +225,6 @@ describe('GroupPage', () => {
       ['button', 'Group settings'],
       ['button', 'Add trip dates'],
       ['button', 'Settle up'],
-      ['button', 'Add expense'],
     ] as const)('switches off the %s "%s"', async (role, name) => {
       const id = await createGroup(me, { name: 'Goa trip' })
       renderGroup(id)
@@ -207,7 +232,7 @@ describe('GroupPage', () => {
       expect(await screen.findByRole(role, { name: named(name) })).toBeDisabled()
     })
 
-    it.each(['Search', 'Group settings', 'Add trip dates', 'Settle up', 'Add expense'])(
+    it.each(['Search', 'Group settings', 'Add trip dates', 'Settle up'])(
       'says "Coming soon" when the pointer rests on "%s"',
       async (name) => {
         const id = await createGroup(me, { name: 'Goa trip' })
@@ -229,8 +254,10 @@ describe('GroupPage', () => {
 
       expect(screen.getByRole('button', { name: 'Back' })).toBeEnabled()
       expect(screen.getByRole('button', { name: named('1 person') })).toBeEnabled()
+      expect(screen.getByRole('button', { name: named('Add expense') })).toBeEnabled()
       await userEvent.hover(screen.getByRole('button', { name: 'Back' }))
       await userEvent.hover(screen.getByRole('button', { name: named('1 person') }))
+      await userEvent.hover(screen.getByRole('button', { name: named('Add expense') }))
       expect(screen.queryByText('Coming soon')).not.toBeInTheDocument()
     })
 
@@ -247,6 +274,36 @@ describe('GroupPage', () => {
   describe('below the band', () => {
     it('says you are all settled up while there are no expenses', async () => {
       const id = await createGroup(me, { name: 'Goa trip', memberEmails: ['priya@gmail.com'] })
+      renderGroup(id)
+
+      expect(await screen.findByText("You're all settled up")).toBeInTheDocument()
+    })
+
+    it('says who owes you and whom you owe, one line per person and currency', async () => {
+      const id = await createGroup(me, { name: 'Goa trip', memberEmails: ['priya@gmail.com', 'sam@gmail.com'] })
+      await testDb.db.update(people).set({ name: 'Priya Shah' }).where(eq(people.email, priya.email))
+      await addExpense(me.email, id, { amountMinor: 900 })
+      await addExpense(priya.email, id, { amountMinor: 3000, currency: 'INR' })
+      renderGroup(id)
+
+      expect(await screen.findByText(/^Priya owes you/)).toHaveTextContent('Priya owes you £3.00')
+      expect(screen.getByText(/^Sam owes you/)).toHaveTextContent('Sam owes you £3.00')
+      expect(screen.getByText(/^You owe Priya/)).toHaveTextContent('You owe Priya ₹10.00')
+      expect(screen.queryByText("You're all settled up")).not.toBeInTheDocument()
+
+      // The amount is bold, green when owed to you and orange-red when you owe.
+      const owedToYou = within(screen.getByText(/^Priya owes you/)).getByText('£3.00')
+      expect(owedToYou.tagName).toBe('STRONG')
+      expect(owedToYou).toHaveStyle({ color: 'rgb(47, 158, 68)' })
+      const youOwe = within(screen.getByText(/^You owe Priya/)).getByText('₹10.00')
+      expect(youOwe.tagName).toBe('STRONG')
+      expect(youOwe).toHaveStyle({ color: 'rgb(232, 89, 12)' })
+    })
+
+    it('says you are all settled up when the expenses cancel out', async () => {
+      const id = await createGroup(me, { name: 'Goa trip', memberEmails: ['priya@gmail.com'] })
+      await addExpense(me.email, id, { amountMinor: 1000 })
+      await addExpense(priya.email, id, { amountMinor: 1000 })
       renderGroup(id)
 
       expect(await screen.findByText("You're all settled up")).toBeInTheDocument()
@@ -269,6 +326,89 @@ describe('GroupPage', () => {
       const empty = screen.getByText('No expenses yet')
       expect(balance.compareDocumentPosition(settleUp) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
       expect(settleUp.compareDocumentPosition(empty) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+  })
+
+  describe('adding an expense', () => {
+    it('opens the add-expense page of this group', async () => {
+      const id = await createGroup(me, { name: 'Goa trip' })
+      const { currentPath } = renderGroup(id)
+
+      await userEvent.click(await screen.findByRole('button', { name: named('Add expense') }))
+
+      expect(currentPath()).toBe(ROUTES.newExpense(id))
+    })
+  })
+
+  describe('the expenses', () => {
+    it('lists them newest day first, each with its date, category, title, payer and what it means for you', async () => {
+      const id = await createGroup(me, { name: 'Goa trip', memberEmails: ['priya@gmail.com'] })
+      await addExpense(me.email, id, { description: 'Taxi', category: 'transport.taxi', date: '2026-09-30', amountMinor: 1001 })
+      await addExpense(me.email, id, { description: 'Dinner', date: '2026-10-08' })
+      renderGroup(id)
+
+      expect(await expenseRows()).toEqual([
+        'Oct | 8 | Dinner | You paid £30.00 | you lent | £15.00',
+        // 10.01 split in two: the payer takes the extra penny, so lends 5.00.
+        'Sep | 30 | Taxi | You paid £10.01 | you lent | £5.00',
+      ])
+      // Each tile is in the color of its category's group.
+      expect(screen.getByRole('img', { name: 'Dining out' })).toHaveStyle({ background: 'rgb(232, 89, 12)' })
+      expect(screen.getByRole('img', { name: 'Taxi' })).toHaveStyle({ background: 'rgb(25, 113, 194)' })
+      expect(screen.queryByText('No expenses yet')).not.toBeInTheDocument()
+    })
+
+    it('shows what you borrowed when someone else paid, naming them by first name', async () => {
+      const id = await createGroup(priya, { name: 'Flat', memberEmails: [me.email] })
+      await addExpense(priya.email, id, { description: 'Groceries', amountMinor: 2001, currency: 'INR' })
+      // Priya's full name, as if she had signed in with it.
+      await testDb.db.update(people).set({ name: 'Priya Shah' }).where(eq(people.email, priya.email))
+      renderGroup(id)
+
+      expect(await expenseRows()).toEqual([
+        'Oct | 8 | Groceries | Priya paid ₹20.01 | you borrowed | ₹10.00',
+      ])
+      const borrowed = screen.getByText('you borrowed').parentElement as HTMLElement
+      expect(borrowed).toHaveStyle({ color: 'rgb(232, 89, 12)' })
+    })
+
+    it('opens an expense\'s details when its row is tapped', async () => {
+      const id = await createGroup(me, { name: 'Goa trip' })
+      const expenseId = await addExpense(me.email, id, { description: 'Taxi' })
+      const { currentPath } = renderGroup(id)
+
+      await userEvent.click(await screen.findByRole('link', { name: /Taxi/ }))
+
+      expect(currentPath()).toBe(ROUTES.expense(id, expenseId))
+    })
+
+    it('shows lent amounts in green', async () => {
+      const id = await createGroup(me, { name: 'Goa trip', memberEmails: ['priya@gmail.com'] })
+      await addExpense(me.email, id)
+      renderGroup(id)
+
+      const lent = (await screen.findByText('you lent')).parentElement as HTMLElement
+      expect(lent).toHaveStyle({ color: 'rgb(47, 158, 68)' })
+    })
+
+    it('says "no balance" for an expense you paid for yourself alone', async () => {
+      const id = await createGroup(me, { name: 'Solo' })
+      await addExpense(me.email, id)
+      renderGroup(id)
+
+      expect(await expenseRows()).toEqual(['Oct | 8 | Dinner | You paid £30.00 | no balance'])
+    })
+
+    it('says "not involved" for an expense you have no part in', async () => {
+      const id = await createGroup(me, { name: 'Goa trip', memberEmails: ['priya@gmail.com'] })
+      const expenseId = await addExpense(me.email, id)
+      // As if Priya had paid and the split left you out.
+      const [priyaRow] = await testDb.db.select().from(people).where(eq(people.email, priya.email))
+      await testDb.db.update(expenseShares).set({ paidMinor: 3000, owedMinor: 3000 }).where(eq(expenseShares.personId, priyaRow.id))
+      await testDb.db.update(expenseShares).set({ deletedAt: new Date() }).where(and(eq(expenseShares.expenseId, expenseId), ne(expenseShares.personId, priyaRow.id)))
+      renderGroup(id)
+
+      expect(await expenseRows()).toEqual(['Oct | 8 | Dinner | Priya paid £30.00 | not involved'])
     })
   })
 

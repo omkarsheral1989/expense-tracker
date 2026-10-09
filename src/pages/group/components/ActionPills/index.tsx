@@ -1,6 +1,6 @@
 import { Button, Flex } from 'antd'
 import { ComingSoon } from '../../../../components/ComingSoon'
-import { PILL_RADIUS } from '../GroupBand/style.ts'
+import { PILL_RADIUS } from '../../../../theme/radius.ts'
 
 /**
  * The row of actions under the balance. It scrolls sideways when it does not

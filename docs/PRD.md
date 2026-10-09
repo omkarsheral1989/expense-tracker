@@ -1,6 +1,6 @@
 # Product Requirements: OwnLedger
 
-_Last updated: 2026-10-07_
+_Last updated: 2026-10-09_
 
 ## 1. Overview
 **OwnLedger** is an installable, offline-capable web app (PWA) for tracking personal expenses and expenses shared in groups (trips, home, couples, others). Everything is stored locally on the user's device. Groups are shared between members through a Google Drive folder. There is no backend.
@@ -31,22 +31,28 @@ _Last updated: 2026-10-07_
 
 ### 4.3 Expenses
 - Personal expenses (private, never synced to Drive) and group expenses.
-- Fields: amount, currency, date, category (fixed default list), tags, notes, receipt photos, payer, split.
-- Any group member can edit or delete any group expense. Latest edit wins, and the edit history is kept.
+- Fields: description, amount, currency, date, category (fixed default list), tags (later), notes, receipt photos, payer, split.
+- Any group member can edit or delete any group expense. Latest edit wins, and the edit history is kept. (Editing and deleting come after adding; see 5.5 for the phases.)
+- Group expenses are added from the group page (5.5). Personal expenses arrive later.
+- Adding an expense counts as activity in its group, so the group moves to the top of the home page list.
 
 ### 4.4 Splitting
 - Equal split, with either the user or another member as payer.
 - Paid for self / paid for another member only.
 - Owed the full amount (user or another member).
-- Split by percentage, by exact amount, or by shares.
+- Split by percentage, by exact amount, by shares, or by adjustment (details in 5.5).
+- Pending members (not yet signed in) can be payers and be part of splits.
+- Rounding: money is whole minor units, so a split that does not divide evenly leaves a few minor units over. The payer absorbs them, even when the payer is not part of the split.
 
 ### 4.5 Balances and settle-up
-- Per group balances: who owes whom, per currency.
+- Per group balances: who owes whom, per currency. Balances are pairwise (each person against each other person), one line per person per currency, for example "Priya owes you ₹14,517.50".
+- On the home page a group row shows the user's net balance per currency.
 - Record settlement payments between members.
 - Multi-currency without conversion: each currency is tracked separately.
 
 ### 4.6 Receipt photos
-- Photos are stored locally on the device (IndexedDB) at original size, with a thumbnail for lists.
+- Up to 10 photos per expense, added on the add-expense page and shown on the expense details page (5.5, 5.6).
+- Photos are stored locally on the device (IndexedDB, one store per account) at original size, with a thumbnail for lists.
 - On Backup or Sync, photos upload to Google Drive. On Sync, missing photos from other members are downloaded.
 - Sync downloads all photos before finishing, and is resumable.
 
@@ -66,7 +72,7 @@ _Last updated: 2026-10-07_
 
 ## 5. Pages
 
-**Browser tab titles:** each signed-in page sets the tab's title: "Your groups · OwnLedger" (home), the group's name followed by " · OwnLedger" (group page) and "Create a group · OwnLedger".
+**Browser tab titles:** each signed-in page sets the tab's title: "Your groups · OwnLedger" (home), the group's name followed by " · OwnLedger" (group page), "Create a group · OwnLedger", "Add expense · OwnLedger" and the expense's description followed by " · OwnLedger" (expense details; "Expense not found · OwnLedger" for a missing one).
 
 ### 5.1 Welcome (logged out)
 Single scrolling page, English only, friendly and colorful look (teal/green accent, Ant Design components, icons, gradients and emoji; no image assets). Follows the system light/dark setting. Sections, in order:
@@ -90,14 +96,14 @@ Copy rules: claims must stay true. "No ads and no tracking" holds only while no 
 Every signed-in page has a header. On the left is the small OwnLedger logo tile and the name "OwnLedger", which link to the home page from anywhere. On the right is the user's avatar; clicking it opens a menu with the user's name and email and a "Sign out" action (which keeps the account's data on the device) and nothing else. The group page has no actions yet (edit, add member, leave and delete come later).
 
 ### 5.2 Home (logged in)
-- A "Your groups" heading with the primary "Create group" button on its right. Below it, one centered column (about 720 px wide, the same on phone and desktop) listing the groups the user belongs to, **most recently active first**. A group's activity is the latest change to it or to anything in it; until expenses exist that is when it was created or last edited, so the order looks like newest first. Each row shows the group-type icon, the name, and underneath it "N members · CUR" (for example "3 members · GBP"); it opens the group's page (`/groups/<id>`).
-- Each row ends with the user's balance in that group: "you are owed X" or "you owe X" (one line per currency), or "Settled up". Until expenses exist every group reads "Settled up".
+- A "Your groups" heading with the primary "Create group" button on its right. Below it, one centered column (about 720 px wide, the same on phone and desktop) listing the groups the user belongs to, **most recently active first**. A group's activity is the latest change to the group itself or to any of its expenses (adding one moves the group to the top). Each row shows the group-type icon, the name, and underneath it "N members · CUR" (for example "3 members · GBP"); it opens the group's page (`/groups/<id>`).
+- Each row ends with the user's balance in that group: "you are owed" over the amount (green) or "you owe" over the amount (orange-red), once per currency, or "Settled up" (grey) when the user's paid and owed amounts there come to zero in every currency.
 - **Loading:** while the groups load, grey placeholder rows in the shape of the list are shown. The list is loaded once when the page opens (coming back to it reloads it), and a failed load shows an error message with a "Try again" button.
 - **Empty state:** with no groups, a friendly message ("No groups yet. Create one to start sharing expenses.") and a primary "Create group" button in the middle of the page.
 - The **Personal** row (this month's spending per currency) is not shown yet; it arrives with personal expenses.
 
 ### 5.3 Create group
-- Route `/groups/new`, reached from a "Create group" button on the home page (for now the placeholder home page has one). Back and the browser's reload warning work as described under Leaving.
+- Route `/groups/new`, reached from the "Create group" button on the home page. Back and the browser's reload warning work as described under Leaving.
 - **Name:** required, 1 to 60 characters.
 - **Type:** trip / home / couple / other, each shown as an Ant Design icon in a colored tile. "Trip" is preselected.
 - **Default currency:** required. A searchable list (by code or name) of all ISO currencies, each shown as code, name and symbol (for example "INR – Indian Rupee (₹)"), with names in the user's language. The currency of the device's region (for example INR in India) is preselected and listed first; the rest follow A to Z. New expenses in the group start with it; an expense can still use any other currency, since each expense carries its own.
@@ -118,19 +124,84 @@ Route `/groups/<id>`, opened from a group on the home page and after creating a 
   - the group's **type icon tile** beside the group's **name**, which is large and white and wraps onto more lines when long (never cut off or running off the screen);
   - a row of translucent pill chips: **Add trip dates** (switched off; it exists for any group type for now), **"N people"** ("1 person" for one), and the group's **default currency** (for example "GBP").
 - **"N people" opens the member list**: a bottom sheet on phones and a side panel on desktop, titled "Members (N)". It lists the user first, then the others A to Z; each member has an avatar with their initial, their name with their email under it (just the email, once, when no name is known), and a tag: "You" for the user (whose own row uses the name saved for them, or else their Google profile name) and "Pending" for everyone else until they have signed in and synced. It closes with its close button or by tapping outside.
-- **Balance line** under the band: "You're all settled up" while there are no expenses. Later it becomes a sentence such as "Priya owes you ₹14,517.50", with the amount in bold green.
+- **Balance line** under the band: one sentence per other person and currency that is not settled, "Priya owes you ₹14,517.50" (amount in bold green) or "You owe Priya ₹500.00" (amount in bold orange-red), people A to Z and then currencies A to Z. "You're all settled up" when nothing is owed either way.
 - **Action pills**, a row that scrolls sideways when it does not fit: for now only **Settle up**, switched off.
-- **Expense list:** empty for now, with the message "No expenses yet" and "Expenses you add will appear here." Later each row shows the date (month over day), a colored category tile, the title with "You paid …" under it, and on the right "you lent" (green) or "you borrowed" (orange-red) with the amount.
-- **Add expense:** a floating green pill button at the bottom right of the content, switched off for now ("Coming soon").
+- **Expense list:** the group's expenses as described in 5.5. With none, the message "No expenses yet" and "Expenses you add will appear here."
+- **Add expense:** a floating green pill button at the bottom right of the content. It opens the add-expense page (5.5).
 - **Wide screens:** the band stretches edge to edge; the content below it sits in one centered column about 720 px wide, as on the other pages. The app's top header (logo and avatar menu) stays above the band.
 - The page loads once when it opens, with grey placeholders while loading and, if loading fails, "Couldn't load this group" with a "Try again" button. The tab title is the group's name followed by " · OwnLedger" ("Group not found · OwnLedger" for a missing group).
 - A group that does not exist, was deleted, or that the user does not belong to shows "Group not found" ("It may have been deleted, or you may not be a member of it.") with a "Back to your groups" button. All three cases look the same.
+
+### 5.5 Add expense
+Route `/groups/<id>/expenses/new`, opened from the group page's "Add expense" button. Built in five phases (listed at the end of this section). The section also covers the expense list and balance line it brings to the group page.
+
+**Layout and behavior**
+- Phone-first single page. A header with Back and a tick (Save). Back asks "Discard this expense?" once anything (including the payer, split or photos) has been entered or changed; reloading or closing the tab shows the browser's own warning (as in create-group).
+- Pickers (category, currency, date, who paid, split) open as dialogs: centered on desktop, a bottom sheet on phones. One shared adaptive component provides both.
+- A fixed chip reads "With you and: All of <group name>".
+- Form order: category and description; currency and amount; the sentence "Paid by [you] and split [equally]"; the date row; the notes box; the receipts row. The receipts row is stacked, with its icon at the start, no labels and no footer, and does not repeat the group name.
+- Saving returns to the group page, shows "Expense added." and the new expense is on top of the list.
+
+**Fields**
+- **Description:** required, 1 to 100 characters.
+- **Amount:** greater than 0, at most 1 billion, with the currency's decimal places. Only "." is accepted as the decimal mark. Thousands separators appear while typing (lakh style for INR, western style for other currencies) through one shared money formatter. Changing the currency rounds the amount to the new currency's decimals.
+- **Category:** about 45 categories in 7 groups (Entertainment, Food and drink, Home, Life, Transportation, Uncategorized, Utilities), each with a stable key, an Ant Design icon and a color of our own (no artwork copied, ADR-030). "General" (in Uncategorized) is the default.
+- **Currency:** a picker with a search box (code or name), a "Recent" section first (up to 3: the group's default, then the currencies of the user's own latest expenses on this device), then all ISO currencies A to Z. The chosen one is ticked.
+- **Date:** any date; today by default; shown as "Today, 8 Oct 2026", "Yesterday, 7 Oct 2026", or with the weekday for other days ("Mon, 5 Oct 2026"); chosen in a calendar dialog, whose header can move to other months and years without choosing a day.
+- **Notes:** a box of 2 to 6 rows, at most 1000 characters, with a counter near the limit.
+- **Receipts:** a camera button opens the device's own file chooser (pictures only; it offers the camera on phones), several at a time. Chosen photos appear beside it as small squares in order, each with an x to take it out. Up to 10: choosing more keeps the first ones and says "An expense can have up to 10 photos."; with 10 the button is switched off ("Up to 10 photos."). Files that are not pictures are ignored. Photos are kept on the device at original size with a thumbnail when the expense is saved, and taken off again if it is not.
+
+**Splitting**
+- Default: you paid, split equally among all members.
+- **3 or more members:** the sentence has two buttons, "Paid by [you]" and "split [equally]".
+- **2 members:** one button showing the current quick choice; it opens the four choices "You paid, split equally", "You are owed the full amount", "Priya paid, split equally" and "Priya is owed the full amount", plus "More options" (the split dialog). Once the split is not one of the four, the form shows the two-button sentence instead. Any non-equal split reads "unequally"; an equal split between only some people still reads "equally".
+- People are named by first name; without a name, by the part of the email before the "@", with a capital first letter ("Sam" for sam@gmail.com).
+- "Multiple people" as payer is shown switched off.
+- A group with one member can still get expenses; the split buttons are switched off, with the tip "You are the only member of this group."
+- **Who paid** (the "[you]" button): a dialog "Who paid?" listing the members ("You" first) and "Multiple people" switched off.
+- **Split dialog** ("Split options"): a "Paid by" dropdown on top, then tabs Equally, Amounts, Percent, Shares, Adjust (each with a heading, a one-line explanation and an icon), one line per member with their avatar and name, and what their part comes to under the name once the split works:
+  - **Equally:** tick who shares; the payer may be unticked; at least one person must be ticked.
+  - **Exact amounts:** must total the expense amount.
+  - **Percentages:** whole numbers, total 100.
+  - **Shares:** whole numbers from 0 to 1000, at least one share in total.
+  - **Adjustment:** each "+" amount is 0 or more, the adjustments add up to at most the amount, and the remainder is split equally.
+- Footers show "X of TOTAL" and "N left" (green at 0) or "N over" (red). No illustrations: a heading, a one-line explanation and an Ant Design icon.
+- If the split is not balanced, pressing the dialog's tick shows why ("The split no longer adds up.", "Choose at least one person.", "Give at least one share.", or "Enter the amount first." for amounts and adjustments before an amount is typed) and the dialog stays open. Editing clears the message.
+- If the amount changes after exact amounts were entered, the form shows "The split no longer adds up" and Save is blocked until it is fixed.
+- The method and the user's inputs are stored, so the split can be shown and edited later.
+
+**Expense list on the group page (replaces the empty list once expenses exist)**
+- Flat list, newest date first (the most recently added first within a day). Each row: date (month over day), a colored category tile, the title with "You paid …" (or "Priya paid …") under it, and on the right "you lent" (green), "you borrowed" (orange-red), "no balance" (the user paid exactly their own share, for example in a group of one) or "not involved", with the amount.
+- Tapping a row opens the expense's details page (5.6).
+
+**Balance line (group page)**
+- One line per person per currency: "Priya owes you …" with the amount in bold green, or "You owe Priya …" with the amount in bold orange-red; "You're all settled up" when there is nothing owed. Debts between two other members are not shown.
+
+**Phases** (each with tests and break-checks, a browser check, and a UX review by the user). All five are built (October 2026, PR #1); the user's UX review of phases 2 to 5 is still to come.
+1. A simple expense (equal split, you paid) saved and listed.
+2. Balances: the balance line and the home page rows.
+3. Who paid, and the other split methods.
+4. The expense details page (5.6).
+5. Receipt photos, kept on this device (upload and download come with sync).
+
+### 5.6 Expense details
+Route `/groups/<id>/expenses/<expenseId>`, opened by tapping an expense on the group page. A first version: it only shows the expense; editing, deleting and the edit history come later.
+
+- Back (to the group), and Edit and Delete buttons switched off ("Coming soon").
+- The category tile, the description, the amount in large type, the category's name and the day ("Dining out · Mon, 5 Oct 2026"), and "Added by you" (or the person's name).
+- How it was split ("Split equally", "Split by exact amounts", "Split by percentages", "Split by shares", "Split by adjustment") and one line per person who paid or owes something, the user first: "You paid £9.00 and owe £3.00", "Priya Shah owes £6.00". People with no part are left out.
+- The notes, keeping their line breaks, under "Notes" (left out when there are none).
+- The receipt photos under "Receipts" as thumbnails in order; tapping one shows it at full size, with the others a swipe away. A photo that is not on this device (for example added by another member and not yet synced) shows a grey square "Not on this device". Left out when there are none.
+- An expense that does not exist, was deleted, is in another group, or is in a group the user is not in shows "Expense not found" ("It may have been deleted, or you may not be a member of its group.") with a "Back to the group" button. Loading shows grey placeholders; a failed load shows "Couldn't load this expense" with "Try again".
 
 ## 6. Open questions
 - Google Cloud setup: the OAuth client ID is not created yet (Drive API, consent screen in Testing mode, authorized origins, test users).
 - Member removal: what happens to a removed member's access and local data.
 - Group page: what the search and settings buttons open, how trip dates work (which group types, start and end), and what else the pill row holds (balances, totals, charts).
-- Add-expense form details.
+- Tags on expenses.
+- Editing and deleting expenses, and how the edit history is shown.
+- Several payers for one expense ("Multiple people" is switched off for now).
+- Settle up: recording a payment between two members.
 - Budget details (personal vs group, alerts).
 - Charts library.
 - Receipt cleanup rules for deleted expenses, and an optional compression setting.

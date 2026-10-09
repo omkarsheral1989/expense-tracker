@@ -1,7 +1,7 @@
 import { Button } from 'antd'
 import type { ReactNode } from 'react'
 import { ComingSoon } from '../../../../../components/ComingSoon'
-import { PILL_RADIUS } from '../style.ts'
+import { PILL_RADIUS } from '../../../../../theme/radius.ts'
 
 type Props = {
   icon?: ReactNode
