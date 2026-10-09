@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Page not found</title>
+    <script>
+      // GitHub Pages shows this page for any address without a file behind it.
+      // Inside the OwnLedger app (a single-page app) that is a normal page, so
+      // send it to the app's start page with the route after "?/". The app puts
+      // the original address back (src/pwa/redirect.ts). "&" is written as
+      // "~and~" so the original query string can follow.
+      ;(function (window) {
+        var location = window.location
+        var base = '/ownledger/'
+        if (location.pathname.indexOf(base) !== 0) return
+        var route = location.pathname.slice(base.length).replace(/&/g, '~and~')
+        var query = location.search ? '&' + location.search.slice(1).replace(/&/g, '~and~') : ''
+        location.replace(base + '?/' + route + query + location.hash)
+      })(window)
+    </script>
+    <style>
+      body { font-family: system-ui, sans-serif; text-align: center; margin: 4rem 1rem; }
+    </style>
+  </head>
+  <body>
+    <h1>Page not found</h1>
+    <p><a href="/">Go to the home page</a></p>
+  </body>
+</html>

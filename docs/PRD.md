@@ -1,6 +1,6 @@
 # Product Requirements: OwnLedger
 
-_Last updated: 2026-10-09_
+_Last updated: 2026-10-10_
 
 ## 1. Overview
 **OwnLedger** is an installable, offline-capable web app (PWA) for tracking personal expenses and expenses shared in groups (trips, home, couples, others). Everything is stored locally on the user's device. Groups are shared between members through a Google Drive folder. There is no backend.
@@ -11,6 +11,7 @@ _Last updated: 2026-10-09_
 
 ## 3. Platforms
 - Android and iOS (installable PWA), plus desktop browsers.
+- Hosted on GitHub Pages at https://omkarsheral1989.github.io/ownledger/ (ADR-032). Addresses inside the app, such as a group's page, also work when opened or reloaded directly.
 - Works offline after the first load. Sign-in, backup and sync need a network.
 
 ## 4. Features
@@ -83,7 +84,7 @@ Single scrolling page, English only, friendly and colorful look (teal/green acce
    - **Android/desktop:** an "Install app" button when the browser offers a native install prompt (`beforeinstallprompt`), otherwise a line telling the user which browser menu entry to use. Sign-in stays visible in the hero, so no skip link is needed.
    - **Installed (standalone):** this section is hidden and the sign-in button is shown.
    - On iPhone/iPad while gated, the install card replaces the sign-in button (there is no separate "Install to get started" button). "Continue in browser anyway" reveals sign-in until the page is reloaded (the choice is not remembered); the card then stays with its skip link removed and its normal heading.
-   - A dev flag (`VITE_REQUIRE_INSTALL=false`) turns the iOS gate off locally. In development, `?platform=ios|android|desktop` and `?installed=1` simulate each case.
+   - A dev flag (`VITE_REQUIRE_INSTALL=false`) turns the iOS gate off locally. In development, `?platform=ios|android|desktop` and `?installed=1` simulate each case (`/ownledger/?platform=ios`).
 3. **Feature highlights:** cards for groups, flexible splitting, settle-up, any currency, receipts, budgets and reports, offline use.
 4. **Privacy and ownership:** offline first, no OwnLedger servers, privacy first (no ads, no tracking), you own your data, shared on your terms through your own Drive, and open source with a link to https://github.com/omkarsheral1989/expense-tracker (GPL-3.0).
 5. **How it works:** sign in, create a group, add expenses, sync.

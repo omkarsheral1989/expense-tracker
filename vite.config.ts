@@ -3,8 +3,13 @@ import babel from '@rolldown/plugin-babel'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+// The app is served from a sub-path of omkarsheral1989.github.io (ADR-032), in
+// development, preview and the build alike.
+const BASE = '/ownledger/'
+
 // https://vite.dev/config/
 export default defineConfig({
+  base: BASE,
   // PGlite loads its WebAssembly and data files relative to its own module, so
   // Vite must not pre-bundle it.
   optimizeDeps: { exclude: ['@electric-sql/pglite'] },
@@ -23,8 +28,8 @@ export default defineConfig({
         theme_color: '#0d9488',
         background_color: '#ffffff',
         display: 'standalone',
-        start_url: '/',
-        scope: '/',
+        start_url: BASE,
+        scope: BASE,
       },
       workbox: {
         // PGlite's WebAssembly (about 10 MB) and data (about 6 MB) files must be

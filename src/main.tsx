@@ -6,9 +6,13 @@ import './index.css'
 import App from './App.tsx'
 import { GOOGLE_CLIENT_ID } from './config.ts'
 import { ThemeProvider } from './components/ThemeProvider'
+import { restoreRedirectedUrl } from './pwa/redirect.ts'
+
+// GitHub Pages sends unknown addresses to 404.html, which bounces them here.
+restoreRedirectedUrl(window.location, window.history)
 
 const app = (
-  <BrowserRouter>
+  <BrowserRouter basename={import.meta.env.BASE_URL}>
     <App />
   </BrowserRouter>
 )

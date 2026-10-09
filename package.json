@@ -9,6 +9,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "deploy:pages": "bash scripts/deploy-pages.sh",
     "test": "vitest run"
   },
   "dependencies": {

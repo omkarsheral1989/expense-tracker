@@ -14,11 +14,12 @@ Details: @docs/PRD.md (features, pages, open questions) and @docs/ADR.md (archit
 - Package manager: `bun`
 
 ## Commands
-- `bun run dev` start the dev server
+- `bun run dev` start the dev server (the app is at `http://localhost:5173/ownledger/`, ADR-032)
 - `bun run build` type-check and build
 - `bun run lint` lint
 - `bun run test` run tests (Vitest)
-- `bun run preview` serve the production build (the service worker only runs there)
+- `bun run preview` serve the production build at `http://localhost:4173/ownledger/` (the service worker only runs there)
+- `bun run deploy:pages` build and copy into the `omkarsheral1989.github.io` repository (never commits or pushes; see ADR-032)
 
 ## Rules
 - **Folder structure:** each page is `src/pages/<name>/index.tsx` (the entry point, a named export such as `WelcomePage`). Its components live in `src/pages/<name>/components/<Component>/index.tsx`, one folder per component, nested by use: a component used only by one parent sits inside that parent's folder (`components/Hero/SignInButton/index.tsx`). Anything shared by several components lives at their lowest common parent (`components/Section`). A component's own files sit beside its `index.tsx`: copy and data in `content.ts(x)` (`Faq/content.tsx`), styling constants such as colors in `style.ts` (`InstallCard/style.ts`). Constants used by several components sit beside the page entry (`constants.ts`). Import a component folder without a file name (`'../Section'`).
@@ -29,7 +30,8 @@ Details: @docs/PRD.md (features, pages, open questions) and @docs/ADR.md (archit
   - Services: `src/services/<xService>/index.ts`, exporting one object. They wrap an outside API (`googleProfileService`), hold rules and business logic (`currencyService`), or read and write the database (`groupService`). A service that touches the database takes `db` (from `getDb()`) as its first argument, validates its input with a zod schema in `schemas.ts`, and returns problems with the input as field errors rather than throwing; only unexpected failures throw.
   - Database code: `src/db` (schema, migrations, client, session and tab lock, with `constants.ts` and `types.ts` beside them; tests in `src/db/__tests__`). The hook that opens it is `src/hooks/useDatabaseSession`.
   - Other shared code: `src/pwa` (platform detection), `src/theme` (shared style constants: `radius.ts`, `groupTypeColors.ts`, `categoryColors.ts`, `balanceColors.ts`).
-  - App-level files stay in `src`: `main.tsx`, `App.tsx`, `config.ts`, `env.d.ts`, `index.css`, and `routes.ts` (every address of the app in the `ROUTES` object; never spell a path out in a page).
+  - App-level files stay in `src`: `main.tsx`, `App.tsx`, `config.ts`, `env.d.ts`, `index.css`, and `routes.ts` (every address of the app in the `ROUTES` object; never spell a path out in a page, and never put the `/ownledger/` prefix in it: the router's `basename` adds it).
+  - Hosting files sit outside `src`: `deploy/404.html` (the single-page-app fallback for GitHub Pages) and `scripts/deploy-pages.sh`.
   - Test helpers live in `src/testing`: the shared setup (`setup.ts`, loaded by Vitest before every test), `setUpTestDatabase()` for an in-memory database, `renderPage()` to render a page inside the theme and a router, and `expenses.ts` (`addTestExpense`, `expenseInput`, `personIdOf`) to create valid expenses. Tests that touch the photo store import `fake-indexeddb/auto`. See ADR-029.
   - Every component and hook is its own folder, even the small ones (`components/GoogleLogo`, `components/ThemeProvider`, `components/PwaUpdatePrompt`, `hooks/useInstall`).
   An item's own files sit beside its `index.ts`: types in `types.ts`, constants in `constants.ts`, zod schemas in `schemas.ts`, small pure helper functions in `utils.ts` (tested in `__tests__/utils.test.ts`). Tests go in a `__tests__` folder beside the code they test (`useSyncSessionAcrossTabs/__tests__/index.test.ts`). Code used by only one page stays in that page's folder. Do not create new top-level folders such as `src/auth`.
@@ -66,4 +68,4 @@ Details: @docs/PRD.md (features, pages, open questions) and @docs/ADR.md (archit
 - When a decision changes, update `docs/ADR.md` (and `docs/PRD.md` if behaviour changes) in the same change.
 - Only commit when asked. Before every commit read `git status` and stage files by name; never use a blind `git add -A`. Files such as `google-settings.json` (a Google OAuth download with a client secret) and `.env*` must never be staged.
 - Run shell commands from the project root (give the full path with `cd`), because the working directory persists between commands.
-- After a UI change, check it in the browser pane (dev server, `?platform=ios|android|desktop` and `?installed=1` simulate the install cases), at phone and desktop widths, and run `bunx tsc -b`, `bun run lint` and `bun run test` before saying it is done. Without the browser pane (for example in a cloud session), use headless Chromium through Playwright; signed-in pages can be reached without Google by writing a profile to `localStorage` under `ownledger-session` (`{"state":{"profile":{"id","email","name"}},"version":0}`) before opening them.
+- After a UI change, check it in the browser pane (dev server at `/ownledger/`; `?platform=ios|android|desktop` and `?installed=1` simulate the install cases), at phone and desktop widths, and run `bunx tsc -b`, `bun run lint` and `bun run test` before saying it is done. Without the browser pane (for example in a cloud session), use headless Chromium through Playwright; signed-in pages can be reached without Google by writing a profile to `localStorage` under `ownledger-session` (`{"state":{"profile":{"id","email","name"}},"version":0}`) before opening them.
