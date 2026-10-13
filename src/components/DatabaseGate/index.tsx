@@ -8,6 +8,12 @@ const { Text } = Typography
 
 type Props = {
   children: ReactNode
+  /**
+   * Shown above the loading, locked and error screens, and not once the data is
+   * ready (the page decides then whether it has a header). It keeps Sign out
+   * within reach while the data cannot be used. Comes from `SignedInLayout`.
+   */
+  header?: ReactNode
 }
 
 /**
@@ -15,17 +21,20 @@ type Props = {
  * Until then it shows a loading screen, or explains what went wrong: the app is
  * open in another tab, or the database could not be opened.
  */
-export function DatabaseGate({ children }: Props) {
+export function DatabaseGate({ children, header }: Props) {
   const profile = useAuthStore((state) => state.profile)
 
   // Signed-out visitors are sent away by `RequireAuth` before this matters.
   return profile ? (
-    <OpenDatabase profile={profile}>{children}</OpenDatabase>
+    <OpenDatabase profile={profile} header={header}>
+      {children}
+    </OpenDatabase>
   ) : null
 }
 
 function OpenDatabase({
   profile,
+  header,
   children,
 }: Props & { profile: Profile }) {
   const { state, retry } = useDatabaseSession(profile.id)
@@ -80,14 +89,23 @@ function OpenDatabase({
     )
   }
 
+  function withHeader(screen: ReactNode) {
+    return (
+      <>
+        {header}
+        {screen}
+      </>
+    )
+  }
+
   switch (state.status) {
     case 'ready':
       return children
     case 'locked':
-      return renderLocked()
+      return withHeader(renderLocked())
     case 'error':
-      return renderError(state.error)
+      return withHeader(renderError(state.error))
     case 'loading':
-      return renderLoading()
+      return withHeader(renderLoading())
   }
 }

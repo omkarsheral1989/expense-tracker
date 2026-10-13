@@ -15,9 +15,10 @@ import { ExpenseList } from './components/ExpenseList'
 import { GroupBand } from './components/GroupBand'
 import { GroupNotFound } from '../../components/GroupNotFound'
 import { MembersSheet } from './components/MembersSheet'
+import { belowStatusBar } from '../../theme/safeArea.ts'
 
 /** A column about 720 px wide, centered, which holds everything below the band. */
-const COLUMN_STYLE = { maxWidth: 720, margin: '0 auto', padding: '16px 16px 112px' } as const
+const COLUMN_STYLE = { maxWidth: 720, margin: '0 auto', padding: `${belowStatusBar(16)} 16px 112px` } as const
 
 /** One group: a colored band with its name and chips, the balance, actions and expenses. */
 export function GroupPage() {

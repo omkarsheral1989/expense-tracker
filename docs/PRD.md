@@ -94,7 +94,7 @@ Single scrolling page, English only, friendly and colorful look (teal/green acce
 Copy rules: claims must stay true. "No ads and no tracking" holds only while no analytics or tracking is added to the app.
 
 ### 5.1a Signed-in header
-Every signed-in page has a header. On the left is the small OwnLedger logo tile and the name "OwnLedger", which link to the home page from anywhere. On the right is the user's avatar; clicking it opens a menu with the user's name and email and a "Sign out" action (which keeps the account's data on the device) and nothing else. The group page has no actions yet (edit, add member, leave and delete come later).
+Only the home page has the header; the other signed-in pages (create group, a group, add expense, an expense's details) start with their own content and lead back with their Back buttons (the group page's goes to the home page, the others to the page they came from: the home page or the group). The header is also shown on every page while the user's data is loading, cannot be opened or is open in another tab, so Sign out stays within reach. On those pages without a header, the content starts below the device's status bar or notch (the safe area at the top of the screen). On the home page, on the left is the small OwnLedger logo tile and the name "OwnLedger", which link to the home page from anywhere. On the right is the user's avatar; clicking it opens a menu with the user's name and email and a "Sign out" action (which keeps the account's data on the device) and nothing else. The group page has no actions yet (edit, add member, leave and delete come later).
 
 ### 5.2 Home (logged in)
 - A "Your groups" heading with the primary "Create group" button on its right. Below it, one centered column (about 720 px wide, the same on phone and desktop) listing the groups the user belongs to, **most recently active first**. A group's activity is the latest change to the group itself or to any of its expenses (adding one moves the group to the top). Each row shows the group-type icon, the name, and underneath it "N members · CUR" (for example "3 members · GBP"); it opens the group's page (`/groups/<id>`).
@@ -104,6 +104,7 @@ Every signed-in page has a header. On the left is the small OwnLedger logo tile 
 - The **Personal** row (this month's spending per currency) is not shown yet; it arrives with personal expenses.
 
 ### 5.3 Create group
+Like the add-expense and expense-details pages, it has no card around its content: the form sits directly on the page background (the thin dividers inside stay).
 - Route `/groups/new`, reached from the "Create group" button on the home page. Back and the browser's reload warning work as described under Leaving.
 - **Name:** required, 1 to 60 characters.
 - **Type:** trip / home / couple / other, each shown as an Ant Design icon in a colored tile. "Trip" is preselected.
@@ -129,7 +130,7 @@ Route `/groups/<id>`, opened from a group on the home page and after creating a 
 - **Action pills**, a row that scrolls sideways when it does not fit: for now only **Settle up**, switched off.
 - **Expense list:** the group's expenses as described in 5.5. With none, the message "No expenses yet" and "Expenses you add will appear here."
 - **Add expense:** a floating green pill button at the bottom right of the content. It opens the add-expense page (5.5).
-- **Wide screens:** the band stretches edge to edge; the content below it sits in one centered column about 720 px wide, as on the other pages. The app's top header (logo and avatar menu) stays above the band.
+- **Wide screens:** the band stretches edge to edge; the content below it sits in one centered column about 720 px wide, as on the other pages. The band starts at the very top of the screen (no app header above it), below the device's status bar or notch.
 - The page loads once when it opens, with grey placeholders while loading and, if loading fails, "Couldn't load this group" with a "Try again" button. The tab title is the group's name followed by " · OwnLedger" ("Group not found · OwnLedger" for a missing group).
 - A group that does not exist, was deleted, or that the user does not belong to shows "Group not found" ("It may have been deleted, or you may not be a member of it.") with a "Back to your groups" button. All three cases look the same.
 

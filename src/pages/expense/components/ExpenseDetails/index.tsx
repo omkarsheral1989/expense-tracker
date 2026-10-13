@@ -1,5 +1,5 @@
 import { ArrowLeftOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons'
-import { Avatar, Button, Card, Divider, Flex, theme, Typography } from 'antd'
+import { Avatar, Button, Divider, Flex, theme, Typography } from 'antd'
 import { useNavigate } from 'react-router'
 import { CategoryIcon } from '../../../../components/CategoryIcon'
 import { ComingSoon } from '../../../../components/ComingSoon'
@@ -25,7 +25,7 @@ type Props = {
  * it was split and each person's part, its notes and its receipt photos. Editing and deleting are
  * shown switched off ("Coming soon").
  */
-export function ExpenseDetailsCard({ expense, accountId }: Props) {
+export function ExpenseDetails({ expense, accountId }: Props) {
   const navigate = useNavigate()
   const { token } = theme.useToken()
   const category = expenseService.categoryOf(expense.category)
@@ -115,7 +115,7 @@ export function ExpenseDetailsCard({ expense, accountId }: Props) {
   }
 
   return (
-    <Card>
+    <>
       {renderHeader()}
       {renderSummary()}
       <Divider style={{ margin: '16px 0' }} />
@@ -125,6 +125,6 @@ export function ExpenseDetailsCard({ expense, accountId }: Props) {
       </Flex>
       {renderNotes()}
       {renderReceipts()}
-    </Card>
+    </>
   )
 }

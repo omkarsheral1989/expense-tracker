@@ -68,7 +68,7 @@ export function AmountInput({
       placeholder={moneyService.placeholder(currency)}
       value={moneyService.formatInput(value, currency)}
       onChange={handleChange}
-      style={large ? { fontSize: 32, fontWeight: 600 } : undefined}
+      style={large ? { fontSize: 32, fontWeight: 600, background: 'transparent' } : undefined}
       styles={large ? undefined : { input: { textAlign: 'end' } }}
     />
   )

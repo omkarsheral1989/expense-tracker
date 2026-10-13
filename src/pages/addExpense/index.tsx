@@ -7,10 +7,11 @@ import { expenseService } from '../../services/expenseService'
 import { groupService } from '../../services/groupService'
 import type { GroupDetails } from '../../services/groupService/types.ts'
 import { useAuthStore } from '../../stores/useAuthStore'
+import { belowStatusBar } from '../../theme/safeArea.ts'
 import { AddExpenseForm } from './components/AddExpenseForm'
 
 /** A column about 560 px wide, centered, like the create-group page. */
-const COLUMN_STYLE = { maxWidth: 560, margin: '0 auto', padding: '24px 16px' } as const
+const COLUMN_STYLE = { maxWidth: 560, margin: '0 auto', padding: `${belowStatusBar(24)} 16px 24px` } as const
 
 /** Where a signed-in user adds an expense to one of their groups. */
 export function AddExpensePage() {

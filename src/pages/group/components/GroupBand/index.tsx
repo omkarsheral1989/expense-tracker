@@ -11,6 +11,7 @@ import { GroupTypeIcon } from '../../../../components/GroupTypeIcon'
 import { ROUTES } from '../../../../routes.ts'
 import type { GroupDetails } from '../../../../services/groupService/types.ts'
 import { GROUP_TYPE_COLORS } from '../../../../theme/groupTypeColors.ts'
+import { belowStatusBar } from '../../../../theme/safeArea.ts'
 import { BandChip } from './BandChip'
 import { BandIconButton } from './BandIconButton'
 import { bandBackground } from './style.ts'
@@ -85,7 +86,7 @@ export function GroupBand({ group, onOpenMembers }: Props) {
   return (
     <div
       style={{
-        padding: '16px 16px 20px',
+        padding: `${belowStatusBar(16)} 16px 20px`,
         background: bandBackground(GROUP_TYPE_COLORS[group.type]),
       }}
     >

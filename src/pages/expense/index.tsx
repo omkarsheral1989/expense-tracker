@@ -4,11 +4,12 @@ import { getDb } from '../../db/client.ts'
 import { useAsyncData } from '../../hooks/useAsyncData'
 import { expenseService } from '../../services/expenseService'
 import { useAuthStore } from '../../stores/useAuthStore'
-import { ExpenseDetailsCard } from './components/ExpenseDetailsCard'
+import { belowStatusBar } from '../../theme/safeArea.ts'
+import { ExpenseDetails } from './components/ExpenseDetails'
 import { ExpenseNotFound } from './components/ExpenseNotFound'
 
 /** A column about 560 px wide, centered, like the add-expense page. */
-const COLUMN_STYLE = { maxWidth: 560, margin: '0 auto', padding: '24px 16px' } as const
+const COLUMN_STYLE = { maxWidth: 560, margin: '0 auto', padding: `${belowStatusBar(24)} 16px 24px` } as const
 
 /**
  * The details of one expense of a group. For now it only shows them; editing,
@@ -51,7 +52,7 @@ export function ExpensePage() {
         )
       case 'ready':
         return state.data ? (
-          <ExpenseDetailsCard expense={state.data} accountId={accountId} />
+          <ExpenseDetails expense={state.data} accountId={accountId} />
         ) : (
           <ExpenseNotFound groupId={id} />
         )

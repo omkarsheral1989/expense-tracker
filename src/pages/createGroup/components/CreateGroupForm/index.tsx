@@ -1,5 +1,5 @@
 import { ArrowLeftOutlined } from '@ant-design/icons'
-import { App, Button, Card, Flex, Form, Input, Typography } from 'antd'
+import { App, Button, Flex, Form, Input, Typography } from 'antd'
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { getDb } from '../../../../db/client.ts'
@@ -150,7 +150,7 @@ export function CreateGroupForm({ creator }: Props) {
   }
 
   return (
-    <Card>
+    <>
       {renderHeader()}
       <Form
         form={form}
@@ -163,6 +163,6 @@ export function CreateGroupForm({ creator }: Props) {
         {renderFields()}
         {renderActions()}
       </Form>
-    </Card>
+    </>
   )
 }

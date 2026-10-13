@@ -1,5 +1,5 @@
 import { ArrowLeftOutlined, CheckOutlined } from '@ant-design/icons'
-import { App, Button, Card, Divider, Flex, Form, Input, Typography } from 'antd'
+import { App, Button, Divider, Flex, Form, Input, Typography } from 'antd'
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { EXPENSE_NOTES_MAX_LENGTH } from '../../../../db/constants.ts'
@@ -170,6 +170,8 @@ export function AddExpenseForm({ group, accountId, userEmail, recentCurrencies }
             <Input
               variant="underlined"
               size="large"
+              // No fill, so it sits on the page like the amount: only its underline shows.
+              style={{ background: 'transparent' }}
               aria-label="Description"
               placeholder="Enter a description"
               autoComplete="off"
@@ -215,7 +217,7 @@ export function AddExpenseForm({ group, accountId, userEmail, recentCurrencies }
   }
 
   return (
-    <Card>
+    <>
       <title>Add expense · OwnLedger</title>
       <Form
         form={form}
@@ -239,6 +241,6 @@ export function AddExpenseForm({ group, accountId, userEmail, recentCurrencies }
         <Divider style={{ margin: '16px 0' }} />
         {renderDetails()}
       </Form>
-    </Card>
+    </>
   )
 }
