@@ -33,5 +33,6 @@ function formatDay(day: string, today: string): string {
 /** Days ('YYYY-MM-DD', without a time) as the app writes and reads them. */
 export const dateService = {
   toDay,
+  fromDay,
   formatDay,
 }

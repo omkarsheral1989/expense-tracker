@@ -231,7 +231,7 @@ describe('AddExpensePage', () => {
       await user.click(screen.getByRole('button', { name: /^Category: / }))
       await user.click(within(await screen.findByRole('dialog', { name: 'Choose a category' })).getByRole('button', { name: 'Dining out' }))
       await user.click(screen.getByRole('button', { name: /^Date: / }))
-      await user.click((await screen.findByRole('dialog', { name: 'Choose a date' })).querySelector('td[title="2026-10-05"]') as HTMLElement)
+      await user.click((await screen.findByRole('dialog', { name: 'Choose a date' })).querySelector('td[data-day="2026-10-05"] button') as HTMLElement)
       await user.type(notesInput(), 'Paid by card')
 
       await user.click(saveButton())

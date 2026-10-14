@@ -1,12 +1,20 @@
 import { describe, expect, it } from 'vitest'
 import { dateService } from '../index.ts'
 
-const { formatDay, toDay } = dateService
+const { formatDay, fromDay, toDay } = dateService
 
 describe('toDay', () => {
   it('writes a local date as YYYY-MM-DD', () => {
     expect(toDay(new Date(2026, 9, 8, 23, 59))).toBe('2026-10-08')
     expect(toDay(new Date(2026, 0, 5, 0, 0))).toBe('2026-01-05')
+  })
+})
+
+describe('fromDay', () => {
+  it('reads a day as local midnight, so it round-trips with toDay', () => {
+    const date = fromDay('2026-10-08')
+    expect([date.getFullYear(), date.getMonth(), date.getDate(), date.getHours()]).toEqual([2026, 9, 8, 0])
+    expect(toDay(fromDay('2026-01-05'))).toBe('2026-01-05')
   })
 })
 

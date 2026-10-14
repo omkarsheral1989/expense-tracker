@@ -1,9 +1,9 @@
 import { CalendarOutlined } from '@ant-design/icons'
-import { Button, Calendar } from 'antd'
-import dayjs from 'dayjs'
+import { Button } from 'antd'
 import { useState } from 'react'
 import { AdaptiveDialog } from '../../../../../components/AdaptiveDialog'
 import { dateService } from '../../../../../services/dateService'
+import { MonthCalendar } from './MonthCalendar'
 
 type Props = {
   /** Given by the form item, so that its messages are tied to the button. */
@@ -14,8 +14,10 @@ type Props = {
 }
 
 /**
- * The day of the expense, written out ("Today, 8 Oct 2026"); tapping it opens
- * a calendar. Any day can be chosen. Works as an Ant Design form field.
+ * The day of the expense, written out ("Today, 8 Oct 2026") in a box like the
+ * other fields; tapping it opens a calendar that moves between months by
+ * swiping, scrolling or arrows. Any day can be chosen. Works as an Ant Design
+ * form field.
  */
 export function DateField({ id, value = dateService.toDay(new Date()), onChange }: Props) {
   const [open, setOpen] = useState(false)
@@ -25,24 +27,22 @@ export function DateField({ id, value = dateService.toDay(new Date()), onChange 
     <>
       <Button
         id={id}
-        type="text"
+        block
         icon={<CalendarOutlined />}
         aria-label={`Date: ${shown}`}
         onClick={() => setOpen(true)}
-        style={{ paddingInline: 8 }}
+        // Looks like the text boxes around it: full width, the text at the start.
+        style={{ justifyContent: 'flex-start' }}
       >
         {shown}
       </Button>
       <AdaptiveDialog open={open} onClose={() => setOpen(false)} title="Choose a date">
-        {/* Starts at the chosen day but is not held there, so its header can
-            move it to other months. The dialog is rebuilt on every opening. */}
-        <Calendar
-          fullscreen={false}
-          defaultValue={dayjs(value)}
-          onSelect={(date, { source }) => {
-            // Changing the month or year in the header only moves the calendar.
-            if (source !== 'date') return
-            onChange?.(date.format('YYYY-MM-DD'))
+        {/* Starts at the chosen day but is not held there, so it can move to
+            other months. The dialog is rebuilt on every opening. */}
+        <MonthCalendar
+          selected={dateService.fromDay(value)}
+          onSelect={(day) => {
+            onChange?.(dateService.toDay(day))
             setOpen(false)
           }}
         />

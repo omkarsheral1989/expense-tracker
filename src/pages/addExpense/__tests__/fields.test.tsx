@@ -317,14 +317,14 @@ describe('AddExpensePage', () => {
 
       await user.click(await screen.findByRole('button', { name: 'Date: Today, 8 Oct 2026' }))
       const dialog = await screen.findByRole('dialog', { name: 'Choose a date' })
-      await user.click(dialog.querySelector('td[title="2026-10-07"]') as HTMLElement)
+      await user.click(dialog.querySelector('td[data-day="2026-10-07"] button') as HTMLElement)
 
       await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Choose a date' })).not.toBeInTheDocument())
       expect(screen.getByRole('button', { name: 'Date: Yesterday, 7 Oct 2026' })).toBeInTheDocument()
 
       await user.click(screen.getByRole('button', { name: /^Date: / }))
       const again = await screen.findByRole('dialog', { name: 'Choose a date' })
-      await user.click(again.querySelector('td[title="2026-10-20"]') as HTMLElement)
+      await user.click(again.querySelector('td[data-day="2026-10-20"] button') as HTMLElement)
       expect(await screen.findByRole('button', { name: 'Date: Tue, 20 Oct 2026' })).toBeInTheDocument()
     })
 
@@ -344,7 +344,7 @@ describe('AddExpensePage', () => {
       )
 
       // 1 Feb is only on screen once the calendar shows February.
-      expect(dialog.querySelector('td[title="2026-02-01"]')).not.toBeNull()
+      expect(dialog.querySelector('td[data-day="2026-02-01"]')).not.toBeNull()
       expect(screen.getByRole('dialog', { name: 'Choose a date' })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Date: Today, 8 Oct 2026' })).toBeInTheDocument()
     })

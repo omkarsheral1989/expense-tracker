@@ -214,7 +214,7 @@ export function AddExpenseForm({ group, accountId, userEmail, recentCurrencies, 
   function renderDetails() {
     return (
       <>
-        <Form.Item name="date" style={{ marginBottom: 8 }}>
+        <Form.Item name="date" style={{ marginBottom: 16 }}>
           <DateField />
         </Form.Item>
         <Form.Item name="notes" style={{ marginBottom: 16 }}>

@@ -1,0 +1,62 @@
+/* react-day-picker, dressed in the app's theme (Ant Design's CSS variables). */
+.calendar {
+  overflow: hidden; /* a month sliding in or out stays inside the sheet */
+}
+
+.calendar :global(.rdp-root) {
+  --rdp-accent-color: var(--ant-color-primary);
+  --rdp-day-width: auto;
+  --rdp-day-height: 44px;
+  --rdp-day_button-width: 40px;
+  --rdp-day_button-height: 40px;
+  --rdp-day_button-border-radius: var(--ant-border-radius);
+  --rdp-day_button-border: 0;
+  --rdp-outside-opacity: 0.35;
+  --rdp-weekday-opacity: 1;
+  color: var(--ant-color-text);
+  font-family: inherit;
+  font-size: var(--ant-font-size);
+}
+
+.calendar :global(.rdp-month),
+.calendar :global(.rdp-month_grid) {
+  width: 100%;
+}
+
+.calendar :global(.rdp-month_grid) {
+  table-layout: fixed;
+}
+
+.calendar :global(.rdp-day_button) {
+  margin: 0 auto;
+  font: inherit;
+}
+
+/* The chosen day: the theme's color, like a primary button. */
+.calendar :global(.rdp-selected) {
+  font-weight: inherit;
+  font-size: inherit;
+}
+
+.calendar :global(.rdp-selected .rdp-day_button) {
+  border: 0;
+  background: var(--ant-color-primary);
+  color: #fff;
+}
+
+/* People who asked their device for less motion get the month at once. */
+@media (prefers-reduced-motion: reduce) {
+  .calendar :global(.rdp-root) {
+    --rdp-animation_duration: 0s;
+  }
+}
+
+/* Read by screen readers (it names the grid), not shown: the header above shows the month. */
+.captionForScreenReaders {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
