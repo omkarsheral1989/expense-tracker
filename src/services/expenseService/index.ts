@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, inArray, isNull, max, sql } from 'drizzle-orm'
+import { displayName } from '../groupService/utils.ts'
 import type { Database } from '../../db/client.ts'
 import { expensePhotos, expenseShares, expenses, groupMembers, groups, people } from '../../db/schema.ts'
 import { CATEGORY_GROUPS, DEFAULT_CATEGORY, RECENT_CURRENCY_COUNT } from './constants.ts'
@@ -257,7 +258,7 @@ export const expenseService = {
       .innerJoin(people, eq(people.id, expenseShares.personId))
       .where(and(eq(expenseShares.expenseId, expenseId), isNull(expenseShares.deletedAt)))
 
-    const label = (share: { name: string | null; email: string }) => (share.name ?? share.email).toLowerCase()
+    const label = (share: { name: string | null; email: string | null }) => displayName(share).toLowerCase()
     const shares = rows
       .filter((row) => row.paidMinor > 0 || row.owedMinor > 0)
       .map((row) => ({ ...row, isYou: row.personId === userId }))

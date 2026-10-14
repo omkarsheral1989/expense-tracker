@@ -7,7 +7,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getDb } from '../../../db/client.ts'
 import { expenses, people } from '../../../db/schema.ts'
 import { ROUTES } from '../../../routes.ts'
-import { groupService } from '../../../services/groupService'
 import { photoService } from '../../../services/photoService'
 import type { CreateExpenseInput } from '../../../services/expenseService/types.ts'
 import { useAuthStore } from '../../../stores/useAuthStore'
@@ -16,6 +15,7 @@ import { addTestExpense, personIdOf } from '../../../testing/expenses.ts'
 import { renderPage } from '../../../testing/render.tsx'
 import { ExpensePage } from '../index.tsx'
 import { expectCenteredMessage } from '../../../testing/centered.ts'
+import { createTestGroup } from '../../../testing/groups.ts'
 
 // Pages reach the database through `getDb`; point it at the in-memory one.
 vi.mock('../../../db/client.ts', async (importOriginal) => {
@@ -30,7 +30,7 @@ const me = { id: '1', email: 'omkar@gmail.com', name: 'Omkar Sheral' }
 const testDb = setUpTestDatabase()
 
 async function createGroup(creator: { email: string; name: string } = me, memberEmails = ['priya@gmail.com', 'sam@gmail.com']) {
-  const result = await groupService.createGroup(testDb.db, creator, {
+  const result = await createTestGroup(testDb.db, creator, {
     name: 'Goa trip',
     type: 'trip',
     defaultCurrency: 'GBP',

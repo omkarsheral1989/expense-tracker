@@ -3,11 +3,11 @@ import { and, eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createDatabase, type Database } from '../../../db/client.ts'
 import { expensePhotos, expenseShares, expenses, groupMembers, groups, people } from '../../../db/schema.ts'
-import { groupService } from '../../groupService'
 import type { Creator } from '../../groupService/types.ts'
 import { expenseService } from '../index.ts'
 import type { CreateExpenseInput } from '../types.ts'
 import { addTestExpense, expenseInput } from '../../../testing/expenses.ts'
+import { createTestGroup } from '../../../testing/groups.ts'
 
 let pg: PGlite
 let db: Database
@@ -34,7 +34,7 @@ const dinner: Partial<CreateExpenseInput> = {
 }
 
 async function createGroup(creator: Creator, memberEmails: string[] = []) {
-  const result = await groupService.createGroup(db, creator, {
+  const result = await createTestGroup(db, creator, {
     name: `Group ${crypto.randomUUID().slice(0, 8)}`,
     type: 'trip',
     defaultCurrency: 'INR',
@@ -386,7 +386,7 @@ describe('listExpenses', () => {
     })
 
     // Priya sees the same expense from her side.
-    await groupService.createGroup(db, priya, {
+    await createTestGroup(db, priya, {
       name: 'Makes Priya a known user',
       type: 'other',
       defaultCurrency: 'INR',

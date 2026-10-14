@@ -56,7 +56,7 @@ export function ExpenseDetails({ expense, accountId }: Props) {
   function renderSummary() {
     return (
       <Flex align="flex-start" gap={16}>
-        <CategoryIcon category={expense.category} size={56} />
+        <CategoryIcon category={expense.category} size={48} />
         <Flex vertical style={{ minWidth: 0 }}>
           <Title level={3} style={{ margin: 0, overflowWrap: 'anywhere' }}>
             {expense.description}

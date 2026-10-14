@@ -2,6 +2,7 @@ import { useEffect, type ReactNode } from 'react'
 import { App as AntApp, ConfigProvider, theme } from 'antd'
 import { useColorScheme } from '../../hooks/useColorScheme'
 import { CONTROL_HEIGHT } from '../../theme/controlHeight.ts'
+import '../../theme/dropdown.css'
 import { RADIUS } from '../../theme/radius.ts'
 
 const PRIMARY = '#0d9488'

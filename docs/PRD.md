@@ -25,10 +25,10 @@ _Last updated: 2026-10-14_
 
 ### 4.2 Groups
 - Create a group with a name, a type (trip / home / couple / other, each with its own icon), a default currency and members.
-- Members are picked from people already known on this device (people from the user's other groups), or added by Gmail address. Only `@gmail.com` addresses are accepted, which means Google Workspace accounts with other domains cannot be added.
+- Members are picked from people already known on this device (people from the user's other groups), or added through an "Add a new member" dialog (a name, and optionally a Gmail address). Typing an address into the members field no longer adds anyone. A person's email is optional; when given it must be an `@gmail.com` address, which means Google Workspace accounts with other domains cannot be added.
 - The creator is always a member of the new group.
 - Any member can edit group details and add members.
-- Members added by email who have not opened the app yet are shown as pending.
+- Members who have not opened the app yet are shown as pending. A member without an email is a member on this device only (a payer, in splits and balances); they cannot be invited to share the group through Drive until an email is added, which is not built yet.
 
 ### 4.3 Expenses
 - Personal expenses (private, never synced to Drive) and group expenses.
@@ -111,10 +111,14 @@ Like the add-expense and expense-details pages, it has no card around its conten
 - **Name:** required, 1 to 60 characters.
 - **Type:** trip / home / couple / other, each shown as an Ant Design icon in a colored tile. "Trip" is preselected.
 - **Default currency:** required. A searchable list (by code or name) of all ISO currencies, each shown as code, name and symbol (for example "INR – Indian Rupee (₹)"), with names in the user's language. The currency of the device's region (for example INR in India) is preselected and listed first; the rest follow A to Z. New expenses in the group start with it; an expense can still use any other currency, since each expense carries its own.
-- **Members:** one searchable multi-select. It lists people already known on this device (everyone from the user's other groups, with name and email, never the user themself). Typing a new `@gmail.com` address adds that person in the same field. A duplicate is ignored. The creator is added automatically and cannot be removed.
-- **Validation:** checked only when "Create" is pressed. Every problem (empty name, an address that is not `@gmail.com`, no currency) is then shown at once, beside its field.
+- **Members:** one searchable multi-select. It lists people already known on this device (everyone saved here, with name and email, never the user themself); a person without an email shows "No email" where the email would be. Typing only searches the list (by name or email); it never adds anyone. "Add a new member" is always the last row of the list. The creator is added automatically and cannot be removed.
+  - **Add a new member dialog** (a centered dialog on desktop, a bottom sheet on phones): a **Name** (required, 1 to 60 characters) and an **Email** (optional; if given, an `@gmail.com` address). Cancel and Add. Add saves the person on this device right away, so they are in the list for every other group even if this group is not created, then closes the dialog and selects them as a member of this group. Problems are shown beside their field when Add is pressed:
+    - **Same email:** if the email already belongs to someone on this device, "Priya Shah is already in your list with this email." Nothing is added.
+    - **Same name:** names are unique on this device (ignoring case and extra spaces): "You already have someone called Sam." This includes the user themself and people who have no email.
+    - An address that is not `@gmail.com` is refused with the same message as before.
+- **Validation:** checked only when "Create" is pressed. Every problem (empty name, no currency) is then shown at once, beside its field. The members field has none of its own: a person is checked when added in the dialog.
   - **Same name:** a group cannot have the same name as another group the user belongs to (ignoring case, extra spaces and deleted groups). The message names the existing group ("You already have a group called Goa trip.") and appears beside the name field. This is a convenience check on this device; another member can still create a group with the same name elsewhere, and both groups then simply exist.
-  - **Duplicate members:** adding the same person twice (compared ignoring case) is ignored, and so is adding the user's own address, since they are added automatically.
+  - **Duplicate members:** choosing the same person twice selects them once, and the user is never in the list, since they are added automatically.
 - **Leaving:** the page's Cancel and Back buttons leave immediately while the form is untouched. Once a name, type, currency or member has been entered or changed, they ask "Discard this group?" first, and reloading or closing the tab shows the browser's own warning. The browser's Back button is not intercepted: that needs React Router's data router, which the app does not use yet.
 - Creating a group only saves it on this device. Sharing it through Drive happens later, at the first sync.
 - After creating, a "Group created." message appears and the app opens the new group's page.
@@ -127,7 +131,7 @@ Route `/groups/<id>`, opened from a group on the home page and after creating a 
   - a round white **back** button on the left (to the home page), and round **search** and **settings (gear)** buttons on the right, both switched off for now ("Coming soon");
   - the group's **type icon tile** (lifted off the band by a soft black shadow, since it is the band's own color) beside the group's **name**, which is large and white, with its first line centered on the tile, and wraps onto more lines below when long (never cut off or running off the screen);
   - a row of translucent pill chips: **Add trip dates** (switched off; it exists for any group type for now), **"N people"** ("1 person" for one), and the group's **default currency** (for example "GBP").
-- **"N people" opens the member list**: a bottom sheet on phones and a side panel on desktop, titled "Members (N)". It lists the user first, then the others A to Z; each member has an avatar with their initial, their name with their email under it (just the email, once, when no name is known), and a tag: "You" for the user (whose own row uses the name saved for them, or else their Google profile name) and "Pending" for everyone else until they have signed in and synced. It closes with its close button or by tapping outside.
+- **"N people" opens the member list**: a bottom sheet on phones and a side panel on desktop, titled "Members (N)". It lists the user first, then the others A to Z; each member has an avatar with their initial, their name with their email under it ("No email" for a member without one; just the email, once, when no name is known), and a tag: "You" for the user (whose own row uses the name saved for them, or else their Google profile name) and "Pending" for everyone else until they have signed in and synced. It closes with its close button or by tapping outside.
 - **Balance line** under the band: one sentence per other person and currency that is not settled, "Priya owes you ₹14,517.50" (amount in bold green) or "You owe Priya ₹500.00" (amount in bold orange-red), people A to Z and then currencies A to Z. "You're all settled up" when nothing is owed either way.
 - **Action pills**, a row that scrolls sideways when it does not fit: for now only **Settle up**, switched off.
 - **Expense list:** the group's expenses as described in 5.5. With none, the message "No expenses yet" and "Expenses you add will appear here." with its illustration, centered vertically in a box that runs from the actions ("Settle up") down to 16 px above the floating "Add expense" button.
@@ -201,6 +205,7 @@ Route `/groups/<id>/expenses/<expenseId>`, opened by tapping an expense on the g
 ## 6. Open questions
 - Google Cloud setup: the OAuth client ID is not created yet (Drive API, consent screen in Testing mode, authorized origins, test users).
 - Member removal: what happens to a removed member's access and local data.
+- Adding or changing a person's email later (so a member added without one can be invited), renaming a person, and how sync treats members without an email.
 - Group page: what the search and settings buttons open, how trip dates work (which group types, start and end), and what else the pill row holds (balances, totals, charts).
 - Tags on expenses.
 - Editing and deleting expenses, and how the edit history is shown.

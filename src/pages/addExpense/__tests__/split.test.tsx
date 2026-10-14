@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getDb } from '../../../db/client.ts'
 import { expenseShares, expenses, people } from '../../../db/schema.ts'
 import { useAuthStore } from '../../../stores/useAuthStore'
+import { addTestPerson } from '../../../testing/groups.ts'
 import { setUpAddExpenseTests, me, amountInput, saveButton } from './helpers.tsx'
 
 // Pages reach the database through `getDb`; point it at the in-memory one.
@@ -64,7 +65,7 @@ describe('AddExpensePage', () => {
         .orderBy(people.email)
       return {
         method: expense.method,
-        shares: Object.fromEntries(shares.map((share) => [share.email.split('@')[0], [share.paid, share.owed, share.input]])),
+        shares: Object.fromEntries(shares.map((share) => [(share.email ?? '').split('@')[0], [share.paid, share.owed, share.input]])),
       }
     }
 
@@ -105,6 +106,26 @@ describe('AddExpensePage', () => {
       expect(await savedSplit()).toEqual({
         method: 'equal',
         shares: { omkar: [0, 300, 1], priya: [900, 300, 1], sam: [0, 300, 1] },
+      })
+    })
+
+    it('names a member who has no email by their name, and lets them pay', async () => {
+      const rahul = await addTestPerson(testDb.db, me, { name: 'Rahul Rao' })
+      const id = await createGroup({ memberEmails: ['priya@gmail.com'], memberIds: [rahul] })
+      await testDb.db.update(people).set({ name: 'Priya Shah' }).where(eq(people.email, 'priya@gmail.com'))
+      renderForm(id)
+      await fillIn('Cab', '9')
+
+      await user.click(screen.getByRole('button', { name: 'you' }))
+      const dialog = await screen.findByRole('dialog', { name: 'Who paid?' })
+      expect(choicesIn(dialog)).toEqual(['You', 'Priya Shah', 'Rahul Rao', 'Multiple people'])
+      await user.click(within(dialog).getByRole('button', { name: 'Rahul Rao' }))
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Rahul' })).toBeInTheDocument())
+      await user.click(saveButton())
+
+      await waitFor(async () => {
+        const [share] = await testDb.db.select().from(expenseShares).where(eq(expenseShares.personId, rahul))
+        expect(share).toMatchObject({ paidMinor: 900, owedMinor: 300 })
       })
     })
 

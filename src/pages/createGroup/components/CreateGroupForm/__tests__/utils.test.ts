@@ -6,7 +6,7 @@ const initial: FormValues = {
   name: '',
   type: 'trip',
   defaultCurrency: 'INR',
-  memberEmails: [],
+  memberIds: [],
 }
 
 describe('hasUnsavedInput', () => {
@@ -30,12 +30,12 @@ describe('hasUnsavedInput', () => {
 
   it('is true once a member is added', () => {
     expect(
-      hasUnsavedInput({ ...initial, memberEmails: ['a@gmail.com'] }, initial),
+      hasUnsavedInput({ ...initial, memberIds: ['4598c525-5c87-4e77-81a1-79e5cba2d77c'] }, initial),
     ).toBe(true)
   })
 
   it('is false again when a change is undone', () => {
-    expect(hasUnsavedInput({ ...initial, type: 'trip', memberEmails: [] }, initial)).toBe(false)
+    expect(hasUnsavedInput({ ...initial, type: 'trip', memberIds: [] }, initial)).toBe(false)
   })
 
   it('notices a currency being chosen when none was preselected', () => {
@@ -51,7 +51,7 @@ describe('toFormFields', () => {
       { name: 'name', errors: ['Enter a group name.'] },
       { name: 'type', errors: [] },
       { name: 'defaultCurrency', errors: ['Choose a currency.'] },
-      { name: 'memberEmails', errors: [] },
+      { name: 'memberIds', errors: [] },
     ])
   })
 

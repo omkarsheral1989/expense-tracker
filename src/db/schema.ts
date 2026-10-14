@@ -42,13 +42,16 @@ function syncColumns() {
   }
 }
 
-/** One row per person, signed-in user or not, identified by email. */
+/**
+ * One row per person, signed-in user or not. A person is identified by `id`;
+ * the email is optional (a member added by name only has none).
+ */
 export const people = pgTable(
   'people',
   {
     ...syncColumns(),
-    /** Lower-case, unique. */
-    email: text('email').notNull().unique(),
+    /** Lower-case and unique when there is one; null for a person added without an email. */
+    email: text('email').unique(),
     name: text('name'),
   },
   (table) => [

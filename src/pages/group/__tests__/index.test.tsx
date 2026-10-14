@@ -8,14 +8,13 @@ import { expenseShares, groupMembers, groups, people } from '../../../db/schema.
 import { ABOVE_FLOATING_BUTTON } from '../../../components/FloatingPillButton/constants.ts'
 import { ROUTES } from '../../../routes.ts'
 import type { CreateExpenseInput } from '../../../services/expenseService/types.ts'
-import { groupService } from '../../../services/groupService'
-import type { CreateGroupInput } from '../../../services/groupService/types.ts'
 import { useAuthStore } from '../../../stores/useAuthStore'
 import { setUpTestDatabase } from '../../../testing/database.ts'
 import { addTestExpense } from '../../../testing/expenses.ts'
 import { renderPage } from '../../../testing/render.tsx'
 import { GroupPage } from '../index.tsx'
 import { expectCenteredMessage } from '../../../testing/centered.ts'
+import { addTestPerson, createTestGroup, type TestGroupInput } from '../../../testing/groups.ts'
 
 // Pages reach the database through `getDb`; point it at the in-memory one.
 vi.mock('../../../db/client.ts', async (importOriginal) => {
@@ -33,9 +32,9 @@ const testDb = setUpTestDatabase()
 
 async function createGroup(
   creator: { email: string; name: string },
-  input: Partial<CreateGroupInput> & { name: string },
+  input: Partial<TestGroupInput> & { name: string },
 ) {
-  const result = await groupService.createGroup(testDb.db, creator, {
+  const result = await createTestGroup(testDb.db, creator, {
     type: 'trip',
     defaultCurrency: 'GBP',
     memberEmails: [],
@@ -62,6 +61,11 @@ const dinner: Partial<CreateExpenseInput> = {
 
 async function addExpense(email: string, groupId: string, input: Partial<CreateExpenseInput> = {}) {
   return addTestExpense(testDb.db, email, groupId, { ...dinner, ...input })
+}
+
+/** The initial in each member's avatar, in order. */
+function initialsOf(sheet: HTMLElement) {
+  return [...sheet.querySelectorAll('.ant-avatar')].map((avatar) => avatar.textContent)
 }
 
 /** The rows of the expense list, each as its text with spaces between the parts. */
@@ -588,6 +592,20 @@ describe('GroupPage', () => {
         // No name: the email is the title, and is not repeated underneath.
         ['sam@gmail.com', null, 'Pending'],
       ])
+    })
+
+    it('shows "No email" under the name of a member who has none, and keeps them Pending', async () => {
+      const rahul = await addTestPerson(testDb.db, me, { name: 'Rahul' })
+      const id = await createGroup(me, { name: 'Goa', memberIds: [rahul], memberEmails: ['priya@gmail.com'] })
+      renderGroup(id)
+      const sheet = await openMembers(3)
+
+      expect(memberRows(sheet)).toEqual([
+        ['Omkar Sheral', 'omkar@gmail.com', 'You'],
+        ['priya@gmail.com', null, 'Pending'],
+        ['Rahul', 'No email', 'Pending'],
+      ])
+      expect(initialsOf(sheet)).toEqual(['O', 'P', 'R'])
     })
 
     it('gives each member an avatar with their initial', async () => {

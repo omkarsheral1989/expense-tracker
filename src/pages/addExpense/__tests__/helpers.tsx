@@ -1,10 +1,9 @@
 import { fireEvent, screen, within } from '@testing-library/react'
 import { ROUTES } from '../../../routes.ts'
-import { groupService } from '../../../services/groupService'
-import type { CreateGroupInput } from '../../../services/groupService/types.ts'
 import { setUpTestDatabase } from '../../../testing/database.ts'
 import { renderPage } from '../../../testing/render.tsx'
 import { AddExpensePage } from '../index.tsx'
+import { createTestGroup, type TestGroupInput } from '../../../testing/groups.ts'
 
 export const me = { id: '1', email: 'omkar@gmail.com', name: 'Omkar Sheral' }
 
@@ -16,8 +15,8 @@ export const me = { id: '1', email: 'omkar@gmail.com', name: 'Omkar Sheral' }
 export function setUpAddExpenseTests() {
   const testDb = setUpTestDatabase()
 
-  async function createGroup(input: Partial<CreateGroupInput> = {}) {
-    const result = await groupService.createGroup(testDb.db, me, {
+  async function createGroup(input: Partial<TestGroupInput> = {}) {
+    const result = await createTestGroup(testDb.db, me, {
       name: 'Goa trip',
       type: 'trip',
       defaultCurrency: 'GBP',

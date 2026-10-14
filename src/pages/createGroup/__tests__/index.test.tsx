@@ -11,6 +11,7 @@ import { useAuthStore } from '../../../stores/useAuthStore'
 import { setUpTestDatabase } from '../../../testing/database.ts'
 import { renderPage } from '../../../testing/render.tsx'
 import { CreateGroupPage } from '../index.tsx'
+import { addTestPerson, createTestGroup } from '../../../testing/groups.ts'
 
 // Pages reach the database through `getDb`; point it at the in-memory one.
 vi.mock('../../../db/client.ts', async (importOriginal) => {
@@ -60,29 +61,35 @@ function visibleOptions() {
   )
 }
 
-/**
- * Types an address into the Members field and presses Enter. user-event's own
- * `{Enter}` is not understood by Ant Design's Select, so the key is sent as raw
- * key down and key up events with the Enter key code, as a browser sends them.
- */
-async function addMember(user: ReturnType<typeof userEvent.setup>, address: string) {
-  // Clicking an already focused field would close its dropdown, and Enter only
-  // adds an address while the dropdown is open.
-  await user.type(membersInput(), address, {
-    skipClick: document.activeElement === membersInput(),
-  })
-  // Ant Design makes the typed address the active entry a moment after typing;
-  // Enter only picks the active entry, and a person is never faster than that.
-  await waitFor(() =>
-    expect(
-      document.querySelector('.ant-select-item-option-active .ant-select-item-option-content'),
-    ).toHaveTextContent(address),
-  )
-  const enter = { key: 'Enter', code: 'Enter', keyCode: 13, which: 13 }
-  fireEvent.keyDown(membersInput(), enter)
-  // Ant Design ignores further Enter presses until the key is released, as a
-  // real key always is.
-  fireEvent.keyUp(membersInput(), enter)
+/** Opens the Members list. */
+async function openMembers(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(membersInput())
+  await screen.findByRole('button', { name: /Add a new member/ })
+}
+
+/** Picks a person already saved on the device, by the name (or address) shown for them. */
+async function pickMember(user: ReturnType<typeof userEvent.setup>, label: string) {
+  await openMembers(user)
+  await user.click(await screen.findByText(label, { selector: '.ant-select-item-option-content *' }))
+}
+
+/** Opens the "Add a new member" dialog from the Members list. */
+async function openAddMemberDialog(user: ReturnType<typeof userEvent.setup>) {
+  await openMembers(user)
+  await user.click(screen.getByRole('button', { name: /Add a new member/ }))
+  return screen.findByRole('dialog', { name: 'Add a new member' })
+}
+
+/** Fills in the "Add a new member" dialog and presses Add. */
+async function addNewMember(
+  user: ReturnType<typeof userEvent.setup>,
+  { name, email }: { name: string; email?: string },
+) {
+  const dialog = await openAddMemberDialog(user)
+  if (name) await user.type(within(dialog).getByRole('textbox', { name: 'Name' }), name)
+  if (email) await user.type(within(dialog).getByRole('textbox', { name: 'Email (optional)' }), email)
+  await user.click(within(dialog).getByRole('button', { name: 'Add' }))
+  return dialog
 }
 
 const nameInput = () => screen.getByRole('textbox', { name: 'Group name' })
@@ -132,15 +139,11 @@ describe('CreateGroupPage', () => {
     it('shows every problem at once, each beside its own field', async () => {
       setLanguages(['xx']) // no currency preselected
       renderForm()
-      await addMember(user, 'bob@yahoo.com')
 
       await user.click(createButton())
 
       expect(await within(field('Group name')).findByText('Enter a group name.')).toBeInTheDocument()
       expect(within(field('Default currency')).getByText('Choose a currency.')).toBeInTheDocument()
-      expect(
-        within(field('Members')).getByText('Only @gmail.com addresses can be added: bob@yahoo.com'),
-      ).toBeInTheDocument()
       // Nothing was saved.
       expect(await groupService.listGroups(testDb.db, me.email)).toEqual([])
     })
@@ -166,7 +169,7 @@ describe('CreateGroupPage', () => {
     })
 
     it('refuses a name that another of your groups already has, naming that group', async () => {
-      const first = await groupService.createGroup(testDb.db, me, {
+      const first = await createTestGroup(testDb.db, me, {
         name: 'Goa trip',
         type: 'trip',
         defaultCurrency: 'GBP',
@@ -186,80 +189,22 @@ describe('CreateGroupPage', () => {
   })
 
   describe('the Members field', () => {
-    it('adds a typed address, lower-cased', async () => {
-      renderForm()
-      await addMember(user, 'Priya@Gmail.com')
-      expect(chosenMembers()).toEqual(['priya@gmail.com'])
-    })
-
-    it('ignores the same address typed again, in any case', async () => {
-      renderForm()
-      await addMember(user, 'priya@gmail.com')
-      expect(chosenMembers()).toEqual(['priya@gmail.com'])
-
-      // Typing an address that is already chosen would, by default, untick it.
-      await addMember(user, 'priya@gmail.com')
-      expect(chosenMembers()).toEqual(['priya@gmail.com'])
-
-      await addMember(user, 'PRIYA@gmail.com')
-      expect(chosenMembers()).toEqual(['priya@gmail.com'])
-    })
-
-    it('ignores your own address, with a short notice', async () => {
-      renderForm()
-      await addMember(user, 'Omkar@gmail.com')
-
-      expect(chosenMembers()).toEqual([])
-      expect(await screen.findByText('You are added to the group automatically.')).toBeInTheDocument()
-    })
-
-    it('adds addresses one after another with Enter', async () => {
-      renderForm()
-      await addMember(user, 'priya@gmail.com')
-      await addMember(user, 'sam@gmail.com')
-      expect(chosenMembers()).toEqual(['priya@gmail.com', 'sam@gmail.com'])
-    })
-
-    it('adds several addresses pasted at once, tidied up', async () => {
-      renderForm()
-      await user.click(membersInput())
-      await user.paste('Priya@Gmail.com, sam@gmail.com; priya@gmail.com')
-
-      expect(chosenMembers()).toEqual(['priya@gmail.com', 'sam@gmail.com'])
-    })
-
-    it('adds an address when a comma is typed after it', async () => {
-      renderForm()
-      await user.type(membersInput(), 'priya@gmail.com,')
-      expect(chosenMembers()).toEqual(['priya@gmail.com'])
-    })
-
-    it('removes an address with its x, and only that one', async () => {
-      renderForm()
-      await user.click(membersInput())
-      await user.paste('priya@gmail.com, sam@gmail.com')
-      expect(chosenMembers()).toEqual(['priya@gmail.com', 'sam@gmail.com'])
-
-      const priyaTag = screen.getByText('priya@gmail.com').closest('.ant-select-selection-item') as HTMLElement
-      // The x is hidden from screen readers (they use Backspace), so it is found by class.
-      await user.click(priyaTag.querySelector('.ant-select-selection-item-remove') as HTMLElement)
-
-      expect(chosenMembers()).toEqual(['sam@gmail.com'])
-    })
-
-    it('suggests people from your other groups, by name when known, and never you', async () => {
-      await groupService.createGroup(testDb.db, me, {
+    async function saveSomePeople() {
+      await createTestGroup(testDb.db, me, {
         name: 'Goa',
         type: 'trip',
         defaultCurrency: 'GBP',
         memberEmails: ['priya@gmail.com', 'sam@gmail.com'],
       })
       await testDb.db.update(people).set({ name: 'Priya Shah' }).where(eq(people.email, 'priya@gmail.com'))
+    }
+
+    it('lists the people saved on this device, by name when known, and never you', async () => {
+      await saveSomePeople()
       renderForm()
 
-      await user.click(membersInput())
+      await openMembers(user)
 
-      await screen.findByText('Priya Shah', { selector: '.ant-select-item-option-content *' })
       const listed = visibleOptions().join(' | ')
       expect(listed).toContain('Priya Shah')
       expect(listed).toContain('priya@gmail.com')
@@ -267,20 +212,214 @@ describe('CreateGroupPage', () => {
       expect(listed).not.toContain('omkar@gmail.com')
     })
 
-    it('adds a suggested person, shown by their name', async () => {
-      await groupService.createGroup(testDb.db, me, {
-        name: 'Goa',
-        type: 'trip',
-        defaultCurrency: 'GBP',
-        memberEmails: ['priya@gmail.com'],
-      })
-      await testDb.db.update(people).set({ name: 'Priya Shah' }).where(eq(people.email, 'priya@gmail.com'))
+    it('shows "No email" for a person saved without one', async () => {
+      await addTestPerson(testDb.db, me, { name: 'Rahul' })
       renderForm()
 
-      await user.click(membersInput())
-      await user.click(await screen.findByText('Priya Shah', { selector: '.ant-select-item-option-content *' }))
+      await openMembers(user)
+
+      expect(visibleOptions()).toEqual(['RahulNo email'])
+    })
+
+    it('adds a person from the list, shown by their name', async () => {
+      await saveSomePeople()
+      renderForm()
+
+      await pickMember(user, 'Priya Shah')
 
       expect(chosenMembers()).toEqual(['Priya Shah'])
+    })
+
+    it('removes a chosen person with their x, and only that one', async () => {
+      await saveSomePeople()
+      renderForm()
+      await pickMember(user, 'Priya Shah')
+      await pickMember(user, 'sam@gmail.com')
+      expect(chosenMembers()).toEqual(['Priya Shah', 'sam@gmail.com'])
+
+      const priyaTag = screen.getByText('Priya Shah', { selector: '.ant-select-selection-item *' }).closest('.ant-select-selection-item') as HTMLElement
+      // The x is hidden from screen readers (they use Backspace), so it is found by class.
+      await user.click(priyaTag.querySelector('.ant-select-selection-item-remove') as HTMLElement)
+
+      expect(chosenMembers()).toEqual(['sam@gmail.com'])
+    })
+
+    it('only searches when typing: a typed address is never added', async () => {
+      await saveSomePeople()
+      renderForm()
+
+      await user.type(membersInput(), 'bob@gmail.com')
+      expect(visibleOptions()).toEqual([])
+      const enter = { key: 'Enter', code: 'Enter', keyCode: 13, which: 13 }
+      fireEvent.keyDown(membersInput(), enter)
+      fireEvent.keyUp(membersInput(), enter)
+      // A comma or a pasted list adds nobody either.
+      await user.type(membersInput(), ', ann@gmail.com')
+      await user.paste('cy@gmail.com; di@gmail.com')
+
+      expect(chosenMembers()).toEqual([])
+      // Only the creator and the two saved people exist.
+      expect(await testDb.db.select().from(people)).toHaveLength(3)
+    })
+
+    it('finds a person by name or by address', async () => {
+      await saveSomePeople()
+      renderForm()
+
+      await user.type(membersInput(), 'shah')
+      expect(visibleOptions()).toEqual(['Priya Shahpriya@gmail.com'])
+    })
+
+    it('has "Add a new member" as the last row, also when nobody matches the search', async () => {
+      await saveSomePeople()
+      renderForm()
+
+      await user.type(membersInput(), 'zzzz')
+
+      expect(await screen.findByText('No one matches.')).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: /Add a new member/ })).toBeInTheDocument()
+    })
+
+    describe('the "Add a new member" dialog', () => {
+      it('asks for a name and an optional email', async () => {
+        renderForm()
+
+        const dialog = await openAddMemberDialog(user)
+
+        expect(within(dialog).getByRole('textbox', { name: 'Name' })).toBeInTheDocument()
+        expect(within(dialog).getByRole('textbox', { name: 'Email (optional)' })).toBeInTheDocument()
+        expect(within(dialog).getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+        expect(within(dialog).getByRole('button', { name: 'Add' })).toBeInTheDocument()
+      })
+
+      it('adds a person with just a name, chooses them, and saves them on this device at once', async () => {
+        renderForm()
+
+        await addNewMember(user, { name: 'Rahul' })
+
+        await waitFor(() => expect(chosenMembers()).toEqual(['Rahul']))
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Add a new member' })).not.toBeInTheDocument())
+        // Saved before any group is created.
+        const [rahul] = await testDb.db.select().from(people).where(eq(people.name, 'Rahul'))
+        expect(rahul.email).toBeNull()
+        expect(await groupService.listGroups(testDb.db, me.email)).toEqual([])
+      })
+
+      it('adds a person with a Gmail address, tidied up', async () => {
+        renderForm()
+
+        await addNewMember(user, { name: '  Priya   Shah ', email: ' Priya@Gmail.com ' })
+
+        await waitFor(() => expect(chosenMembers()).toEqual(['Priya Shah']))
+        const [priya] = await testDb.db.select().from(people).where(eq(people.name, 'Priya Shah'))
+        expect(priya.email).toBe('priya@gmail.com')
+      })
+
+      it('lists the new person for the next group, even if this one is never created', async () => {
+        const first = renderForm()
+        await addNewMember(user, { name: 'Rahul' })
+        await waitFor(() => expect(chosenMembers()).toEqual(['Rahul']))
+        first.unmount()
+        cleanup()
+
+        renderForm()
+        await openMembers(user)
+
+        expect(visibleOptions()).toEqual(['RahulNo email'])
+      })
+
+      it('asks for a name', async () => {
+        renderForm()
+
+        const dialog = await addNewMember(user, { name: '' })
+
+        expect(await within(dialog).findByText('Enter a name.')).toBeInTheDocument()
+        expect(chosenMembers()).toEqual([])
+      })
+
+      it('refuses an email that is not a Gmail address', async () => {
+        renderForm()
+
+        const dialog = await addNewMember(user, { name: 'Bob', email: 'bob@yahoo.com' })
+
+        expect(await within(dialog).findByText('Only @gmail.com addresses can be added.')).toBeInTheDocument()
+        expect(await testDb.db.select().from(people).where(eq(people.name, 'Bob'))).toEqual([])
+      })
+
+      it('refuses an email someone on this device already has, naming them', async () => {
+        await createTestGroup(testDb.db, me, {
+          name: 'Goa', type: 'trip', defaultCurrency: 'GBP', memberEmails: ['priya@gmail.com'],
+        })
+        await testDb.db.update(people).set({ name: 'Priya Shah' }).where(eq(people.email, 'priya@gmail.com'))
+        renderForm()
+
+        const dialog = await addNewMember(user, { name: 'Another Priya', email: 'PRIYA@gmail.com' })
+
+        expect(
+          await within(dialog).findByText('Priya Shah is already in your list with this email.'),
+        ).toBeInTheDocument()
+      })
+
+      it('refuses your own address, since you are added automatically', async () => {
+        renderForm()
+
+        const dialog = await addNewMember(user, { name: 'Me again', email: 'omkar@gmail.com' })
+
+        expect(
+          await within(dialog).findByText('That is your own address. You are added automatically.'),
+        ).toBeInTheDocument()
+      })
+
+      it('refuses a name someone on this device already has, ignoring case and extra spaces', async () => {
+        await addTestPerson(testDb.db, me, { name: 'Sam Lee' })
+        renderForm()
+
+        const dialog = await addNewMember(user, { name: ' sam   LEE ' })
+
+        expect(await within(dialog).findByText('You already have someone called Sam Lee.')).toBeInTheDocument()
+        expect(await testDb.db.select().from(people).where(eq(people.name, 'sam LEE'))).toEqual([])
+      })
+
+      it('shows every problem at once, and each disappears when its field is edited', async () => {
+        await addTestPerson(testDb.db, me, { name: 'Sam', email: 'sam@gmail.com' })
+        renderForm()
+        const dialog = await addNewMember(user, { name: 'sam', email: 'sam@gmail.com' })
+        expect(await within(dialog).findByText('You already have someone called Sam.')).toBeInTheDocument()
+        expect(within(dialog).getByText('Sam is already in your list with this email.')).toBeInTheDocument()
+
+        await user.type(within(dialog).getByRole('textbox', { name: 'Name' }), 'x')
+
+        await waitFor(() =>
+          expect(within(dialog).queryByText('You already have someone called Sam.')).not.toBeInTheDocument(),
+        )
+        expect(within(dialog).getByText('Sam is already in your list with this email.')).toBeInTheDocument()
+      })
+
+      it('adds nobody on Cancel, and starts empty the next time', async () => {
+        renderForm()
+        const dialog = await openAddMemberDialog(user)
+        await user.type(within(dialog).getByRole('textbox', { name: 'Name' }), 'Rahul')
+
+        await user.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Add a new member' })).not.toBeInTheDocument())
+        expect(chosenMembers()).toEqual([])
+        expect(await testDb.db.select().from(people).where(eq(people.name, 'Rahul'))).toEqual([])
+
+        const again = await openAddMemberDialog(user)
+        expect(within(again).getByRole('textbox', { name: 'Name' })).toHaveValue('')
+      })
+
+      it('says so and keeps the dialog open when saving fails', async () => {
+        renderForm()
+        const dialog = await openAddMemberDialog(user)
+        await user.type(within(dialog).getByRole('textbox', { name: 'Name' }), 'Rahul')
+        vi.mocked(getDb).mockRejectedValueOnce(new Error('database is closed'))
+
+        await user.click(within(dialog).getByRole('button', { name: 'Add' }))
+
+        expect(await screen.findByText("Couldn't add the member. Please try again.")).toBeInTheDocument()
+        expect(screen.getByRole('dialog', { name: 'Add a new member' })).toBeInTheDocument()
+      })
     })
   })
 
@@ -328,11 +467,13 @@ describe('CreateGroupPage', () => {
 
   describe('creating the group', () => {
     it('saves it with the chosen type, currency and members, then opens the new group\'s page', async () => {
+      await addTestPerson(testDb.db, me, { name: 'Priya Shah', email: 'priya@gmail.com' })
       const page = renderForm()
       await user.type(nameInput(), 'Goa trip')
       await user.click(screen.getByText('Home'))
-      await user.click(membersInput())
-      await user.paste('priya@gmail.com, sam@gmail.com')
+      await pickMember(user, 'Priya Shah')
+      await addNewMember(user, { name: 'Rahul' })
+      await waitFor(() => expect(chosenMembers()).toEqual(['Priya Shah', 'Rahul']))
 
       await user.click(createButton())
 
@@ -345,8 +486,9 @@ describe('CreateGroupPage', () => {
       expect(details?.members.map((member) => member.email)).toEqual([
         'omkar@gmail.com',
         'priya@gmail.com',
-        'sam@gmail.com',
+        null,
       ])
+      expect(details?.members.map((member) => member.name)).toEqual(['Omkar', 'Priya Shah', 'Rahul'])
     })
 
     it('says so and stays on the form when saving fails, and can be tried again', async () => {
@@ -388,8 +530,9 @@ describe('CreateGroupPage', () => {
     it.each([
       ['a name is typed', async (user: ReturnType<typeof userEvent.setup>) => user.type(nameInput(), 'Goa')],
       ['the type is changed', async (user: ReturnType<typeof userEvent.setup>) => user.click(screen.getByText('Couple'))],
-      ['a member is added', async (user: ReturnType<typeof userEvent.setup>) => addMember(user, 'priya@gmail.com')],
+      ['a member is chosen', async (user: ReturnType<typeof userEvent.setup>) => pickMember(user, 'Priya')],
     ])('asks "Discard this group?" once %s', async (_description, change) => {
+      await addTestPerson(testDb.db, me, { name: 'Priya' })
       const page = renderForm()
       await change(user)
 

@@ -1,9 +1,10 @@
 import type { ExpenseShareDetails } from '../../../../services/expenseService/types.ts'
+import { groupService } from '../../../../services/groupService'
 import { moneyService } from '../../../../services/moneyService'
 
 /** How the page names a person: "You", or their name (their email when no name is known). */
-export function displayName(person: { isYou: boolean; name: string | null; email: string }): string {
-  return person.isYou ? 'You' : (person.name ?? person.email)
+export function displayName(person: { isYou: boolean; name: string | null; email: string | null }): string {
+  return person.isYou ? 'You' : groupService.displayName(person)
 }
 
 /**

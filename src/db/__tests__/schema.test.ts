@@ -1,5 +1,5 @@
 import { PGlite } from '@electric-sql/pglite'
-import { eq } from 'drizzle-orm'
+import { eq, isNull } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createDatabase, type Database } from '../client.ts'
 import {
@@ -48,7 +48,7 @@ describe('migrations', () => {
   it('can run again without changing anything', async () => {
     await runMigrations(pg)
     const { rows } = await pg.query('select name from ownledger_migrations')
-    expect(rows).toHaveLength(4)
+    expect(rows).toHaveLength(5)
   })
 
   it('does not record a file that fails, and applies nothing from it', async () => {
@@ -116,6 +116,16 @@ describe('people', () => {
   it('rejects the same email twice', async () => {
     await addPerson('omkar@gmail.com')
     await expect(addPerson('omkar@gmail.com')).rejects.toThrow()
+  })
+
+  it('lets a person have no email, and any number of them', async () => {
+    const owner = await addPerson('omkar@gmail.com')
+    for (const name of ['Rahul', 'Suprabha']) {
+      await db.insert(people).values({ name, email: null, updatedBy: owner })
+    }
+
+    const withoutEmail = await db.select({ name: people.name }).from(people).where(isNull(people.email))
+    expect(withoutEmail.map((person) => person.name).sort()).toEqual(['Rahul', 'Suprabha'])
   })
 })
 

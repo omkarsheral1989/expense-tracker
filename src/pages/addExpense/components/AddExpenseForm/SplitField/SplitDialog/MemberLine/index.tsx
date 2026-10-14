@@ -1,5 +1,6 @@
 import { Avatar, Flex, theme, Typography } from 'antd'
 import type { ReactNode } from 'react'
+import { groupService } from '../../../../../../../services/groupService'
 import type { GroupMember } from '../../../../../../../services/groupService/types.ts'
 
 const { Text } = Typography
@@ -15,7 +16,7 @@ type Props = {
 /** One member in the split dialog: avatar, name ("You" for the user), and their entry. */
 export function MemberLine({ member, detail, children }: Props) {
   const { token } = theme.useToken()
-  const label = member.isYou ? 'You' : (member.name ?? member.email)
+  const label = member.isYou ? 'You' : groupService.displayName(member)
 
   return (
     <Flex align="center" gap={12} style={{ minHeight: 48 }}>

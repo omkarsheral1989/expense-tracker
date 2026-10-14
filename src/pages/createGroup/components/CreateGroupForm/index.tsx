@@ -28,7 +28,7 @@ export function CreateGroupForm({ creator }: Props) {
   const { message, modal } = App.useApp()
   const navigate = useNavigate()
   const [submitting, setSubmitting] = useState(false)
-  const { people, loading } = useKnownPeople(creator.email)
+  const { people, loading, add: addKnownPerson } = useKnownPeople(creator.email)
 
   // The currency of the device's region, preselected and listed first.
   const [regionCurrency] = useState(() =>
@@ -38,7 +38,7 @@ export function CreateGroupForm({ creator }: Props) {
     name: '',
     type: DEFAULT_GROUP_TYPE,
     defaultCurrency: regionCurrency ?? undefined,
-    memberEmails: [],
+    memberIds: [],
   }))
 
   const hasInput = hasUnsavedInput(Form.useWatch([], form), initialValues)
@@ -120,18 +120,14 @@ export function CreateGroupForm({ creator }: Props) {
         </Form.Item>
         <Form.Item
           label="Members"
-          name="memberEmails"
-          extra={
-            <Text type="secondary">
-              You are added automatically. Only @{groupService.memberEmailDomain}{' '}
-              addresses can be added.
-            </Text>
-          }
+          name="memberIds"
+          extra={<Text type="secondary">You are added automatically.</Text>}
         >
           <MemberSelect
-            creatorEmail={creator.email}
+            adder={creator}
             knownPeople={people}
             loading={loading}
+            onPersonAdded={addKnownPerson}
           />
         </Form.Item>
       </>

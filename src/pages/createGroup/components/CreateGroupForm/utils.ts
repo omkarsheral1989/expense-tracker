@@ -5,7 +5,7 @@ import type { FormValues } from './types.ts'
 /** What `form.setFields` takes: a name and its messages for each field. */
 type FieldData = Parameters<FormInstance['setFields']>[0][number]
 
-const FIELDS = ['name', 'type', 'defaultCurrency', 'memberEmails'] as const
+const FIELDS = ['name', 'type', 'defaultCurrency', 'memberIds'] as const
 
 /**
  * Whether the user has typed or changed anything since the form opened. Used to
@@ -21,7 +21,7 @@ export function hasUnsavedInput(
     (values.name ?? '').trim() !== '' ||
     values.type !== initial.type ||
     values.defaultCurrency !== initial.defaultCurrency ||
-    (values.memberEmails ?? []).length > 0
+    (values.memberIds ?? []).length > 0
   )
 }
 

@@ -1,10 +1,11 @@
-import { and, asc, desc, eq, isNull, ne, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import type { Database } from '../../db/client.ts'
 import { expenses, groupMembers, groups, people } from '../../db/schema.ts'
-import { MEMBER_EMAIL_DOMAIN } from './constants.ts'
-import { createGroupSchema, normalizeEmails, toFieldErrors } from './schemas.ts'
-import { shortName } from './utils.ts'
+import type { KnownPerson } from '../personService/types.ts'
+import { findOrAddPerson } from '../personService/utils.ts'
+import { createGroupSchema, toFieldErrors } from './schemas.ts'
+import { displayName, shortName } from './utils.ts'
 import type {
   CreateGroupInput,
   CreateGroupResult,
@@ -12,8 +13,6 @@ import type {
   GroupDetails,
   GroupMember,
   GroupSummary,
-  KnownPerson,
-  Transaction,
 } from './types.ts'
 
 /** A group name as compared for "already exists": no case, no extra spaces. */
@@ -32,44 +31,12 @@ async function findPersonId(db: Database, email: string): Promise<string | null>
   return person?.id ?? null
 }
 
-/** Finds the person with this email, or adds them. Returns their id. */
-async function findOrAddPerson(
-  tx: Transaction,
-  { email, name }: { email: string; name: string | null },
-  /** Who is adding them. Leave out when a person adds themselves. */
-  addedBy?: string,
-): Promise<string> {
-  const [existing] = await tx
-    .select({ id: people.id, name: people.name })
-    .from(people)
-    .where(eq(people.email, email))
-
-  if (existing) {
-    // Keep a person's own name up to date when they sign in.
-    if (addedBy === undefined && name && existing.name !== name) {
-      await tx
-        .update(people)
-        .set({ name, updatedAt: new Date(), updatedBy: existing.id })
-        .where(eq(people.id, existing.id))
-    }
-    return existing.id
-  }
-
-  // A person who adds themselves is their own `updated_by`.
-  const id = crypto.randomUUID()
-  await tx.insert(people).values({ id, email, name, updatedBy: addedBy ?? id })
-  return id
-}
-
 export const groupService = {
-  /** The domain every member's address must have. */
-  memberEmailDomain: MEMBER_EMAIL_DOMAIN,
-
-  /** Trims and lower-cases addresses and drops repeats, as creating a group does. */
-  normalizeMemberEmails: normalizeEmails,
-
   /** A person's first name, or their email before the "@" when no name is known. */
   shortName,
+
+  /** A person's name, or their email when no name is known. */
+  displayName,
 
   /**
    * Creates a group with its members, all or nothing. The creator is always a
@@ -87,10 +54,6 @@ export const groupService = {
 
     const { name, type, defaultCurrency } = parsed.data
     const creatorEmail = creator.email.toLowerCase()
-    // The creator is added automatically, so typing their own address is ignored.
-    const memberEmails = parsed.data.memberEmails.filter(
-      (email) => email !== creatorEmail,
-    )
 
     return db.transaction(async (tx): Promise<CreateGroupResult> => {
       const creatorId = await findOrAddPerson(tx, {
@@ -120,10 +83,18 @@ export const groupService = {
         }
       }
 
-      const memberIds = [creatorId]
-      for (const email of memberEmails) {
-        memberIds.push(await findOrAddPerson(tx, { email, name: null }, creatorId))
+      // The creator is added automatically, so choosing them again is ignored.
+      const chosenIds = parsed.data.memberIds.filter((id) => id !== creatorId)
+      if (chosenIds.length > 0) {
+        const found = await tx
+          .select({ id: people.id })
+          .from(people)
+          .where(and(inArray(people.id, chosenIds), isNull(people.deletedAt)))
+        if (found.length !== chosenIds.length) {
+          return { ok: false, errors: { memberIds: 'Choose members from the list.' } }
+        }
       }
+      const memberIds = [creatorId, ...chosenIds]
 
       const [group] = await tx
         .insert(groups)
@@ -143,40 +114,23 @@ export const groupService = {
   },
 
   /**
-   * The people this user already shares a group with, for picking as members of
-   * a new one: everyone in their groups except themselves, each listed once,
-   * in alphabetical order.
+   * The people saved on this device, for picking as members of a new group:
+   * everyone except the user themselves, in alphabetical order by name (or
+   * email when there is no name). Includes people added in the add-a-member
+   * dialog who are not in any group yet.
    */
   async listKnownPeople(db: Database, userEmail: string): Promise<KnownPerson[]> {
-    const [user] = await db
-      .select({ id: people.id })
-      .from(people)
-      .where(eq(people.email, userEmail.toLowerCase()))
-    if (!user) return []
-
-    const myMembership = alias(groupMembers, 'my_membership')
     const rows = await db
-      .selectDistinct({ id: people.id, email: people.email, name: people.name })
-      .from(myMembership)
-      .innerJoin(
-        groups,
-        and(eq(groups.id, myMembership.groupId), isNull(groups.deletedAt)),
-      )
-      .innerJoin(
-        groupMembers,
+      .select({ id: people.id, email: people.email, name: people.name })
+      .from(people)
+      .where(
         and(
-          eq(groupMembers.groupId, groups.id),
-          isNull(groupMembers.deletedAt),
-          ne(groupMembers.personId, user.id),
+          isNull(people.deletedAt),
+          sql`${people.email} is distinct from ${userEmail.toLowerCase()}`,
         ),
       )
-      .innerJoin(
-        people,
-        and(eq(people.id, groupMembers.personId), isNull(people.deletedAt)),
-      )
-      .where(and(eq(myMembership.personId, user.id), isNull(myMembership.deletedAt)))
 
-    const label = (person: KnownPerson) => (person.name ?? person.email).toLowerCase()
+    const label = (person: KnownPerson) => displayName(person).toLowerCase()
     return rows.sort((a, b) => label(a).localeCompare(label(b)))
   },
 
@@ -258,7 +212,7 @@ export const groupService = {
       ...row,
       isYou: row.personId === userId,
     }))
-    const label = (member: GroupMember) => (member.name ?? member.email).toLowerCase()
+    const label = (member: GroupMember) => displayName(member).toLowerCase()
     members.sort(
       (a, b) => Number(b.isYou) - Number(a.isYou) || label(a).localeCompare(label(b)),
     )

@@ -1,14 +1,14 @@
 import type { Database } from '../../db/client.ts'
 import type { GroupType } from '../../db/types.ts'
 
-/** What the create-group form sends. Emails may be in any case and repeated. */
+/** What the create-group form sends. */
 export type CreateGroupInput = {
   name: string
   type: GroupType
   /** An ISO 4217 code such as 'INR'. */
   defaultCurrency: string
-  /** The members to add besides the creator, who is always added. */
-  memberEmails: string[]
+  /** The ids of people already saved on this device, to add besides the creator, who is always added. */
+  memberIds: string[]
 }
 
 /** The fields of the form a problem can be attached to. */
@@ -25,13 +25,6 @@ export type CreateGroupResult =
 export type Creator = {
   email: string
   name: string
-}
-
-/** A person already known on this device, for picking as a member. */
-export type KnownPerson = {
-  id: string
-  email: string
-  name: string | null
 }
 
 /** One row of the home page's list of groups. */
@@ -53,7 +46,8 @@ export type GroupSummary = {
 /** A person in a group, as the group page shows them. */
 export type GroupMember = {
   personId: string
-  email: string
+  /** Null for a member added by name only. */
+  email: string | null
   name: string | null
   /** Whether this member is the user looking at the group. */
   isYou: boolean

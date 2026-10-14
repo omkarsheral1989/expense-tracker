@@ -7,14 +7,13 @@ import { getDb } from '../../../db/client.ts'
 import { groups } from '../../../db/schema.ts'
 import { ABOVE_FLOATING_BUTTON } from '../../../components/FloatingPillButton/constants.ts'
 import { ROUTES } from '../../../routes.ts'
-import { groupService } from '../../../services/groupService'
-import type { CreateGroupInput } from '../../../services/groupService/types.ts'
 import { useAuthStore } from '../../../stores/useAuthStore'
 import { setUpTestDatabase } from '../../../testing/database.ts'
 import { addTestExpense } from '../../../testing/expenses.ts'
 import { renderPage } from '../../../testing/render.tsx'
 import { HomePage } from '../index.tsx'
 import { expectCenteredMessage } from '../../../testing/centered.ts'
+import { createTestGroup, type TestGroupInput } from '../../../testing/groups.ts'
 
 // Pages reach the database through `getDb`; point it at the in-memory one.
 vi.mock('../../../db/client.ts', async (importOriginal) => {
@@ -32,9 +31,9 @@ const testDb = setUpTestDatabase()
 
 async function createGroup(
   creator: { email: string; name: string },
-  input: Partial<CreateGroupInput> & { name: string },
+  input: Partial<TestGroupInput> & { name: string },
 ) {
-  const result = await groupService.createGroup(testDb.db, creator, {
+  const result = await createTestGroup(testDb.db, creator, {
     type: 'trip',
     defaultCurrency: 'GBP',
     memberEmails: [],

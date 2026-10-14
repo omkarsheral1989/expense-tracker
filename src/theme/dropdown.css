@@ -1,0 +1,21 @@
+/*
+ * Every dropdown (the lists of selects and the menus) looks the same: rows run
+ * edge to edge with no padding around them and no gap, a thin line between
+ * rows, and the container's rounded corners clip the first and last row.
+ * The padding and radius need !important to outrank the ones Ant Design sets.
+ */
+.ant-select-dropdown,
+.ant-dropdown-menu {
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.ant-select-dropdown .ant-select-item,
+.ant-dropdown-menu .ant-dropdown-menu-item {
+  border-radius: 0 !important;
+}
+
+.ant-select-dropdown .ant-select-item + .ant-select-item,
+.ant-dropdown-menu .ant-dropdown-menu-item + .ant-dropdown-menu-item {
+  border-top: 1px solid var(--ant-color-split);
+}

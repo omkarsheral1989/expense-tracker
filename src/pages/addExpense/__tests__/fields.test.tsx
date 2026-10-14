@@ -3,11 +3,11 @@ import { cleanup, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getDb } from '../../../db/client.ts'
-import { groupService } from '../../../services/groupService'
 import { useAuthStore } from '../../../stores/useAuthStore'
 import { addTestExpense } from '../../../testing/expenses.ts'
 import { setUpAddExpenseTests, me, descriptionInput, amountInput, notesInput, typeAsBrowser, currencySection } from './helpers.tsx'
 import { expectCenteredMessage } from '../../../testing/centered.ts'
+import { createTestGroup } from '../../../testing/groups.ts'
 
 // Pages reach the database through `getDb`; point it at the in-memory one.
 vi.mock('../../../db/client.ts', async (importOriginal) => {
@@ -81,7 +81,7 @@ describe('AddExpensePage', () => {
     })
 
     it('shows "Group not found" for a group the user is not in', async () => {
-      const result = await groupService.createGroup(testDb.db, { email: 'priya@gmail.com', name: 'Priya' }, {
+      const result = await createTestGroup(testDb.db, { email: 'priya@gmail.com', name: 'Priya' }, {
         name: 'Not mine',
         type: 'trip',
         defaultCurrency: 'GBP',

@@ -17,6 +17,7 @@ describe('displayName', () => {
     expect(displayName(you)).toBe('You')
     expect(displayName(priya)).toBe('Priya Shah')
     expect(displayName({ ...priya, name: null })).toBe('priya@gmail.com')
+    expect(displayName({ ...priya, name: 'Rahul', email: null })).toBe('Rahul')
   })
 })
 

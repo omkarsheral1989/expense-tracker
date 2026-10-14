@@ -64,7 +64,7 @@ export type CreateExpenseResult =
 /** Who an expense's payer is, as the list names them. */
 export type ExpensePayer = {
   personId: string
-  email: string
+  email: string | null
   name: string | null
   isYou: boolean
 }
@@ -99,7 +99,7 @@ export type ShareAmounts = {
 /** What the user and one other member owe each other in one currency. */
 export type PersonBalance = {
   personId: string
-  email: string
+  email: string | null
   name: string | null
   currency: string
   /** Positive: they owe the user. Negative: the user owes them. Never zero. */
@@ -116,7 +116,7 @@ export type CurrencyBalance = {
 /** One member's part in an expense, for its details page. */
 export type ExpenseShareDetails = {
   personId: string
-  email: string
+  email: string | null
   name: string | null
   isYou: boolean
   paidMinor: number
@@ -136,7 +136,7 @@ export type ExpenseDetails = {
   notes: string | null
   method: SplitMethod
   /** Who added it. */
-  createdBy: { email: string; name: string | null; isYou: boolean }
+  createdBy: { email: string | null; name: string | null; isYou: boolean }
   /** The user first, then the others A to Z; only those who paid or owe something. */
   shares: ExpenseShareDetails[]
   /** Its receipt photos, in order; the pictures are in the photo store under these ids. */
