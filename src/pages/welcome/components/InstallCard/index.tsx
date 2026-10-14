@@ -10,23 +10,23 @@ const { Title, Paragraph, Text } = Typography
 type Props = {
   platform: Platform
   /**
-   * Whether installing is *required* before the user can sign in ("gated" means
-   * sign-in is locked behind installing the app).
+   * Whether installing is *required* before the user can open the app ("gated"
+   * means getting started is locked behind installing the app).
    *
    * When true:
    * - the card is the page's main call to action: warning icon, the heading
    *   "Install OwnLedger first", and a "Continue in browser anyway" link;
-   * - the Sign in button is not shown anywhere on the page.
+   * - the Open OwnLedger button is not shown anywhere on the page.
    *
    * When false, installing is only a suggestion: the heading is just "Install
-   * OwnLedger" with a download icon, there is no skip link, and the Sign in
-   * button is visible next to the card.
+   * OwnLedger" with a download icon, there is no skip link, and the Open
+   * OwnLedger button is visible next to the card.
    *
    * It is true only on iPhone/iPad, for an app that is not installed yet and
    * has not been skipped, and only while VITE_REQUIRE_INSTALL is not "false".
    * The reason: an installed iOS app has its own storage, separate from the
    * browser's, so data entered in a browser tab would not carry over. The value
-   * is worked out in the welcome page (`pages/welcome/index.tsx`).
+   * is worked out by `useInstallGate` (`hooks/useInstallGate`).
    */
   gated: boolean
   /**

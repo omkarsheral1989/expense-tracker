@@ -2,7 +2,7 @@ import { PlusOutlined } from '@ant-design/icons'
 import { Button, Divider, Flex, Select, Typography } from 'antd'
 import { useState } from 'react'
 import { groupService } from '../../../../../services/groupService'
-import type { KnownPerson, PersonAdder } from '../../../../../services/personService/types.ts'
+import type { KnownPerson } from '../../../../../services/personService/types.ts'
 import { AddMemberDialog } from './AddMemberDialog'
 
 const { Text } = Typography
@@ -10,8 +10,8 @@ const { Text } = Typography
 type Props = {
   /** Given by the form item, so that its label is tied to the input. */
   id?: string
-  /** The signed-in user, who is adding anyone new. */
-  adder: PersonAdder
+  /** The user's person id: they are adding anyone new. */
+  adderId: string
   /** The people saved on this device, offered to pick from. */
   knownPeople: KnownPerson[]
   loading?: boolean
@@ -30,7 +30,7 @@ type Props = {
  */
 export function MemberSelect({
   id,
-  adder,
+  adderId,
   knownPeople,
   loading,
   onPersonAdded,
@@ -96,7 +96,7 @@ export function MemberSelect({
       <AddMemberDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
-        adder={adder}
+        adderId={adderId}
         onAdded={handleAdded}
       />
     </>

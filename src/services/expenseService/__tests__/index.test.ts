@@ -3,11 +3,11 @@ import { and, eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createDatabase, type Database } from '../../../db/client.ts'
 import { expensePhotos, expenseShares, expenses, groupMembers, groups, people } from '../../../db/schema.ts'
-import type { Creator } from '../../groupService/types.ts'
 import { expenseService } from '../index.ts'
 import type { CreateExpenseInput } from '../types.ts'
 import { addTestExpense, expenseInput } from '../../../testing/expenses.ts'
-import { createTestGroup } from '../../../testing/groups.ts'
+import { createTestGroup, type TestUser } from '../../../testing/groups.ts'
+import { personIdForEmail } from '../../../testing/ids.ts'
 
 let pg: PGlite
 let db: Database
@@ -21,8 +21,8 @@ afterAll(() => pg.close())
 
 beforeEach(() => pg.exec('truncate expense_photos, expense_shares, expenses, group_members, groups, people cascade'))
 
-const omkar: Creator = { email: 'omkar@gmail.com', name: 'Omkar' }
-const priya: Creator = { email: 'priya@gmail.com', name: 'Priya' }
+const omkar: TestUser = { email: 'omkar@gmail.com', name: 'Omkar' }
+const priya: TestUser = { email: 'priya@gmail.com', name: 'Priya' }
 
 const dinner: Partial<CreateExpenseInput> = {
   description: 'Dinner',
@@ -33,7 +33,7 @@ const dinner: Partial<CreateExpenseInput> = {
   notes: '',
 }
 
-async function createGroup(creator: Creator, memberEmails: string[] = []) {
+async function createGroup(creator: TestUser, memberEmails: string[] = []) {
   const result = await createTestGroup(db, creator, {
     name: `Group ${crypto.randomUUID().slice(0, 8)}`,
     type: 'trip',
@@ -142,7 +142,7 @@ describe('createExpense', () => {
     const me = await personId('omkar@gmail.com')
     const result = await expenseService.createExpense(
       db,
-      'omkar@gmail.com',
+      personIdForEmail('omkar@gmail.com'),
       groupId,
       await input('omkar@gmail.com', groupId, {
         description: '',
@@ -162,7 +162,7 @@ describe('createExpense', () => {
     await createGroup(priya)
     const result = await expenseService.createExpense(
       db,
-      'omkar@gmail.com',
+      personIdForEmail('omkar@gmail.com'),
       groupId,
       await input('omkar@gmail.com', groupId, { paidBy: await personId('priya@gmail.com') }),
     )
@@ -190,7 +190,7 @@ describe('createExpense', () => {
     const groupId = await createGroup(omkar)
     const photo = () => ({ id: crypto.randomUUID(), mimeType: 'image/jpeg', sizeBytes: 1 })
     const save = async (receipts: CreateExpenseInput['receipts']) =>
-      expenseService.createExpense(db, 'omkar@gmail.com', groupId, await input('omkar@gmail.com', groupId, { receipts }))
+      expenseService.createExpense(db, personIdForEmail('omkar@gmail.com'), groupId, await input('omkar@gmail.com', groupId, { receipts }))
 
     expect((await save(Array.from({ length: 10 }, photo))).ok).toBe(true)
     expect(await save(Array.from({ length: 11 }, photo))).toEqual({
@@ -232,7 +232,7 @@ describe('createExpense', () => {
 
   it('returns every problem at once, one per field, and saves nothing', async () => {
     const groupId = await createGroup(omkar)
-    const result = await expenseService.createExpense(db, 'omkar@gmail.com', groupId, await input('omkar@gmail.com', groupId, {
+    const result = await expenseService.createExpense(db, personIdForEmail('omkar@gmail.com'), groupId, await input('omkar@gmail.com', groupId, {
       description: '   ',
       category: 'food.unknown',
       amountMinor: null,
@@ -265,7 +265,7 @@ describe('createExpense', () => {
     const groupId = await createGroup(omkar)
     const result = await expenseService.createExpense(
       db,
-      'omkar@gmail.com',
+      personIdForEmail('omkar@gmail.com'),
       groupId,
       await input('omkar@gmail.com', groupId, change),
     )
@@ -277,7 +277,7 @@ describe('createExpense', () => {
     const save = async (amountMinor: number, currency: string) =>
       expenseService.createExpense(
         db,
-        'omkar@gmail.com',
+        personIdForEmail('omkar@gmail.com'),
         groupId,
         await input('omkar@gmail.com', groupId, { amountMinor, currency }),
       )
@@ -294,7 +294,7 @@ describe('createExpense', () => {
 
   it('reports a too-large amount together with other problems', async () => {
     const groupId = await createGroup(omkar)
-    const result = await expenseService.createExpense(db, 'omkar@gmail.com', groupId, await input('omkar@gmail.com', groupId, {
+    const result = await expenseService.createExpense(db, personIdForEmail('omkar@gmail.com'), groupId, await input('omkar@gmail.com', groupId, {
       description: '',
       amountMinor: 100_000_000_001,
     }))
@@ -309,7 +309,7 @@ describe('createExpense', () => {
 
   it('reports a malformed currency as a field problem rather than failing', async () => {
     const groupId = await createGroup(omkar)
-    const result = await expenseService.createExpense(db, 'omkar@gmail.com', groupId, await input('omkar@gmail.com', groupId, {
+    const result = await expenseService.createExpense(db, personIdForEmail('omkar@gmail.com'), groupId, await input('omkar@gmail.com', groupId, {
       currency: 'R$',
     }))
     expect(result).toEqual({ ok: false, errors: { currency: 'Choose a currency.' } })
@@ -325,13 +325,13 @@ describe('createExpense', () => {
   it('throws for a group the user is not in, a deleted group, or an unknown user', async () => {
     const mine = await createGroup(omkar)
     const priyas = await createGroup(priya)
-    await expect(expenseService.createExpense(db, 'omkar@gmail.com', priyas, await input('omkar@gmail.com', priyas))).rejects.toThrow()
+    await expect(expenseService.createExpense(db, personIdForEmail('omkar@gmail.com'), priyas, await input('omkar@gmail.com', priyas))).rejects.toThrow()
 
     const deleted = await createGroup(omkar)
     await db.update(groups).set({ deletedAt: new Date() }).where(eq(groups.id, deleted))
-    await expect(expenseService.createExpense(db, 'omkar@gmail.com', deleted, await input('omkar@gmail.com', deleted))).rejects.toThrow()
+    await expect(expenseService.createExpense(db, personIdForEmail('omkar@gmail.com'), deleted, await input('omkar@gmail.com', deleted))).rejects.toThrow()
 
-    await expect(expenseService.createExpense(db, 'nobody@gmail.com', mine, await input('omkar@gmail.com', mine))).rejects.toThrow()
+    await expect(expenseService.createExpense(db, personIdForEmail('nobody@gmail.com'), mine, await input('omkar@gmail.com', mine))).rejects.toThrow()
     expect(await db.select().from(expenses)).toEqual([])
   })
 })
@@ -339,9 +339,25 @@ describe('createExpense', () => {
 describe('listExpenses', () => {
   it('is empty for a group without expenses and for an unknown user', async () => {
     const groupId = await createGroup(omkar)
-    expect(await expenseService.listExpenses(db, 'omkar@gmail.com', groupId)).toEqual([])
+    expect(await expenseService.listExpenses(db, personIdForEmail('omkar@gmail.com'), groupId)).toEqual([])
     await addExpense('omkar@gmail.com', groupId)
-    expect(await expenseService.listExpenses(db, 'nobody@gmail.com', groupId)).toEqual([])
+    expect(await expenseService.listExpenses(db, personIdForEmail('nobody@gmail.com'), groupId)).toEqual([])
+  })
+
+  it('is empty for someone who is known but not in the group', async () => {
+    const groupId = await createGroup(omkar)
+    await addExpense('omkar@gmail.com', groupId)
+    await createGroup(priya)
+
+    expect(await expenseService.listExpenses(db, personIdForEmail('priya@gmail.com'), groupId)).toEqual([])
+  })
+
+  it('is empty for someone who has left the group', async () => {
+    const groupId = await createGroup(omkar, ['priya@gmail.com'])
+    await addExpense('omkar@gmail.com', groupId)
+    await db.update(groupMembers).set({ deletedAt: new Date() }).where(eq(groupMembers.personId, personIdForEmail('priya@gmail.com')))
+
+    expect(await expenseService.listExpenses(db, personIdForEmail('priya@gmail.com'), groupId)).toEqual([])
   })
 
   it('lists newest day first, and the latest added first within a day', async () => {
@@ -357,7 +373,7 @@ describe('listExpenses', () => {
       await changedAt(id, `2026-10-08T10:0${index}:00Z`)
     }
 
-    const list = await expenseService.listExpenses(db, 'omkar@gmail.com', groupId)
+    const list = await expenseService.listExpenses(db, personIdForEmail('omkar@gmail.com'), groupId)
     expect(list.map((expense) => expense.description)).toEqual([
       'Second today',
       'First today',
@@ -371,7 +387,7 @@ describe('listExpenses', () => {
     const id = await addExpense('omkar@gmail.com', groupId, { amountMinor: 1001 })
     const me = await personId('omkar@gmail.com')
 
-    const [mine] = await expenseService.listExpenses(db, 'omkar@gmail.com', groupId)
+    const [mine] = await expenseService.listExpenses(db, personIdForEmail('omkar@gmail.com'), groupId)
     expect(mine).toEqual({
       id,
       description: 'Dinner',
@@ -392,7 +408,7 @@ describe('listExpenses', () => {
       defaultCurrency: 'INR',
       memberEmails: [],
     })
-    const [hers] = await expenseService.listExpenses(db, 'priya@gmail.com', groupId)
+    const [hers] = await expenseService.listExpenses(db, personIdForEmail('priya@gmail.com'), groupId)
     expect(hers).toMatchObject({
       payer: { personId: me, isYou: false },
       yourPaidMinor: 0,
@@ -410,7 +426,7 @@ describe('listExpenses', () => {
       .set({ deletedAt: new Date() })
       .where(eq(expenseShares.personId, await personId('priya@gmail.com')))
 
-    const [row] = await expenseService.listExpenses(db, 'priya@gmail.com', groupId)
+    const [row] = await expenseService.listExpenses(db, personIdForEmail('priya@gmail.com'), groupId)
     expect(row).toMatchObject({ id, yourPaidMinor: 0, yourOwedMinor: 0, involved: false })
   })
 
@@ -422,7 +438,7 @@ describe('listExpenses', () => {
     await addExpense('omkar@gmail.com', other, { description: 'Elsewhere' })
     await db.update(expenses).set({ deletedAt: new Date() }).where(eq(expenses.id, deleted))
 
-    const list = await expenseService.listExpenses(db, 'omkar@gmail.com', groupId)
+    const list = await expenseService.listExpenses(db, personIdForEmail('omkar@gmail.com'), groupId)
     expect(list.map((expense) => expense.description)).toEqual(['Kept'])
   })
 })
@@ -430,13 +446,13 @@ describe('listExpenses', () => {
 describe('recentCurrencies', () => {
   it('lists the currencies of the user\'s latest expenses, each once, at most three', async () => {
     const groupId = await createGroup(omkar, ['priya@gmail.com'])
-    expect(await expenseService.recentCurrencies(db, 'omkar@gmail.com')).toEqual([])
+    expect(await expenseService.recentCurrencies(db, personIdForEmail('omkar@gmail.com'))).toEqual([])
 
     for (const [index, currency] of ['USD', 'EUR', 'INR', 'GBP', 'EUR'].entries()) {
       const id = await addExpense('omkar@gmail.com', groupId, { currency })
       await changedAt(id, `2026-10-08T10:0${index}:00Z`)
     }
-    expect(await expenseService.recentCurrencies(db, 'omkar@gmail.com')).toEqual([
+    expect(await expenseService.recentCurrencies(db, personIdForEmail('omkar@gmail.com'))).toEqual([
       'EUR',
       'GBP',
       'INR',
@@ -449,17 +465,17 @@ describe('recentCurrencies', () => {
     const deleted = await addExpense('omkar@gmail.com', groupId, { currency: 'USD' })
     await db.update(expenses).set({ deletedAt: new Date() }).where(eq(expenses.id, deleted))
 
-    expect(await expenseService.recentCurrencies(db, 'omkar@gmail.com')).toEqual([])
-    expect(await expenseService.recentCurrencies(db, 'nobody@gmail.com')).toEqual([])
+    expect(await expenseService.recentCurrencies(db, personIdForEmail('omkar@gmail.com'))).toEqual([])
+    expect(await expenseService.recentCurrencies(db, personIdForEmail('nobody@gmail.com'))).toEqual([])
   })
 })
 
 describe('groupBalances', () => {
   it('is empty with no expenses, and for an unknown user', async () => {
     const groupId = await createGroup(omkar, ['priya@gmail.com'])
-    expect(await expenseService.groupBalances(db, 'omkar@gmail.com', groupId)).toEqual([])
+    expect(await expenseService.groupBalances(db, personIdForEmail('omkar@gmail.com'), groupId)).toEqual([])
     await addExpense('omkar@gmail.com', groupId)
-    expect(await expenseService.groupBalances(db, 'nobody@gmail.com', groupId)).toEqual([])
+    expect(await expenseService.groupBalances(db, personIdForEmail('nobody@gmail.com'), groupId)).toEqual([])
   })
 
   it('says what each other member owes you, or you owe them, per currency', async () => {
@@ -471,7 +487,7 @@ describe('groupBalances', () => {
     await addExpense('priya@gmail.com', groupId, { amountMinor: 3000, currency: 'INR' })
     await addExpense('priya@gmail.com', groupId, { amountMinor: 600, currency: 'GBP' })
 
-    const balances = await expenseService.groupBalances(db, 'omkar@gmail.com', groupId)
+    const balances = await expenseService.groupBalances(db, personIdForEmail('omkar@gmail.com'), groupId)
     expect(balances.map(({ email, name, currency, amountMinor }) => ({ email, name, currency, amountMinor }))).toEqual([
       // GBP: Priya owes 300 for the first, you owe her 200 for the third.
       { email: 'priya@gmail.com', name: 'Priya Shah', currency: 'GBP', amountMinor: 100 },
@@ -489,8 +505,8 @@ describe('groupBalances', () => {
     await db.update(expenses).set({ deletedAt: new Date() }).where(eq(expenses.id, deleted))
     await addExpense('omkar@gmail.com', other, { amountMinor: 7000 })
 
-    expect(await expenseService.groupBalances(db, 'omkar@gmail.com', groupId)).toEqual([])
-    expect(await expenseService.groupBalances(db, 'omkar@gmail.com', other)).toHaveLength(1)
+    expect(await expenseService.groupBalances(db, personIdForEmail('omkar@gmail.com'), groupId)).toEqual([])
+    expect(await expenseService.groupBalances(db, personIdForEmail('omkar@gmail.com'), other)).toHaveLength(1)
   })
 
   it('leaves out deleted shares', async () => {
@@ -501,7 +517,7 @@ describe('groupBalances', () => {
       .set({ deletedAt: new Date() })
       .where(and(eq(expenseShares.expenseId, id), eq(expenseShares.personId, await personId('priya@gmail.com'))))
 
-    expect(await expenseService.groupBalances(db, 'omkar@gmail.com', groupId)).toEqual([])
+    expect(await expenseService.groupBalances(db, personIdForEmail('omkar@gmail.com'), groupId)).toEqual([])
   })
 })
 
@@ -518,7 +534,7 @@ describe('balancesByGroup', () => {
     await addExpense('omkar@gmail.com', settled, { amountMinor: 1000 })
     await addExpense('priya@gmail.com', settled, { amountMinor: 1000 })
 
-    expect(await expenseService.balancesByGroup(db, 'omkar@gmail.com')).toEqual({
+    expect(await expenseService.balancesByGroup(db, personIdForEmail('omkar@gmail.com'))).toEqual({
       [goa]: [
         { currency: 'GBP', amountMinor: 600 },
         { currency: 'INR', amountMinor: -1000 },
@@ -526,14 +542,14 @@ describe('balancesByGroup', () => {
       // 10.01 split in two: Priya, who paid, keeps the extra cent.
       [flat]: [{ currency: 'EUR', amountMinor: -500 }],
     })
-    expect(await expenseService.balancesByGroup(db, 'nobody@gmail.com')).toEqual({})
+    expect(await expenseService.balancesByGroup(db, personIdForEmail('nobody@gmail.com'))).toEqual({})
   })
 
   it('leaves out deleted expenses', async () => {
     const groupId = await createGroup(omkar, ['priya@gmail.com'])
     const id = await addExpense('omkar@gmail.com', groupId)
     await db.update(expenses).set({ deletedAt: new Date() }).where(eq(expenses.id, id))
-    expect(await expenseService.balancesByGroup(db, 'omkar@gmail.com')).toEqual({})
+    expect(await expenseService.balancesByGroup(db, personIdForEmail('omkar@gmail.com'))).toEqual({})
   })
 })
 
@@ -551,7 +567,7 @@ describe('getExpense', () => {
       split: { method: 'shares', values: { [me]: 1, [priyaId]: 2 } },
     })
 
-    const details = await expenseService.getExpense(db, 'omkar@gmail.com', groupId, id)
+    const details = await expenseService.getExpense(db, personIdForEmail('omkar@gmail.com'), groupId, id)
 
     expect(details).toEqual({
       id,
@@ -582,7 +598,7 @@ describe('getExpense', () => {
     })
     await db.update(expensePhotos).set({ deletedAt: new Date() }).where(eq(expensePhotos.id, ids[2]))
 
-    const details = await expenseService.getExpense(db, 'omkar@gmail.com', groupId, id)
+    const details = await expenseService.getExpense(db, personIdForEmail('omkar@gmail.com'), groupId, id)
     expect(details?.receipts).toEqual([
       { id: ids[0], mimeType: 'image/jpeg' },
       { id: ids[1], mimeType: 'image/png' },
@@ -599,7 +615,7 @@ describe('getExpense', () => {
     await db.update(expenses).set({ deletedAt: new Date() }).where(eq(expenses.id, deleted))
 
     const get = (group: string, expense: string, email = 'omkar@gmail.com') =>
-      expenseService.getExpense(db, email, group, expense)
+      expenseService.getExpense(db, personIdForEmail(email), group, expense)
     expect(await get(groupId, id)).not.toBeNull()
     expect(await get(groupId, crypto.randomUUID())).toBeNull()
     expect(await get(groupId, 'not-an-id')).toBeNull()

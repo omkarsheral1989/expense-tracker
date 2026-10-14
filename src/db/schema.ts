@@ -194,7 +194,7 @@ export const expenseShares = pgTable(
 
 /**
  * A receipt photo of an expense. Only what describes the photo is kept here;
- * the photo itself and its thumbnail are in the account's photo store
+ * the photo itself and its thumbnail are in the device's photo store
  * (IndexedDB), under this row's id.
  */
 export const expensePhotos = pgTable(

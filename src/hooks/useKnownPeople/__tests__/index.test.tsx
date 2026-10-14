@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { getDb } from '../../../db/client.ts'
 import { setUpTestDatabase } from '../../../testing/database.ts'
 import { addTestPerson } from '../../../testing/groups.ts'
+import { personIdForEmail } from '../../../testing/ids.ts'
 import { useKnownPeople } from '../index.ts'
 
 // The hook reaches the database through `getDb`; point it at the in-memory one.
@@ -17,6 +18,7 @@ vi.mock('../../../db/client.ts', async (importOriginal) => {
 
 const testDb = setUpTestDatabase()
 const me = { email: 'omkar@gmail.com', name: 'Omkar' }
+const userId = personIdForEmail(me.email)
 
 describe('useKnownPeople', () => {
   afterEach(() => {
@@ -28,7 +30,7 @@ describe('useKnownPeople', () => {
     await addTestPerson(testDb.db, me, { name: 'Rahul' })
     await addTestPerson(testDb.db, me, { name: 'Priya Shah', email: 'priya@gmail.com' })
 
-    const { result } = renderHook(() => useKnownPeople(me.email))
+    const { result } = renderHook(() => useKnownPeople(userId))
     expect(result.current).toMatchObject({ loading: true, people: [] })
 
     await waitFor(() => expect(result.current.loading).toBe(false))
@@ -37,7 +39,7 @@ describe('useKnownPeople', () => {
 
   it('puts a person who has just been saved into the list, in order', async () => {
     await addTestPerson(testDb.db, me, { name: 'Rahul' })
-    const { result } = renderHook(() => useKnownPeople(me.email))
+    const { result } = renderHook(() => useKnownPeople(userId))
     await waitFor(() => expect(result.current.loading).toBe(false))
 
     act(() => result.current.add({ id: 'new-id', name: 'Ann', email: null }))
@@ -48,7 +50,7 @@ describe('useKnownPeople', () => {
   it('shows an empty list, not an error, when the database cannot be read', async () => {
     vi.mocked(getDb).mockRejectedValueOnce(new Error('database is closed'))
 
-    const { result } = renderHook(() => useKnownPeople(me.email))
+    const { result } = renderHook(() => useKnownPeople(userId))
 
     await waitFor(() => expect(result.current.loading).toBe(false))
     expect(result.current.people).toEqual([])

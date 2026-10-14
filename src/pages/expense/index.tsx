@@ -3,8 +3,8 @@ import { useParams } from 'react-router'
 import { CenteredMessage } from '../../components/CenteredMessage'
 import { getDb } from '../../db/client.ts'
 import { useAsyncData } from '../../hooks/useAsyncData'
+import { useCurrentUser } from '../../hooks/useCurrentUser'
 import { expenseService } from '../../services/expenseService'
-import { useAuthStore } from '../../stores/useAuthStore'
 import { belowStatusBar } from '../../theme/safeArea.ts'
 import { ExpenseDetails } from './components/ExpenseDetails'
 import { ExpenseNotFound } from './components/ExpenseNotFound'
@@ -17,18 +17,18 @@ const COLUMN_STYLE = { width: '100%', maxWidth: 560, margin: '0 auto', padding: 
  * deleting and the history of changes come later.
  */
 export function ExpensePage() {
-  const profile = useAuthStore((state) => state.profile)
+  const user = useCurrentUser()
   const { id = '', expenseId = '' } = useParams()
 
-  const email = profile?.email ?? ''
-  const accountId = profile?.id ?? ''
+  const userId = user?.personId ?? ''
+  const datasetId = user?.datasetId ?? ''
   const { state, retry } = useAsyncData(
-    async () => expenseService.getExpense(await getDb(), email, id, expenseId),
-    `${email}:${id}:${expenseId}`,
+    async () => expenseService.getExpense(await getDb(), userId, id, expenseId),
+    `${userId}:${id}:${expenseId}`,
   )
 
-  // Signed-out visitors are sent away by `RequireAuth` before this matters.
-  if (!profile) return null
+  // Visitors who are not in the app are sent away by `RequireAuth` before this matters.
+  if (!user) return null
 
   function renderContent() {
     switch (state.status) {
@@ -53,7 +53,7 @@ export function ExpensePage() {
         )
       case 'ready':
         return state.data ? (
-          <ExpenseDetails expense={state.data} accountId={accountId} />
+          <ExpenseDetails expense={state.data} datasetId={datasetId} />
         ) : (
           <ExpenseNotFound groupId={id} />
         )

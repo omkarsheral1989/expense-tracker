@@ -4,7 +4,7 @@ export type DatabaseLock = {
 }
 
 /**
- * Takes the lock that lets one tab use an account's database. The browser
+ * Takes the lock that lets one tab use the device's data. The browser
  * drops it by itself when the tab closes, so a crashed tab never keeps the
  * database locked.
  *
@@ -13,13 +13,13 @@ export type DatabaseLock = {
  * does nothing.
  */
 export function acquireDatabaseLock(
-  accountId: string,
+  datasetId: string,
 ): Promise<DatabaseLock | null> {
   if (!('locks' in navigator)) return Promise.resolve({ release: () => {} })
 
   return new Promise((resolve) => {
     navigator.locks.request(
-      `ownledger-database-${accountId}`,
+      `ownledger-database-${datasetId}`,
       { ifAvailable: true },
       (lock) => {
         if (!lock) {

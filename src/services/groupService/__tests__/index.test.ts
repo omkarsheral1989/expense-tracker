@@ -5,8 +5,9 @@ import { createDatabase, type Database } from '../../../db/client.ts'
 import { expenses, groupMembers, groups, people } from '../../../db/schema.ts'
 import { addTestExpense } from '../../../testing/expenses.ts'
 import { groupService } from '../index.ts'
-import type { CreateGroupInput, Creator } from '../types.ts'
-import { addTestPerson, createTestGroup, memberIdsOf, type TestGroupInput } from '../../../testing/groups.ts'
+import type { CreateGroupInput } from '../types.ts'
+import { addTestPerson, createTestGroup, memberIdsOf, type TestGroupInput, type TestUser } from '../../../testing/groups.ts'
+import { personIdForEmail } from '../../../testing/ids.ts'
 
 let pg: PGlite
 let db: Database
@@ -20,8 +21,8 @@ afterAll(() => pg.close())
 
 beforeEach(() => pg.exec('truncate expense_photos, expense_shares, expenses, group_members, groups, people cascade'))
 
-const omkar: Creator = { email: 'omkar@gmail.com', name: 'Omkar' }
-const priya: Creator = { email: 'priya@gmail.com', name: 'Priya' }
+const omkar: TestUser = { email: 'omkar@gmail.com', name: 'Omkar' }
+const priya: TestUser = { email: 'priya@gmail.com', name: 'Priya' }
 
 const validInput: TestGroupInput = {
   name: 'Goa trip',
@@ -31,7 +32,7 @@ const validInput: TestGroupInput = {
 }
 
 /** Creates a group and returns its id, failing the test if it was refused. */
-async function create(creator: Creator, input: Partial<TestGroupInput> = {}) {
+async function create(creator: TestUser, input: Partial<TestGroupInput> = {}) {
   const result = await createTestGroup(db, creator, { ...validInput, ...input })
   if (!result.ok) throw new Error(`refused: ${JSON.stringify(result.errors)}`)
   return result.groupId
@@ -79,7 +80,7 @@ describe('createGroup', () => {
   it('trims the name, counts a member chosen twice once, and ignores the creator among them', async () => {
     const [priyaId] = await memberIdsOf(db, omkar, ['priya@gmail.com'])
     const [omkarId] = await memberIdsOf(db, omkar, ['omkar@gmail.com'])
-    const result = await groupService.createGroup(db, omkar, {
+    const result = await groupService.createGroup(db, personIdForEmail(omkar.email), {
       ...validInput,
       name: '  Goa trip  ',
       memberIds: [priyaId, priyaId, omkarId],
@@ -93,10 +94,10 @@ describe('createGroup', () => {
 
   it('adds a member who has no email, as a member like any other', async () => {
     const rahul = await addTestPerson(db, omkar, { name: 'Rahul' })
-    const result = await groupService.createGroup(db, omkar, { ...validInput, memberIds: [rahul] })
+    const result = await groupService.createGroup(db, personIdForEmail(omkar.email), { ...validInput, memberIds: [rahul] })
     if (!result.ok) throw new Error(JSON.stringify(result.errors))
 
-    const group = await groupService.getGroup(db, 'omkar@gmail.com', result.groupId)
+    const group = await groupService.getGroup(db, personIdForEmail('omkar@gmail.com'), result.groupId)
     expect(group?.members.map((member) => [member.name, member.email])).toEqual([
       ['Omkar', 'omkar@gmail.com'],
       ['Rahul', null],
@@ -115,14 +116,6 @@ describe('createGroup', () => {
     ])
   })
 
-  it('updates the creator\'s name when it has changed', async () => {
-    await create(omkar, { name: 'One' })
-    await create({ ...omkar, name: 'Omkar Sheral' }, { name: 'Two' })
-
-    const [person] = await db.select().from(people).where(eq(people.email, 'omkar@gmail.com'))
-    expect(person.name).toBe('Omkar Sheral')
-  })
-
   it('compares the creator\'s email in lower case', async () => {
     await create(omkar)
     await create({ ...omkar, email: 'Omkar@Gmail.com' }, { name: 'Another' })
@@ -137,7 +130,7 @@ describe('createGroup', () => {
         defaultCurrency: 'ZZZ',
         memberEmails: [],
       })
-      const withBadMember = await groupService.createGroup(db, omkar, {
+      const withBadMember = await groupService.createGroup(db, personIdForEmail(omkar.email), {
         ...validInput,
         name: '   ',
         memberIds: ['not-an-id'],
@@ -182,20 +175,20 @@ describe('createGroup', () => {
     it('refuses a member who is not a saved person, or was deleted', async () => {
       const [priyaId] = await memberIdsOf(db, omkar, ['priya@gmail.com'])
 
-      const unknown = await groupService.createGroup(db, omkar, {
+      const unknown = await groupService.createGroup(db, personIdForEmail(omkar.email), {
         ...validInput,
         memberIds: [priyaId, crypto.randomUUID()],
       })
       expect(unknown).toEqual({ ok: false, errors: { memberIds: 'Choose members from the list.' } })
 
       await db.update(people).set({ deletedAt: new Date() }).where(eq(people.id, priyaId))
-      const deleted = await groupService.createGroup(db, omkar, { ...validInput, memberIds: [priyaId] })
+      const deleted = await groupService.createGroup(db, personIdForEmail(omkar.email), { ...validInput, memberIds: [priyaId] })
       expect(deleted).toEqual({ ok: false, errors: { memberIds: 'Choose members from the list.' } })
       expect(await db.select().from(groups)).toHaveLength(0)
     })
 
     it('saves nothing when the input is refused', async () => {
-      await groupService.createGroup(db, omkar, { ...validInput, name: '', memberIds: [] })
+      await groupService.createGroup(db, personIdForEmail(omkar.email), { ...validInput, name: '', memberIds: [] })
 
       expect(await db.select().from(groups)).toHaveLength(0)
       expect(await db.select().from(people)).toHaveLength(0)
@@ -258,7 +251,7 @@ describe('createGroup', () => {
 
 describe('listKnownPeople', () => {
   it('is empty when nobody is saved yet', async () => {
-    expect(await groupService.listKnownPeople(db, 'omkar@gmail.com')).toEqual([])
+    expect(await groupService.listKnownPeople(db, personIdForEmail('omkar@gmail.com'))).toEqual([])
   })
 
   it('lists everyone saved on the device, never yourself, each once, in order', async () => {
@@ -266,7 +259,7 @@ describe('listKnownPeople', () => {
     await create(omkar, { name: 'Flat', type: 'home', memberEmails: ['priya@gmail.com'] })
     await db.update(people).set({ name: 'Priya' }).where(eq(people.email, 'priya@gmail.com'))
 
-    const known = await groupService.listKnownPeople(db, 'Omkar@Gmail.com')
+    const known = await groupService.listKnownPeople(db, personIdForEmail('Omkar@Gmail.com'))
 
     expect(known.map((person) => person.email)).toEqual(['priya@gmail.com', 'sam@gmail.com'])
     expect(known[0]).toMatchObject({ name: 'Priya' })
@@ -277,7 +270,7 @@ describe('listKnownPeople', () => {
     await create(priya, { name: 'Flat', memberEmails: ['lee@gmail.com'] })
     await addTestPerson(db, priya, { name: 'Rahul' })
 
-    const known = await groupService.listKnownPeople(db, 'omkar@gmail.com')
+    const known = await groupService.listKnownPeople(db, personIdForEmail('omkar@gmail.com'))
     expect(known.map((person) => person.name ?? person.email)).toEqual(['lee@gmail.com', 'Priya', 'Rahul'])
   })
 
@@ -287,7 +280,7 @@ describe('listKnownPeople', () => {
     await db.update(people).set({ name: 'Zed' }).where(eq(people.id, sam))
     await addTestPerson(db, omkar, { name: 'Bea' })
 
-    const known = await groupService.listKnownPeople(db, 'omkar@gmail.com')
+    const known = await groupService.listKnownPeople(db, personIdForEmail('omkar@gmail.com'))
     expect(known.map((person) => person.name)).toEqual(['Bea', 'Zed'])
   })
 })
@@ -304,10 +297,10 @@ async function personId(email: string) {
 
 describe('listGroups', () => {
   it('is empty for someone with no groups, and for someone unknown', async () => {
-    expect(await groupService.listGroups(db, 'nobody@gmail.com')).toEqual([])
+    expect(await groupService.listGroups(db, personIdForEmail('nobody@gmail.com'))).toEqual([])
 
     await create(priya, { name: 'Flat' })
-    expect(await groupService.listGroups(db, 'omkar@gmail.com')).toEqual([])
+    expect(await groupService.listGroups(db, personIdForEmail('omkar@gmail.com'))).toEqual([])
   })
 
   it('lists each group with its type, currency and member count', async () => {
@@ -318,7 +311,7 @@ describe('listGroups', () => {
     })
     const flat = await create(omkar, { name: 'Flat', type: 'home', defaultCurrency: 'INR' })
 
-    const list = await groupService.listGroups(db, 'omkar@gmail.com')
+    const list = await groupService.listGroups(db, personIdForEmail('omkar@gmail.com'))
 
     expect(list).toHaveLength(2)
     expect(list.find((group) => group.id === goa)).toMatchObject({
@@ -346,12 +339,12 @@ describe('listGroups', () => {
     await changedAt(tieB, '2026-02-01T00:00:00Z')
     await changedAt(tieA, '2026-02-01T00:00:00Z')
 
-    const names = (await groupService.listGroups(db, 'omkar@gmail.com')).map((group) => group.name)
+    const names = (await groupService.listGroups(db, personIdForEmail('omkar@gmail.com'))).map((group) => group.name)
     expect(names).toEqual(['Recent', 'Alpha', 'Bravo', 'Old'])
 
     // Changing a group moves it to the top.
     await changedAt(old, '2026-06-01T00:00:00Z')
-    const after = (await groupService.listGroups(db, 'omkar@gmail.com')).map((group) => group.name)
+    const after = (await groupService.listGroups(db, personIdForEmail('omkar@gmail.com'))).map((group) => group.name)
     expect(after[0]).toBe('Old')
   })
 
@@ -367,7 +360,7 @@ describe('listGroups', () => {
       .update(expenses)
       .set({ updatedAt: new Date('2026-04-01T00:00:00Z') })
       .where(eq(expenses.id, expenseId))
-    let names = (await groupService.listGroups(db, 'omkar@gmail.com')).map((group) => group.name)
+    let names = (await groupService.listGroups(db, personIdForEmail('omkar@gmail.com'))).map((group) => group.name)
     expect(names).toEqual(['Busy', 'Quiet'])
 
     // An older expense does not pull the group up past a newer change.
@@ -375,16 +368,16 @@ describe('listGroups', () => {
       .update(expenses)
       .set({ updatedAt: new Date('2026-02-01T00:00:00Z') })
       .where(eq(expenses.id, expenseId))
-    names = (await groupService.listGroups(db, 'omkar@gmail.com')).map((group) => group.name)
+    names = (await groupService.listGroups(db, personIdForEmail('omkar@gmail.com'))).map((group) => group.name)
     expect(names).toEqual(['Quiet', 'Busy'])
-    const busyRow = (await groupService.listGroups(db, 'omkar@gmail.com'))[1]
+    const busyRow = (await groupService.listGroups(db, personIdForEmail('omkar@gmail.com')))[1]
     expect(busyRow.lastActivityAt).toEqual(new Date('2026-02-01T00:00:00Z'))
   })
 
   it('includes groups someone else made, when you are a member', async () => {
     await create(priya, { name: 'Flat', memberEmails: ['omkar@gmail.com'] })
 
-    const list = await groupService.listGroups(db, 'omkar@gmail.com')
+    const list = await groupService.listGroups(db, personIdForEmail('omkar@gmail.com'))
     expect(list.map((group) => group.name)).toEqual(['Flat'])
   })
 
@@ -399,7 +392,7 @@ describe('listGroups', () => {
       .set({ deletedAt: new Date() })
       .where(eq(groupMembers.groupId, left))
 
-    const names = (await groupService.listGroups(db, 'omkar@gmail.com')).map((group) => group.name)
+    const names = (await groupService.listGroups(db, personIdForEmail('omkar@gmail.com'))).map((group) => group.name)
     expect(names).toEqual(['Kept'])
   })
 
@@ -410,14 +403,14 @@ describe('listGroups', () => {
       .set({ deletedAt: new Date() })
       .where(eq(groupMembers.personId, await personId('sam@gmail.com')))
 
-    const [group] = await groupService.listGroups(db, 'omkar@gmail.com')
+    const [group] = await groupService.listGroups(db, personIdForEmail('omkar@gmail.com'))
     expect(group.id).toBe(goa)
     expect(group.memberCount).toBe(2)
   })
 
   it('finds the user whatever the case of their email', async () => {
     await create(omkar, { name: 'Goa' })
-    expect(await groupService.listGroups(db, '  Omkar@GMAIL.com ')).toHaveLength(1)
+    expect(await groupService.listGroups(db, personIdForEmail('  Omkar@GMAIL.com '))).toHaveLength(1)
   })
 })
 
@@ -425,7 +418,7 @@ describe('getGroup', () => {
   it('returns the group with its details', async () => {
     const id = await create(omkar, { name: 'Goa trip', type: 'couple', defaultCurrency: 'EUR' })
 
-    expect(await groupService.getGroup(db, 'omkar@gmail.com', id)).toMatchObject({
+    expect(await groupService.getGroup(db, personIdForEmail('omkar@gmail.com'), id)).toMatchObject({
       id,
       name: 'Goa trip',
       type: 'couple',
@@ -441,7 +434,7 @@ describe('getGroup', () => {
     await db.update(people).set({ name: 'Zoe' }).where(eq(people.email, 'amy@gmail.com'))
     await db.update(people).set({ name: 'Bea' }).where(eq(people.email, 'zed@gmail.com'))
 
-    const group = await groupService.getGroup(db, 'omkar@gmail.com', id)
+    const group = await groupService.getGroup(db, personIdForEmail('omkar@gmail.com'), id)
 
     // Zoe and Bea have names; the rest are sorted by their email.
     expect(group?.members.map((member) => member.name ?? member.email)).toEqual([
@@ -452,7 +445,7 @@ describe('getGroup', () => {
   it('marks only the user as you, and carries each member\'s email', async () => {
     const id = await create(omkar, { name: 'Goa', memberEmails: ['priya@gmail.com'] })
 
-    const group = await groupService.getGroup(db, 'omkar@gmail.com', id)
+    const group = await groupService.getGroup(db, personIdForEmail('omkar@gmail.com'), id)
 
     expect(group?.members).toEqual([
       { personId: await personId('omkar@gmail.com'), email: 'omkar@gmail.com', name: 'Omkar', isYou: true },
@@ -463,7 +456,7 @@ describe('getGroup', () => {
   it('shows the group from the point of view of whoever looks at it', async () => {
     const id = await create(omkar, { name: 'Goa', memberEmails: ['priya@gmail.com'] })
 
-    const group = await groupService.getGroup(db, 'priya@gmail.com', id)
+    const group = await groupService.getGroup(db, personIdForEmail('priya@gmail.com'), id)
     expect(group?.members.map((member) => [member.email, member.isYou])).toEqual([
       ['priya@gmail.com', true],
       ['omkar@gmail.com', false],
@@ -477,27 +470,27 @@ describe('getGroup', () => {
       .set({ deletedAt: new Date() })
       .where(eq(groupMembers.personId, await personId('sam@gmail.com')))
 
-    const group = await groupService.getGroup(db, 'omkar@gmail.com', id)
+    const group = await groupService.getGroup(db, personIdForEmail('omkar@gmail.com'), id)
     expect(group?.members.map((member) => member.email)).toEqual(['omkar@gmail.com', 'priya@gmail.com'])
   })
 
   describe('says there is no such group (null) when', () => {
     it('the id is unknown', async () => {
       await create(omkar, { name: 'Goa' })
-      expect(await groupService.getGroup(db, 'omkar@gmail.com', crypto.randomUUID())).toBeNull()
+      expect(await groupService.getGroup(db, personIdForEmail('omkar@gmail.com'), crypto.randomUUID())).toBeNull()
     })
 
     it('the id is not even an id', async () => {
       await create(omkar, { name: 'Goa' })
       for (const bad of ['', 'abc', '123', "'; drop table groups; --", '../etc']) {
-        expect(await groupService.getGroup(db, 'omkar@gmail.com', bad)).toBeNull()
+        expect(await groupService.getGroup(db, personIdForEmail('omkar@gmail.com'), bad)).toBeNull()
       }
     })
 
     it('the group has been deleted', async () => {
       const id = await create(omkar, { name: 'Goa' })
       await db.update(groups).set({ deletedAt: new Date() }).where(eq(groups.id, id))
-      expect(await groupService.getGroup(db, 'omkar@gmail.com', id)).toBeNull()
+      expect(await groupService.getGroup(db, personIdForEmail('omkar@gmail.com'), id)).toBeNull()
     })
 
     it('you are not in the group, which looks the same as an unknown group', async () => {
@@ -505,7 +498,7 @@ describe('getGroup', () => {
       // membership that is checked, not whether they exist.
       await create(omkar, { name: 'Mine' })
       const id = await create(priya, { name: 'Flat' })
-      expect(await groupService.getGroup(db, 'omkar@gmail.com', id)).toBeNull()
+      expect(await groupService.getGroup(db, personIdForEmail('omkar@gmail.com'), id)).toBeNull()
     })
 
     it('you have left the group', async () => {
@@ -514,17 +507,17 @@ describe('getGroup', () => {
         .update(groupMembers)
         .set({ deletedAt: new Date() })
         .where(eq(groupMembers.personId, await personId('omkar@gmail.com')))
-      expect(await groupService.getGroup(db, 'omkar@gmail.com', id)).toBeNull()
+      expect(await groupService.getGroup(db, personIdForEmail('omkar@gmail.com'), id)).toBeNull()
     })
 
     it('the user is not a known person at all', async () => {
       const id = await create(omkar, { name: 'Goa' })
-      expect(await groupService.getGroup(db, 'stranger@gmail.com', id)).toBeNull()
+      expect(await groupService.getGroup(db, personIdForEmail('stranger@gmail.com'), id)).toBeNull()
     })
   })
 
   it('finds the group whatever the case of the id and the email', async () => {
     const id = await create(omkar, { name: 'Goa' })
-    expect(await groupService.getGroup(db, ' OMKAR@gmail.com', id.toUpperCase())).not.toBeNull()
+    expect(await groupService.getGroup(db, personIdForEmail(' OMKAR@gmail.com'), id.toUpperCase())).not.toBeNull()
   })
 })

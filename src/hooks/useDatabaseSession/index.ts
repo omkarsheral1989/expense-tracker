@@ -3,14 +3,14 @@ import { databaseSession } from '../../db/session.ts'
 import type { DatabaseSessionState } from './types.ts'
 
 /**
- * Opens the account's database while the component is mounted and closes it
+ * Opens the device's database while the component is mounted and closes it
  * afterwards. `retry` tries again after `locked` or `error`.
  */
-export function useDatabaseSession(accountId: string) {
+export function useDatabaseSession(datasetId: string) {
   const [attempt, setAttempt] = useState(0)
-  // Each result is stored with the account and attempt it belongs to, so a
+  // Each result is stored with the dataset and attempt it belongs to, so a
   // result from an earlier one is never mistaken for the current state.
-  const key = `${accountId}:${attempt}`
+  const key = `${datasetId}:${attempt}`
   const [result, setResult] = useState<{
     key: string
     state: DatabaseSessionState
@@ -19,7 +19,7 @@ export function useDatabaseSession(accountId: string) {
   useEffect(() => {
     let cancelled = false
 
-    databaseSession.start(accountId).then(
+    databaseSession.start(datasetId).then(
       (session) => {
         if (!cancelled) setResult({ key, state: session })
       },
@@ -37,7 +37,7 @@ export function useDatabaseSession(accountId: string) {
       cancelled = true
       databaseSession.end()
     }
-  }, [accountId, key])
+  }, [datasetId, key])
 
   const state: DatabaseSessionState =
     result?.key === key ? result.state : { status: 'loading' }

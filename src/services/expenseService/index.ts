@@ -3,7 +3,6 @@ import { displayName } from '../groupService/utils.ts'
 import type { Database } from '../../db/client.ts'
 import { expensePhotos, expenseShares, expenses, groupMembers, groups, people } from '../../db/schema.ts'
 import { CATEGORY_GROUPS, DEFAULT_CATEGORY, RECENT_CURRENCY_COUNT } from './constants.ts'
-import type { Transaction } from '../groupService/types.ts'
 import { createExpenseSchema, toFieldErrors } from './schemas.ts'
 import type {
   CreateExpenseInput,
@@ -17,15 +16,6 @@ import type {
 import { CATEGORIES, categoryOf, computeShares, pairBalances } from './utils.ts'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
-/** The id of the person with this email, or null when nobody has it. */
-async function findPersonId(db: Database | Transaction, email: string): Promise<string | null> {
-  const [person] = await db
-    .select({ id: people.id })
-    .from(people)
-    .where(eq(people.email, email.trim().toLowerCase()))
-  return person?.id ?? null
-}
 
 export const expenseService = {
   /** The categories in their groups, as the picker lists them. */
@@ -50,16 +40,13 @@ export const expenseService = {
    */
   async createExpense(
     db: Database,
-    userEmail: string,
+    userId: string,
     groupId: string,
     input: CreateExpenseInput,
   ): Promise<CreateExpenseResult> {
     const parsed = createExpenseSchema.safeParse(input)
 
     return db.transaction(async (tx): Promise<CreateExpenseResult> => {
-      const userId = await findPersonId(tx, userEmail)
-      if (!userId) throw new Error('The signed-in user is not known on this device.')
-
       const members = await tx
         .select({ personId: groupMembers.personId })
         .from(groupMembers)
@@ -126,16 +113,26 @@ export const expenseService = {
   /**
    * A group's expenses as one user sees them: newest day first (the latest
    * change first within a day), each with who paid and what the user paid and
-   * owes. Deleted expenses and shares are left out. Empty for a user who is not
-   * known on this device.
+   * owes. Deleted expenses and shares are left out. Empty for someone who is not in
+   * the group.
    */
   async listExpenses(
     db: Database,
-    userEmail: string,
+    userId: string,
     groupId: string,
   ): Promise<ExpenseListItem[]> {
-    const userId = await findPersonId(db, userEmail)
-    if (!userId) return []
+    // Only for someone in the group.
+    const [member] = await db
+      .select({ id: groupMembers.id })
+      .from(groupMembers)
+      .where(
+        and(
+          eq(groupMembers.groupId, groupId),
+          eq(groupMembers.personId, userId),
+          isNull(groupMembers.deletedAt),
+        ),
+      )
+    if (!member) return []
 
     const rows = await db
       .select({
@@ -206,12 +203,11 @@ export const expenseService = {
    */
   async getExpense(
     db: Database,
-    userEmail: string,
+    userId: string,
     groupId: string,
     expenseId: string,
   ): Promise<ExpenseDetails | null> {
-    const userId = await findPersonId(db, userEmail)
-    if (!userId || !UUID.test(groupId) || !UUID.test(expenseId)) return null
+    if (!UUID.test(groupId) || !UUID.test(expenseId)) return null
 
     const [membership] = await db
       .select({ id: groupMembers.id })
@@ -288,12 +284,9 @@ export const expenseService = {
    */
   async groupBalances(
     db: Database,
-    userEmail: string,
+    userId: string,
     groupId: string,
   ): Promise<PersonBalance[]> {
-    const userId = await findPersonId(db, userEmail)
-    if (!userId) return []
-
     const rows = await db
       .select({
         expenseId: expenses.id,
@@ -325,15 +318,15 @@ export const expenseService = {
       .select({ id: people.id, email: people.email, name: people.name })
       .from(people)
       .where(inArray(people.id, [...new Set(balances.map((balance) => balance.personId))]))
-    const label = (person: { name: string | null; email: string }) =>
-      (person.name ?? person.email).toLowerCase()
+    const label = (person: { name: string | null; email: string | null }) =>
+      displayName(person).toLowerCase()
 
     return balances
       .map((balance) => {
         const person = named.find((one) => one.id === balance.personId)
         return {
           ...balance,
-          email: person?.email ?? '',
+          email: person?.email ?? null,
           name: person?.name ?? null,
         }
       })
@@ -352,11 +345,8 @@ export const expenseService = {
    */
   async balancesByGroup(
     db: Database,
-    userEmail: string,
+    userId: string,
   ): Promise<Record<string, CurrencyBalance[]>> {
-    const userId = await findPersonId(db, userEmail)
-    if (!userId) return {}
-
     const net = sql<number>`sum(${expenseShares.paidMinor} - ${expenseShares.owedMinor})`.mapWith(Number)
     const rows = await db
       .select({ groupId: expenses.groupId, currency: expenses.currency, amountMinor: net })
@@ -384,10 +374,7 @@ export const expenseService = {
    * The currencies of the user's own latest expenses, most recent first, each
    * once: what the currency picker offers as "Recent".
    */
-  async recentCurrencies(db: Database, userEmail: string): Promise<string[]> {
-    const userId = await findPersonId(db, userEmail)
-    if (!userId) return []
-
+  async recentCurrencies(db: Database, userId: string): Promise<string[]> {
     const lastUsed = max(expenses.updatedAt)
     const rows = await db
       .select({ currency: expenses.currency, lastUsed })

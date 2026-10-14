@@ -21,12 +21,6 @@ export type CreateGroupResult =
   | { ok: true; groupId: string }
   | { ok: false; errors: CreateGroupErrors }
 
-/** Who is creating the group: the signed-in user. */
-export type Creator = {
-  email: string
-  name: string
-}
-
 /** One row of the home page's list of groups. */
 export type GroupSummary = {
   id: string

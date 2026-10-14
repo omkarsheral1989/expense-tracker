@@ -6,6 +6,7 @@ import { useSyncSessionAcrossTabs } from './hooks/useSyncSessionAcrossTabs'
 import { AddExpensePage } from './pages/addExpense'
 import { CreateGroupPage } from './pages/createGroup'
 import { ExpensePage } from './pages/expense'
+import { GetStartedPage } from './pages/getStarted'
 import { GroupPage } from './pages/group'
 import { HomePage } from './pages/home'
 import { WelcomePage } from './pages/welcome'
@@ -19,7 +20,8 @@ function App() {
       <PwaUpdatePrompt />
       <Routes>
         <Route path={ROUTES.welcome} element={<WelcomePage />} />
-        {/* Everything inside needs a signed-in user, the header and open data. */}
+        <Route path={ROUTES.getStarted} element={<GetStartedPage />} />
+        {/* Everything inside needs a signed-in user or a guest, the header and open data. */}
         <Route
           element={
             <RequireAuth>

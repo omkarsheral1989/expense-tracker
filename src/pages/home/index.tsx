@@ -5,31 +5,31 @@ import { CenteredMessage } from '../../components/CenteredMessage'
 import { FloatingPillButton } from '../../components/FloatingPillButton'
 import { ABOVE_FLOATING_BUTTON, FLOATING_BUTTON_ROOM } from '../../components/FloatingPillButton/constants.ts'
 import { useAsyncData } from '../../hooks/useAsyncData'
+import { useCurrentUser } from '../../hooks/useCurrentUser'
 import { ROUTES } from '../../routes.ts'
 import { expenseService } from '../../services/expenseService'
 import { groupService } from '../../services/groupService'
-import { useAuthStore } from '../../stores/useAuthStore'
 import { EmptyGroups } from './components/EmptyGroups'
 import { GroupList } from './components/GroupList'
 
 const { Title } = Typography
 
-/** The signed-in user's groups, most recently active first. */
+/** The user's groups, most recently active first. */
 export function HomePage() {
-  const profile = useAuthStore((state) => state.profile)
+  const user = useCurrentUser()
   const navigate = useNavigate()
 
-  const email = profile?.email ?? ''
+  const userId = user?.personId ?? ''
   const { state, retry } = useAsyncData(async () => {
     const db = await getDb()
     return {
-      groups: await groupService.listGroups(db, email),
-      balances: await expenseService.balancesByGroup(db, email),
+      groups: await groupService.listGroups(db, userId),
+      balances: await expenseService.balancesByGroup(db, userId),
     }
-  }, email)
+  }, userId)
 
-  // Signed-out visitors are sent away by `RequireAuth` before this matters.
-  if (!profile) return null
+  // Visitors who are not in the app are sent away by `RequireAuth` before this matters.
+  if (!user) return null
 
 
   function renderHeading() {

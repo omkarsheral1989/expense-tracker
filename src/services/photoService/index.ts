@@ -8,21 +8,21 @@ import type { PhotoStore, ReceiptInput } from './types.ts'
  */
 type StoredPicture = { type: string; data: ArrayBuffer }
 
-// Each account's photo database, opened once and reused.
+// Each dataset's photo database, opened once and reused.
 const opened = new Map<string, Promise<IDBPDatabase>>()
 
-function database(accountId: string): Promise<IDBPDatabase> {
-  let promise = opened.get(accountId)
+function database(datasetId: string): Promise<IDBPDatabase> {
+  let promise = opened.get(datasetId)
   if (!promise) {
-    promise = openDB(`ownledger-photos-${accountId}`, 1, {
+    promise = openDB(`ownledger-photos-${datasetId}`, 1, {
       upgrade(db) {
         db.createObjectStore(PHOTOS_STORE)
         db.createObjectStore(THUMBNAILS_STORE)
       },
     })
     // If opening fails, forget it so the next call can try again.
-    promise.catch(() => opened.delete(accountId))
-    opened.set(accountId, promise)
+    promise.catch(() => opened.delete(datasetId))
+    opened.set(datasetId, promise)
   }
   return promise
 }
@@ -36,14 +36,13 @@ function fromStored(stored: StoredPicture | undefined): Blob | null {
 }
 
 /**
- * The photo store of one Google account, separate from every other
- * account's (ADR-007). The only way the app reaches receipt photos.
+ * The photo store of the device's data (named by its dataset id, ADR-035). The only way the app reaches receipt photos.
  */
-function open(accountId: string): PhotoStore {
+function open(datasetId: string): PhotoStore {
   return {
     async savePhoto(id, photo, thumbnail) {
       const [storedPhoto, storedThumbnail] = await Promise.all([toStored(photo), toStored(thumbnail)])
-      const db = await database(accountId)
+      const db = await database(datasetId)
       const tx = db.transaction([PHOTOS_STORE, THUMBNAILS_STORE], 'readwrite')
       await Promise.all([
         tx.objectStore(PHOTOS_STORE).put(storedPhoto, id),
@@ -52,13 +51,13 @@ function open(accountId: string): PhotoStore {
       ])
     },
     async getPhoto(id) {
-      return fromStored(await (await database(accountId)).get(PHOTOS_STORE, id))
+      return fromStored(await (await database(datasetId)).get(PHOTOS_STORE, id))
     },
     async getThumbnail(id) {
-      return fromStored(await (await database(accountId)).get(THUMBNAILS_STORE, id))
+      return fromStored(await (await database(datasetId)).get(THUMBNAILS_STORE, id))
     },
     async deletePhoto(id) {
-      const db = await database(accountId)
+      const db = await database(datasetId)
       const tx = db.transaction([PHOTOS_STORE, THUMBNAILS_STORE], 'readwrite')
       await Promise.all([
         tx.objectStore(PHOTOS_STORE).delete(id),
@@ -118,7 +117,7 @@ async function removeReceipts(store: PhotoStore, ids: readonly string[]): Promis
   await Promise.all(ids.map((id) => store.deletePhoto(id)))
 }
 
-/** Receipt photos on the device: the per-account store, thumbnails, and saving a form's photos. */
+/** Receipt photos on the device: the device's store, thumbnails, and saving a form's photos. */
 export const photoService = {
   open,
   makeThumbnail,

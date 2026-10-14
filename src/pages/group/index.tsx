@@ -3,11 +3,11 @@ import { useState } from 'react'
 import { useParams } from 'react-router'
 import { getDb } from '../../db/client.ts'
 import { useAsyncData } from '../../hooks/useAsyncData'
+import { useCurrentUser } from '../../hooks/useCurrentUser'
 import { expenseService } from '../../services/expenseService'
 import type { ExpenseListItem, PersonBalance } from '../../services/expenseService/types.ts'
 import { groupService } from '../../services/groupService'
 import type { GroupDetails } from '../../services/groupService/types.ts'
-import { useAuthStore } from '../../stores/useAuthStore'
 import { ActionPills } from './components/ActionPills'
 import { AddExpenseButton } from './components/AddExpenseButton'
 import { BalanceLine } from './components/BalanceLine'
@@ -29,24 +29,24 @@ const COLUMN_STYLE = {
 
 /** One group: a colored band with its name and chips, the balance, actions and expenses. */
 export function GroupPage() {
-  const profile = useAuthStore((state) => state.profile)
+  const user = useCurrentUser()
   const [membersOpen, setMembersOpen] = useState(false)
   const { id = '' } = useParams()
 
-  const email = profile?.email ?? ''
+  const userId = user?.personId ?? ''
   const { state, retry } = useAsyncData(async () => {
     const db = await getDb()
-    const group = await groupService.getGroup(db, email, id)
+    const group = await groupService.getGroup(db, userId, id)
     if (!group) return null
     return {
       group,
-      expenses: await expenseService.listExpenses(db, email, id),
-      balances: await expenseService.groupBalances(db, email, id),
+      expenses: await expenseService.listExpenses(db, userId, id),
+      balances: await expenseService.groupBalances(db, userId, id),
     }
-  }, `${email}:${id}`)
+  }, `${userId}:${id}`)
 
-  // Signed-out visitors are sent away by `RequireAuth` before this matters.
-  if (!profile) return null
+  // Visitors who are not in the app are sent away by `RequireAuth` before this matters.
+  if (!user) return null
 
   function renderLoading() {
     return (
@@ -83,16 +83,10 @@ export function GroupPage() {
     expenses: ExpenseListItem[],
     balances: PersonBalance[],
   ) {
-    // Someone else may have added the user before they ever used the app, so
-    // their record has no name yet; their Google profile has.
-    const members = group.members.map((member) =>
-      member.isYou ? { ...member, name: member.name ?? profile?.name ?? null } : member,
-    )
-
     return (
       <Flex vertical style={{ flex: 1 }}>
         <GroupBand
-          group={{ ...group, members }}
+          group={group}
           onOpenMembers={() => setMembersOpen(true)}
         />
         {/* No room at the bottom here: the list adds it, so an empty list can be
@@ -108,7 +102,7 @@ export function GroupPage() {
         <MembersSheet
           open={membersOpen}
           onClose={() => setMembersOpen(false)}
-          members={members}
+          members={group.members}
         />
       </Flex>
     )

@@ -2,13 +2,21 @@ import { eq } from 'drizzle-orm'
 import type { Database } from '../db/client.ts'
 import { people } from '../db/schema.ts'
 import { groupService } from '../services/groupService'
-import type { CreateGroupInput, CreateGroupResult, Creator } from '../services/groupService/types.ts'
+import type { CreateGroupInput, CreateGroupResult } from '../services/groupService/types.ts'
+import { personIdForEmail } from './ids.ts'
 
-/** The id of the person with this email, added (with no name) when nobody has it yet. */
-async function ensurePersonId(db: Database, email: string, name: string | null, addedBy?: string) {
+/** Who creates a group or adds a person in a test: the name and email of a test user. */
+export type TestUser = { email: string; name: string }
+
+/**
+ * The id of the person with this email, added (with no name) when nobody has
+ * it yet. New people get `personIdForEmail`, so the signed-in user of a page
+ * test, whose id is worked out the same way, is the same person.
+ */
+export async function ensurePersonId(db: Database, email: string, name: string | null, addedBy?: string) {
   const [existing] = await db.select({ id: people.id }).from(people).where(eq(people.email, email))
   if (existing) return existing.id
-  const id = crypto.randomUUID()
+  const id = personIdForEmail(email)
   await db.insert(people).values({ id, email, name, updatedBy: addedBy ?? id })
   return id
 }
@@ -17,7 +25,7 @@ async function ensurePersonId(db: Database, email: string, name: string | null, 
  * The ids of the people with these emails, for `createGroup`'s `memberIds`:
  * anyone not saved yet is added first (as the creator would have added them).
  */
-export async function memberIdsOf(db: Database, creator: Creator, emails: string[]): Promise<string[]> {
+export async function memberIdsOf(db: Database, creator: TestUser, emails: string[]): Promise<string[]> {
   const creatorId = await ensurePersonId(db, creator.email.toLowerCase(), creator.name)
   const ids: string[] = []
   for (const email of emails) {
@@ -32,7 +40,7 @@ export async function memberIdsOf(db: Database, creator: Creator, emails: string
  */
 export async function addTestPerson(
   db: Database,
-  creator: Creator,
+  creator: TestUser,
   { name, email = null }: { name: string; email?: string | null },
 ): Promise<string> {
   const creatorId = await ensurePersonId(db, creator.email.toLowerCase(), creator.name)
@@ -53,9 +61,10 @@ export type TestGroupInput = Omit<CreateGroupInput, 'memberIds'> & {
 /** Creates a group with members given by email, adding any of them who are not saved yet. */
 export async function createTestGroup(
   db: Database,
-  creator: Creator,
+  creator: TestUser,
   { memberEmails = [], memberIds = [], ...input }: TestGroupInput,
 ): Promise<CreateGroupResult> {
   const emailIds = await memberIdsOf(db, creator, memberEmails)
-  return groupService.createGroup(db, creator, { ...input, memberIds: [...memberIds, ...emailIds] })
+  const creatorId = await ensurePersonId(db, creator.email.toLowerCase(), creator.name)
+  return groupService.createGroup(db, creatorId, { ...input, memberIds: [...memberIds, ...emailIds] })
 }

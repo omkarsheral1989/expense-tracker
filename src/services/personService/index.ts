@@ -3,8 +3,8 @@ import type { Database } from '../../db/client.ts'
 import { people } from '../../db/schema.ts'
 import { MEMBER_EMAIL_DOMAIN } from './constants.ts'
 import { addPersonSchema, toFieldErrors } from './schemas.ts'
-import type { AddPersonErrors, AddPersonInput, AddPersonResult, PersonAdder } from './types.ts'
-import { comparableName, findOrAddPerson } from './utils.ts'
+import type { AddPersonErrors, AddPersonInput, AddPersonResult } from './types.ts'
+import { comparableName } from './utils.ts'
 
 export const personService = {
   /** The domain a member's email must have, when they have one. */
@@ -19,7 +19,7 @@ export const personService = {
    */
   async addPerson(
     db: Database,
-    adder: PersonAdder,
+    adderId: string,
     input: AddPersonInput,
   ): Promise<AddPersonResult> {
     const parsed = addPersonSchema.safeParse(input)
@@ -28,11 +28,6 @@ export const personService = {
     const { name, email } = parsed.data
 
     return db.transaction(async (tx): Promise<AddPersonResult> => {
-      const adderId = await findOrAddPerson(tx, {
-        email: adder.email.toLowerCase(),
-        name: adder.name,
-      })
-
       // Both checks are done in the same transaction as the insert, so nothing
       // can slip in between the check and the save.
       const errors: AddPersonErrors = {}

@@ -1,8 +1,6 @@
-import { useState } from 'react'
 import { Navigate } from 'react-router'
 import { useAuthStore } from '../../stores/useAuthStore'
-import { REQUIRE_INSTALL } from '../../config.ts'
-import { useInstall } from '../../hooks/useInstall'
+import { useInstallGate } from '../../hooks/useInstallGate'
 import { ROUTES } from '../../routes.ts'
 import { Faq } from './components/Faq'
 import { Features } from './components/Features'
@@ -13,19 +11,15 @@ import { InstallCard } from './components/InstallCard'
 import { Privacy } from './components/Privacy'
 
 export function WelcomePage() {
-  const { platform, installed, canPrompt, promptInstall } = useInstall()
-  // Only lasts until the page is reloaded; the choice is not remembered.
-  const [skipped, setSkipped] = useState(false)
+  // Getting started is locked behind installing the app: only on iPhone/iPad,
+  // only while not installed, and only until the user chooses to skip (until
+  // the page is reloaded). See `gated` on `InstallCard` for why.
+  const { platform, installed, canPrompt, promptInstall, skipInstall, gated } = useInstallGate()
 
-  const signedIn = useAuthStore((state) => state.profile !== null)
+  const inApp = useAuthStore((state) => state.profile !== null || state.guest)
 
-  // Signing in is locked behind installing the app: only on iPhone/iPad, only
-  // while not installed, and only until the user chooses to skip. See `gated`
-  // on `InstallCard` for why.
-  const gated = REQUIRE_INSTALL && platform === 'ios' && !installed && !skipped
-
-  // Signed-in users go straight to the app.
-  if (signedIn) return <Navigate to={ROUTES.home} replace />
+  // Signed-in users and guests go straight to the app.
+  if (inApp) return <Navigate to={ROUTES.home} replace />
 
   // Nothing to install once the app is running as an installed app.
   function renderInstallCard() {
@@ -37,7 +31,7 @@ export function WelcomePage() {
         gated={gated}
         canPrompt={canPrompt}
         onInstall={promptInstall}
-        onSkip={() => setSkipped(true)}
+        onSkip={skipInstall}
       />
     )
   }

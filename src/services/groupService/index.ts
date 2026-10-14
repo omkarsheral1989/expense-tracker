@@ -1,15 +1,13 @@
-import { and, asc, desc, eq, inArray, isNull, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, isNull, ne, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import type { Database } from '../../db/client.ts'
 import { expenses, groupMembers, groups, people } from '../../db/schema.ts'
 import type { KnownPerson } from '../personService/types.ts'
-import { findOrAddPerson } from '../personService/utils.ts'
 import { createGroupSchema, toFieldErrors } from './schemas.ts'
 import { displayName, shortName } from './utils.ts'
 import type {
   CreateGroupInput,
   CreateGroupResult,
-  Creator,
   GroupDetails,
   GroupMember,
   GroupSummary,
@@ -21,15 +19,6 @@ function comparableName(name: string) {
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
-/** The id of the person with this email, or null when nobody has it. */
-async function findPersonId(db: Database, email: string): Promise<string | null> {
-  const [person] = await db
-    .select({ id: people.id })
-    .from(people)
-    .where(eq(people.email, email.trim().toLowerCase()))
-  return person?.id ?? null
-}
 
 export const groupService = {
   /** A person's first name, or their email before the "@" when no name is known. */
@@ -46,21 +35,15 @@ export const groupService = {
    */
   async createGroup(
     db: Database,
-    creator: Creator,
+    creatorId: string,
     input: CreateGroupInput,
   ): Promise<CreateGroupResult> {
     const parsed = createGroupSchema.safeParse(input)
     if (!parsed.success) return { ok: false, errors: toFieldErrors(parsed.error) }
 
     const { name, type, defaultCurrency } = parsed.data
-    const creatorEmail = creator.email.toLowerCase()
 
     return db.transaction(async (tx): Promise<CreateGroupResult> => {
-      const creatorId = await findOrAddPerson(tx, {
-        email: creatorEmail,
-        name: creator.name,
-      })
-
       // Done in the same transaction as the insert, so nothing can slip in
       // between the check and the save. Only groups this person belongs to count.
       const [sameName] = await tx
@@ -119,14 +102,14 @@ export const groupService = {
    * email when there is no name). Includes people added in the add-a-member
    * dialog who are not in any group yet.
    */
-  async listKnownPeople(db: Database, userEmail: string): Promise<KnownPerson[]> {
+  async listKnownPeople(db: Database, userId: string): Promise<KnownPerson[]> {
     const rows = await db
       .select({ id: people.id, email: people.email, name: people.name })
       .from(people)
       .where(
         and(
           isNull(people.deletedAt),
-          sql`${people.email} is distinct from ${userEmail.toLowerCase()}`,
+          ne(people.id, userId),
         ),
       )
 
@@ -139,10 +122,7 @@ export const groupService = {
    * name): a group's activity is the latest change to it or its expenses. Deleted groups, groups the user has left, and groups they were
    * never in are left out.
    */
-  async listGroups(db: Database, userEmail: string): Promise<GroupSummary[]> {
-    const userId = await findPersonId(db, userEmail)
-    if (!userId) return []
-
+  async listGroups(db: Database, userId: string): Promise<GroupSummary[]> {
     const myMembership = alias(groupMembers, 'my_membership')
     // The latest change to the group or to any of its expenses (deleted ones
     // too: deleting is a change).
@@ -183,11 +163,10 @@ export const groupService = {
    */
   async getGroup(
     db: Database,
-    userEmail: string,
+    userId: string,
     groupId: string,
   ): Promise<GroupDetails | null> {
-    const userId = await findPersonId(db, userEmail)
-    if (!userId || !UUID.test(groupId)) return null
+    if (!UUID.test(groupId)) return null
 
     const [group] = await db
       .select({

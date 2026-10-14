@@ -9,9 +9,9 @@ import type { KnownPerson } from '../../services/personService/types.ts'
  * be read the list is empty, because the user can still add someone new.
  * `add` puts a person who has just been saved into the list, in order.
  */
-export function useKnownPeople(userEmail: string) {
+export function useKnownPeople(userId: string) {
   const [result, setResult] = useState<{
-    userEmail: string
+    userId: string
     people: KnownPerson[]
   } | null>(null)
 
@@ -19,31 +19,31 @@ export function useKnownPeople(userEmail: string) {
     let cancelled = false
 
     getDb()
-      .then((db) => groupService.listKnownPeople(db, userEmail))
+      .then((db) => groupService.listKnownPeople(db, userId))
       .catch((): KnownPerson[] => [])
       .then((people) => {
-        if (!cancelled) setResult({ userEmail, people })
+        if (!cancelled) setResult({ userId, people })
       })
 
     return () => {
       cancelled = true
     }
-  }, [userEmail])
+  }, [userId])
 
   const add = useCallback(
     (person: KnownPerson) => {
       setResult((current) => {
-        const people = current?.userEmail === userEmail ? current.people : []
+        const people = current?.userId === userId ? current.people : []
         const label = (entry: KnownPerson) => groupService.displayName(entry).toLowerCase()
         return {
-          userEmail,
+          userId,
           people: [...people, person].sort((a, b) => label(a).localeCompare(label(b))),
         }
       })
     },
-    [userEmail],
+    [userId],
   )
 
-  const loaded = result?.userEmail === userEmail
+  const loaded = result?.userId === userId
   return { people: loaded ? result.people : [], loading: !loaded, add }
 }

@@ -3,6 +3,10 @@ import { ConfigProvider } from 'antd'
 import type { ReactElement } from 'react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { ThemeProvider } from '../components/ThemeProvider'
+import { CurrentUserContext } from '../hooks/useCurrentUser/context.ts'
+import type { CurrentUser } from '../hooks/useCurrentUser/types.ts'
+import { useAuthStore } from '../stores/useAuthStore'
+import { personIdForEmail } from './ids.ts'
 import { CurrentPath } from './CurrentPath.tsx'
 
 /**
@@ -10,6 +14,10 @@ import { CurrentPath } from './CurrentPath.tsx'
  * at `path`. The page is mounted at `pattern`, which defaults to `path` with a
  * trailing id turned into `:id`. `routes` lists the other paths the page can navigate to; they show
  * a plain placeholder, and `currentPath()` says where the app ended up.
+ *
+ * The page is given the current user the way `DatabaseGate` gives it: from the
+ * auth store's profile (a Google user, whose person id is `personIdForEmail`) or
+ * guest flag, read when the page is rendered. With neither, there is no user.
  */
 export function renderPage(
   page: ReactElement,
@@ -20,6 +28,7 @@ export function renderPage(
   }: { path?: string; pattern?: string; routes?: string[] } = {},
 ) {
   const result = render(
+    <CurrentUserContext.Provider value={currentUserOf(useAuthStore.getState())}>
     // Animations off, so a closed dialog or a cleared message is gone at once
     // instead of lingering on screen while it "animates" in jsdom.
     <ConfigProvider theme={{ zeroRuntime: true, token: { motion: false } }}>
@@ -37,11 +46,29 @@ export function renderPage(
           <CurrentPath />
         </MemoryRouter>
       </ThemeProvider>
-    </ConfigProvider>,
+    </ConfigProvider>
+    </CurrentUserContext.Provider>,
   )
 
   return {
     ...result,
     currentPath: () => result.getByTestId('current-path').textContent,
   }
+}
+
+/** The person of the guest that `renderPage` gives a page when the auth store says guest. */
+export const GUEST_PERSON_ID = personIdForEmail('guest')
+
+function currentUserOf({ profile, guest }: ReturnType<typeof useAuthStore.getState>): CurrentUser | null {
+  if (profile) {
+    return {
+      personId: personIdForEmail(profile.email),
+      name: profile.name,
+      email: profile.email,
+      isGuest: false,
+      datasetId: profile.id,
+    }
+  }
+  if (guest) return { personId: GUEST_PERSON_ID, name: 'Guest', email: null, isGuest: true, datasetId: 'guest-dataset' }
+  return null
 }

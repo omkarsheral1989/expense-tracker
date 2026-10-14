@@ -5,13 +5,13 @@ import { ReceiptThumbnail } from './ReceiptThumbnail'
 type Props = {
   /** The expense's photos, in order. */
   receipts: { id: string }[]
-  /** The signed-in user's Google account id, whose photo store holds them. */
-  accountId: string
+  /** Names the device's photo store, which holds them. */
+  datasetId: string
 }
 
 /** The expense's receipt photos as a row of thumbnails; tapping one shows them at full size. */
-export function ReceiptGallery({ receipts, accountId }: Props) {
-  const store = photoService.open(accountId)
+export function ReceiptGallery({ receipts, datasetId }: Props) {
+  const store = photoService.open(datasetId)
 
   return (
     <Image.PreviewGroup>

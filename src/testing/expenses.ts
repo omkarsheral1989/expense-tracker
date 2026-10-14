@@ -56,7 +56,7 @@ export async function addTestExpense(
   overrides: Partial<CreateExpenseInput> = {},
 ): Promise<string> {
   const input = await expenseInput(db, userEmail, groupId, overrides)
-  const result = await expenseService.createExpense(db, userEmail, groupId, input)
+  const result = await expenseService.createExpense(db, await personIdOf(db, userEmail), groupId, input)
   if (!result.ok) throw new Error(JSON.stringify(result.errors))
   return result.expenseId
 }

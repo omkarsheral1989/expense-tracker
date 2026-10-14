@@ -6,21 +6,24 @@ import type { Profile } from '../../services/googleProfileService/types.ts'
 import { useAuthStore } from '../../stores/useAuthStore'
 import { BrandLogo } from '../BrandLogo'
 import { ProfileAvatar } from '../ProfileAvatar'
+import { GuestMenu } from './GuestMenu'
 
 const { Text } = Typography
 
 /**
- * The bar at the top of every signed-in page: the logo and name on the left,
+ * The bar at the top of every page of the app: the logo and name on the left,
  * which lead back to the home page, and the user's avatar on the right, which
- * opens a menu with their name, email and Sign out.
+ * opens a menu with their name, email and Sign out (or, for a guest, "Guest",
+ * Sign in with Google and Exit guest mode).
  */
 export function AppHeader() {
   const profile = useAuthStore((state) => state.profile)
+  const guest = useAuthStore((state) => state.guest)
   const signOut = useAuthStore((state) => state.signOut)
   const { token } = theme.useToken()
 
-  // Signed-out visitors are sent away by `RequireAuth` before this matters.
-  if (!profile) return null
+  // Visitors who are not in the app are sent away by `RequireAuth` before this matters.
+  if (!profile && !guest) return null
 
   function renderBrand() {
     return (
@@ -92,7 +95,7 @@ export function AppHeader() {
         style={{ maxWidth: 960, margin: '0 auto' }}
       >
         {renderBrand()}
-        {renderAccountMenu(profile)}
+        {profile ? renderAccountMenu(profile) : <GuestMenu />}
       </Flex>
     </header>
   )

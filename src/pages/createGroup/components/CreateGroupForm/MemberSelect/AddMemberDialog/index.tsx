@@ -3,17 +3,13 @@ import { useState } from 'react'
 import { AdaptiveDialog } from '../../../../../../components/AdaptiveDialog'
 import { getDb } from '../../../../../../db/client.ts'
 import { personService } from '../../../../../../services/personService'
-import type {
-  AddPersonErrors,
-  KnownPerson,
-  PersonAdder,
-} from '../../../../../../services/personService/types.ts'
+import type { AddPersonErrors, KnownPerson } from '../../../../../../services/personService/types.ts'
 
 type Props = {
   open: boolean
   onClose: () => void
-  /** The signed-in user, who is adding the person. */
-  adder: PersonAdder
+  /** The user's person id: they are adding the person. */
+  adderId: string
   /** Called with the person once they are saved on this device. */
   onAdded: (person: KnownPerson) => void
 }
@@ -33,7 +29,7 @@ function toFormFields(errors: AddPersonErrors) {
  * saves the person on this device at once (so they are listed for every group)
  * and hands them back; problems are shown beside their field.
  */
-export function AddMemberDialog({ open, onClose, adder, onAdded }: Props) {
+export function AddMemberDialog({ open, onClose, adderId, onAdded }: Props) {
   const [form] = Form.useForm<FormValues>()
   const { message } = App.useApp()
   const [submitting, setSubmitting] = useState(false)
@@ -46,7 +42,7 @@ export function AddMemberDialog({ open, onClose, adder, onAdded }: Props) {
   async function handleFinish(values: FormValues) {
     setSubmitting(true)
     try {
-      const result = await personService.addPerson(await getDb(), adder, values)
+      const result = await personService.addPerson(await getDb(), adderId, values)
       form.setFields(toFormFields(result.ok ? {} : result.errors))
       if (!result.ok) return
 

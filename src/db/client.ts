@@ -16,28 +16,29 @@ export async function createDatabase(pg: PGlite): Promise<Database> {
 }
 
 type OpenDatabase = {
-  accountId: string
+  datasetId: string
   pg: PGlite
   database: Promise<Database>
 }
 
-// The one database that is open: the signed-in account's.
+// The one database that is open: this device's data.
 let current: OpenDatabase | null = null
 
 /**
- * Opens the database of one Google account. Each account on a device has its
- * own, stored in IndexedDB. Calling it again for the same account returns the
- * same database. Only one account can be open at a time.
+ * Opens the device's one set of data, stored in IndexedDB under its dataset id
+ * (a Google account's id for data made before guests existed, otherwise a
+ * random one, ADR-035). Calling it again for the same dataset returns the same
+ * database. Only one can be open at a time.
  */
-export function openDatabase(accountId: string): Promise<Database> {
+export function openDatabase(datasetId: string): Promise<Database> {
   if (current) {
-    if (current.accountId === accountId) return current.database
-    throw new Error('Close the open database before opening another account.')
+    if (current.datasetId === datasetId) return current.database
+    throw new Error('Close the open database before opening another one.')
   }
 
-  const pg = new PGlite(`idb://ownledger-${accountId}`)
+  const pg = new PGlite(`idb://ownledger-${datasetId}`)
   const database = createDatabase(pg)
-  const opened: OpenDatabase = { accountId, pg, database }
+  const opened: OpenDatabase = { datasetId, pg, database }
   current = opened
 
   // If opening fails, forget it so the next call can try again.

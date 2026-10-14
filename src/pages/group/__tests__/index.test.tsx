@@ -8,10 +8,11 @@ import { expenseShares, groupMembers, groups, people } from '../../../db/schema.
 import { ABOVE_FLOATING_BUTTON } from '../../../components/FloatingPillButton/constants.ts'
 import { ROUTES } from '../../../routes.ts'
 import type { CreateExpenseInput } from '../../../services/expenseService/types.ts'
+import { groupService } from '../../../services/groupService'
 import { useAuthStore } from '../../../stores/useAuthStore'
 import { setUpTestDatabase } from '../../../testing/database.ts'
 import { addTestExpense } from '../../../testing/expenses.ts'
-import { renderPage } from '../../../testing/render.tsx'
+import { GUEST_PERSON_ID, renderPage } from '../../../testing/render.tsx'
 import { GroupPage } from '../index.tsx'
 import { expectCenteredMessage } from '../../../testing/centered.ts'
 import { addTestPerson, createTestGroup, type TestGroupInput } from '../../../testing/groups.ts'
@@ -135,7 +136,7 @@ describe('GroupPage', () => {
   const originalMatchMedia = window.matchMedia
 
   beforeEach(() => {
-    useAuthStore.setState({ profile: me, token: null })
+    useAuthStore.setState({ profile: me, guest: false, token: null })
   })
   afterEach(() => {
     cleanup()
@@ -633,15 +634,35 @@ describe('GroupPage', () => {
       renderGroup(id)
       const sheet = await openMembers(2)
 
-      // The user's own record has no name (Priya added them by email), so the
-      // name comes from their Google profile.
+      // The page shows the records as they are: the gate (not this page) is what
+      // gives the user their name from Google when they open the app.
       expect(memberRows(sheet)).toEqual([
-        ['Omkar Sheral', 'omkar@gmail.com', 'You'],
+        ['omkar@gmail.com', null, 'You'],
         ['Priya', 'priya@gmail.com', 'Pending'],
       ])
     })
 
-    it('prefers the name saved for you over the one from your Google profile', async () => {
+    it('shows a guest as "Guest" with no email, tagged You', async () => {
+      useAuthStore.setState({ profile: null, guest: true })
+      await testDb.db.insert(people).values({ id: GUEST_PERSON_ID, name: 'Guest', email: null, updatedBy: GUEST_PERSON_ID })
+      const rahul = await addTestPerson(testDb.db, me, { name: 'Rahul' })
+      const result = await groupService.createGroup(testDb.db, GUEST_PERSON_ID, {
+        name: 'Goa',
+        type: 'trip',
+        defaultCurrency: 'GBP',
+        memberIds: [rahul],
+      })
+      if (!result.ok) throw new Error(JSON.stringify(result.errors))
+      renderGroup(result.groupId)
+      const sheet = await openMembers(2)
+
+      expect(memberRows(sheet)).toEqual([
+        ['Guest', 'No email', 'You'],
+        ['Rahul', 'No email', 'Pending'],
+      ])
+    })
+
+    it('names you by the name saved for you', async () => {
       const id = await createGroup(me, { name: 'Goa' })
       await testDb.db.update(people).set({ name: 'Omkar S.' }).where(eq(people.email, me.email))
       renderGroup(id)

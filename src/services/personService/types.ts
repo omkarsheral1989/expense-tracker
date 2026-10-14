@@ -14,12 +14,6 @@ export type AddPersonResult =
   | { ok: true; person: KnownPerson }
   | { ok: false; errors: AddPersonErrors }
 
-/** Who is adding the person: the signed-in user. */
-export type PersonAdder = {
-  email: string
-  name: string
-}
-
 /** A person saved on this device, for picking as a member. */
 export type KnownPerson = {
   id: string

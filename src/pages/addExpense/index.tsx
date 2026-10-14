@@ -4,10 +4,9 @@ import { CenteredMessage } from '../../components/CenteredMessage'
 import { GroupNotFound } from '../../components/GroupNotFound'
 import { getDb } from '../../db/client.ts'
 import { useAsyncData } from '../../hooks/useAsyncData'
+import { useCurrentUser } from '../../hooks/useCurrentUser'
 import { expenseService } from '../../services/expenseService'
 import { groupService } from '../../services/groupService'
-import type { GroupDetails } from '../../services/groupService/types.ts'
-import { useAuthStore } from '../../stores/useAuthStore'
 import { belowStatusBar } from '../../theme/safeArea.ts'
 import { AddExpenseForm } from './components/AddExpenseForm'
 import type { AddExpenseLocationState } from './components/AddExpenseForm/types.ts'
@@ -17,37 +16,28 @@ const COLUMN_STYLE = { width: '100%', maxWidth: 560, margin: '0 auto', padding: 
 
 /** Where a signed-in user adds an expense to one of their groups. */
 export function AddExpensePage() {
-  const profile = useAuthStore((state) => state.profile)
+  const user = useCurrentUser()
   const { id = '' } = useParams()
   // Set when the user moved the expense here from another group.
   const draft = (useLocation().state as AddExpenseLocationState)?.draft
 
-  const email = profile?.email ?? ''
-  const accountId = profile?.id ?? ''
+  const userId = user?.personId ?? ''
+  const datasetId = user?.datasetId ?? ''
   // Moving the expense to another group changes `id`: the form stays on screen
   // until the other group is loaded, instead of flashing a loading placeholder.
   const { state, retry } = useAsyncData(async () => {
     const db = await getDb()
-    const group = await groupService.getGroup(db, email, id)
+    const group = await groupService.getGroup(db, userId, id)
     if (!group) return null
     return {
       group,
-      recentCurrencies: await expenseService.recentCurrencies(db, email),
-      groups: await groupService.listGroups(db, email),
+      recentCurrencies: await expenseService.recentCurrencies(db, userId),
+      groups: await groupService.listGroups(db, userId),
     }
-  }, `${email}:${id}`, { keepPrevious: true })
+  }, `${userId}:${id}`, { keepPrevious: true })
 
-  // Signed-out visitors are sent away by `RequireAuth` before this matters.
-  if (!profile) return null
-
-  // Someone else may have added the user before they ever used the app, so
-  // their record has no name yet; their Google profile has.
-  function withYourName(group: GroupDetails): GroupDetails {
-    const members = group.members.map((member) =>
-      member.isYou ? { ...member, name: member.name ?? profile?.name ?? null } : member,
-    )
-    return { ...group, members }
-  }
+  // Visitors who are not in the app are sent away by `RequireAuth` before this matters.
+  if (!user) return null
 
   function renderContent() {
     switch (state.status) {
@@ -83,9 +73,9 @@ export function AddExpensePage() {
           <AddExpenseForm
             // A new form for each group: its fields start from the carried-over draft.
             key={state.data.group.id}
-            group={withYourName(state.data.group)}
-            accountId={accountId}
-            userEmail={email}
+            group={state.data.group}
+            datasetId={datasetId}
+            userId={userId}
             recentCurrencies={state.data.recentCurrencies}
             groups={state.data.groups}
             draft={draft}

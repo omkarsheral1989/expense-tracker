@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { App } from 'antd'
 import { useGoogleLogin } from '@react-oauth/google'
 import { useAuthStore } from '../../stores/useAuthStore'
+import { deviceService } from '../../services/deviceService'
 import { googleProfileService } from '../../services/googleProfileService'
 
 // Basic sign-in only. Drive access is requested later, when it is first needed.
@@ -13,7 +14,7 @@ function googleScriptLoaded() {
 }
 
 export function useSignIn() {
-  const { message } = App.useApp()
+  const { message, modal } = App.useApp()
   const signInToStore = useAuthStore((state) => state.signIn)
   const [loading, setLoading] = useState(false)
 
@@ -23,6 +24,15 @@ export function useSignIn() {
     onSuccess: async (response) => {
       try {
         const profile = await googleProfileService.fetchProfile(response.access_token)
+        // The data on this device belongs to one Google account (ADR-035).
+        const device = deviceService.forGoogle(profile)
+        if (!device.ok) {
+          modal.error({
+            title: 'This device is already used by another account',
+            content: `This device's data belongs to ${device.ownerEmail}. Sign in with that account, or clear the app's data to use another.`,
+          })
+          return
+        }
         signInToStore(profile, {
           value: response.access_token,
           expiresAt: Date.now() + response.expires_in * 1000,

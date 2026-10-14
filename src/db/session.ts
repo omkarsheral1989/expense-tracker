@@ -3,17 +3,17 @@ import { acquireDatabaseLock, type DatabaseLock } from './lock.ts'
 
 export type SessionResult =
   | { status: 'ready'; db: Database }
-  /** Another tab already has this account's database open. */
+  /** Another tab already has this data open. */
   | { status: 'locked' }
 
 type SessionDeps = {
-  acquireLock: (accountId: string) => Promise<DatabaseLock | null>
-  open: (accountId: string) => Promise<Database>
+  acquireLock: (datasetId: string) => Promise<DatabaseLock | null>
+  open: (datasetId: string) => Promise<Database>
   close: () => Promise<void>
 }
 
 /**
- * Opens and closes the account's database together with its tab lock.
+ * Opens and closes the device's database together with its tab lock.
  *
  * Starts and ends run strictly one after another. React can start, end and
  * start again within a moment (StrictMode in development, or a retry), and a
@@ -37,14 +37,14 @@ export function createSessionManager(deps: SessionDeps) {
 
   return {
     /** Takes the lock and opens the database. Rejects if opening fails. */
-    start(accountId: string): Promise<SessionResult> {
+    start(datasetId: string): Promise<SessionResult> {
       return enqueue(async () => {
-        const lock = await deps.acquireLock(accountId)
+        const lock = await deps.acquireLock(datasetId)
         if (!lock) return { status: 'locked' }
 
         heldLock = lock
         try {
-          return { status: 'ready', db: await deps.open(accountId) }
+          return { status: 'ready', db: await deps.open(datasetId) }
         } catch (error) {
           await stop()
           throw error

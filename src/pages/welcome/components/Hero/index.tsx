@@ -1,20 +1,21 @@
-import { Flex, theme, Typography } from 'antd'
+import { Button, Flex, theme, Typography } from 'antd'
 import type { ReactNode } from 'react'
+import { useNavigate } from 'react-router'
 import { BrandLogo } from '../../../../components/BrandLogo'
 import { HIGHLIGHTS, type Highlight } from './content.tsx'
-import { SignInButton } from './SignInButton'
+import { ROUTES } from '../../../../routes.ts'
 
 const { Title, Paragraph, Text, Link } = Typography
 
 type HeroProps = {
   /**
-   * Whether signing in is locked until the app is installed (iPhone/iPad only;
-   * see `gated` on `InstallCard`). When true the Sign in button is not shown,
-   * because the install card is the call to action instead.
+   * Whether getting started is locked until the app is installed (iPhone/iPad
+   * only; see `gated` on `InstallCard`). When true the Open OwnLedger button is
+   * not shown, because the install card is the call to action instead.
    */
   gated: boolean
   /**
-   * The install card, shown just above the Sign in button. Leave it out once
+   * The install card, shown just above the Open OwnLedger button. Leave it out once
    * the app is installed.
    */
   installCard?: ReactNode
@@ -22,6 +23,7 @@ type HeroProps = {
 
 export function Hero({ gated, installCard }: HeroProps) {
   const { token } = theme.useToken()
+  const navigate = useNavigate()
 
   function renderTitles() {
     return (
@@ -64,8 +66,8 @@ export function Hero({ gated, installCard }: HeroProps) {
   function renderDriveNote() {
     return (
       <Text type="secondary" style={{ maxWidth: 440, fontSize: 13 }}>
-        OwnLedger uses your Google Drive to back up and share your groups.
-        Nothing is sent to our servers.{' '}
+        No account needed. Sign in with Google to back up and share your
+        groups through your Google Drive. Nothing is sent to our servers.{' '}
         <Link href="#faq">Why does it need Drive?</Link>
       </Text>
     )
@@ -91,7 +93,11 @@ export function Hero({ gated, installCard }: HeroProps) {
         </Flex>
         {installCard}
         {/* While gated, the install card above is the call to action. */}
-        {!gated && <SignInButton />}
+        {!gated && (
+          <Button type="primary" size="large" onClick={() => navigate(ROUTES.getStarted)}>
+            Open OwnLedger
+          </Button>
+        )}
         {renderDriveNote()}
       </Flex>
     </header>

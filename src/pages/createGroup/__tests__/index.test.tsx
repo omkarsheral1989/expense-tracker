@@ -11,7 +11,8 @@ import { useAuthStore } from '../../../stores/useAuthStore'
 import { setUpTestDatabase } from '../../../testing/database.ts'
 import { renderPage } from '../../../testing/render.tsx'
 import { CreateGroupPage } from '../index.tsx'
-import { addTestPerson, createTestGroup } from '../../../testing/groups.ts'
+import { addTestPerson, createTestGroup, ensurePersonId } from '../../../testing/groups.ts'
+import { personIdForEmail } from '../../../testing/ids.ts'
 
 // Pages reach the database through `getDb`; point it at the in-memory one.
 vi.mock('../../../db/client.ts', async (importOriginal) => {
@@ -100,9 +101,11 @@ const createButton = () => screen.getByRole('button', { name: 'Create group' })
 describe('CreateGroupPage', () => {
   let user: ReturnType<typeof userEvent.setup>
 
-  beforeEach(() => {
+  beforeEach(async () => {
     user = userEvent.setup()
     useAuthStore.setState({ profile: me, token: null })
+    // The gate saves the user's own person when the app opens; a page test does it itself.
+    await ensurePersonId(testDb.db, me.email, me.name)
     setLanguages(['en-IN'])
   })
   afterEach(() => {
@@ -145,7 +148,7 @@ describe('CreateGroupPage', () => {
       expect(await within(field('Group name')).findByText('Enter a group name.')).toBeInTheDocument()
       expect(within(field('Default currency')).getByText('Choose a currency.')).toBeInTheDocument()
       // Nothing was saved.
-      expect(await groupService.listGroups(testDb.db, me.email)).toEqual([])
+      expect(await groupService.listGroups(testDb.db, personIdForEmail(me.email))).toEqual([])
     })
 
     it('makes a message disappear as soon as its field is edited', async () => {
@@ -184,7 +187,7 @@ describe('CreateGroupPage', () => {
       expect(
         await within(field('Group name')).findByText('You already have a group called Goa trip.'),
       ).toBeInTheDocument()
-      expect(await groupService.listGroups(testDb.db, me.email)).toHaveLength(1)
+      expect(await groupService.listGroups(testDb.db, personIdForEmail(me.email))).toHaveLength(1)
     })
   })
 
@@ -302,7 +305,7 @@ describe('CreateGroupPage', () => {
         // Saved before any group is created.
         const [rahul] = await testDb.db.select().from(people).where(eq(people.name, 'Rahul'))
         expect(rahul.email).toBeNull()
-        expect(await groupService.listGroups(testDb.db, me.email)).toEqual([])
+        expect(await groupService.listGroups(testDb.db, personIdForEmail(me.email))).toEqual([])
       })
 
       it('adds a person with a Gmail address, tidied up', async () => {
@@ -459,7 +462,7 @@ describe('CreateGroupPage', () => {
       await user.click(createButton())
 
       await waitFor(async () => {
-        const [group] = await groupService.listGroups(testDb.db, me.email)
+        const [group] = await groupService.listGroups(testDb.db, personIdForEmail(me.email))
         expect(group).toMatchObject({ name: 'Berlin', defaultCurrency: 'EUR' })
       })
     })
@@ -479,10 +482,10 @@ describe('CreateGroupPage', () => {
 
       expect(await screen.findByText('Group created.')).toBeInTheDocument()
 
-      const [group] = await groupService.listGroups(testDb.db, me.email)
+      const [group] = await groupService.listGroups(testDb.db, personIdForEmail(me.email))
       await waitFor(() => expect(page.currentPath()).toBe(ROUTES.group(group.id)))
       expect(group).toMatchObject({ name: 'Goa trip', type: 'home', defaultCurrency: 'INR', memberCount: 3 })
-      const details = await groupService.getGroup(testDb.db, me.email, group.id)
+      const details = await groupService.getGroup(testDb.db, personIdForEmail(me.email), group.id)
       expect(details?.members.map((member) => member.email)).toEqual([
         'omkar@gmail.com',
         'priya@gmail.com',
@@ -504,7 +507,7 @@ describe('CreateGroupPage', () => {
 
       await user.click(createButton())
       const [group] = await waitFor(async () => {
-        const groups = await groupService.listGroups(testDb.db, me.email)
+        const groups = await groupService.listGroups(testDb.db, personIdForEmail(me.email))
         expect(groups).toHaveLength(1)
         return groups
       })
@@ -565,7 +568,7 @@ describe('CreateGroupPage', () => {
       await user.click(await screen.findByRole('button', { name: 'Discard' }))
 
       await waitFor(() => expect(page.currentPath()).toBe(ROUTES.home))
-      expect(await groupService.listGroups(testDb.db, me.email)).toEqual([])
+      expect(await groupService.listGroups(testDb.db, personIdForEmail(me.email))).toEqual([])
     })
 
     it('warns before the tab is reloaded or closed, only while there is input', async () => {

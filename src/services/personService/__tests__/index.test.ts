@@ -3,9 +3,8 @@ import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createDatabase, type Database } from '../../../db/client.ts'
 import { people } from '../../../db/schema.ts'
-import { addTestPerson } from '../../../testing/groups.ts'
+import { addTestPerson, ensurePersonId, type TestUser } from '../../../testing/groups.ts'
 import { personService } from '../index.ts'
-import type { PersonAdder } from '../types.ts'
 
 let pg: PGlite
 let db: Database
@@ -17,13 +16,19 @@ beforeAll(async () => {
 
 afterAll(() => pg.close())
 
-beforeEach(() => pg.exec('truncate expense_photos, expense_shares, expenses, group_members, groups, people cascade'))
+beforeEach(async () => {
+  await pg.exec('truncate expense_photos, expense_shares, expenses, group_members, groups, people cascade')
+  adderId = await ensurePersonId(db, omkar.email, omkar.name)
+})
 
-const omkar: PersonAdder = { email: 'omkar@gmail.com', name: 'Omkar Sheral' }
+const omkar: TestUser = { email: 'omkar@gmail.com', name: 'Omkar Sheral' }
+
+/** The person who adds people in these tests: the user. */
+let adderId: string
 
 /** Adds a person and returns the saved person, failing the test if it was refused. */
 async function add(input: { name: string; email?: string }) {
-  const result = await personService.addPerson(db, omkar, input)
+  const result = await personService.addPerson(db, adderId, input)
   if (!result.ok) throw new Error(`refused: ${JSON.stringify(result.errors)}`)
   return result.person
 }
@@ -59,32 +64,30 @@ describe('personService.addPerson', () => {
     expect((await db.select().from(people)).filter((person) => person.email === null)).toHaveLength(2)
   })
 
-  it('records who added them, and saves the adder as a person the first time', async () => {
+  it('records who added them', async () => {
     const person = await add({ name: 'Rahul' })
 
-    const [adder] = await db.select().from(people).where(eq(people.email, 'omkar@gmail.com'))
-    expect(adder).toMatchObject({ name: 'Omkar Sheral', updatedBy: adder.id })
     const [row] = await db.select().from(people).where(eq(people.id, person.id))
-    expect(row.updatedBy).toBe(adder.id)
+    expect(row.updatedBy).toBe(adderId)
     expect(await db.select().from(people)).toHaveLength(2)
   })
 
   describe('refusing bad input', () => {
     it('asks for a name', async () => {
       for (const name of ['', '   ']) {
-        expect(await personService.addPerson(db, omkar, { name })).toEqual({
+        expect(await personService.addPerson(db, adderId, { name })).toEqual({
           ok: false,
           errors: { name: 'Enter a name.' },
         })
       }
-      expect(await personService.addPerson(db, omkar, {} as never)).toEqual({
+      expect(await personService.addPerson(db, adderId, {} as never)).toEqual({
         ok: false,
         errors: { name: 'Enter a name.' },
       })
     })
 
     it('refuses a name over 60 characters but accepts exactly 60', async () => {
-      const tooLong = await personService.addPerson(db, omkar, { name: 'x'.repeat(61) })
+      const tooLong = await personService.addPerson(db, adderId, { name: 'x'.repeat(61) })
       expect(tooLong).toEqual({ ok: false, errors: { name: 'Use at most 60 characters.' } })
 
       await expect(add({ name: 'y'.repeat(60) })).resolves.toBeDefined()
@@ -92,7 +95,7 @@ describe('personService.addPerson', () => {
 
     it('refuses an email that is not a Gmail address', async () => {
       for (const email of ['bob@yahoo.com', 'notanemail', 'b@gmail.com.evil.com', 'a b@gmail.com']) {
-        expect(await personService.addPerson(db, omkar, { name: 'Bob', email })).toEqual({
+        expect(await personService.addPerson(db, adderId, { name: 'Bob', email })).toEqual({
           ok: false,
           errors: { email: 'Only @gmail.com addresses can be added.' },
         })
@@ -100,15 +103,15 @@ describe('personService.addPerson', () => {
     })
 
     it('reports a bad name and a bad email together', async () => {
-      expect(await personService.addPerson(db, omkar, { name: ' ', email: 'bob@yahoo.com' })).toEqual({
+      expect(await personService.addPerson(db, adderId, { name: ' ', email: 'bob@yahoo.com' })).toEqual({
         ok: false,
         errors: { name: 'Enter a name.', email: 'Only @gmail.com addresses can be added.' },
       })
     })
 
-    it('saves nothing when the input itself is refused', async () => {
-      await personService.addPerson(db, omkar, { name: '' })
-      expect(await db.select().from(people)).toEqual([])
+    it('saves nobody when the input itself is refused', async () => {
+      await personService.addPerson(db, adderId, { name: '' })
+      expect(await db.select().from(people)).toHaveLength(1) // only the adder
     })
   })
 
@@ -118,11 +121,11 @@ describe('personService.addPerson', () => {
       await addTestPerson(db, omkar, { name: 'Sam', email: 'sam@gmail.com' })
       await db.update(people).set({ name: null }).where(eq(people.email, 'sam@gmail.com'))
 
-      expect(await personService.addPerson(db, omkar, { name: 'Another', email: 'PRIYA@gmail.com' })).toEqual({
+      expect(await personService.addPerson(db, adderId, { name: 'Another', email: 'PRIYA@gmail.com' })).toEqual({
         ok: false,
         errors: { email: 'Priya Shah is already in your list with this email.' },
       })
-      expect(await personService.addPerson(db, omkar, { name: 'Another', email: 'sam@gmail.com' })).toEqual({
+      expect(await personService.addPerson(db, adderId, { name: 'Another', email: 'sam@gmail.com' })).toEqual({
         ok: false,
         errors: { email: 'sam@gmail.com is already in your list with this email.' },
       })
@@ -131,7 +134,7 @@ describe('personService.addPerson', () => {
     it('refuses the adder\'s own address, since they are added automatically', async () => {
       await add({ name: 'Someone' })
 
-      expect(await personService.addPerson(db, omkar, { name: 'Me again', email: 'Omkar@Gmail.com' })).toEqual({
+      expect(await personService.addPerson(db, adderId, { name: 'Me again', email: 'Omkar@Gmail.com' })).toEqual({
         ok: false,
         errors: { email: 'That is your own address. You are added automatically.' },
       })
@@ -141,7 +144,7 @@ describe('personService.addPerson', () => {
       await add({ name: 'Sam Lee' })
 
       for (const name of ['Sam Lee', 'sam lee', '  SAM    lee ']) {
-        expect(await personService.addPerson(db, omkar, { name })).toEqual({
+        expect(await personService.addPerson(db, adderId, { name })).toEqual({
           ok: false,
           errors: { name: 'You already have someone called Sam Lee.' },
         })
@@ -151,8 +154,8 @@ describe('personService.addPerson', () => {
     it('counts the adder, and people with an email, when comparing names', async () => {
       await add({ name: 'Priya', email: 'priya@gmail.com' })
 
-      expect(await personService.addPerson(db, omkar, { name: 'priya' })).toMatchObject({ ok: false })
-      expect(await personService.addPerson(db, omkar, { name: 'omkar sheral' })).toMatchObject({ ok: false })
+      expect(await personService.addPerson(db, adderId, { name: 'priya' })).toMatchObject({ ok: false })
+      expect(await personService.addPerson(db, adderId, { name: 'omkar sheral' })).toMatchObject({ ok: false })
     })
 
     it('does not count a deleted person, and does not mind people without a name', async () => {
@@ -168,7 +171,7 @@ describe('personService.addPerson', () => {
       await add({ name: 'Sam', email: 'sam@gmail.com' })
       const before = await db.select().from(people)
 
-      expect(await personService.addPerson(db, omkar, { name: 'sam', email: 'sam@gmail.com' })).toEqual({
+      expect(await personService.addPerson(db, adderId, { name: 'sam', email: 'sam@gmail.com' })).toEqual({
         ok: false,
         errors: {
           name: 'You already have someone called Sam.',

@@ -8,7 +8,7 @@ const profile = { id: '1', email: 'a@example.com', name: 'A' }
 const otherProfile = { id: '2', email: 'b@example.com', name: 'B' }
 
 /** What another tab does: change the stored session, which tells this tab. */
-function otherTabStores(session: { profile: typeof profile | null } | null) {
+function otherTabStores(session: { profile: typeof profile | null; guest?: boolean } | null) {
   const newValue =
     session === null ? null : JSON.stringify({ state: session, version: 0 })
 
@@ -51,6 +51,24 @@ describe('useSyncSessionAcrossTabs', () => {
   it('signs out when the whole storage is cleared', () => {
     window.dispatchEvent(new StorageEvent('storage', { key: null, newValue: null }))
     expect(useAuthStore.getState().profile).toBeNull()
+  })
+
+  it('shows another tab\'s start as a guest', async () => {
+    useAuthStore.setState({ profile: null, guest: false, token: null })
+
+    otherTabStores({ profile: null, guest: true })
+
+    await waitFor(() => expect(useAuthStore.getState().guest).toBe(true))
+  })
+
+  it('leaves guest mode when another tab exits it, or clears the stored session', async () => {
+    useAuthStore.getState().startGuest()
+    otherTabStores({ profile: null, guest: false })
+    await waitFor(() => expect(useAuthStore.getState().guest).toBe(false))
+
+    useAuthStore.getState().startGuest()
+    otherTabStores(null)
+    expect(useAuthStore.getState().guest).toBe(false)
   })
 
   it('ignores changes to other stored items', () => {

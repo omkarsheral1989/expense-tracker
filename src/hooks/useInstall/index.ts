@@ -9,8 +9,14 @@ import type { BeforeInstallPromptEvent, InstallState } from './types.ts'
 
 // The browser fires `beforeinstallprompt` once, possibly before React mounts,
 // so it is captured at module load and shared through a tiny store.
+// Read once when the page loads, so `?platform=ios` (development only) keeps
+// applying after the user moves between the app's pages.
+const overrides = devOverrides()
+
 let deferredPrompt: BeforeInstallPromptEvent | null = null
 let installedThisSession = false
+// "Continue in browser anyway" lasts until the page is reloaded, across pages.
+let skippedInstall = false
 const listeners = new Set<() => void>()
 const emit = () => listeners.forEach((listener) => listener())
 
@@ -38,14 +44,20 @@ function subscribe(onChange: () => void) {
 
 const getCanPrompt = () => deferredPrompt !== null
 const getInstalled = () => installedThisSession || isStandalone()
+const getSkipped = () => skippedInstall
 
 export function useInstall(): InstallState {
-  const [overrides] = useState(devOverrides)
   const [platform] = useState<Platform>(
     () => overrides.platform ?? detectPlatform(navigator),
   )
   const installed = useSyncExternalStore(subscribe, getInstalled)
   const canPrompt = useSyncExternalStore(subscribe, getCanPrompt)
+  const skipped = useSyncExternalStore(subscribe, getSkipped)
+
+  function skipInstall() {
+    skippedInstall = true
+    emit()
+  }
 
   async function promptInstall() {
     const prompt = deferredPrompt
@@ -62,5 +74,7 @@ export function useInstall(): InstallState {
     installed: overrides.installed ?? installed,
     canPrompt,
     promptInstall,
+    skipped,
+    skipInstall,
   }
 }

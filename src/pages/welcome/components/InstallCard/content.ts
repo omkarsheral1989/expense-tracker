@@ -7,6 +7,6 @@ export const IOS_STEPS: { title: string; content: string }[] = [
   { title: 'Choose Add to Home Screen', content: 'Then tap Add.' },
   {
     title: 'Open OwnLedger from your home screen',
-    content: 'Sign-in appears there.',
+    content: 'The Open OwnLedger button appears there.',
   },
 ]

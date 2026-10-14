@@ -28,10 +28,10 @@ const { Title } = Typography
 
 type Props = {
   group: GroupDetails
-  /** The signed-in user's Google account id: receipt photos go in that account's photo store. */
-  accountId: string
-  /** The signed-in user's email: they pay, and the expense is saved as theirs. */
-  userEmail: string
+  /** Names the device's photo store, where receipt photos are kept. */
+  datasetId: string
+  /** The user's person id: they pay, and the expense is saved as theirs. */
+  userId: string
   /** The currencies of the user's latest expenses, most recent first. */
   recentCurrencies: string[]
   /** Every group of the user, for moving the expense to another one. */
@@ -44,7 +44,7 @@ type Props = {
  * A new expense in a group: what it was for, how much, and when. Saved with
  * the tick in the header, with who paid and how it is split.
  */
-export function AddExpenseForm({ group, accountId, userEmail, recentCurrencies, groups, draft }: Props) {
+export function AddExpenseForm({ group, datasetId, userId, recentCurrencies, groups, draft }: Props) {
   const [form] = Form.useForm<FormValues>()
   const { message, modal } = App.useApp()
   const navigate = useNavigate()
@@ -113,13 +113,13 @@ export function AddExpenseForm({ group, accountId, userEmail, recentCurrencies, 
 
   async function handleFinish(values: FormValues) {
     setSubmitting(true)
-    const photos = photoService.open(accountId)
+    const photos = photoService.open(datasetId)
     let receipts: ReceiptInput[] = []
     try {
       // The photos are kept first, so the expense never points at a photo
       // that is not there; they are removed again if the expense is not saved.
       receipts = await photoService.storeReceipts(photos, values.receipts)
-      const result = await expenseService.createExpense(await getDb(), userEmail, group.id, {
+      const result = await expenseService.createExpense(await getDb(), userId, group.id, {
         description: values.description,
         category: values.category,
         amountMinor: moneyService.toMinor(values.amount, values.currency),

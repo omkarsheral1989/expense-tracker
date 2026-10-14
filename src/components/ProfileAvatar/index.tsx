@@ -2,7 +2,8 @@ import { Avatar, theme } from 'antd'
 import type { Profile } from '../../services/googleProfileService/types.ts'
 
 type Props = {
-  profile: Profile
+  /** A Google profile, or just a name ("Guest") for someone who has not signed in. */
+  profile: Pick<Profile, 'name' | 'picture'>
   size?: number
 }
 

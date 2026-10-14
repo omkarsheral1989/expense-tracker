@@ -6,21 +6,23 @@ import type { AccessToken, AuthState } from './types.ts'
 export { SESSION_KEY }
 
 /**
- * The signed-in profile is kept on the device so the app opens offline without
- * a new Google login. The access token lives in memory only: it lasts about an
+ * The signed-in profile (or the fact that the user is a guest) is kept on the
+ * device so the app opens offline without a new Google login. The access token lives in memory only: it lasts about an
  * hour and is requested again when a Drive action needs it.
  */
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       profile: null,
+      guest: false,
       token: null,
-      signIn: (profile, token) => set({ profile, token }),
-      signOut: () => set({ profile: null, token: null }),
+      signIn: (profile, token) => set({ profile, guest: false, token }),
+      startGuest: () => set({ profile: null, guest: true, token: null }),
+      signOut: () => set({ profile: null, guest: false, token: null }),
     }),
     {
       name: SESSION_KEY,
-      partialize: (state) => ({ profile: state.profile }),
+      partialize: (state) => ({ profile: state.profile, guest: state.guest }),
     },
   ),
 )

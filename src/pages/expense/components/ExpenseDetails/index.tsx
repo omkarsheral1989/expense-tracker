@@ -16,8 +16,8 @@ const { Paragraph, Text, Title } = Typography
 
 type Props = {
   expense: ExpenseDetails
-  /** The signed-in user's Google account id, whose photo store holds the receipts. */
-  accountId: string
+  /** Names the device's photo store, which holds the receipts. */
+  datasetId: string
 }
 
 /**
@@ -25,7 +25,7 @@ type Props = {
  * it was split and each person's part, its notes and its receipt photos. Editing and deleting are
  * shown switched off ("Coming soon").
  */
-export function ExpenseDetails({ expense, accountId }: Props) {
+export function ExpenseDetails({ expense, datasetId }: Props) {
   const navigate = useNavigate()
   const { token } = theme.useToken()
   const category = expenseService.categoryOf(expense.category)
@@ -109,7 +109,7 @@ export function ExpenseDetails({ expense, accountId }: Props) {
         <Text strong style={{ display: 'block', marginBottom: 8 }}>
           Receipts
         </Text>
-        <ReceiptGallery receipts={expense.receipts} accountId={accountId} />
+        <ReceiptGallery receipts={expense.receipts} datasetId={datasetId} />
       </>
     )
   }

@@ -8,7 +8,6 @@ import { useLeaveWarning } from '../../../../hooks/useLeaveWarning'
 import { ROUTES } from '../../../../routes.ts'
 import { currencyService } from '../../../../services/currencyService'
 import { groupService } from '../../../../services/groupService'
-import type { Creator } from '../../../../services/groupService/types.ts'
 import { DEFAULT_GROUP_TYPE } from './constants.ts'
 import { CurrencySelect } from './CurrencySelect'
 import { GroupTypeSelector } from './GroupTypeSelector'
@@ -19,16 +18,16 @@ import { hasUnsavedInput, toFormFields } from './utils.ts'
 const { Title, Text } = Typography
 
 type Props = {
-  /** The signed-in user, who becomes the first member. */
-  creator: Creator
+  /** The user's person id: they become the first member. */
+  creatorId: string
 }
 
-export function CreateGroupForm({ creator }: Props) {
+export function CreateGroupForm({ creatorId }: Props) {
   const [form] = Form.useForm<FormValues>()
   const { message, modal } = App.useApp()
   const navigate = useNavigate()
   const [submitting, setSubmitting] = useState(false)
-  const { people, loading, add: addKnownPerson } = useKnownPeople(creator.email)
+  const { people, loading, add: addKnownPerson } = useKnownPeople(creatorId)
 
   // The currency of the device's region, preselected and listed first.
   const [regionCurrency] = useState(() =>
@@ -62,7 +61,7 @@ export function CreateGroupForm({ creator }: Props) {
   async function handleFinish(values: FormValues) {
     setSubmitting(true)
     try {
-      const result = await groupService.createGroup(await getDb(), creator, {
+      const result = await groupService.createGroup(await getDb(), creatorId, {
         ...values,
         defaultCurrency: values.defaultCurrency ?? '',
       })
@@ -124,7 +123,7 @@ export function CreateGroupForm({ creator }: Props) {
           extra={<Text type="secondary">You are added automatically.</Text>}
         >
           <MemberSelect
-            adder={creator}
+            adderId={creatorId}
             knownPeople={people}
             loading={loading}
             onPersonAdded={addKnownPerson}

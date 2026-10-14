@@ -6,6 +6,18 @@ const { Link } = Typography
 
 export const FAQ: { key: string; question: string; answer: ReactNode }[] = [
   {
+    key: 'account',
+    question: 'Do I need to sign in?',
+    answer:
+      'No. Choose Open OwnLedger, then Continue as a guest, and use everything on this device. Google sign-in is only needed to back up your data and to share groups with other people.',
+  },
+  {
+    key: 'guest-data',
+    question: 'What happens to my data when I sign in later?',
+    answer:
+      "Nothing is lost or copied. The data on your device becomes your Google account's data, so everything you made as a guest is still there. If you sign out, you can continue as a guest and still see it. One device holds one set of data, so it belongs to one Google account: signing in with a different account on the same device isn't possible.",
+  },
+  {
     key: 'drive',
     question: 'Why does OwnLedger need access to Google Drive?',
     answer:

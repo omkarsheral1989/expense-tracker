@@ -1,5 +1,5 @@
 export const STEPS: { title: string; text: string }[] = [
-  { title: 'Sign in', text: 'Use your Google account.' },
+  { title: 'Open OwnLedger', text: 'No account needed. Continue as a guest, or sign in with Google.' },
   {
     title: 'Create a group',
     text: 'Add friends by their Gmail address.',
@@ -9,7 +9,7 @@ export const STEPS: { title: string; text: string }[] = [
     text: 'Choose how to split them.',
   },
   {
-    title: 'Sync',
-    text: 'Share updates through Drive. Everyone sees the same balances.',
+    title: 'Back up and share',
+    text: 'Sign in with Google to back up, and to share updates through Drive. Everyone sees the same balances.',
   },
 ]

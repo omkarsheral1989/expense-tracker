@@ -1,6 +1,8 @@
 /** Every address of the app in one place, so a page never spells one out. */
 export const ROUTES = {
   welcome: '/',
+  /** Where the welcome page's Open OwnLedger button leads: sign in with Google, or continue as a guest. */
+  getStarted: '/get-started',
   home: '/home',
   newGroup: '/groups/new',
   /** The page of one group. */

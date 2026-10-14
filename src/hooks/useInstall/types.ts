@@ -13,4 +13,7 @@ export type InstallState = {
   /** The browser offered a native install prompt (Chromium on Android/desktop). */
   canPrompt: boolean
   promptInstall: () => Promise<void>
+  /** The user chose "Continue in browser anyway"; lasts until the page is reloaded. */
+  skipped: boolean
+  skipInstall: () => void
 }
