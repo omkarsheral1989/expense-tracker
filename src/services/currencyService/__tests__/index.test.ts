@@ -83,3 +83,31 @@ describe('currencyService.options', () => {
     expect(values).toEqual(currencyService.codes().toSorted())
   })
 })
+
+describe('currencyService.symbol', () => {
+  it('gives a symbol that tells the currency apart', () => {
+    expect(currencyService.symbol('INR', 'en-US')).toBe('₹')
+    expect(currencyService.symbol('USD', 'en-US')).toBe('$')
+    expect(currencyService.symbol('EUR', 'en-US')).toBe('€')
+    // Another dollar is not mistaken for the local one.
+    expect(currencyService.symbol('CAD', 'en-US')).toBe('CA$')
+    expect(currencyService.symbol('CAD', 'en-CA')).toBe('$')
+  })
+
+  it('falls back to the short symbol when only one currency uses it', () => {
+    expect(currencyService.symbol('THB', 'en-GB')).toBe('฿')
+    expect(currencyService.symbol('PLN', 'en-GB')).toBe('zł')
+    expect(currencyService.symbol('RUB', 'en-GB')).toBe('₽')
+  })
+
+  it('is null when the symbol is shared with other currencies, so the code is used', () => {
+    expect(currencyService.symbol('SGD', 'en-GB')).toBeNull() // "$"
+    expect(currencyService.symbol('SEK', 'en-GB')).toBeNull() // "kr"
+    expect(currencyService.symbol('NOK', 'en-GB')).toBeNull()
+    expect(currencyService.symbol('PKR', 'en-GB')).toBeNull() // "Rs"
+  })
+
+  it('is null when the language has no symbol at all, so the code is used', () => {
+    expect(currencyService.symbol('CHF', 'en-US')).toBeNull()
+  })
+})

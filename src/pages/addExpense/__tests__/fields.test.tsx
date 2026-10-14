@@ -47,13 +47,21 @@ describe('AddExpensePage', () => {
       expect(screen.queryByRole('textbox', { name: 'Description' })).not.toBeInTheDocument()
     })
 
+    it('shows the code on the currency button when the language has no symbol for it', async () => {
+      const id = await createGroup({ defaultCurrency: 'CHF' })
+      renderForm(id)
+
+      expect(await screen.findByRole('button', { name: 'Currency: CHF' })).toHaveTextContent('CHF')
+    })
+
     it('starts with General, the group\'s currency, today and nothing typed', async () => {
       const id = await createGroup({ defaultCurrency: 'EUR' })
       renderForm(id)
 
       expect(await screen.findByRole('heading', { name: 'Add expense' })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Category: General' })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'Currency: EUR' })).toHaveTextContent('EUR')
+      // The button shows the symbol; the code stays in its name for screen readers.
+      expect(screen.getByRole('button', { name: 'Currency: EUR' })).toHaveTextContent('€')
       expect(screen.getByRole('button', { name: 'Date: Today, 8 Oct 2026' })).toHaveTextContent(
         'Today, 8 Oct 2026',
       )
@@ -168,7 +176,7 @@ describe('AddExpensePage', () => {
       return screen.findByRole('dialog', { name: 'Choose a currency' })
     }
 
-    it('lists the group\'s currency and your latest ones under Recent, then all currencies', async () => {
+    it('lists the chosen currency first, then your recent ones, then all the others', async () => {
       const id = await createGroup()
       for (const currency of ['USD', 'INR']) {
         await addTestExpense(testDb.db, me.email, id, { currency })
@@ -177,15 +185,44 @@ describe('AddExpensePage', () => {
 
       const dialog = await openCurrencies()
 
+      // The group's GBP is chosen, so it is on top and not repeated below.
+      const sections = within(dialog).getAllByRole('group').map((section) => section.getAttribute('aria-label'))
+      expect(sections).toEqual(['Selected', 'Recent', 'All currencies'])
+      expect(currencySection(dialog, 'Selected')).toEqual(['GBP – British Pound (£)'])
       const recent = currencySection(dialog, 'Recent')
-      expect(recent).toHaveLength(3)
-      expect(recent[0]).toMatch(/^GBP – British Pound/)
-      expect(recent.slice(1).map((label) => label?.slice(0, 3)).sort()).toEqual(['INR', 'USD'])
+      expect(recent.map((label) => label?.slice(0, 3)).sort()).toEqual(['INR', 'USD'])
       const all = currencySection(dialog, 'All currencies')
       expect(all.length).toBeGreaterThan(100)
       expect(all.map((label) => label?.slice(0, 3))).toEqual(
         all.map((label) => label?.slice(0, 3)).toSorted(),
       )
+      expect(all.map((label) => label?.slice(0, 3))).not.toContain('GBP')
+    })
+
+    it('moves a currency picked from Recent to the top and out of Recent', async () => {
+      const id = await createGroup()
+      await addTestExpense(testDb.db, me.email, id, { currency: 'USD' })
+      renderForm(id)
+      await user.click(await screen.findByRole('button', { name: /^Currency: / }))
+      let dialog = await screen.findByRole('dialog', { name: 'Choose a currency' })
+      await user.click(within(within(dialog).getByRole('group', { name: 'Recent' })).getByRole('button', { name: /^USD/ }))
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Currency: USD' })).toBeInTheDocument())
+
+      dialog = await openCurrencies()
+
+      expect(currencySection(dialog, 'Selected')).toEqual(['USD – US Dollar ($)'])
+      expect(currencySection(dialog, 'Recent').map((label) => label?.slice(0, 3))).toEqual(['GBP'])
+    })
+
+    it('lists only the matches while searching, with no Selected section', async () => {
+      const id = await createGroup()
+      renderForm(id)
+      const dialog = await openCurrencies()
+
+      await user.type(within(dialog).getByRole('textbox', { name: 'Search currencies' }), 'pound')
+
+      expect(within(dialog).queryByRole('group', { name: 'Selected' })).not.toBeInTheDocument()
+      expect(within(dialog).getByRole('group', { name: 'Search results' })).toBeInTheDocument()
     })
 
     it('finds a currency by name or code, and uses the one picked', async () => {

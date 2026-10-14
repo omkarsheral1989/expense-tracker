@@ -33,7 +33,7 @@ export function CategoryField({ id, value = expenseService.defaultCategory, onCh
         type="text"
         aria-label={`Category: ${label === 'Other' ? `${groupLabel}: Other` : label}`}
         onClick={() => setOpen(true)}
-        style={{ width: 'auto', height: 'auto', padding: 0 }}
+        style={{ width: 'auto', height: 'auto', padding: 0, border: 0 }}
       >
         <CategoryIcon category={value} size={CONTROL_HEIGHT} />
       </Button>

@@ -191,12 +191,8 @@ export function AddExpenseForm({ group, accountId, userEmail, recentCurrencies, 
           <Form.Item name="category" style={{ marginBottom: 16 }}>
             <CategoryField />
           </Form.Item>
-          <Form.Item name="description" style={{ flex: 1, minWidth: 0, marginBottom: 16, paddingTop: 8 }}>
+          <Form.Item name="description" style={{ flex: 1, minWidth: 0, marginBottom: 16 }}>
             <Input
-              variant="underlined"
-              size="large"
-              // No fill, so it sits on the page like the amount: only its underline shows.
-              style={{ background: 'transparent' }}
               aria-label="Description"
               placeholder="Enter a description"
               autoComplete="off"

@@ -10,17 +10,17 @@ const { Text } = Typography
 type Props = {
   open: boolean
   onClose: () => void
-  /** The currency chosen now; it is marked in the list. */
+  /** The currency chosen now; it is listed first, under "Selected", and left out of the lists below. */
   value: string
-  /** Listed first, under "Recent": the group's currency and the user's latest ones. */
+  /** Listed under "Recent": the group's currency and the user's latest ones. */
   recentCodes: string[]
   /** Called with the code of the currency the user taps. */
   onPick: (code: string) => void
 }
 
 /**
- * Every ISO currency to pick one from, with the recent ones first. Searching
- * by code or name narrows the list.
+ * Every ISO currency to pick one from: the chosen one first, then the recent
+ * ones, then all the others. Searching by code or name narrows the list.
  */
 export function CurrencyPicker({ open, onClose, value, recentCodes, onPick }: Props) {
   const [query, setQuery] = useState('')
@@ -72,13 +72,16 @@ export function CurrencyPicker({ open, onClose, value, recentCodes, onPick }: Pr
       if (found.length === 0) return <Empty description="No currency matches" />
       return renderSection('Search results', found)
     }
+    // Each currency is listed once: the chosen one on top, not again below.
+    const others = options.filter((option) => option.value !== value)
     const recent = recentCodes
-      .map((code) => options.find((option) => option.value === code))
+      .map((code) => others.find((option) => option.value === code))
       .filter((option) => option !== undefined)
     return (
       <>
+        {renderSection('Selected', options.filter((option) => option.value === value))}
         {renderSection('Recent', recent)}
-        {renderSection('All currencies', options)}
+        {renderSection('All currencies', others)}
       </>
     )
   }

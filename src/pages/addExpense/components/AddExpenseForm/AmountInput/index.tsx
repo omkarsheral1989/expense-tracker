@@ -14,8 +14,8 @@ type Props = {
   /** What screen readers call the field. */
   label?: string
   /**
-   * True for the amount of the expense itself: large type on an underline.
-   * False for a smaller boxed field, such as one person's amount in the split.
+   * True for the amount of the expense itself: large, bold type.
+   * False for normal type, such as one person's amount in the split.
    */
   large?: boolean
   /** Shown before the number inside a small field, such as "+" for an adjustment. */
@@ -23,7 +23,7 @@ type Props = {
 }
 
 /**
- * The amount of an expense in large type. Only digits and "." can be typed,
+ * The amount of an expense, in large type by default. Only digits and "." can be typed,
  * no more decimals than the currency has, and thousands separators appear as
  * the user types (lakhs for INR). Works as an Ant Design form field.
  */
@@ -63,13 +63,12 @@ export function AmountInput({
       aria-label={label}
       inputMode="decimal"
       autoComplete="off"
-      variant={large ? 'underlined' : 'outlined'}
       prefix={prefix}
       placeholder={moneyService.placeholder(currency)}
       value={moneyService.formatInput(value, currency)}
       onChange={handleChange}
-      // The big amount fits the 40 px of every other field.
-      style={large ? { fontSize: 20, fontWeight: 600, background: 'transparent' } : undefined}
+      // The big amount fits the 40 px of every other field: 24 px line, 7 px above and below, 1 px border.
+      style={large ? { fontSize: 20, fontWeight: 600, lineHeight: '24px', paddingBlock: 7 } : undefined}
       styles={large ? undefined : { input: { textAlign: 'end' } }}
     />
   )

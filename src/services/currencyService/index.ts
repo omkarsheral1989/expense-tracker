@@ -22,12 +22,20 @@ function explicitRegion(locale: string): string | null {
   }
 }
 
-/** The currency symbol for a code in a locale ('₹'), or null when it has none. */
-function symbolOf(code: string, locale: string): string | null {
+/**
+ * The currency symbol for a code in a locale ('₹'), or null when it has none.
+ * The narrow form is the shortest ('$' for every dollar); the regular form
+ * tells currencies apart ('CA$' in a locale where '$' is another dollar).
+ */
+function symbolOf(
+  code: string,
+  locale: string,
+  display: 'narrowSymbol' | 'symbol' = 'narrowSymbol',
+): string | null {
   const parts = new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: code,
-    currencyDisplay: 'narrowSymbol',
+    currencyDisplay: display,
   }).formatToParts(0)
   const symbol = parts.find((part) => part.type === 'currency')?.value
   return symbol && symbol !== code ? symbol : null
@@ -39,6 +47,19 @@ export const currencyService = {
 
   /** Whether `code` is a real, upper-case currency code. */
   isValid,
+
+  /**
+   * A symbol that tells the currency apart in a locale ('$' for USD, 'CA$' for
+   * CAD in 'en-US', '฿' for THB), or null when there is none (then use the
+   * code). It is the locale's regular symbol; failing that, the short form
+   * when no other currency shares it (never a bare '$' for SGD or 'kr' for SEK).
+   */
+  symbol(code: string, locale: string): string | null {
+    const regular = symbolOf(code, locale, 'symbol')
+    if (regular) return regular
+    const narrow = symbolOf(code, locale)
+    return narrow && narrowSymbolCounts(locale).get(narrow) === 1 ? narrow : null
+  },
 
   /**
    * The currency of the user's region, worked out from their preferred
@@ -71,6 +92,23 @@ export const currencyService = {
       ? [first, ...options.filter((option) => option !== first)]
       : [...options]
   },
+}
+
+// How many currencies use each short symbol in a locale ('$' many, '฿' one),
+// counted once per locale.
+const cachedSymbolCounts = new Map<string, Map<string, number>>()
+
+function narrowSymbolCounts(locale: string): Map<string, number> {
+  const cached = cachedSymbolCounts.get(locale)
+  if (cached) return cached
+
+  const counts = new Map<string, number>()
+  for (const code of codes()) {
+    const symbol = symbolOf(code, locale)
+    if (symbol) counts.set(symbol, (counts.get(symbol) ?? 0) + 1)
+  }
+  cachedSymbolCounts.set(locale, counts)
+  return counts
 }
 
 // Building every label formats a few hundred currencies, so each locale's
