@@ -8,7 +8,7 @@ import { useLeaveWarning } from '../../../../hooks/useLeaveWarning'
 import { ROUTES } from '../../../../routes.ts'
 import { dateService } from '../../../../services/dateService'
 import { expenseService } from '../../../../services/expenseService'
-import type { GroupDetails } from '../../../../services/groupService/types.ts'
+import type { GroupDetails, GroupSummary } from '../../../../services/groupService/types.ts'
 import { moneyService } from '../../../../services/moneyService'
 import { photoService } from '../../../../services/photoService'
 import type { ReceiptInput } from '../../../../services/photoService/types.ts'
@@ -17,12 +17,12 @@ import { CategoryField } from './CategoryField'
 import { NOTES_COUNTER_FROM } from './constants.ts'
 import { CurrencyField } from './CurrencyField'
 import { DateField } from './DateField'
+import { GroupSwitcher } from './GroupSwitcher'
 import { ReceiptsField } from './ReceiptsField'
 import { SplitField } from './SplitField'
 import { initialSplit, splitProblem } from './SplitField/utils.ts'
-import type { FormValues } from './types.ts'
-import { hasUnsavedInput, recentCurrencyCodes, toFormFields } from './utils.ts'
-import { WithChip } from './WithChip'
+import type { ExpenseDraft, FormValues } from './types.ts'
+import { carriedOver, hasUnsavedInput, recentCurrencyCodes, toFormFields } from './utils.ts'
 
 const { Title } = Typography
 
@@ -34,13 +34,17 @@ type Props = {
   userEmail: string
   /** The currencies of the user's latest expenses, most recent first. */
   recentCurrencies: string[]
+  /** Every group of the user, for moving the expense to another one. */
+  groups: readonly GroupSummary[]
+  /** Fields carried over from another group when the user switched; leave out for a new form. */
+  draft?: ExpenseDraft
 }
 
 /**
  * A new expense in a group: what it was for, how much, and when. Saved with
  * the tick in the header, with who paid and how it is split.
  */
-export function AddExpenseForm({ group, accountId, userEmail, recentCurrencies }: Props) {
+export function AddExpenseForm({ group, accountId, userEmail, recentCurrencies, groups, draft }: Props) {
   const [form] = Form.useForm<FormValues>()
   const { message, modal } = App.useApp()
   const navigate = useNavigate()
@@ -56,9 +60,13 @@ export function AddExpenseForm({ group, accountId, userEmail, recentCurrencies }
     split: initialSplit(group.members),
     receipts: [],
   }))
-  const currency = Form.useWatch('currency', form) ?? initialValues.currency
-  const amount = Form.useWatch('amount', form) ?? ''
-  const split = Form.useWatch('split', form) ?? initialValues.split
+  // What the form shows at first: the defaults, or what was carried over from
+  // the group the user switched from (with a new split: the members differ).
+  // `initialValues` stays the plain defaults, so carried fields count as input.
+  const [startValues] = useState<FormValues>(() => (draft ? carriedOver(draft, initialValues, group) : initialValues))
+  const currency = Form.useWatch('currency', form) ?? startValues.currency
+  const amount = Form.useWatch('amount', form) ?? startValues.amount
+  const split = Form.useWatch('split', form) ?? startValues.split
   const amountMinor = moneyService.toMinor(amount, currency)
   // Shown under the split as soon as it stops adding up, for example after the
   // amount changed under exact amounts. Saving refuses it too.
@@ -69,6 +77,23 @@ export function AddExpenseForm({ group, accountId, userEmail, recentCurrencies }
 
   function leave() {
     navigate(ROUTES.group(group.id))
+  }
+
+  // Moves the expense to another group, keeping what was entered. The address
+  // changes to that group's add-expense page, with the fields in its state.
+  function switchGroup(groupId: string) {
+    const values = form.getFieldsValue(true) as FormValues
+    const carried: ExpenseDraft = {
+      description: values.description,
+      category: values.category,
+      amount: values.amount,
+      currency: values.currency,
+      date: values.date,
+      notes: values.notes,
+      receipts: values.receipts,
+      fromDefaultCurrency: group.defaultCurrency,
+    }
+    navigate(ROUTES.newExpense(groupId), { replace: true, state: { draft: carried } })
   }
 
   function handleLeave() {
@@ -222,12 +247,12 @@ export function AddExpenseForm({ group, accountId, userEmail, recentCurrencies }
       <Form
         form={form}
         requiredMark={false}
-        initialValues={initialValues}
+        initialValues={startValues}
         onFinish={handleFinish}
         onValuesChange={handleValuesChange}
       >
         {renderHeader()}
-        <WithChip groupName={group.name} />
+        <GroupSwitcher group={group} groups={groups} onSwitch={switchGroup} />
         <Divider style={{ margin: '16px 0' }} />
         {renderWhatAndHowMuch()}
         <Form.Item

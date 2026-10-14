@@ -64,14 +64,6 @@ describe('AddExpensePage', () => {
       expect(notesInput()).toHaveValue('')
     })
 
-    it('says the expense is shared with the whole group', async () => {
-      const id = await createGroup({ name: 'Flat 4B' })
-      renderForm(id)
-
-      expect(await screen.findByText('With you and:')).toBeInTheDocument()
-      expect(screen.getByText('All of Flat 4B')).toBeInTheDocument()
-    })
-
     it('is titled "Add expense · OwnLedger"', async () => {
       const id = await createGroup()
       renderForm(id)

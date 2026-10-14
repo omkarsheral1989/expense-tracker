@@ -9,8 +9,17 @@ import type { AsyncState } from './types.ts'
  *
  * `key` names what is being loaded (for example the user's email or a group's
  * id): use whatever `load` depends on.
+ *
+ * With `keepPrevious`, a new key (or a retry) after a successful load keeps
+ * reporting the earlier data as `ready` until the new data arrives, instead of
+ * going back to `loading`. For a page that changes what it shows without
+ * wanting a loading placeholder in between. A failed load still reports `error`.
  */
-export function useAsyncData<T>(load: () => Promise<T>, key: string) {
+export function useAsyncData<T>(
+  load: () => Promise<T>,
+  key: string,
+  { keepPrevious = false }: { keepPrevious?: boolean } = {},
+) {
   const [attempt, setAttempt] = useState(0)
   // Each result is stored with the key and attempt it belongs to, so a result
   // from an earlier one is never mistaken for the current state.
@@ -46,7 +55,11 @@ export function useAsyncData<T>(load: () => Promise<T>, key: string) {
   }, [resultKey])
 
   const state: AsyncState<T> =
-    result?.key === resultKey ? result.state : { status: 'loading' }
+    result?.key === resultKey
+      ? result.state
+      : keepPrevious && result?.state.status === 'ready'
+        ? result.state
+        : { status: 'loading' }
 
   return { state, retry: () => setAttempt((count) => count + 1) }
 }

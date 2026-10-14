@@ -65,6 +65,60 @@ describe('useAsyncData', () => {
     await waitFor(() => expect(result.current.state).toEqual({ status: 'ready', data: 'data for b' }))
   })
 
+  it('goes back to loading on a new key by default', async () => {
+    const second = deferred<string>()
+    const { result, rerender } = renderHook(
+      ({ key }) => useAsyncData(() => (key === 'a' ? Promise.resolve('data for a') : second.promise), key),
+      { initialProps: { key: 'a' } },
+    )
+    await waitFor(() => expect(result.current.state.status).toBe('ready'))
+
+    rerender({ key: 'b' })
+
+    expect(result.current.state).toEqual({ status: 'loading' })
+  })
+
+  describe('with keepPrevious', () => {
+    function renderKept() {
+      const second = deferred<string>()
+      const hook = renderHook(
+        ({ key }) =>
+          useAsyncData(() => (key === 'a' ? Promise.resolve('data for a') : second.promise), key, {
+            keepPrevious: true,
+          }),
+        { initialProps: { key: 'a' } },
+      )
+      return { ...hook, second }
+    }
+
+    it('still loads the first time', async () => {
+      const { result } = renderKept()
+      expect(result.current.state).toEqual({ status: 'loading' })
+      await waitFor(() => expect(result.current.state.status).toBe('ready'))
+    })
+
+    it('keeps the earlier data while a new key loads, then shows the new data', async () => {
+      const { result, rerender, second } = renderKept()
+      await waitFor(() => expect(result.current.state.status).toBe('ready'))
+
+      rerender({ key: 'b' })
+      expect(result.current.state).toEqual({ status: 'ready', data: 'data for a' })
+
+      await act(async () => second.resolve('data for b'))
+      expect(result.current.state).toEqual({ status: 'ready', data: 'data for b' })
+    })
+
+    it('reports an error when the new key fails to load', async () => {
+      const { result, rerender, second } = renderKept()
+      await waitFor(() => expect(result.current.state.status).toBe('ready'))
+      rerender({ key: 'b' })
+
+      await act(async () => second.reject(new Error('boom')))
+
+      expect(result.current.state).toEqual({ status: 'error', error: new Error('boom') })
+    })
+  })
+
   it('never lets a slow earlier load overwrite a newer one', async () => {
     const slow = deferred<string>()
     const loads: Record<string, Promise<string>> = {

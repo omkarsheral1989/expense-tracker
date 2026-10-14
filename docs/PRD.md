@@ -1,6 +1,6 @@
 # Product Requirements: OwnLedger
 
-_Last updated: 2026-10-10_
+_Last updated: 2026-10-14_
 
 ## 1. Overview
 **OwnLedger** is an installable, offline-capable web app (PWA) for tracking personal expenses and expenses shared in groups (trips, home, couples, others). Everything is stored locally on the user's device. Groups are shared between members through a Google Drive folder. There is no backend.
@@ -142,7 +142,7 @@ Route `/groups/<id>/expenses/new`, opened from the group page's "Add expense" bu
 **Layout and behavior**
 - Phone-first single page. A header with Back and a tick (Save). Back asks "Discard this expense?" once anything (including the payer, split or photos) has been entered or changed; reloading or closing the tab shows the browser's own warning (as in create-group).
 - Pickers (category, currency, date, who paid, split) open as dialogs: centered on desktop, a bottom sheet on phones. One shared adaptive component provides both.
-- A fixed chip reads "With you and: All of <group name>".
+- A **group switcher** under the header shows the group-type icon, the group's name and a small arrow, full width of the form column (no "With you and" text). It opens a menu of the user's groups with the current one ticked; with only one group it is a plain label. Choosing another group moves the expense there, with the whole group (no choosing of people): the description, category, amount, date, notes and receipts stay, the currency follows the new group's default unless the user chose another one, and the split starts again for the new group's members with the user paying. The form stays on screen while the other group loads (no loading placeholder). Back still asks to discard, since the carried fields count as input. The expense is added to the group shown.
 - Form order: category and description; currency and amount; the sentence "Paid by [you] and split [equally]"; the date row; the notes box; the receipts row. The receipts row is stacked, with its icon at the start, no labels and no footer, and does not repeat the group name.
 - Saving returns to the group page, shows "Expense added." and the new expense is on top of the list.
 
