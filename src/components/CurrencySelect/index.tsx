@@ -1,5 +1,5 @@
 import { Select } from 'antd'
-import { currencyService } from '../../../../../services/currencyService'
+import { currencyService } from '../../services/currencyService'
 
 type Props = {
   /** Given by the form item, so that its label is tied to the input. */

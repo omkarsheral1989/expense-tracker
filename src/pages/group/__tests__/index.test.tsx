@@ -49,7 +49,7 @@ function renderGroup(groupId: string) {
   return renderPage(<GroupPage />, {
     path: ROUTES.group(groupId),
     pattern: ROUTES.groupPattern,
-    routes: [ROUTES.home, ROUTES.newExpensePattern, ROUTES.expensePattern],
+    routes: [ROUTES.home, ROUTES.editGroupPattern, ROUTES.newExpensePattern, ROUTES.expensePattern],
   })
 }
 
@@ -253,7 +253,6 @@ describe('GroupPage', () => {
   describe('what is switched off for now', () => {
     it.each([
       ['button', 'Search'],
-      ['button', 'Group settings'],
       ['button', 'Add trip dates'],
       ['button', 'Settle up'],
     ] as const)('switches off the %s "%s"', async (role, name) => {
@@ -263,7 +262,7 @@ describe('GroupPage', () => {
       expect(await screen.findByRole(role, { name: named(name) })).toBeDisabled()
     })
 
-    it.each(['Search', 'Group settings', 'Add trip dates', 'Settle up'])(
+    it.each(['Search', 'Add trip dates', 'Settle up'])(
       'says "Coming soon" when the pointer rests on "%s"',
       async (name) => {
         const id = await createGroup(me, { name: 'Goa trip' })
@@ -284,12 +283,23 @@ describe('GroupPage', () => {
       await screen.findByRole('heading', { name: 'Goa trip' })
 
       expect(screen.getByRole('button', { name: 'Back' })).toBeEnabled()
+      expect(screen.getByRole('button', { name: 'Edit group' })).toBeEnabled()
       expect(screen.getByRole('button', { name: named('1 person') })).toBeEnabled()
       expect(screen.getByRole('button', { name: named('Add expense') })).toBeEnabled()
       await userEvent.hover(screen.getByRole('button', { name: 'Back' }))
+      await userEvent.hover(screen.getByRole('button', { name: 'Edit group' }))
       await userEvent.hover(screen.getByRole('button', { name: named('1 person') }))
       await userEvent.hover(screen.getByRole('button', { name: named('Add expense') }))
       expect(screen.queryByText('Coming soon')).not.toBeInTheDocument()
+    })
+
+    it('opens the edit page of this group from the Edit group button', async () => {
+      const id = await createGroup(me, { name: 'Goa trip' })
+      const page = renderGroup(id)
+
+      await userEvent.click(await screen.findByRole('button', { name: 'Edit group' }))
+
+      expect(page.currentPath()).toBe(ROUTES.editGroup(id))
     })
 
     it('does nothing when the currency chip is pressed', async () => {

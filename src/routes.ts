@@ -9,6 +9,10 @@ export const ROUTES = {
   group: (id: string) => `/groups/${id}`,
   /** The same address as a pattern for the router, with the id as a parameter. */
   groupPattern: '/groups/:id',
+  /** Where a group's name, type and default currency are edited. */
+  editGroup: (id: string) => `/groups/${id}/edit`,
+  /** The same address as a pattern for the router, with the group's id as a parameter. */
+  editGroupPattern: '/groups/:id/edit',
   /** Where an expense is added to a group. */
   newExpense: (groupId: string) => `/groups/${groupId}/expenses/new`,
   /** The same address as a pattern for the router, with the group's id as a parameter. */

@@ -1,7 +1,7 @@
 import { Segmented } from 'antd'
-import { GroupTypeIcon } from '../../../../../components/GroupTypeIcon'
-import { GROUP_TYPES } from '../../../../../db/constants.ts'
-import type { GroupType } from '../../../../../db/types.ts'
+import { GroupTypeIcon } from '../GroupTypeIcon'
+import { GROUP_TYPES } from '../../db/constants.ts'
+import type { GroupType } from '../../db/types.ts'
 
 type Props = {
   value?: GroupType

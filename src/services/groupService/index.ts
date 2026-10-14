@@ -3,7 +3,7 @@ import { alias } from 'drizzle-orm/pg-core'
 import type { Database } from '../../db/client.ts'
 import { expenses, groupMembers, groups, people } from '../../db/schema.ts'
 import type { KnownPerson } from '../personService/types.ts'
-import { createGroupSchema, toFieldErrors } from './schemas.ts'
+import { createGroupSchema, toFieldErrors, updateGroupSchema } from './schemas.ts'
 import { displayName, shortName } from './utils.ts'
 import type {
   CreateGroupInput,
@@ -11,6 +11,8 @@ import type {
   GroupDetails,
   GroupMember,
   GroupSummary,
+  UpdateGroupInput,
+  UpdateGroupResult,
 } from './types.ts'
 
 /** A group name as compared for "already exists": no case, no extra spaces. */
@@ -93,6 +95,69 @@ export const groupService = {
       )
 
       return { ok: true, groupId: group.id }
+    })
+  },
+
+  /**
+   * Changes a group's name, type and default currency; any member may. The
+   * currency only pre-fills new expenses, so existing expenses keep theirs.
+   * Problems with the input come back as one message per field, like
+   * `createGroup`; a group that does not exist for this user (or one they are
+   * not in) comes back as `notFound`. The group's own name is not "taken".
+   */
+  async updateGroup(
+    db: Database,
+    userId: string,
+    groupId: string,
+    input: UpdateGroupInput,
+  ): Promise<UpdateGroupResult> {
+    if (!UUID.test(groupId)) return { ok: false, notFound: true }
+
+    const parsed = updateGroupSchema.safeParse(input)
+    if (!parsed.success) return { ok: false, errors: toFieldErrors(parsed.error) }
+    const { name, type, defaultCurrency } = parsed.data
+
+    return db.transaction(async (tx): Promise<UpdateGroupResult> => {
+      const [mine] = await tx
+        .select({ id: groups.id })
+        .from(groups)
+        .innerJoin(groupMembers, eq(groupMembers.groupId, groups.id))
+        .where(
+          and(
+            eq(groups.id, groupId),
+            isNull(groups.deletedAt),
+            eq(groupMembers.personId, userId),
+            isNull(groupMembers.deletedAt),
+          ),
+        )
+      if (!mine) return { ok: false, notFound: true }
+
+      const [sameName] = await tx
+        .select({ name: groups.name })
+        .from(groups)
+        .innerJoin(groupMembers, eq(groupMembers.groupId, groups.id))
+        .where(
+          and(
+            eq(groupMembers.personId, userId),
+            isNull(groupMembers.deletedAt),
+            isNull(groups.deletedAt),
+            ne(groups.id, groupId),
+            sql`lower(regexp_replace(trim(${groups.name}), '\\s+', ' ', 'g')) = ${comparableName(name)}`,
+          ),
+        )
+        .limit(1)
+      if (sameName) {
+        return {
+          ok: false,
+          errors: { name: `You already have a group called ${sameName.name}.` },
+        }
+      }
+
+      await tx
+        .update(groups)
+        .set({ name, type, defaultCurrency, updatedAt: new Date(), updatedBy: userId })
+        .where(eq(groups.id, groupId))
+      return { ok: true }
     })
   },
 

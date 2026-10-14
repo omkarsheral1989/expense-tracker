@@ -1,6 +1,6 @@
 # Product Requirements: OwnLedger
 
-_Last updated: 2026-10-14_
+_Last updated: 2026-10-15_
 
 ## 1. Overview
 **OwnLedger** is an installable, offline-capable web app (PWA) for tracking personal expenses and expenses shared in groups (trips, home, couples, others). Everything is stored locally on the user's device. Groups are shared between members through a Google Drive folder. There is no backend.
@@ -30,7 +30,7 @@ _Last updated: 2026-10-14_
 - Create a group with a name, a type (trip / home / couple / other, each with its own icon), a default currency and members.
 - Members are picked from people already known on this device (people from the user's other groups), or added through an "Add a new member" dialog (a name, and optionally a Gmail address). Typing an address into the members field no longer adds anyone. A person's email is optional; when given it must be an `@gmail.com` address, which means Google Workspace accounts with other domains cannot be added.
 - The creator is always a member of the new group.
-- Any member can edit group details and add members.
+- Any member can edit the group's name, type and default currency (5.3a). Adding members to an existing group is not built yet.
 - Members who have not opened the app yet are shown as pending. A member without an email is a member on this device only (a payer, in splits and balances); they cannot be invited to share the group through Drive until an email is added, which is not built yet.
 
 ### 4.3 Expenses
@@ -130,11 +130,19 @@ Like the add-expense and expense-details pages, it has no card around its conten
 - After creating, a "Group created." message appears and the app opens the new group's page.
 - A message under a field disappears as soon as that field is edited.
 
+### 5.3a Edit group
+Route `/groups/<id>/edit`, opened by the pencil button on the group page's band. Any member can use it. Like Create group (5.3), the form sits directly on the page background, with Back, the heading "Edit group", and Cancel and Save.
+- **Fields:** the group's **name**, **type** and **default currency**, filled in with what the group has now, with the same rules and the same pickers as Create group. There is no members field (members are not edited here yet). The currency's note says new expenses start with it and existing expenses keep theirs: nothing already saved changes.
+- **Validation:** checked only when Save is pressed, every problem at once beside its field, a message disappearing as soon as its field is edited. **Same name:** a group cannot take the name of another group the user belongs to (ignoring case, extra spaces and deleted groups), and the message names that group ("You already have a group called Flat bills."). The group's own name is never "taken", so only changing its case works.
+- **Saving:** shows "Group updated." and returns to the group page, which shows the new name, type color and currency. It counts as activity: the group moves to the top of the home list. When nothing was changed, Save simply goes back, with no message and no change to the group. A failure shows "Couldn't save the changes. Please try again." and keeps what was typed. A group deleted in the meantime shows "This group is no longer available." and goes to the home page.
+- **Leaving:** Back and Cancel go straight back to the group while nothing has changed (spaces around the name do not count). After a change they ask "Discard your changes?" ("What you changed will be lost.", Discard / Keep editing), and reloading or closing the tab shows the browser's own warning.
+- **Other states:** grey placeholders while loading, "Couldn't load this group" with Try again, and "Group not found" (the same message as the group page) for a group that does not exist, was deleted, or that the user is not in. The tab title is "Edit group · OwnLedger".
+
 ### 5.4 Group page
 Route `/groups/<id>`, opened from a group on the home page and after creating a group. The layout follows a phone-first design: a colored band at the top, then the balance, then the actions and the list of expenses. Parts that depend on features that do not exist yet are shown switched off with a "Coming soon" tip, so the page already has its final shape.
 
 - **Colored band** across the full width, colored by the group's type (the same colors as the type tiles: teal for trip, orange for home, pink for couple, blue for other), with a soft gradient and a faint pattern drawn with CSS (no image files). It holds:
-  - a round white **back** button on the left (to the home page), and round **search** and **settings (gear)** buttons on the right, both switched off for now ("Coming soon");
+  - a round white **back** button on the left (to the home page), and a round **search** button (switched off for now, "Coming soon") and a round **Edit group** (pencil) button on the right, which opens the edit page (5.3a);
   - the group's **type icon tile** (lifted off the band by a soft black shadow, since it is the band's own color) beside the group's **name**, which is large and white, with its first line centered on the tile, and wraps onto more lines below when long (never cut off or running off the screen);
   - a row of translucent pill chips: **Add trip dates** (switched off; it exists for any group type for now), **"N people"** ("1 person" for one), and the group's **default currency** (for example "GBP").
 - **"N people" opens the member list**: a bottom sheet on phones and a side panel on desktop, titled "Members (N)". It lists the user first, then the others A to Z; each member has an avatar with their initial, their name with their email under it ("No email" for a member without one; just the email, once, when no name is known), and a tag: "You" for the user (whose own row uses the name saved for them, or else their Google profile name) and "Pending" for everyone else until they have signed in and synced. It closes with its close button or by tapping outside.
@@ -212,7 +220,7 @@ Route `/groups/<id>/expenses/<expenseId>`, opened by tapping an expense on the g
 - Google Cloud setup: the OAuth client ID is not created yet (Drive API, consent screen in Testing mode, authorized origins, test users).
 - Member removal: what happens to a removed member's access and local data.
 - Adding or changing a person's email later (so a member added without one can be invited), renaming a person, and how sync treats members without an email.
-- Group page: what the search and settings buttons open, how trip dates work (which group types, start and end), and what else the pill row holds (balances, totals, charts).
+- Group page: what the search button opens, how trip dates work (which group types, start and end), and what else the pill row holds (balances, totals, charts).
 - Tags on expenses.
 - Editing and deleting expenses, and how the edit history is shown.
 - Several payers for one expense ("Multiple people" is switched off for now).

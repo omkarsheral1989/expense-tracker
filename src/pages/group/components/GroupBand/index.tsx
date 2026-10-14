@@ -1,8 +1,8 @@
 import {
   ArrowLeftOutlined,
   CalendarOutlined,
+  EditOutlined,
   SearchOutlined,
-  SettingOutlined,
   TeamOutlined,
 } from '@ant-design/icons'
 import { Flex, Typography } from 'antd'
@@ -26,7 +26,7 @@ type Props = {
 
 /**
  * The colored band at the top of a group's page, in the color of the group's
- * type: back, search and settings buttons, the group's icon and name, and a row
+ * type: back, search and edit buttons, the group's icon and name, and a row
  * of chips with a fact or an action each.
  */
 export function GroupBand({ group, onOpenMembers }: Props) {
@@ -43,7 +43,11 @@ export function GroupBand({ group, onOpenMembers }: Props) {
         />
         <Flex gap={12}>
           <BandIconButton icon={<SearchOutlined />} label="Search" />
-          <BandIconButton icon={<SettingOutlined />} label="Group settings" />
+          <BandIconButton
+            icon={<EditOutlined />}
+            label="Edit group"
+            onClick={() => navigate(ROUTES.editGroup(group.id))}
+          />
         </Flex>
       </Flex>
     )

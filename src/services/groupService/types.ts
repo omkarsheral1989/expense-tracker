@@ -21,6 +21,15 @@ export type CreateGroupResult =
   | { ok: true; groupId: string }
   | { ok: false; errors: CreateGroupErrors }
 
+/** What the edit-group form sends: the group's own details, not its members. */
+export type UpdateGroupInput = Pick<CreateGroupInput, 'name' | 'type' | 'defaultCurrency'>
+
+export type UpdateGroupResult =
+  | { ok: true }
+  | { ok: false; notFound?: false; errors: CreateGroupErrors }
+  /** There is no such group for this user (unknown, deleted, or they are not in it). */
+  | { ok: false; notFound: true }
+
 /** One row of the home page's list of groups. */
 export type GroupSummary = {
   id: string

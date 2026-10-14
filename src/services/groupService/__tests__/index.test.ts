@@ -521,3 +521,195 @@ describe('getGroup', () => {
     expect(await groupService.getGroup(db, personIdForEmail(' OMKAR@gmail.com'), id.toUpperCase())).not.toBeNull()
   })
 })
+
+describe('updateGroup', () => {
+  const omkarId = personIdForEmail(omkar.email)
+  const priyaId = personIdForEmail(priya.email)
+
+  const change = { name: 'Flat bills', type: 'home', defaultCurrency: 'EUR' } as const
+
+  async function rowOf(groupId: string) {
+    const [row] = await db.select().from(groups).where(eq(groups.id, groupId))
+    return row
+  }
+
+  it('saves the new name, type and default currency', async () => {
+    const id = await create(omkar, { name: 'Goa trip' })
+
+    expect(await groupService.updateGroup(db, omkarId, id, change)).toEqual({ ok: true })
+
+    expect(await rowOf(id)).toMatchObject({ name: 'Flat bills', type: 'home', defaultCurrency: 'EUR' })
+    expect(await groupService.getGroup(db, omkarId, id)).toMatchObject(change)
+  })
+
+  it('trims the name', async () => {
+    const id = await create(omkar, { name: 'Goa trip' })
+    await groupService.updateGroup(db, omkarId, id, { ...change, name: '  Flat bills  ' })
+    expect((await rowOf(id)).name).toBe('Flat bills')
+  })
+
+  it('records who changed it and when, which moves the group to the top of the list', async () => {
+    const id = await create(omkar, { name: 'Goa trip' })
+    const other = await create(omkar, { name: 'Other' })
+    await db.update(groups).set({ updatedAt: new Date('2026-01-01T00:00:00Z') }).where(eq(groups.id, id))
+    await db.update(groups).set({ updatedAt: new Date('2026-02-01T00:00:00Z') }).where(eq(groups.id, other))
+    expect((await groupService.listGroups(db, omkarId))[0].name).toBe('Other')
+
+    await groupService.updateGroup(db, omkarId, id, change)
+
+    const row = await rowOf(id)
+    expect(row.updatedBy).toBe(omkarId)
+    expect(row.updatedAt.getTime()).toBeGreaterThan(new Date('2026-02-01T00:00:00Z').getTime())
+    expect((await groupService.listGroups(db, omkarId))[0].name).toBe('Flat bills')
+  })
+
+  it('lets any member change it, not only the creator', async () => {
+    const id = await create(omkar, { name: 'Goa trip', memberEmails: [priya.email] })
+
+    expect(await groupService.updateGroup(db, priyaId, id, change)).toEqual({ ok: true })
+
+    expect(await rowOf(id)).toMatchObject({ name: 'Flat bills', updatedBy: priyaId })
+  })
+
+  it('leaves the members and the expenses alone, so an expense keeps its own currency', async () => {
+    const id = await create(omkar, { name: 'Goa trip', memberEmails: [priya.email] })
+    const expenseId = await addTestExpense(db, omkar.email, id, { currency: 'INR' })
+
+    await groupService.updateGroup(db, omkarId, id, change)
+
+    expect(await memberEmails(id)).toEqual([omkar.email, priya.email])
+    const [expense] = await db.select().from(expenses).where(eq(expenses.id, expenseId))
+    expect(expense.currency).toBe('INR')
+  })
+
+  it('does not touch another group', async () => {
+    const id = await create(omkar, { name: 'Goa trip' })
+    const other = await create(omkar, { name: 'Other', type: 'couple', defaultCurrency: 'GBP' })
+
+    await groupService.updateGroup(db, omkarId, id, change)
+
+    expect(await rowOf(other)).toMatchObject({ name: 'Other', type: 'couple', defaultCurrency: 'GBP' })
+  })
+
+  it('accepts the details as they are (nothing changed)', async () => {
+    const id = await create(omkar, { name: 'Goa trip' })
+    expect(await groupService.updateGroup(db, omkarId, id, validInput)).toEqual({ ok: true })
+  })
+
+  describe('refusing bad input', () => {
+    it('reports every problem at once, one message per field, and changes nothing', async () => {
+      const id = await create(omkar, { name: 'Goa trip' })
+
+      const result = await groupService.updateGroup(db, omkarId, id, {
+        name: '   ',
+        type: 'boat' as never,
+        defaultCurrency: 'ZZZ',
+      })
+
+      expect(result).toEqual({
+        ok: false,
+        errors: {
+          name: 'Enter a group name.',
+          type: 'Choose a group type.',
+          defaultCurrency: 'Choose a currency.',
+        },
+      })
+      expect(await rowOf(id)).toMatchObject({ name: 'Goa trip', type: 'trip', defaultCurrency: 'INR' })
+    })
+
+    it('refuses a name over 60 characters but accepts exactly 60', async () => {
+      const id = await create(omkar, { name: 'Goa trip' })
+
+      expect(await groupService.updateGroup(db, omkarId, id, { ...change, name: 'x'.repeat(61) })).toEqual({
+        ok: false,
+        errors: { name: 'Use at most 60 characters.' },
+      })
+      expect(await groupService.updateGroup(db, omkarId, id, { ...change, name: 'x'.repeat(60) })).toEqual({
+        ok: true,
+      })
+    })
+  })
+
+  describe('a name that another group of yours already has', () => {
+    it('is refused, ignoring case and extra spaces, and the group keeps its name', async () => {
+      await create(omkar, { name: 'Flat bills' })
+      const id = await create(omkar, { name: 'Goa trip' })
+
+      for (const name of ['Flat bills', 'flat BILLS', '  Flat   bills ']) {
+        expect(await groupService.updateGroup(db, omkarId, id, { ...change, name })).toEqual({
+          ok: false,
+          errors: { name: 'You already have a group called Flat bills.' },
+        })
+      }
+      expect((await rowOf(id)).name).toBe('Goa trip')
+    })
+
+    it('is refused when the other group was made by someone else but you are in it', async () => {
+      await create(priya, { name: 'Flat bills', memberEmails: [omkar.email] })
+      const id = await create(omkar, { name: 'Goa trip' })
+
+      const result = await groupService.updateGroup(db, omkarId, id, change)
+      expect(result).toMatchObject({ ok: false, errors: { name: expect.any(String) } })
+    })
+
+    it('is allowed when it is the group\'s own name, even in another case', async () => {
+      const id = await create(omkar, { name: 'Goa trip' })
+
+      expect(await groupService.updateGroup(db, omkarId, id, { ...change, name: 'Goa trip' })).toEqual({ ok: true })
+      expect(await groupService.updateGroup(db, omkarId, id, { ...change, name: 'GOA TRIP' })).toEqual({ ok: true })
+      expect((await rowOf(id)).name).toBe('GOA TRIP')
+    })
+
+    it('is allowed when the other group belongs to people you are not with', async () => {
+      await create(priya, { name: 'Flat bills' })
+      const id = await create(omkar, { name: 'Goa trip' })
+
+      expect(await groupService.updateGroup(db, omkarId, id, change)).toEqual({ ok: true })
+    })
+
+    it('is allowed once the other group has been deleted, or you have left it', async () => {
+      const deleted = await create(omkar, { name: 'Flat bills' })
+      await db.update(groups).set({ deletedAt: new Date() }).where(eq(groups.id, deleted))
+      const left = await create(omkar, { name: 'Trip two' })
+      await db.update(groupMembers).set({ deletedAt: new Date() }).where(eq(groupMembers.groupId, left))
+      const id = await create(omkar, { name: 'Goa trip' })
+
+      expect(await groupService.updateGroup(db, omkarId, id, change)).toEqual({ ok: true })
+      expect(await groupService.updateGroup(db, omkarId, id, { ...change, name: 'Trip two' })).toEqual({ ok: true })
+    })
+  })
+
+  describe('says there is no such group (notFound) when', () => {
+    const notFound = { ok: false, notFound: true }
+
+    it('the id is unknown, or not even an id', async () => {
+      await create(omkar, { name: 'Goa trip' })
+      for (const bad of [crypto.randomUUID(), '', 'abc', "'; drop table groups; --"]) {
+        expect(await groupService.updateGroup(db, omkarId, bad, change)).toEqual(notFound)
+      }
+    })
+
+    it('the group has been deleted', async () => {
+      const id = await create(omkar, { name: 'Goa trip' })
+      await db.update(groups).set({ deletedAt: new Date() }).where(eq(groups.id, id))
+
+      expect(await groupService.updateGroup(db, omkarId, id, change)).toEqual(notFound)
+      expect((await rowOf(id)).name).toBe('Goa trip')
+    })
+
+    it('you are not in the group, and nothing is changed', async () => {
+      await create(omkar, { name: 'Mine' })
+      const id = await create(priya, { name: 'Flat' })
+
+      expect(await groupService.updateGroup(db, omkarId, id, change)).toEqual(notFound)
+      expect(await rowOf(id)).toMatchObject({ name: 'Flat', type: 'trip', defaultCurrency: 'INR' })
+    })
+
+    it('you have left the group', async () => {
+      const id = await create(omkar, { name: 'Goa trip', memberEmails: [priya.email] })
+      await db.update(groupMembers).set({ deletedAt: new Date() }).where(eq(groupMembers.personId, omkarId))
+
+      expect(await groupService.updateGroup(db, omkarId, id, change)).toEqual(notFound)
+    })
+  })
+})

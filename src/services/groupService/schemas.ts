@@ -25,6 +25,13 @@ export const createGroupSchema = z.object({
 
 export type ValidCreateGroupInput = z.output<typeof createGroupSchema>
 
+/** The rules for editing a group: its name, type and default currency, the same as for a new one. */
+export const updateGroupSchema = createGroupSchema.pick({
+  name: true,
+  type: true,
+  defaultCurrency: true,
+})
+
 const FIELDS: readonly string[] = Object.keys(createGroupSchema.shape)
 
 /** The first problem of each field, ready to show beside it. */
