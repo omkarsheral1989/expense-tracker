@@ -1,5 +1,6 @@
 import { Button, Card, Flex, Result, Skeleton } from 'antd'
 import { useParams } from 'react-router'
+import { CenteredMessage } from '../../components/CenteredMessage'
 import { GroupNotFound } from '../../components/GroupNotFound'
 import { getDb } from '../../db/client.ts'
 import { useAsyncData } from '../../hooks/useAsyncData'
@@ -11,7 +12,7 @@ import { belowStatusBar } from '../../theme/safeArea.ts'
 import { AddExpenseForm } from './components/AddExpenseForm'
 
 /** A column about 560 px wide, centered, like the create-group page. */
-const COLUMN_STYLE = { maxWidth: 560, margin: '0 auto', padding: `${belowStatusBar(24)} 16px 24px` } as const
+const COLUMN_STYLE = { width: '100%', maxWidth: 560, margin: '0 auto', padding: `${belowStatusBar(24)} 16px 24px` } as const
 
 /** Where a signed-in user adds an expense to one of their groups. */
 export function AddExpensePage() {
@@ -78,6 +79,12 @@ export function AddExpensePage() {
           />
         )
     }
+  }
+
+  // A message (couldn't load, group not found) is centered on the screen; the
+  // form and its loading placeholder sit in the column.
+  if (state.status === 'error' || (state.status === 'ready' && !state.data)) {
+    return <CenteredMessage>{renderContent()}</CenteredMessage>
   }
 
   return (

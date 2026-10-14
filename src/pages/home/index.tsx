@@ -1,7 +1,9 @@
-import { PlusOutlined } from '@ant-design/icons'
 import { Button, Card, Flex, Result, Skeleton, Typography } from 'antd'
 import { useNavigate } from 'react-router'
 import { getDb } from '../../db/client.ts'
+import { CenteredMessage } from '../../components/CenteredMessage'
+import { FloatingPillButton } from '../../components/FloatingPillButton'
+import { ABOVE_FLOATING_BUTTON, FLOATING_BUTTON_ROOM } from '../../components/FloatingPillButton/constants.ts'
 import { useAsyncData } from '../../hooks/useAsyncData'
 import { ROUTES } from '../../routes.ts'
 import { expenseService } from '../../services/expenseService'
@@ -29,21 +31,12 @@ export function HomePage() {
   // Signed-out visitors are sent away by `RequireAuth` before this matters.
   if (!profile) return null
 
-  const createGroup = () => navigate(ROUTES.newGroup)
-  const hasGroups = state.status === 'ready' && state.data.groups.length > 0
 
   function renderHeading() {
     return (
-      <Flex justify="space-between" align="center" style={{ marginBottom: 16 }}>
-        <Title level={3} style={{ margin: 0 }}>
-          Your groups
-        </Title>
-        {hasGroups && (
-          <Button type="primary" icon={<PlusOutlined />} onClick={createGroup}>
-            Create group
-          </Button>
-        )}
-      </Flex>
+      <Title level={3} style={{ margin: '0 0 16px' }}>
+        Your groups
+      </Title>
     )
   }
 
@@ -60,17 +53,20 @@ export function HomePage() {
   }
 
   function renderError() {
+    // Centered in the space between the heading and the floating button.
     return (
-      <Result
-        status="error"
-        title="Couldn't load your groups"
-        subTitle="Nothing was lost. Try again."
-        extra={
-          <Button type="primary" onClick={retry}>
-            Try again
-          </Button>
-        }
-      />
+      <CenteredMessage roomBelow={ABOVE_FLOATING_BUTTON}>
+        <Result
+          status="error"
+          title="Couldn't load your groups"
+          subTitle="Nothing was lost. Try again."
+          extra={
+            <Button type="primary" onClick={retry}>
+              Try again
+            </Button>
+          }
+        />
+      </CenteredMessage>
     )
   }
 
@@ -82,20 +78,23 @@ export function HomePage() {
         return renderError()
       case 'ready':
         return state.data.groups.length === 0 ? (
-          <EmptyGroups onCreate={createGroup} />
+          <EmptyGroups />
         ) : (
-          <GroupList groups={state.data.groups} balances={state.data.balances} />
+          <div style={{ paddingBottom: FLOATING_BUTTON_ROOM }}>
+            <GroupList groups={state.data.groups} balances={state.data.balances} />
+          </div>
         )
     }
   }
 
   return (
-    <Flex justify="center" style={{ padding: '24px 16px' }}>
+    <Flex justify="center" style={{ flex: 1, padding: '24px 16px 0' }}>
       <title>Your groups · OwnLedger</title>
-      <div style={{ width: '100%', maxWidth: 720 }}>
+      <Flex vertical style={{ width: '100%', maxWidth: 720 }}>
         {renderHeading()}
         {renderGroups()}
-      </div>
+      </Flex>
+      <FloatingPillButton onClick={() => navigate(ROUTES.newGroup)}>Create group</FloatingPillButton>
     </Flex>
   )
 }

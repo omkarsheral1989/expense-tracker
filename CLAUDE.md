@@ -17,7 +17,7 @@ Details: @docs/PRD.md (features, pages, open questions) and @docs/ADR.md (archit
 - `bun run dev` start the dev server (the app is at `http://localhost:5173/ownledger/`, ADR-032)
 - `bun run build` type-check and build
 - `bun run lint` lint
-- `bun run test` run tests (Vitest)
+- `bun run test` run tests (Vitest, through `scripts/run-tests.mjs`, which stops a run that takes more than 5 minutes; a normal run takes about 30 seconds)
 - `bun run preview` serve the production build at `http://localhost:4173/ownledger/` (the service worker only runs there)
 - `bun run deploy:pages` build and copy into the `omkarsheral1989.github.io` repository (never commits or pushes; see ADR-032)
 
@@ -31,11 +31,11 @@ Details: @docs/PRD.md (features, pages, open questions) and @docs/ADR.md (archit
   - Database code: `src/db` (schema, migrations, client, session and tab lock, with `constants.ts` and `types.ts` beside them; tests in `src/db/__tests__`). The hook that opens it is `src/hooks/useDatabaseSession`.
   - Other shared code: `src/pwa` (platform detection), `src/theme` (shared style constants: `radius.ts`, `groupTypeColors.ts`, `categoryColors.ts`, `balanceColors.ts`).
   - App-level files stay in `src`: `main.tsx`, `App.tsx`, `config.ts`, `env.d.ts`, `index.css`, and `routes.ts` (every address of the app in the `ROUTES` object; never spell a path out in a page, and never put the `/ownledger/` prefix in it: the router's `basename` adds it).
-  - Hosting files sit outside `src`: `deploy/404.html` (the single-page-app fallback for GitHub Pages) and `scripts/deploy-pages.sh`.
+  - Hosting and tooling files sit outside `src`: `deploy/404.html` (the single-page-app fallback for GitHub Pages), `scripts/deploy-pages.sh` and `scripts/run-tests.mjs`.
   - Test helpers live in `src/testing`: the shared setup (`setup.ts`, loaded by Vitest before every test), `setUpTestDatabase()` for an in-memory database, `renderPage()` to render a page inside the theme and a router, and `expenses.ts` (`addTestExpense`, `expenseInput`, `personIdOf`) to create valid expenses. Tests that touch the photo store import `fake-indexeddb/auto`. See ADR-029.
   - Every component and hook is its own folder, even the small ones (`components/GoogleLogo`, `components/ThemeProvider`, `components/PwaUpdatePrompt`, `hooks/useInstall`).
   An item's own files sit beside its `index.ts`: types in `types.ts`, constants in `constants.ts`, zod schemas in `schemas.ts`, small pure helper functions in `utils.ts` (tested in `__tests__/utils.test.ts`). Tests go in a `__tests__` folder beside the code they test (`useSyncSessionAcrossTabs/__tests__/index.test.ts`). Code used by only one page stays in that page's folder. Do not create new top-level folders such as `src/auth`.
-- **UI:** Ant Design components only. No Tailwind, no SCSS. Use `ConfigProvider` tokens for theming; plain CSS or CSS modules for small custom styles.
+- **UI:** Ant Design components only. No Tailwind, no SCSS. Use `ConfigProvider` tokens for theming; plain CSS or CSS modules for small custom styles. Every button, input, dropdown and date picker is 40 px high, set once in the theme (`src/theme/controlHeight.ts`, ADR-016): never set a height on one. The floating buttons are the exception (48 px, `FloatingPillButton`).
 - **Corner radius:** only two values, from `src/theme/radius.ts`: `RADIUS.inner` (12) for small things inside others (buttons, inputs, icon tiles) and `RADIUS.outer` (24) for containers (cards, panels). Never hard-code another radius, and don't use `shape="round"` buttons. The only exception is the pills and round chips of the phone-first pages (group page, add expense): `PILL_RADIUS` in `src/theme/radius.ts`, ADR-030.
 - **Money:** integer minor units, always with a currency code. Respect each currency's decimal places. Multi-currency has no conversion; balances are per currency.
 - **IDs:** UUID primary keys, never auto-increment.

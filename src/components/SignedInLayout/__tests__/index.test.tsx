@@ -7,6 +7,7 @@ import type { DatabaseSessionState } from '../../../hooks/useDatabaseSession/typ
 import { ROUTES } from '../../../routes.ts'
 import { useAuthStore } from '../../../stores/useAuthStore'
 import { SignedInLayout } from '../index.tsx'
+import { expectCenteredMessage } from '../../../testing/centered.ts'
 
 // Opening the database needs IndexedDB and the browser's tab lock, which jsdom
 // does not have, so the hook that does it is replaced by a state chosen per test.
@@ -54,6 +55,13 @@ describe('SignedInLayout', () => {
       expect(screen.getByRole('link', { name: /ownledger/i })).toHaveAttribute('href', ROUTES.home)
     })
 
+    it('fills at least the height of the screen, so a page can fill what is left below its header', () => {
+      const view = renderAt(ROUTES.home)
+
+      expect(view.container.firstElementChild).toHaveClass('ant-flex-vertical')
+      expect(view.container.firstElementChild).toHaveStyle({ minHeight: '100dvh' })
+    })
+
     it.each([
       ['create group', ROUTES.newGroup, ROUTES.newGroup],
       ['a group', ROUTES.group('abc'), ROUTES.groupPattern],
@@ -79,6 +87,7 @@ describe('SignedInLayout', () => {
         const view = renderAt(path)
 
         expect(screen.getByText(message)).toBeInTheDocument()
+        expectCenteredMessage(screen.getByText(message))
         expect(accountMenu()).toHaveLength(1)
         expect(screen.queryByText(/^Page: /)).not.toBeInTheDocument()
         view.unmount()

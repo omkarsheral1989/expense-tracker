@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getDb } from '../../../db/client.ts'
 import { groups } from '../../../db/schema.ts'
+import { ABOVE_FLOATING_BUTTON } from '../../../components/FloatingPillButton/constants.ts'
 import { ROUTES } from '../../../routes.ts'
 import { groupService } from '../../../services/groupService'
 import type { CreateGroupInput } from '../../../services/groupService/types.ts'
@@ -13,6 +14,7 @@ import { setUpTestDatabase } from '../../../testing/database.ts'
 import { addTestExpense } from '../../../testing/expenses.ts'
 import { renderPage } from '../../../testing/render.tsx'
 import { HomePage } from '../index.tsx'
+import { expectCenteredMessage } from '../../../testing/centered.ts'
 
 // Pages reach the database through `getDb`; point it at the in-memory one.
 vi.mock('../../../db/client.ts', async (importOriginal) => {
@@ -63,6 +65,15 @@ function renderHome() {
   })
 }
 
+/** The one Create group button, and whether it floats at the bottom right of the screen. */
+function createGroupButton() {
+  const buttons = screen.getAllByRole('button', { name: /create group/i })
+  expect(buttons).toHaveLength(1)
+  const floating = buttons[0].parentElement as HTMLElement
+  expect(floating).toHaveStyle({ position: 'fixed', bottom: '24px' })
+  return buttons[0]
+}
+
 describe('HomePage', () => {
   beforeEach(() => {
     useAuthStore.setState({ profile: me, token: null })
@@ -81,21 +92,44 @@ describe('HomePage', () => {
       expect(screen.getByRole('status', { name: 'Loading your groups' })).toBeInTheDocument()
       expect(screen.queryByText(/no groups yet/i)).not.toBeInTheDocument()
     })
+
+    it('already shows the floating Create group button, and it opens the form', async () => {
+      vi.mocked(getDb).mockImplementationOnce(() => new Promise(() => {}))
+      const page = renderHome()
+
+      await userEvent.click(createGroupButton())
+      expect(page.currentPath()).toBe(ROUTES.newGroup)
+    })
   })
 
   describe('with no groups', () => {
-    it('shows a friendly message and a single Create group button', async () => {
+    it('shows a friendly message, and the one floating Create group button', async () => {
       renderHome()
 
       expect(
         await screen.findByText('No groups yet. Create one to start sharing expenses.'),
       ).toBeInTheDocument()
-      expect(screen.getAllByRole('button', { name: /create group/i })).toHaveLength(1)
+      createGroupButton()
+      expect(screen.getByRole('heading', { name: 'Your groups' }).parentElement).not.toContainElement(
+        screen.getByRole('button', { name: /create group/i }),
+      )
+    })
+
+    it('centers the message in a box that ends just above the floating Create group button', async () => {
+      renderHome()
+
+      const wrapper = (await screen.findByText(/no groups yet/i)).closest('.ant-flex-align-center') as HTMLElement
+      // Ant Design's Flex centers through these classes; `flex: 1` makes the box fill the rest.
+      expect(wrapper).toHaveClass('ant-flex-align-center', 'ant-flex-justify-center')
+      expect(wrapper).toHaveStyle({ flex: '1', marginBottom: `${ABOVE_FLOATING_BUTTON}px` })
+      // The heading stays above it, outside the centering box.
+      expect(wrapper).not.toContainElement(screen.getByRole('heading', { name: 'Your groups' }))
     })
 
     it('opens the create-group page from that button', async () => {
       const page = renderHome()
-      await userEvent.click(await screen.findByRole('button', { name: /create group/i }))
+      await screen.findByText(/no groups yet/i)
+      await userEvent.click(createGroupButton())
       expect(page.currentPath()).toBe(ROUTES.newGroup)
     })
 
@@ -196,16 +230,15 @@ describe('HomePage', () => {
       expect(page.currentPath()).toBe(ROUTES.group(id))
     })
 
-    it('puts the Create group button beside the heading, and it opens the form', async () => {
+    it('has the floating Create group button, and it opens the form', async () => {
       await createGroup(me, { name: 'Goa trip' })
       const page = renderHome()
       await screen.findByText('Goa trip')
 
-      const buttons = screen.getAllByRole('button', { name: /create group/i })
-      expect(buttons).toHaveLength(1)
+      const button = createGroupButton()
       expect(screen.queryByText(/no groups yet/i)).not.toBeInTheDocument()
 
-      await userEvent.click(buttons[0])
+      await userEvent.click(button)
       expect(page.currentPath()).toBe(ROUTES.newGroup)
     })
   })
@@ -217,12 +250,22 @@ describe('HomePage', () => {
       renderHome()
 
       expect(await screen.findByText("Couldn't load your groups")).toBeInTheDocument()
+      // Centered between the heading and the floating button.
+      expectCenteredMessage(screen.getByText("Couldn't load your groups"), ABOVE_FLOATING_BUTTON)
       expect(screen.queryByText('Goa trip')).not.toBeInTheDocument()
 
       await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
 
       expect(await screen.findByText('Goa trip')).toBeInTheDocument()
       expect(screen.queryByText("Couldn't load your groups")).not.toBeInTheDocument()
+    })
+
+    it('still offers the floating Create group button', async () => {
+      vi.mocked(getDb).mockRejectedValueOnce(new Error('database is closed'))
+      renderHome()
+
+      expect(await screen.findByText("Couldn't load your groups")).toBeInTheDocument()
+      createGroupButton()
     })
   })
 

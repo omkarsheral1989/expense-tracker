@@ -32,7 +32,9 @@ export function ReceiptPreview({ file, number, onRemove }: Props) {
         icon={<CloseOutlined />}
         aria-label={`Remove receipt photo ${number}`}
         onClick={onRemove}
-        style={{ position: 'absolute', top: -8, right: -8 }}
+        // A small badge on the corner of the photo, not a control of its own: it
+        // keeps a small size, since 40 px would cover most of the photo.
+        style={{ position: 'absolute', top: -8, right: -8, width: 24, height: 24, minWidth: 24, padding: 0 }}
       />
     </div>
   )

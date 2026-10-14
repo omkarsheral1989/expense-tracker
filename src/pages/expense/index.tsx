@@ -1,5 +1,6 @@
 import { Button, Card, Flex, Result, Skeleton } from 'antd'
 import { useParams } from 'react-router'
+import { CenteredMessage } from '../../components/CenteredMessage'
 import { getDb } from '../../db/client.ts'
 import { useAsyncData } from '../../hooks/useAsyncData'
 import { expenseService } from '../../services/expenseService'
@@ -9,7 +10,7 @@ import { ExpenseDetails } from './components/ExpenseDetails'
 import { ExpenseNotFound } from './components/ExpenseNotFound'
 
 /** A column about 560 px wide, centered, like the add-expense page. */
-const COLUMN_STYLE = { maxWidth: 560, margin: '0 auto', padding: `${belowStatusBar(24)} 16px 24px` } as const
+const COLUMN_STYLE = { width: '100%', maxWidth: 560, margin: '0 auto', padding: `${belowStatusBar(24)} 16px 24px` } as const
 
 /**
  * The details of one expense of a group. For now it only shows them; editing,
@@ -63,6 +64,17 @@ export function ExpensePage() {
     if (state.status !== 'ready') return null
     // React only accepts one string inside <title>, so the text is joined first.
     return <title>{`${state.data ? state.data.description : 'Expense not found'} · OwnLedger`}</title>
+  }
+
+  // A message (couldn't load, expense not found) is centered on the screen; the
+  // details and their loading placeholder sit in the column.
+  if (state.status === 'error' || (state.status === 'ready' && !state.data)) {
+    return (
+      <CenteredMessage>
+        {renderTitle()}
+        {renderContent()}
+      </CenteredMessage>
+    )
   }
 
   return (

@@ -15,10 +15,17 @@ import { ExpenseList } from './components/ExpenseList'
 import { GroupBand } from './components/GroupBand'
 import { GroupNotFound } from '../../components/GroupNotFound'
 import { MembersSheet } from './components/MembersSheet'
+import { CenteredMessage } from '../../components/CenteredMessage'
+import { FLOATING_BUTTON_ROOM } from '../../components/FloatingPillButton/constants.ts'
 import { belowStatusBar } from '../../theme/safeArea.ts'
 
 /** A column about 720 px wide, centered, which holds everything below the band. */
-const COLUMN_STYLE = { maxWidth: 720, margin: '0 auto', padding: `${belowStatusBar(16)} 16px 112px` } as const
+const COLUMN_STYLE = {
+  width: '100%',
+  maxWidth: 720,
+  margin: '0 auto',
+  padding: `${belowStatusBar(16)} 16px ${FLOATING_BUTTON_ROOM}px`,
+} as const
 
 /** One group: a colored band with its name and chips, the balance, actions and expenses. */
 export function GroupPage() {
@@ -56,7 +63,7 @@ export function GroupPage() {
 
   function renderError() {
     return (
-      <div style={COLUMN_STYLE}>
+      <CenteredMessage>
         <Result
           status="error"
           title="Couldn't load this group"
@@ -67,7 +74,7 @@ export function GroupPage() {
             </Button>
           }
         />
-      </div>
+      </CenteredMessage>
     )
   }
 
@@ -83,33 +90,35 @@ export function GroupPage() {
     )
 
     return (
-      <>
+      <Flex vertical style={{ flex: 1 }}>
         <GroupBand
           group={{ ...group, members }}
           onOpenMembers={() => setMembersOpen(true)}
         />
-        <div style={COLUMN_STYLE}>
+        {/* No room at the bottom here: the list adds it, so an empty list can be
+            centered in all the space below the actions. */}
+        <Flex vertical style={{ ...COLUMN_STYLE, flex: 1, paddingBottom: 0 }}>
           <Flex vertical gap={16}>
             <BalanceLine balances={balances} />
             <ActionPills />
-            <ExpenseList expenses={expenses} groupId={group.id} />
           </Flex>
-        </div>
+          <ExpenseList expenses={expenses} groupId={group.id} />
+        </Flex>
         <AddExpenseButton groupId={group.id} />
         <MembersSheet
           open={membersOpen}
           onClose={() => setMembersOpen(false)}
           members={members}
         />
-      </>
+      </Flex>
     )
   }
 
   function renderNotFound() {
     return (
-      <div style={COLUMN_STYLE}>
+      <CenteredMessage>
         <GroupNotFound />
-      </div>
+      </CenteredMessage>
     )
   }
 

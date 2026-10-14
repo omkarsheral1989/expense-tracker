@@ -3,6 +3,7 @@ import { Button, Flex, Result, Spin, Typography } from 'antd'
 import { useAuthStore } from '../../stores/useAuthStore'
 import type { Profile } from '../../services/googleProfileService/types.ts'
 import { useDatabaseSession } from '../../hooks/useDatabaseSession'
+import { CenteredMessage } from '../CenteredMessage'
 
 const { Text } = Typography
 
@@ -42,50 +43,50 @@ function OpenDatabase({
 
   function renderLoading() {
     return (
-      <Flex
-        vertical
-        align="center"
-        justify="center"
-        gap={16}
-        style={{ minHeight: '60vh' }}
-      >
-        <Spin size="large" />
-        <Text type="secondary">Opening your data…</Text>
-      </Flex>
+      <CenteredMessage>
+        <Flex vertical align="center" gap={16}>
+          <Spin size="large" />
+          <Text type="secondary">Opening your data…</Text>
+        </Flex>
+      </CenteredMessage>
     )
   }
 
   function renderLocked() {
     return (
-      <Result
-        status="warning"
-        title="OwnLedger is open in another tab"
-        subTitle="Your data can only be open in one tab at a time. Close the other tab or window, then try again."
-        extra={<Button type="primary" onClick={retry}>Try again</Button>}
-      />
+      <CenteredMessage>
+        <Result
+          status="warning"
+          title="OwnLedger is open in another tab"
+          subTitle="Your data can only be open in one tab at a time. Close the other tab or window, then try again."
+          extra={<Button type="primary" onClick={retry}>Try again</Button>}
+        />
+      </CenteredMessage>
     )
   }
 
   function renderError(error: Error) {
     return (
-      <Result
-        status="error"
-        title="Couldn't open your data"
-        subTitle={
-          <>
-            Nothing was lost. Try again, and if it keeps failing, reload the
-            page. <Text type="secondary" code>{error.message}</Text>
-          </>
-        }
-        extra={[
-          <Button key="retry" type="primary" onClick={retry}>
-            Try again
-          </Button>,
-          <Button key="sign-out" onClick={signOut}>
-            Sign out
-          </Button>,
-        ]}
-      />
+      <CenteredMessage>
+        <Result
+          status="error"
+          title="Couldn't open your data"
+          subTitle={
+            <>
+              Nothing was lost. Try again, and if it keeps failing, reload the
+              page. <Text type="secondary" code>{error.message}</Text>
+            </>
+          }
+          extra={[
+            <Button key="retry" type="primary" onClick={retry}>
+              Try again
+            </Button>,
+            <Button key="sign-out" onClick={signOut}>
+              Sign out
+            </Button>,
+          ]}
+        />
+      </CenteredMessage>
     )
   }
 

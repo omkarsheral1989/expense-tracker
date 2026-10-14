@@ -15,6 +15,7 @@ import { setUpTestDatabase } from '../../../testing/database.ts'
 import { addTestExpense, personIdOf } from '../../../testing/expenses.ts'
 import { renderPage } from '../../../testing/render.tsx'
 import { ExpensePage } from '../index.tsx'
+import { expectCenteredMessage } from '../../../testing/centered.ts'
 
 // Pages reach the database through `getDb`; point it at the in-memory one.
 vi.mock('../../../db/client.ts', async (importOriginal) => {
@@ -214,6 +215,7 @@ describe('ExpensePage', () => {
     const { currentPath } = renderExpense(id, expenseId)
 
     expect(await screen.findByText('Expense not found')).toBeInTheDocument()
+    expectCenteredMessage(screen.getByText('Expense not found'))
     await waitFor(() => expect(document.title).toBe('Expense not found · OwnLedger'))
     await userEvent.click(screen.getByRole('button', { name: 'Back to the group' }))
     expect(currentPath()).toBe(ROUTES.group(id))
@@ -226,6 +228,7 @@ describe('ExpensePage', () => {
     renderExpense(id, expenseId)
 
     expect(await screen.findByText("Couldn't load this expense")).toBeInTheDocument()
+    expectCenteredMessage(screen.getByText("Couldn't load this expense"))
     await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
     expect(await screen.findByRole('heading', { name: 'Beach shack dinner' })).toBeInTheDocument()
   })

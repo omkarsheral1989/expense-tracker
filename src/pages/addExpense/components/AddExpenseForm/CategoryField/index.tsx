@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { CategoryIcon } from '../../../../../components/CategoryIcon'
 import { expenseService } from '../../../../../services/expenseService'
 import { CategoryPicker } from './CategoryPicker'
+import { CONTROL_HEIGHT } from '../../../../../theme/controlHeight.ts'
 
 type Props = {
   /** Given by the form item, so that its messages are tied to the button. */
@@ -34,7 +35,7 @@ export function CategoryField({ id, value = expenseService.defaultCategory, onCh
         onClick={() => setOpen(true)}
         style={{ width: 'auto', height: 'auto', padding: 0 }}
       >
-        <CategoryIcon category={value} size={48} />
+        <CategoryIcon category={value} size={CONTROL_HEIGHT} />
       </Button>
       <CategoryPicker
         open={open}

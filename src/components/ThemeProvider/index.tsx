@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from 'react'
 import { App as AntApp, ConfigProvider, theme } from 'antd'
 import { useColorScheme } from '../../hooks/useColorScheme'
+import { CONTROL_HEIGHT } from '../../theme/controlHeight.ts'
 import { RADIUS } from '../../theme/radius.ts'
 
 const PRIMARY = '#0d9488'
@@ -34,6 +35,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           borderRadiusSM: RADIUS.inner,
           borderRadiusXS: RADIUS.inner,
           borderRadiusLG: RADIUS.outer,
+          // Every button, input, dropdown and date picker is one height, whatever
+          // its size: Ant Design's small, middle and large all come out the same.
+          controlHeight: CONTROL_HEIGHT,
+          controlHeightSM: CONTROL_HEIGHT,
+          controlHeightLG: CONTROL_HEIGHT,
         },
         // "Large" controls would otherwise pick up the outer radius and turn
         // into pills, so keep them on the inner tier.

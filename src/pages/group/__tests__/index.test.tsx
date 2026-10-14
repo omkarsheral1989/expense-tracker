@@ -5,6 +5,7 @@ import { and, eq, ne } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getDb } from '../../../db/client.ts'
 import { expenseShares, groupMembers, groups, people } from '../../../db/schema.ts'
+import { ABOVE_FLOATING_BUTTON } from '../../../components/FloatingPillButton/constants.ts'
 import { ROUTES } from '../../../routes.ts'
 import type { CreateExpenseInput } from '../../../services/expenseService/types.ts'
 import { groupService } from '../../../services/groupService'
@@ -14,6 +15,7 @@ import { setUpTestDatabase } from '../../../testing/database.ts'
 import { addTestExpense } from '../../../testing/expenses.ts'
 import { renderPage } from '../../../testing/render.tsx'
 import { GroupPage } from '../index.tsx'
+import { expectCenteredMessage } from '../../../testing/centered.ts'
 
 // Pages reach the database through `getDb`; point it at the in-memory one.
 vi.mock('../../../db/client.ts', async (importOriginal) => {
@@ -330,6 +332,17 @@ describe('GroupPage', () => {
       expect(screen.getByText('Expenses you add will appear here.')).toBeInTheDocument()
     })
 
+    it('centers the empty message in a box that runs from the actions to just above the Add expense button', async () => {
+      const id = await createGroup(me, { name: 'Goa trip' })
+      renderGroup(id)
+
+      const wrapper = (await screen.findByText('No expenses yet')).closest('.ant-flex-align-center') as HTMLElement
+      // Ant Design's Flex centers through these classes; `flex: 1` makes the box fill the rest.
+      expect(wrapper).toHaveClass('ant-flex-align-center', 'ant-flex-justify-center')
+      expect(wrapper).toHaveStyle({ flex: '1', marginBottom: `${ABOVE_FLOATING_BUTTON}px` })
+      expect(wrapper).not.toContainElement(screen.getByRole('button', { name: named('Settle up') }))
+    })
+
     it('puts the balance, the action pills and the expenses in that order', async () => {
       const id = await createGroup(me, { name: 'Goa trip' })
       renderGroup(id)
@@ -631,6 +644,7 @@ describe('GroupPage', () => {
       renderGroup(id)
 
       expect(await screen.findByText("Couldn't load this group")).toBeInTheDocument()
+      expectCenteredMessage(screen.getByText("Couldn't load this group"))
       expect(screen.queryByText('Group not found')).not.toBeInTheDocument()
 
       await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
@@ -650,7 +664,8 @@ describe('GroupPage', () => {
 
     it('says "Group not found" when there is no such group', async () => {
       renderGroup(crypto.randomUUID())
-      await screen.findByText('Group not found', { selector: '.ant-result-title' })
+      const message = await screen.findByText('Group not found', { selector: '.ant-result-title' })
+    expectCenteredMessage(message)
       await waitFor(() => expect(document.title).toBe('Group not found · OwnLedger'))
     })
   })

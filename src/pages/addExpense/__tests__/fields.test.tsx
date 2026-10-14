@@ -7,6 +7,7 @@ import { groupService } from '../../../services/groupService'
 import { useAuthStore } from '../../../stores/useAuthStore'
 import { addTestExpense } from '../../../testing/expenses.ts'
 import { setUpAddExpenseTests, me, descriptionInput, amountInput, notesInput, typeAsBrowser, currencySection } from './helpers.tsx'
+import { expectCenteredMessage } from '../../../testing/centered.ts'
 
 // Pages reach the database through `getDb`; point it at the in-memory one.
 vi.mock('../../../db/client.ts', async (importOriginal) => {
@@ -90,6 +91,7 @@ describe('AddExpensePage', () => {
       renderForm(result.groupId)
 
       expect(await screen.findByText('Group not found')).toBeInTheDocument()
+      expectCenteredMessage(screen.getByText('Group not found', { selector: '.ant-result-title' }))
       expect(screen.queryByRole('textbox', { name: 'Description' })).not.toBeInTheDocument()
       await waitFor(() => expect(document.title).toBe('Group not found · OwnLedger'))
     })
@@ -100,6 +102,7 @@ describe('AddExpensePage', () => {
       renderForm(id)
 
       expect(await screen.findByText("Couldn't load this group")).toBeInTheDocument()
+      expectCenteredMessage(screen.getByText("Couldn't load this group"))
       await user.click(screen.getByRole('button', { name: 'Try again' }))
       expect(await screen.findByRole('heading', { name: 'Add expense' })).toBeInTheDocument()
     })
@@ -304,14 +307,15 @@ describe('AddExpensePage', () => {
 
       const [, month] = within(dialog).getAllByRole('combobox')
       await user.click(month)
+      // A month near the top of the list: with 40 px options the dropdown shows only about seven.
       await user.click(
         [...document.querySelectorAll('.ant-select-item-option-content')].find(
-          (option) => option.textContent === 'Sep',
+          (option) => option.textContent === 'Feb',
         ) as HTMLElement,
       )
 
-      // 1 Sep is only on screen once the calendar shows September.
-      expect(dialog.querySelector('td[title="2026-09-01"]')).not.toBeNull()
+      // 1 Feb is only on screen once the calendar shows February.
+      expect(dialog.querySelector('td[title="2026-02-01"]')).not.toBeNull()
       expect(screen.getByRole('dialog', { name: 'Choose a date' })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Date: Today, 8 Oct 2026' })).toBeInTheDocument()
     })

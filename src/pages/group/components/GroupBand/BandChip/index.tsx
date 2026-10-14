@@ -26,7 +26,6 @@ export function BandChip({ icon, children, onClick, comingSoon }: Props) {
       onClick={onClick}
       // A chip with no action only shows information, so it is not clickable.
       style={{
-        height: 32,
         padding: '0 14px',
         borderRadius: PILL_RADIUS,
         color: '#fff',
