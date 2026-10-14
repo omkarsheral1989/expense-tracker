@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { dateService } from '../index.ts'
 
-const { formatDay, fromDay, toDay } = dateService
+const { formatDay, formatMonth, fromDay, toDay } = dateService
 
 describe('toDay', () => {
   it('writes a local date as YYYY-MM-DD', () => {
@@ -32,5 +32,13 @@ describe('formatDay', () => {
   it('knows yesterday across a month and a year', () => {
     expect(formatDay('2025-12-31', '2026-01-01')).toBe('Yesterday, 31 Dec 2025')
     expect(formatDay('2026-02-28', '2026-03-01')).toBe('Yesterday, 28 Feb 2026')
+  })
+})
+
+describe('formatMonth', () => {
+  it('writes the month in full with its year', () => {
+    expect(formatMonth('2025-09-23')).toBe('September 2025')
+    expect(formatMonth('2026-01-01')).toBe('January 2026')
+    expect(formatMonth('2026-12-31')).toBe('December 2026')
   })
 })

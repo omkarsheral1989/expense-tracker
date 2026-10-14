@@ -1,7 +1,9 @@
 import { Empty, Flex, Typography } from 'antd'
 import type { ExpenseListItem } from '../../../../services/expenseService/types.ts'
 import { ABOVE_FLOATING_BUTTON, FLOATING_BUTTON_ROOM } from '../../../../components/FloatingPillButton/constants.ts'
+import { dateService } from '../../../../services/dateService'
 import { ExpenseRow } from './ExpenseRow'
+import { groupByMonth, type MonthOfExpenses } from './utils.ts'
 
 const { Text } = Typography
 
@@ -12,7 +14,8 @@ type Props = {
 }
 
 /**
- * The group's expenses, newest first, or a message when there are none yet. The
+ * The group's expenses, newest first and grouped under a "September 2025"
+ * header for each month, or a message when there are none yet. The
  * message's box runs from the actions down to just above the floating Add
  * expense button, and the message is centered in it. (Not on the whole screen:
  * the band, the balance and the actions take the top of it, and the button the
@@ -22,6 +25,20 @@ type Props = {
 export function ExpenseList({ expenses, groupId }: Props) {
   function renderExpense(expense: ExpenseListItem) {
     return <ExpenseRow key={expense.id} expense={expense} groupId={groupId} />
+  }
+
+  function renderMonth({ month, expenses }: MonthOfExpenses) {
+    const headingId = `expenses-${month}`
+    return (
+      <Flex vertical key={month}>
+        <Text id={headingId} type="secondary" strong role="heading" aria-level={2} style={{ paddingTop: 8 }}>
+          {dateService.formatMonth(`${month}-01`)}
+        </Text>
+        <Flex vertical role="list" aria-labelledby={headingId}>
+          {expenses.map(renderExpense)}
+        </Flex>
+      </Flex>
+    )
   }
 
   if (expenses.length === 0) {
@@ -43,11 +60,12 @@ export function ExpenseList({ expenses, groupId }: Props) {
   return (
     <Flex
       vertical
-      role="list"
+      gap={8}
+      role="region"
       aria-label="Expenses"
       style={{ marginTop: 16, paddingBottom: FLOATING_BUTTON_ROOM }}
     >
-      {expenses.map(renderExpense)}
+      {groupByMonth(expenses).map(renderMonth)}
     </Flex>
   )
 }

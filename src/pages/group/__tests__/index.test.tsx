@@ -66,8 +66,8 @@ async function addExpense(email: string, groupId: string, input: Partial<CreateE
 
 /** The rows of the expense list, each as its text with spaces between the parts. */
 async function expenseRows() {
-  const list = await screen.findByRole('list', { name: 'Expenses' })
-  return within(list)
+  const expenses = await screen.findByRole('region', { name: 'Expenses' })
+  return within(expenses)
     .getAllByRole('listitem')
     .map((row) =>
       [...row.querySelectorAll('span, strong')]
@@ -382,6 +382,37 @@ describe('GroupPage', () => {
       expect(screen.getByRole('img', { name: 'Dining out' })).toHaveStyle({ background: 'rgb(232, 89, 12)' })
       expect(screen.getByRole('img', { name: 'Taxi' })).toHaveStyle({ background: 'rgb(25, 113, 194)' })
       expect(screen.queryByText('No expenses yet')).not.toBeInTheDocument()
+    })
+
+    it('puts a "month year" header above the expenses of each month, even the newest', async () => {
+      const id = await createGroup(me, { name: 'Goa trip' })
+      await addExpense(me.email, id, { description: 'Old hotel', date: '2025-09-23' })
+      await addExpense(me.email, id, { description: 'Taxi', date: '2026-10-12' })
+      await addExpense(me.email, id, { description: 'Dinner', date: '2026-10-14' })
+      await addExpense(me.email, id, { description: 'Hotel', date: '2026-08-30' })
+      renderGroup(id)
+
+      await expenseRows()
+      const expenses = screen.getByRole('region', { name: 'Expenses' })
+      const headings = within(expenses).getAllByRole('heading', { level: 2 }).map((heading) => heading.textContent)
+      expect(headings).toEqual(['October 2026', 'August 2026', 'September 2025'])
+
+      // Each month's rows are in the list its header names, newest first.
+      const rowsOf = (month: string) =>
+        within(screen.getByRole('list', { name: month }))
+          .getAllByRole('listitem')
+          .map((row) => row.textContent)
+      expect(rowsOf('October 2026')).toEqual([expect.stringContaining('Dinner'), expect.stringContaining('Taxi')])
+      expect(rowsOf('August 2026')).toEqual([expect.stringContaining('Hotel')])
+      expect(rowsOf('September 2025')).toEqual([expect.stringContaining('Old hotel')])
+    })
+
+    it('shows no expense list, so no month header, when there are no expenses', async () => {
+      const id = await createGroup(me, { name: 'Goa trip' })
+      renderGroup(id)
+
+      await screen.findByText('No expenses yet')
+      expect(screen.queryByRole('region', { name: 'Expenses' })).not.toBeInTheDocument()
     })
 
     it('shows what you borrowed when someone else paid, naming them by first name', async () => {

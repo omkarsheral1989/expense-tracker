@@ -175,7 +175,7 @@ Route `/groups/<id>/expenses/new`, opened from the group page's "Add expense" bu
 - The method and the user's inputs are stored, so the split can be shown and edited later.
 
 **Expense list on the group page (replaces the empty list once expenses exist)**
-- Flat list, newest date first (the most recently added first within a day). Each row: date (month over day), a colored category tile, the title with "You paid …" (or "Priya paid …") under it, and on the right "you lent" (green), "you borrowed" (orange-red), "no balance" (the user paid exactly their own share, for example in a group of one) or "not involved", with the amount.
+- Flat list, newest date first (the most recently added first within a day), with a quiet grey "September 2025" header (month in full and year) above each month's expenses, including the newest month; the headers scroll with the list. Each row: date (month over day), a colored category tile, the title with "You paid …" (or "Priya paid …") under it, and on the right "you lent" (green), "you borrowed" (orange-red), "no balance" (the user paid exactly their own share, for example in a group of one) or "not involved", with the amount.
 - Tapping a row opens the expense's details page (5.6).
 
 **Balance line (group page)**

@@ -1,4 +1,4 @@
-import { MONTH_NAMES, WEEKDAY_NAMES } from './constants.ts'
+import { FULL_MONTH_NAMES, MONTH_NAMES, WEEKDAY_NAMES } from './constants.ts'
 
 /** A day as 'YYYY-MM-DD', in the device's own time zone. */
 function toDay(date: Date): string {
@@ -30,9 +30,16 @@ function formatDay(day: string, today: string): string {
   return `${prefix}, ${date.getDate()} ${MONTH_NAMES[date.getMonth()]} ${date.getFullYear()}`
 }
 
+/** The month a day is in, written out: "September 2025". */
+function formatMonth(day: string): string {
+  const date = fromDay(day)
+  return `${FULL_MONTH_NAMES[date.getMonth()]} ${date.getFullYear()}`
+}
+
 /** Days ('YYYY-MM-DD', without a time) as the app writes and reads them. */
 export const dateService = {
   toDay,
   fromDay,
   formatDay,
+  formatMonth,
 }
