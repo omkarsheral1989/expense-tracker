@@ -178,6 +178,14 @@ describe('GroupPage', () => {
       expect(band.style.background).toContain(color)
     })
 
+    it('lifts the icon tile off the band with a shadow, so it does not blend into its own color', async () => {
+      const id = await createGroup(me, { name: 'Goa trip' })
+      renderGroup(id)
+
+      await screen.findByRole('heading', { name: 'Goa trip' })
+      expect(screen.getByRole('img', { name: 'Trip' }).style.boxShadow).not.toBe('')
+    })
+
     it('lets a long name wrap onto more lines instead of cutting it off or running off the screen', async () => {
       const name = 'asdka jhsdk ajshd kajshd kajshjdk ashd kjha skdha sdkhads'
       const id = await createGroup(me, { name })
@@ -190,14 +198,17 @@ describe('GroupPage', () => {
       expect(heading).toHaveTextContent(name)
     })
 
-    it('aligns the icon with the top of the name, not its middle', async () => {
+    it('centers a one-line name on the icon, and lets a longer one wrap downwards from there', async () => {
       const id = await createGroup(me, { name: 'Goa trip' })
       renderGroup(id)
 
       const heading = await screen.findByRole('heading', { name: 'Goa trip' })
       const row = heading.parentElement as HTMLElement
-      expect(row).toHaveClass('ant-flex-align-flex-start')
       expect(row).toContainElement(screen.getByRole('img', { name: 'Trip' }))
+      // The row is top-aligned; the name's 38 px line sits 5 px down, so it is
+      // centered on the 48 px icon: (48 - 38) / 2.
+      expect(row).toHaveClass('ant-flex-align-flex-start')
+      expect(heading).toHaveStyle({ lineHeight: '38px', marginTop: '5px' })
     })
 
     it('goes back to the home page with the Back button', async () => {

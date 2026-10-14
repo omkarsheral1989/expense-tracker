@@ -11,10 +11,16 @@ type Props = {
   size?: number
   /** Also write the name of the type ("Trip") under the tile. */
   withLabel?: boolean
+  /**
+   * True on a background of the type's own color (the group page's band): the
+   * tile then gets a soft shadow so it does not blend in. False (the default)
+   * on a plain background.
+   */
+  raised?: boolean
 }
 
 /** The colored tile with the icon that stands for a kind of group. */
-export function GroupTypeIcon({ type, size = 40, withLabel = false }: Props) {
+export function GroupTypeIcon({ type, size = 40, withLabel = false, raised = false }: Props) {
   const { label, icon, color } = GROUP_TYPE_CONTENT[type]
 
   const tile = (
@@ -31,6 +37,7 @@ export function GroupTypeIcon({ type, size = 40, withLabel = false }: Props) {
         fontSize: size * 0.5,
         color: '#fff',
         background: color,
+        boxShadow: raised ? '0 6px 16px rgba(0, 0, 0, 0.5)' : undefined,
       }}
     >
       {icon}

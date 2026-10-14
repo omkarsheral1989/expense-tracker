@@ -52,11 +52,14 @@ export function GroupBand({ group, onOpenMembers }: Props) {
   function renderTitle() {
     return (
       <Flex align="flex-start" gap={16}>
-        <GroupTypeIcon type={group.type} size={48} />
+        <GroupTypeIcon type={group.type} size={48} raised />
         <Title
           level={2}
           style={{
-            margin: 0,
+            // A one-line name is centered on the 48 px tile: (48 - 38) / 2 above its 38 px line.
+            // A longer name wraps downwards from there.
+            margin: '5px 0 0',
+            lineHeight: '38px',
             minWidth: 0,
             color: '#fff',
             overflowWrap: 'anywhere',
