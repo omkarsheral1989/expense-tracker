@@ -1,8 +1,8 @@
 import { PlusOutlined } from '@ant-design/icons'
 import { Button, Divider, Flex, Select, Typography } from 'antd'
 import { useState } from 'react'
-import { groupService } from '../../../../../services/groupService'
-import type { KnownPerson } from '../../../../../services/personService/types.ts'
+import { groupService } from '../../services/groupService'
+import type { KnownPerson } from '../../services/personService/types.ts'
 import { AddMemberDialog } from './AddMemberDialog'
 
 const { Text } = Typography

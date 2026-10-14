@@ -6,6 +6,7 @@ import type { KnownPerson } from '../personService/types.ts'
 import { createGroupSchema, toFieldErrors, updateGroupSchema } from './schemas.ts'
 import { displayName, shortName } from './utils.ts'
 import type {
+  AddMemberResult,
   CreateGroupInput,
   CreateGroupResult,
   GroupDetails,
@@ -157,6 +158,66 @@ export const groupService = {
         .update(groups)
         .set({ name, type, defaultCurrency, updatedAt: new Date(), updatedBy: userId })
         .where(eq(groups.id, groupId))
+      return { ok: true }
+    })
+  },
+
+  /**
+   * Adds a person already saved on this device to a group; any member may. A
+   * person who left the group earlier is added back (their old membership is
+   * brought back rather than a second one made). Adding counts as a change to
+   * the group, so it moves to the top of the home list. A person who is
+   * unknown or already in the group comes back as a message to show; a group
+   * that does not exist for this user comes back as `notFound`.
+   */
+  async addMember(
+    db: Database,
+    userId: string,
+    groupId: string,
+    personId: string,
+  ): Promise<AddMemberResult> {
+    if (!UUID.test(groupId)) return { ok: false, notFound: true }
+    if (!UUID.test(personId)) return { ok: false, message: 'Choose someone from the list.' }
+
+    return db.transaction(async (tx): Promise<AddMemberResult> => {
+      const [mine] = await tx
+        .select({ id: groups.id })
+        .from(groups)
+        .innerJoin(groupMembers, eq(groupMembers.groupId, groups.id))
+        .where(
+          and(
+            eq(groups.id, groupId),
+            isNull(groups.deletedAt),
+            eq(groupMembers.personId, userId),
+            isNull(groupMembers.deletedAt),
+          ),
+        )
+      if (!mine) return { ok: false, notFound: true }
+
+      const [person] = await tx
+        .select({ id: people.id, email: people.email, name: people.name })
+        .from(people)
+        .where(and(eq(people.id, personId), isNull(people.deletedAt)))
+      if (!person) return { ok: false, message: 'Choose someone from the list.' }
+
+      const [existing] = await tx
+        .select({ id: groupMembers.id, deletedAt: groupMembers.deletedAt })
+        .from(groupMembers)
+        .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.personId, personId)))
+      if (existing && !existing.deletedAt) {
+        return { ok: false, message: `${displayName(person)} is already in this group.` }
+      }
+
+      const updatedAt = new Date()
+      if (existing) {
+        await tx
+          .update(groupMembers)
+          .set({ deletedAt: null, updatedAt, updatedBy: userId })
+          .where(eq(groupMembers.id, existing.id))
+      } else {
+        await tx.insert(groupMembers).values({ groupId, personId, updatedAt, updatedBy: userId })
+      }
+      await tx.update(groups).set({ updatedAt, updatedBy: userId }).where(eq(groups.id, groupId))
       return { ok: true }
     })
   },

@@ -1,5 +1,5 @@
 import { PGlite } from '@electric-sql/pglite'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createDatabase, type Database } from '../../../db/client.ts'
 import { expenses, groupMembers, groups, people } from '../../../db/schema.ts'
@@ -710,6 +710,176 @@ describe('updateGroup', () => {
       await db.update(groupMembers).set({ deletedAt: new Date() }).where(eq(groupMembers.personId, omkarId))
 
       expect(await groupService.updateGroup(db, omkarId, id, change)).toEqual(notFound)
+    })
+  })
+})
+
+describe('addMember', () => {
+  const omkarId = personIdForEmail(omkar.email)
+  const sam: TestUser = { email: 'sam@gmail.com', name: 'Sam Lee' }
+
+  async function personIdOf(email: string) {
+    const [person] = await db.select({ id: people.id }).from(people).where(eq(people.email, email))
+    return person.id
+  }
+
+  /** Saves a person who is in no group, as the add-a-member dialog would. */
+  async function savedPerson(user: TestUser) {
+    await addTestPerson(db, omkar, user)
+    return personIdOf(user.email)
+  }
+
+  const membershipsOf = (groupId: string) =>
+    db.select().from(groupMembers).where(eq(groupMembers.groupId, groupId))
+
+  it('puts a person saved on the device into the group, as a member like any other', async () => {
+    const groupId = await create(omkar, { name: 'Goa trip' })
+    const samId = await savedPerson(sam)
+
+    expect(await groupService.addMember(db, omkarId, groupId, samId)).toEqual({ ok: true })
+
+    expect(await memberEmails(groupId)).toEqual(['omkar@gmail.com', 'sam@gmail.com'])
+    const details = await groupService.getGroup(db, omkarId, groupId)
+    expect(details?.members.map((member) => member.name)).toEqual(['Omkar', 'Sam Lee'])
+    const [row] = (await membershipsOf(groupId)).filter((membership) => membership.personId === samId)
+    expect(row).toMatchObject({ updatedBy: omkarId, deletedAt: null })
+  })
+
+  it('adds a member who has no email', async () => {
+    const groupId = await create(omkar, { name: 'Goa trip' })
+    await addTestPerson(db, omkar, { name: 'Rahul' } as TestUser)
+    const [rahul] = await db.select({ id: people.id }).from(people).where(eq(people.name, 'Rahul'))
+
+    expect(await groupService.addMember(db, omkarId, groupId, rahul.id)).toEqual({ ok: true })
+
+    const details = await groupService.getGroup(db, omkarId, groupId)
+    expect(details?.members.map((member) => [member.name, member.email])).toEqual([
+      ['Omkar', 'omkar@gmail.com'],
+      ['Rahul', null],
+    ])
+  })
+
+  it('lets any member add someone, not only the creator', async () => {
+    const groupId = await create(omkar, { name: 'Goa trip', memberEmails: [priya.email] })
+    const samId = await savedPerson(sam)
+
+    expect(await groupService.addMember(db, personIdForEmail(priya.email), groupId, samId)).toEqual({ ok: true })
+
+    const [row] = (await membershipsOf(groupId)).filter((membership) => membership.personId === samId)
+    expect(row.updatedBy).toBe(personIdForEmail(priya.email))
+  })
+
+  it('counts as a change to the group, which moves it to the top of the list', async () => {
+    const groupId = await create(omkar, { name: 'Goa trip' })
+    const other = await create(omkar, { name: 'Other' })
+    await db.update(groups).set({ updatedAt: new Date('2026-01-01T00:00:00Z') }).where(eq(groups.id, groupId))
+    await db.update(groups).set({ updatedAt: new Date('2026-02-01T00:00:00Z') }).where(eq(groups.id, other))
+    expect((await groupService.listGroups(db, omkarId))[0].name).toBe('Other')
+
+    await groupService.addMember(db, omkarId, groupId, await savedPerson(sam))
+
+    expect((await groupService.listGroups(db, omkarId))[0].name).toBe('Goa trip')
+    const [row] = await db.select().from(groups).where(eq(groups.id, groupId))
+    expect(row.updatedBy).toBe(omkarId)
+  })
+
+  it('does not touch another group', async () => {
+    const groupId = await create(omkar, { name: 'Goa trip' })
+    const other = await create(omkar, { name: 'Other' })
+
+    await groupService.addMember(db, omkarId, groupId, await savedPerson(sam))
+
+    expect(await memberEmails(other)).toEqual(['omkar@gmail.com'])
+  })
+
+  it('brings back a person who left the group, with their old membership, not a second one', async () => {
+    const groupId = await create(omkar, { name: 'Goa trip', memberEmails: [sam.email] })
+    const samId = await personIdOf(sam.email)
+    await db
+      .update(groupMembers)
+      .set({ deletedAt: new Date() })
+      .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.personId, samId)))
+    expect(await memberEmails(groupId)).toEqual(['omkar@gmail.com', 'sam@gmail.com']) // the raw rows, deleted included
+    expect((await groupService.getGroup(db, omkarId, groupId))?.members).toHaveLength(1)
+
+    expect(await groupService.addMember(db, omkarId, groupId, samId)).toEqual({ ok: true })
+
+    expect((await groupService.getGroup(db, omkarId, groupId))?.members).toHaveLength(2)
+    const rows = (await membershipsOf(groupId)).filter((membership) => membership.personId === samId)
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({ deletedAt: null, updatedBy: omkarId })
+  })
+
+  describe('refusing', () => {
+    it('someone who is already in the group, by name, and changes nothing', async () => {
+      const groupId = await create(omkar, { name: 'Goa trip', memberEmails: [sam.email] })
+      await db.update(people).set({ name: 'Sam Lee' }).where(eq(people.email, sam.email))
+      const before = await membershipsOf(groupId)
+
+      expect(await groupService.addMember(db, omkarId, groupId, await personIdOf(sam.email))).toEqual({
+        ok: false,
+        message: 'Sam Lee is already in this group.',
+      })
+
+      expect(await membershipsOf(groupId)).toHaveLength(before.length)
+    })
+
+    it('names someone with no name by their email', async () => {
+      const groupId = await create(omkar, { name: 'Goa trip', memberEmails: ['ana@gmail.com'] })
+      expect(await groupService.addMember(db, omkarId, groupId, await personIdOf('ana@gmail.com'))).toEqual({
+        ok: false,
+        message: 'ana@gmail.com is already in this group.',
+      })
+    })
+
+    it('a person who is unknown, deleted, or not even an id', async () => {
+      const groupId = await create(omkar, { name: 'Goa trip' })
+      const samId = await savedPerson(sam)
+      await db.update(people).set({ deletedAt: new Date() }).where(eq(people.id, samId))
+
+      for (const bad of [crypto.randomUUID(), samId, '', 'abc', "'; drop table people; --"]) {
+        expect(await groupService.addMember(db, omkarId, groupId, bad)).toEqual({
+          ok: false,
+          message: 'Choose someone from the list.',
+        })
+      }
+      expect(await memberEmails(groupId)).toEqual(['omkar@gmail.com'])
+    })
+  })
+
+  describe('says there is no such group (notFound) when', () => {
+    const notFound = { ok: false, notFound: true }
+
+    it('the id is unknown, or not even an id', async () => {
+      const samId = await savedPerson(sam)
+      for (const bad of [crypto.randomUUID(), '', 'abc']) {
+        expect(await groupService.addMember(db, omkarId, bad, samId)).toEqual(notFound)
+      }
+    })
+
+    it('the group has been deleted', async () => {
+      const groupId = await create(omkar, { name: 'Goa trip' })
+      const samId = await savedPerson(sam)
+      await db.update(groups).set({ deletedAt: new Date() }).where(eq(groups.id, groupId))
+
+      expect(await groupService.addMember(db, omkarId, groupId, samId)).toEqual(notFound)
+    })
+
+    it('you are not in the group, and nobody is added', async () => {
+      await create(omkar, { name: 'Mine' })
+      const groupId = await create(priya, { name: 'Flat' })
+      const samId = await savedPerson(sam)
+
+      expect(await groupService.addMember(db, omkarId, groupId, samId)).toEqual(notFound)
+      expect(await memberEmails(groupId)).toEqual(['priya@gmail.com'])
+    })
+
+    it('you have left the group', async () => {
+      const groupId = await create(omkar, { name: 'Goa trip', memberEmails: [priya.email] })
+      const samId = await savedPerson(sam)
+      await db.update(groupMembers).set({ deletedAt: new Date() }).where(eq(groupMembers.personId, omkarId))
+
+      expect(await groupService.addMember(db, omkarId, groupId, samId)).toEqual(notFound)
     })
   })
 })

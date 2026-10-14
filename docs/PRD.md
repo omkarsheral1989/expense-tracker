@@ -1,6 +1,6 @@
 # Product Requirements: OwnLedger
 
-_Last updated: 2026-10-16_
+_Last updated: 2026-10-17_
 
 ## 1. Overview
 **OwnLedger** is an installable, offline-capable web app (PWA) for tracking personal expenses and expenses shared in groups (trips, home, couples, others). Everything is stored locally on the user's device. Groups are shared between members through a Google Drive folder. There is no backend.
@@ -30,7 +30,7 @@ _Last updated: 2026-10-16_
 - Create a group with a name, a type (trip / home / couple / other, each with its own icon), a default currency and members.
 - Members are picked from people already known on this device (people from the user's other groups), or added through an "Add a new member" dialog (a name, and optionally a Gmail address). Typing an address into the members field no longer adds anyone. A person's email is optional; when given it must be an `@gmail.com` address, which means Google Workspace accounts with other domains cannot be added.
 - The creator is always a member of the new group.
-- Any member can edit the group's name, type and default currency (5.3a). Adding members to an existing group is not built yet.
+- Any member can edit the group's name, type and default currency (5.3a). Any member can add people to an existing group from its members sheet (5.4); removing members is not built yet.
 - Members who have not opened the app yet are shown as pending. A member without an email is a member on this device only (a payer, in splits and balances); they cannot be invited to share the group through Drive until an email is added, which is not built yet.
 
 ### 4.3 Expenses
@@ -146,6 +146,10 @@ Route `/groups/<id>`, opened from a group on the home page and after creating a 
   - the group's **type icon tile** (lifted off the band by a soft black shadow, since it is the band's own color) beside the group's **name**, which is large and white, with its first line centered on the tile, and wraps onto more lines below when long (never cut off or running off the screen);
   - a row of translucent pill chips: **Add trip dates** (switched off; it exists for any group type for now), **"N people"** ("1 person" for one), and the group's **default currency** (for example "GBP").
 - **"N people" opens the member list**: a bottom sheet on phones and a side panel on desktop, titled "Members (N)". It lists the user first, then the others A to Z; each member has an avatar with their initial, their name with their email under it ("No email" for a member without one; just the email, once, when no name is known), and a tag: "You" for the user (whose own row uses the name saved for them, or else their Google profile name) and "Pending" for everyone else until they have signed in and synced. It closes with its close button or by tapping outside.
+  - **Add member:** the sheet ends with a single "Add member" button (a plus icon), after a thin line. It opens a second sheet, "Add a member" (a bottom sheet on phones, a centered dialog on wide screens). That sheet has a search box (by name or email, ignoring case), then the people saved on this device who are not in the group, each with an avatar, name and email ("No email" when none), the user never listed. Tapping a person ticks them (a check mark and a light highlight) and tapping again unticks. Under the list is "Add a new member", which opens the name-and-email dialog of Create group (5.3): the person is saved on this device at once (so they are in the list for every group, even if this sheet is cancelled) and appears in the list **already ticked** with the search cleared; they join the group only when Add is pressed. With nobody to offer the list says "Everyone you know is already in this group." (and "No one matches." when a search finds no one).
+  - The sheet's footer has **Cancel** (closes it, adds no one) and **Add** (switched off until someone is ticked). Add adds everyone ticked, then closes the sheet with "Priya added." (one person) or "N members added." (several). The members sheet stays open and shows the new members with the new count, and the "N people" chip and balances behind it update. The sheet starts empty each time it opens.
+  - **Rules:** any member can add people (4.2). A person already in the group cannot be added twice ("Priya Shah is already in this group.", for example when another member added them meanwhile); a person who left earlier can be added back. If adding fails, "Couldn't add the member. Please try again." is shown and the ticks stay. Adding counts as activity in the group, so it moves to the top of the home list. A member added without an email cannot be shared the group through Drive until an email is added (4.2).
+  - Sheets that open over another one push it up (about 180 px), as Ant Design does by default; the app does not switch this off.
 - **Balance line** under the band: one sentence per other person and currency that is not settled, "Priya owes you ₹14,517.50" (amount in bold green) or "You owe Priya ₹500.00" (amount in bold orange-red), people A to Z and then currencies A to Z. "You're all settled up" when nothing is owed either way.
 - **Action pills**, a row that scrolls sideways when it does not fit: for now only **Settle up**, which opens the settle-up page (5.7). It is switched off in a group of one, with the tip "You are the only member of this group."
 - **Expense list:** the group's expenses as described in 5.5. With none, the message "No expenses yet" and "Expenses you add will appear here." with its illustration, centered vertically in a box that runs from the actions ("Settle up") down to 16 px above the floating "Add expense" button.
@@ -233,7 +237,7 @@ Route `/groups/<id>/settle`, opened by the "Settle up" pill on the group page (5
 
 ## 6. Open questions
 - Google Cloud setup: the OAuth client ID is not created yet (Drive API, consent screen in Testing mode, authorized origins, test users).
-- Member removal: what happens to a removed member's access and local data.
+- Member removal: what happens to a removed member's access and local data (a person who left can already be added back, 5.4).
 - Adding or changing a person's email later (so a member added without one can be invited), renaming a person, and how sync treats members without an email.
 - Group page: what the search button opens, how trip dates work (which group types, start and end), and what else the pill row holds (balances, totals, charts).
 - Tags on expenses.

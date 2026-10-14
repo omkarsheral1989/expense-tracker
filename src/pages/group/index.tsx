@@ -34,6 +34,8 @@ export function GroupPage() {
   const { id = '' } = useParams()
 
   const userId = user?.personId ?? ''
+  // `keepPrevious`: reading the group again (after a member is added) keeps what
+  // is shown, so the members sheet stays open instead of flashing the placeholder.
   const { state, retry } = useAsyncData(async () => {
     const db = await getDb()
     const group = await groupService.getGroup(db, userId, id)
@@ -43,7 +45,7 @@ export function GroupPage() {
       expenses: await expenseService.listExpenses(db, userId, id),
       balances: await expenseService.groupBalances(db, userId, id),
     }
-  }, `${userId}:${id}`)
+  }, `${userId}:${id}`, { keepPrevious: true })
 
   // Visitors who are not in the app are sent away by `RequireAuth` before this matters.
   if (!user) return null
@@ -103,6 +105,9 @@ export function GroupPage() {
           open={membersOpen}
           onClose={() => setMembersOpen(false)}
           members={group.members}
+          groupId={group.id}
+          userId={userId}
+          onMemberAdded={retry}
         />
       </Flex>
     )

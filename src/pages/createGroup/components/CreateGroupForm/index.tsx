@@ -11,7 +11,7 @@ import { groupService } from '../../../../services/groupService'
 import { DEFAULT_GROUP_TYPE } from './constants.ts'
 import { CurrencySelect } from '../../../../components/CurrencySelect'
 import { GroupTypeSelector } from '../../../../components/GroupTypeSelector'
-import { MemberSelect } from './MemberSelect'
+import { MemberSelect } from '../../../../components/MemberSelect'
 import type { FormValues } from './types.ts'
 import { hasUnsavedInput, toFormFields } from './utils.ts'
 

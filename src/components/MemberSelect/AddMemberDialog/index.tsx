@@ -1,9 +1,9 @@
 import { App, Button, Form, Input } from 'antd'
 import { useState } from 'react'
-import { AdaptiveDialog } from '../../../../../../components/AdaptiveDialog'
-import { getDb } from '../../../../../../db/client.ts'
-import { personService } from '../../../../../../services/personService'
-import type { AddPersonErrors, KnownPerson } from '../../../../../../services/personService/types.ts'
+import { AdaptiveDialog } from '../../AdaptiveDialog'
+import { getDb } from '../../../db/client.ts'
+import { personService } from '../../../services/personService'
+import type { AddPersonErrors, KnownPerson } from '../../../services/personService/types.ts'
 
 type Props = {
   open: boolean

@@ -30,6 +30,13 @@ export type UpdateGroupResult =
   /** There is no such group for this user (unknown, deleted, or they are not in it). */
   | { ok: false; notFound: true }
 
+export type AddMemberResult =
+  | { ok: true }
+  /** There is no such group for this user (unknown, deleted, or they are not in it). */
+  | { ok: false; notFound: true; message?: undefined }
+  /** The person cannot be added; the message says why, ready to show. */
+  | { ok: false; notFound?: false; message: string }
+
 /** One row of the home page's list of groups. */
 export type GroupSummary = {
   id: string
