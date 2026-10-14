@@ -1,7 +1,7 @@
 import { CameraOutlined } from '@ant-design/icons'
 import { App, Button, Flex, Tooltip } from 'antd'
 import { useRef, type ChangeEvent } from 'react'
-import { MAX_RECEIPTS_PER_EXPENSE } from '../../../../../db/constants.ts'
+import { MAX_RECEIPTS_PER_EXPENSE } from '../../db/constants.ts'
 import { ReceiptPreview } from './ReceiptPreview'
 
 type Props = {

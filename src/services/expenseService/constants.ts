@@ -87,7 +87,20 @@ export const CATEGORY_GROUPS = [
       { key: 'utilities.other', label: 'Other' },
     ],
   },
+  {
+    // Not offered by the category picker: it is only given to a settlement
+    // (a payment between two members), which is saved as an expense.
+    key: 'settlement',
+    label: 'Settlement',
+    categories: [{ key: 'settlement', label: 'Settlement' }],
+  },
 ] as const
+
+/** The category of a settlement. */
+export const SETTLEMENT_CATEGORY = 'settlement'
+
+/** The description saved with a settlement; screens word it from who paid whom instead. */
+export const SETTLEMENT_DESCRIPTION = 'Payment'
 
 /** The category a new expense starts with. */
 export const DEFAULT_CATEGORY = 'general'

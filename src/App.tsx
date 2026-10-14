@@ -10,6 +10,7 @@ import { ExpensePage } from './pages/expense'
 import { GetStartedPage } from './pages/getStarted'
 import { GroupPage } from './pages/group'
 import { HomePage } from './pages/home'
+import { SettleUpPage } from './pages/settleUp'
 import { WelcomePage } from './pages/welcome'
 import { ROUTES } from './routes.ts'
 
@@ -34,6 +35,7 @@ function App() {
           <Route path={ROUTES.newGroup} element={<CreateGroupPage />} />
           <Route path={ROUTES.groupPattern} element={<GroupPage />} />
           <Route path={ROUTES.editGroupPattern} element={<EditGroupPage />} />
+          <Route path={ROUTES.settleUpPattern} element={<SettleUpPage />} />
           <Route path={ROUTES.newExpensePattern} element={<AddExpensePage />} />
           <Route path={ROUTES.expensePattern} element={<ExpensePage />} />
         </Route>

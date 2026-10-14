@@ -1,9 +1,9 @@
 import { CheckOutlined, SearchOutlined } from '@ant-design/icons'
 import { Button, Empty, Flex, Input, Typography } from 'antd'
 import { useState } from 'react'
-import { AdaptiveDialog } from '../../../../../../components/AdaptiveDialog'
-import { currencyService } from '../../../../../../services/currencyService'
-import type { CurrencyOption } from '../../../../../../services/currencyService/types.ts'
+import { AdaptiveDialog } from '../../AdaptiveDialog'
+import { currencyService } from '../../../services/currencyService'
+import type { CurrencyOption } from '../../../services/currencyService/types.ts'
 
 const { Text } = Typography
 

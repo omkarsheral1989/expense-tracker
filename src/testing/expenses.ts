@@ -2,7 +2,7 @@ import { and, eq, isNull } from 'drizzle-orm'
 import type { Database } from '../db/client.ts'
 import { groupMembers, people } from '../db/schema.ts'
 import { expenseService } from '../services/expenseService'
-import type { CreateExpenseInput, SplitInput } from '../services/expenseService/types.ts'
+import type { CreateExpenseInput, CreateSettlementInput, SplitInput } from '../services/expenseService/types.ts'
 
 /** The id of the person with this email; fails the test when there is none. */
 export async function personIdOf(db: Database, email: string): Promise<string> {
@@ -57,6 +57,33 @@ export async function addTestExpense(
 ): Promise<string> {
   const input = await expenseInput(db, userEmail, groupId, overrides)
   const result = await expenseService.createExpense(db, await personIdOf(db, userEmail), groupId, input)
+  if (!result.ok) throw new Error(JSON.stringify(result.errors))
+  return result.expenseId
+}
+
+/**
+ * Records a payment from `payerEmail` to `recipientEmail` (10.00 GBP on 8 Oct
+ * 2026) as `userEmail`, who defaults to the payer, with any field replaced by
+ * `overrides`, and returns its id; fails the test if it is refused.
+ */
+export async function addTestSettlement(
+  db: Database,
+  payerEmail: string,
+  recipientEmail: string,
+  groupId: string,
+  overrides: Partial<CreateSettlementInput> = {},
+  userEmail: string = payerEmail,
+): Promise<string> {
+  const result = await expenseService.createSettlement(db, await personIdOf(db, userEmail), groupId, {
+    payerId: await personIdOf(db, payerEmail),
+    recipientId: await personIdOf(db, recipientEmail),
+    amountMinor: 1000,
+    currency: 'GBP',
+    date: '2026-10-08',
+    notes: '',
+    receipts: [],
+    ...overrides,
+  })
   if (!result.ok) throw new Error(JSON.stringify(result.errors))
   return result.expenseId
 }

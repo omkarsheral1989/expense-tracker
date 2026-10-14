@@ -94,7 +94,7 @@ export function GroupPage() {
         <Flex vertical style={{ ...COLUMN_STYLE, flex: 1, paddingBottom: 0 }}>
           <Flex vertical gap={16}>
             <BalanceLine balances={balances} />
-            <ActionPills />
+            <ActionPills groupId={group.id} canSettle={group.members.length > 1} />
           </Flex>
           <ExpenseList expenses={expenses} groupId={group.id} />
         </Flex>

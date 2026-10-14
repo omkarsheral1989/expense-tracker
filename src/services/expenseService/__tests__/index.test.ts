@@ -4,8 +4,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createDatabase, type Database } from '../../../db/client.ts'
 import { expensePhotos, expenseShares, expenses, groupMembers, groups, people } from '../../../db/schema.ts'
 import { expenseService } from '../index.ts'
-import type { CreateExpenseInput } from '../types.ts'
-import { addTestExpense, expenseInput } from '../../../testing/expenses.ts'
+import type { CreateExpenseInput, CreateSettlementInput } from '../types.ts'
+import { addTestExpense, addTestSettlement, expenseInput } from '../../../testing/expenses.ts'
 import { createTestGroup, type TestUser } from '../../../testing/groups.ts'
 import { personIdForEmail } from '../../../testing/ids.ts'
 
@@ -623,5 +623,234 @@ describe('getExpense', () => {
     expect(await get(other, id)).toBeNull()
     expect(await get(priyas, hers)).toBeNull()
     expect(await get(groupId, id, 'nobody@gmail.com')).toBeNull()
+  })
+})
+
+describe('createSettlement', () => {
+  const omkarId = personIdForEmail(omkar.email)
+
+  async function settlementInput(
+    payer: string,
+    recipient: string,
+    overrides: Partial<CreateSettlementInput> = {},
+  ): Promise<CreateSettlementInput> {
+    return {
+      payerId: await personId(payer),
+      recipientId: await personId(recipient),
+      amountMinor: 1000,
+      currency: 'INR',
+      date: '2026-10-08',
+      notes: '',
+      receipts: [],
+      ...overrides,
+    }
+  }
+
+  const balancesOf = (groupId: string, email = 'omkar@gmail.com') =>
+    expenseService.groupBalances(db, personIdForEmail(email), groupId)
+
+  it('saves the payment as a settlement expense: the payer paid it all, the recipient owes it all', async () => {
+    const groupId = await createGroup(omkar, ['priya@gmail.com', 'sam@gmail.com'])
+    const input = await settlementInput('omkar@gmail.com', 'priya@gmail.com', {
+      amountMinor: 4550,
+      currency: 'GBP',
+      date: '2026-10-09',
+      notes: '  Cash at the airport ',
+    })
+
+    const result = await expenseService.createSettlement(db, omkarId, groupId, input)
+    if (!result.ok) throw new Error(JSON.stringify(result.errors))
+
+    const [expense] = await db.select().from(expenses).where(eq(expenses.id, result.expenseId))
+    expect(expense).toMatchObject({
+      groupId,
+      description: 'Payment',
+      category: 'settlement',
+      amountMinor: 4550,
+      currency: 'GBP',
+      date: '2026-10-09',
+      notes: 'Cash at the airport',
+      method: 'exact',
+      createdBy: omkarId,
+      updatedBy: omkarId,
+    })
+    const rows = await db.select().from(expenseShares).where(eq(expenseShares.expenseId, result.expenseId))
+    const byPerson = Object.fromEntries(rows.map((row) => [row.personId, [row.paidMinor, row.owedMinor]]))
+    expect(byPerson).toEqual({
+      [await personId('omkar@gmail.com')]: [4550, 0],
+      [await personId('priya@gmail.com')]: [0, 4550],
+      // Sam is in the group but not in the payment.
+      [await personId('sam@gmail.com')]: [0, 0],
+    })
+  })
+
+  it('settles what was owed: a part leaves the rest, all of it leaves nothing', async () => {
+    const groupId = await createGroup(omkar, ['priya@gmail.com'])
+    // Priya paid 1000 for two, so Omkar owes her 500.
+    await addExpense('priya@gmail.com', groupId, { amountMinor: 1000 })
+    expect((await balancesOf(groupId)).map((balance) => balance.amountMinor)).toEqual([-500])
+
+    await addTestSettlement(db, 'omkar@gmail.com', 'priya@gmail.com', groupId, { amountMinor: 200, currency: 'INR' })
+    expect((await balancesOf(groupId)).map((balance) => balance.amountMinor)).toEqual([-300])
+
+    await addTestSettlement(db, 'omkar@gmail.com', 'priya@gmail.com', groupId, { amountMinor: 300, currency: 'INR' })
+    expect(await balancesOf(groupId)).toEqual([])
+    expect(await expenseService.balancesByGroup(db, omkarId)).toEqual({})
+  })
+
+  it('turns the debt around when more than was owed is paid, and works the other way round', async () => {
+    const groupId = await createGroup(omkar, ['priya@gmail.com'])
+    await addExpense('priya@gmail.com', groupId, { amountMinor: 1000 })
+
+    await addTestSettlement(db, 'omkar@gmail.com', 'priya@gmail.com', groupId, { amountMinor: 800, currency: 'INR' })
+    expect((await balancesOf(groupId)).map((balance) => balance.amountMinor)).toEqual([300])
+
+    // Priya pays Omkar back, as recorded by Priya.
+    await addTestSettlement(db, 'priya@gmail.com', 'omkar@gmail.com', groupId, { amountMinor: 300, currency: 'INR' })
+    expect(await balancesOf(groupId)).toEqual([])
+  })
+
+  it('keeps each currency apart', async () => {
+    const groupId = await createGroup(omkar, ['priya@gmail.com'])
+    await addExpense('priya@gmail.com', groupId, { amountMinor: 1000, currency: 'INR' })
+
+    await addTestSettlement(db, 'omkar@gmail.com', 'priya@gmail.com', groupId, { amountMinor: 500, currency: 'GBP' })
+
+    expect((await balancesOf(groupId)).map(({ currency, amountMinor }) => [currency, amountMinor])).toEqual([
+      ['GBP', 500],
+      ['INR', -500],
+    ])
+  })
+
+  it('lets any member record a payment between two others, which leaves their own balance alone', async () => {
+    const groupId = await createGroup(omkar, ['priya@gmail.com', 'sam@gmail.com'])
+
+    const id = await addTestSettlement(db, 'priya@gmail.com', 'sam@gmail.com', groupId, { currency: 'INR' }, 'omkar@gmail.com')
+
+    const [expense] = await db.select().from(expenses).where(eq(expenses.id, id))
+    expect(expense.createdBy).toBe(omkarId)
+    expect(await balancesOf(groupId)).toEqual([])
+  })
+
+  it('shows up in the list with its payer and recipient, and only a settlement has a recipient', async () => {
+    const groupId = await createGroup(omkar, ['priya@gmail.com'])
+    await addExpense('omkar@gmail.com', groupId, { date: '2026-10-01' })
+    await addTestSettlement(db, 'priya@gmail.com', 'omkar@gmail.com', groupId, { amountMinor: 700, currency: 'INR', date: '2026-10-08' })
+
+    const [payment, dinnerItem] = await expenseService.listExpenses(db, omkarId, groupId)
+
+    expect(payment).toMatchObject({
+      category: 'settlement',
+      amountMinor: 700,
+      payer: { email: 'priya@gmail.com', isYou: false },
+      recipient: { email: 'omkar@gmail.com', isYou: true },
+      yourPaidMinor: 0,
+      yourOwedMinor: 700,
+    })
+    expect(dinnerItem.recipient).toBeUndefined()
+  })
+
+  it('gives its details page the payer and the recipient as its only people', async () => {
+    const groupId = await createGroup(omkar, ['priya@gmail.com', 'sam@gmail.com'])
+    const id = await addTestSettlement(db, 'omkar@gmail.com', 'priya@gmail.com', groupId, { currency: 'INR' })
+
+    const details = await expenseService.getExpense(db, omkarId, groupId, id)
+
+    expect(details?.shares.map(({ email, paidMinor, owedMinor }) => [email, paidMinor, owedMinor])).toEqual([
+      ['omkar@gmail.com', 1000, 0],
+      ['priya@gmail.com', 0, 1000],
+    ])
+    expect(expenseService.titleOf(details!)).toBe('You paid Priya')
+  })
+
+  it('is not offered the settlement category as an ordinary expense\'s choice, but accepts it as a category key', () => {
+    expect(expenseService.settlementCategory).toBe('settlement')
+    expect(expenseService.categories.some((category) => category.key === 'settlement')).toBe(true)
+  })
+
+  describe('refusing bad input', () => {
+    async function refused(groupId: string, input: CreateSettlementInput) {
+      const before = await db.select().from(expenses)
+      const result = await expenseService.createSettlement(db, omkarId, groupId, input)
+      expect((await db.select().from(expenses)).length).toBe(before.length)
+      if (result.ok) throw new Error('expected a refusal')
+      return result.errors
+    }
+
+    it('asks for a recipient, and saves nothing', async () => {
+      const groupId = await createGroup(omkar, ['priya@gmail.com'])
+      const input = await settlementInput('omkar@gmail.com', 'priya@gmail.com', { recipientId: '' })
+      expect(await refused(groupId, input)).toEqual({ recipientId: 'Choose who received it.' })
+    })
+
+    it('refuses a payer who is also the recipient, even though the numbers would add up', async () => {
+      const groupId = await createGroup(omkar, ['priya@gmail.com'])
+      const input = await settlementInput('omkar@gmail.com', 'omkar@gmail.com')
+      expect(await refused(groupId, input)).toEqual({ recipientId: 'Choose someone other than the payer.' })
+    })
+
+    it('refuses a payer or a recipient who is not in the group', async () => {
+      const groupId = await createGroup(omkar, ['priya@gmail.com'])
+      await createGroup(priya, ['sam@gmail.com'])
+
+      expect(await refused(groupId, await settlementInput('sam@gmail.com', 'priya@gmail.com'))).toEqual({
+        payerId: 'Choose who paid.',
+      })
+      expect(await refused(groupId, await settlementInput('omkar@gmail.com', 'sam@gmail.com'))).toEqual({
+        recipientId: 'Choose someone from the group.',
+      })
+      expect(await refused(groupId, await settlementInput('omkar@gmail.com', 'priya@gmail.com', { payerId: '' }))).toEqual({
+        payerId: 'Choose who paid.',
+      })
+    })
+
+    it('reports every problem at once, one message per field', async () => {
+      const groupId = await createGroup(omkar, ['priya@gmail.com'])
+      const input = await settlementInput('omkar@gmail.com', 'priya@gmail.com', {
+        recipientId: '',
+        amountMinor: null,
+        currency: 'ZZZ',
+        date: '2026-02-30',
+        notes: 'x'.repeat(1001),
+      })
+
+      expect(await refused(groupId, input)).toEqual({
+        recipientId: 'Choose who received it.',
+        amountMinor: 'Enter an amount.',
+        currency: 'Choose a currency.',
+        date: 'Choose a date.',
+        notes: 'Use at most 1000 characters.',
+      })
+    })
+
+    it('refuses an amount of 0 or less, and one over the limit', async () => {
+      const groupId = await createGroup(omkar, ['priya@gmail.com'])
+      const base = await settlementInput('omkar@gmail.com', 'priya@gmail.com')
+
+      expect(await refused(groupId, { ...base, amountMinor: 0 })).toEqual({ amountMinor: 'Enter an amount more than 0.' })
+      expect(await refused(groupId, { ...base, amountMinor: -5 })).toEqual({ amountMinor: 'Enter an amount more than 0.' })
+      expect(await refused(groupId, { ...base, amountMinor: 1_000_000_000_00 + 1 })).toEqual({
+        amountMinor: 'Enter at most 1,000,000,000.',
+      })
+    })
+
+    it('throws for a user who is not in the group', async () => {
+      const groupId = await createGroup(omkar, ['priya@gmail.com'])
+      await createGroup(priya, ['sam@gmail.com'])
+      const input = await settlementInput('omkar@gmail.com', 'priya@gmail.com')
+
+      await expect(expenseService.createSettlement(db, await personId('sam@gmail.com'), groupId, input)).rejects.toThrow()
+    })
+  })
+
+  it('keeps the receipt photos in order', async () => {
+    const groupId = await createGroup(omkar, ['priya@gmail.com'])
+    const ids = [crypto.randomUUID(), crypto.randomUUID()]
+    const id = await addTestSettlement(db, 'omkar@gmail.com', 'priya@gmail.com', groupId, {
+      receipts: ids.map((photoId) => ({ id: photoId, mimeType: 'image/jpeg', sizeBytes: 10 })),
+    })
+
+    const details = await expenseService.getExpense(db, omkarId, groupId, id)
+    expect(details?.receipts.map((receipt) => receipt.id)).toEqual(ids)
   })
 })

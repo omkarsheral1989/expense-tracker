@@ -1,8 +1,8 @@
 import { CalendarOutlined } from '@ant-design/icons'
 import { Button } from 'antd'
 import { useState } from 'react'
-import { AdaptiveDialog } from '../../../../../components/AdaptiveDialog'
-import { dateService } from '../../../../../services/dateService'
+import { AdaptiveDialog } from '../AdaptiveDialog'
+import { dateService } from '../../services/dateService'
 import { MonthCalendar } from './MonthCalendar'
 
 type Props = {

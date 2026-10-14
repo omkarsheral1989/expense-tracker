@@ -1,12 +1,15 @@
+import { SwapOutlined } from '@ant-design/icons'
 import { Flex, Typography } from 'antd'
 import { Link } from 'react-router'
 import { CategoryIcon } from '../../../../../components/CategoryIcon'
 import { useColorScheme } from '../../../../../hooks/useColorScheme'
 import { ROUTES } from '../../../../../routes.ts'
+import { expenseService } from '../../../../../services/expenseService'
 import { groupService } from '../../../../../services/groupService'
 import type { ExpenseListItem } from '../../../../../services/expenseService/types.ts'
 import { moneyService } from '../../../../../services/moneyService'
 import { OWED_TO_YOU_COLOR, YOU_OWE_COLOR } from '../../../../../theme/balanceColors.ts'
+import { CATEGORY_GROUP_COLORS } from '../../../../../theme/categoryColors.ts'
 import { dateParts, expenseStatus } from './utils.ts'
 
 const { Text } = Typography
@@ -30,14 +33,22 @@ export function ExpenseRow({ expense, groupId }: Props) {
 
   function renderDate() {
     return (
-      <Flex vertical align="center" style={{ width: 32, flex: 'none', lineHeight: 1.1 }}>
-        <Text type="secondary" style={{ fontSize: 12 }}>
+      // 48 px high: 16 px for the month and 32 px for the day, whatever the font's own line height.
+      <Flex vertical align="center" justify="center" style={{ width: 32, height: 48, flex: 'none' }}>
+        <Text type="secondary" style={{ fontSize: 12, lineHeight: '16px' }}>
           {month}
         </Text>
-        <Text style={{ fontSize: 20 }}>{day}</Text>
+        <Text style={{ fontSize: 20, lineHeight: '32px' }}>{day}</Text>
       </Flex>
     )
   }
+
+  // A settlement is worded by who paid whom and how much ("You paid Priya £200.00"),
+  // not by its description.
+  const settlement =
+    expense.category === expenseService.settlementCategory && expense.payer && expense.recipient
+      ? `${expenseService.settlementSentence(expense.payer, expense.recipient)} ${moneyService.format(expense.amountMinor, expense.currency)}`
+      : null
 
   function renderPaidBy() {
     if (!expense.payer) return null
@@ -66,13 +77,30 @@ export function ExpenseRow({ expense, groupId }: Props) {
     )
   }
 
-  return (
-    <div role="listitem">
-      <Link
-        to={ROUTES.expense(groupId, expense.id)}
-        style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', color: 'inherit' }}
-      >
-        {renderDate()}
+  // A settlement is one line: its icon with no tile behind it, and no amount
+  // or status at the end.
+  function renderSettlement(text: string) {
+    return (
+      <>
+        <Flex
+          align="center"
+          justify="center"
+          role="img"
+          aria-label="Settlement"
+          style={{ flex: 'none', width: 40, height: 40, fontSize: 24, color: CATEGORY_GROUP_COLORS.settlement }}
+        >
+          <SwapOutlined />
+        </Flex>
+        <Text strong style={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>
+          {text}
+        </Text>
+      </>
+    )
+  }
+
+  function renderExpense() {
+    return (
+      <>
         <CategoryIcon category={expense.category} size={40} />
         <Flex vertical style={{ flex: 1, minWidth: 0 }}>
           <Text strong style={{ overflowWrap: 'anywhere' }}>
@@ -81,6 +109,18 @@ export function ExpenseRow({ expense, groupId }: Props) {
           {renderPaidBy()}
         </Flex>
         <div style={{ flex: 'none', textAlign: 'end' }}>{renderStatus()}</div>
+      </>
+    )
+  }
+
+  return (
+    <div role="listitem">
+      <Link
+        to={ROUTES.expense(groupId, expense.id)}
+        style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', color: 'inherit' }}
+      >
+        {renderDate()}
+        {settlement ? renderSettlement(settlement) : renderExpense()}
       </Link>
     </div>
   )

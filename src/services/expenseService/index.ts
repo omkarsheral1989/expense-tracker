@@ -2,24 +2,42 @@ import { and, asc, desc, eq, inArray, isNull, max, sql } from 'drizzle-orm'
 import { displayName } from '../groupService/utils.ts'
 import type { Database } from '../../db/client.ts'
 import { expensePhotos, expenseShares, expenses, groupMembers, groups, people } from '../../db/schema.ts'
-import { CATEGORY_GROUPS, DEFAULT_CATEGORY, RECENT_CURRENCY_COUNT } from './constants.ts'
+import {
+  CATEGORY_GROUPS,
+  DEFAULT_CATEGORY,
+  RECENT_CURRENCY_COUNT,
+  SETTLEMENT_CATEGORY,
+  SETTLEMENT_DESCRIPTION,
+} from './constants.ts'
 import { createExpenseSchema, toFieldErrors } from './schemas.ts'
 import type {
   CreateExpenseInput,
   CreateExpenseResult,
+  CreateSettlementErrors,
+  CreateSettlementInput,
+  CreateSettlementResult,
   CurrencyBalance,
   ExpenseDetails,
   ExpenseListItem,
   ExpensePayer,
   PersonBalance,
 } from './types.ts'
-import { CATEGORIES, categoryOf, computeShares, pairBalances } from './utils.ts'
+import { CATEGORIES, categoryOf, computeShares, pairBalances, settlementSentence, titleOf } from './utils.ts'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export const expenseService = {
-  /** The categories in their groups, as the picker lists them. */
-  categoryGroups: CATEGORY_GROUPS,
+  /** The categories in their groups, as the picker lists them (a settlement's is not offered). */
+  categoryGroups: CATEGORY_GROUPS.filter((group) => group.key !== SETTLEMENT_CATEGORY),
+
+  /** The category of a settlement. */
+  settlementCategory: SETTLEMENT_CATEGORY,
+
+  /** What the details page calls an expense: its description, or who paid whom for a settlement. */
+  titleOf,
+
+  /** Who paid whom in a settlement: "You paid Priya", "Priya paid you". */
+  settlementSentence,
 
   /** Every category, in the picker's order. */
   categories: CATEGORIES,
@@ -111,6 +129,60 @@ export const expenseService = {
   },
 
   /**
+   * Records that one member paid another outside the app ("You paid Priya"),
+   * so it counts against what they owe each other. A settlement is saved as an
+   * expense in the 'settlement' category: the payer paid all of it and the
+   * recipient owes all of it, so balances, the list and the details page work
+   * with no extra code. Problems come back as one message per field, like
+   * `createExpense`; the payer and the recipient must be different members.
+   */
+  async createSettlement(
+    db: Database,
+    userId: string,
+    groupId: string,
+    input: CreateSettlementInput,
+  ): Promise<CreateSettlementResult> {
+    const recipientProblem = !input.recipientId
+      ? 'Choose who received it.'
+      : input.recipientId === input.payerId
+        ? 'Choose someone other than the payer.'
+        : undefined
+
+    const result = await expenseService.createExpense(db, userId, groupId, {
+      description: SETTLEMENT_DESCRIPTION,
+      category: SETTLEMENT_CATEGORY,
+      amountMinor: input.amountMinor,
+      currency: input.currency,
+      date: input.date,
+      notes: input.notes,
+      paidBy: input.payerId,
+      // With no usable recipient the split is left empty, which cannot add up,
+      // so nothing is saved.
+      split: {
+        method: 'exact',
+        values: recipientProblem ? {} : { [input.recipientId]: input.amountMinor ?? 0 },
+      },
+      receipts: input.receipts,
+    })
+    if (result.ok) return result
+
+    const { amountMinor, currency, date, notes, receipts, paidBy, split } = result.errors
+    const errors: CreateSettlementErrors = {
+      amountMinor,
+      currency,
+      date,
+      notes,
+      receipts,
+      payerId: paidBy,
+      recipientId: recipientProblem ?? (split ? 'Choose someone from the group.' : undefined),
+    }
+    return {
+      ok: false,
+      errors: Object.fromEntries(Object.entries(errors).filter(([, message]) => message)),
+    }
+  },
+
+  /**
    * A group's expenses as one user sees them: newest day first (the latest
    * change first within a day), each with who paid and what the user paid and
    * owes. Deleted expenses and shares are left out. Empty for someone who is not in
@@ -185,9 +257,22 @@ export const expenseService = {
           }
         : null
 
+      // A settlement's recipient is the one who owes it all.
+      const recipientShare =
+        row.category === SETTLEMENT_CATEGORY
+          ? own.filter((share) => share.owedMinor > 0).sort((a, b) => b.owedMinor - a.owedMinor)[0]
+          : undefined
+      const recipient: ExpensePayer | undefined = recipientShare && {
+        personId: recipientShare.personId,
+        email: recipientShare.email,
+        name: recipientShare.name,
+        isYou: recipientShare.personId === userId,
+      }
+
       return {
         ...row,
         payer,
+        ...(recipient && { recipient }),
         yourPaidMinor: mine?.paidMinor ?? 0,
         yourOwedMinor: mine?.owedMinor ?? 0,
         involved: !!mine && (mine.paidMinor > 0 || mine.owedMinor > 0),

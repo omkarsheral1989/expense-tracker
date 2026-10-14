@@ -1,6 +1,6 @@
 # Product Requirements: OwnLedger
 
-_Last updated: 2026-10-15_
+_Last updated: 2026-10-16_
 
 ## 1. Overview
 **OwnLedger** is an installable, offline-capable web app (PWA) for tracking personal expenses and expenses shared in groups (trips, home, couples, others). Everything is stored locally on the user's device. Groups are shared between members through a Google Drive folder. There is no backend.
@@ -51,7 +51,7 @@ _Last updated: 2026-10-15_
 ### 4.5 Balances and settle-up
 - Per group balances: who owes whom, per currency. Balances are pairwise (each person against each other person), one line per person per currency, for example "Priya owes you ₹14,517.50".
 - On the home page a group row shows the user's net balance per currency.
-- Record settlement payments between members.
+- Record settlement payments between members (5.7): who paid whom, how much and when, saved as a payment that counts against what they owe each other.
 - Multi-currency without conversion: each currency is tracked separately.
 
 ### 4.6 Receipt photos
@@ -147,7 +147,7 @@ Route `/groups/<id>`, opened from a group on the home page and after creating a 
   - a row of translucent pill chips: **Add trip dates** (switched off; it exists for any group type for now), **"N people"** ("1 person" for one), and the group's **default currency** (for example "GBP").
 - **"N people" opens the member list**: a bottom sheet on phones and a side panel on desktop, titled "Members (N)". It lists the user first, then the others A to Z; each member has an avatar with their initial, their name with their email under it ("No email" for a member without one; just the email, once, when no name is known), and a tag: "You" for the user (whose own row uses the name saved for them, or else their Google profile name) and "Pending" for everyone else until they have signed in and synced. It closes with its close button or by tapping outside.
 - **Balance line** under the band: one sentence per other person and currency that is not settled, "Priya owes you ₹14,517.50" (amount in bold green) or "You owe Priya ₹500.00" (amount in bold orange-red), people A to Z and then currencies A to Z. "You're all settled up" when nothing is owed either way.
-- **Action pills**, a row that scrolls sideways when it does not fit: for now only **Settle up**, switched off.
+- **Action pills**, a row that scrolls sideways when it does not fit: for now only **Settle up**, which opens the settle-up page (5.7). It is switched off in a group of one, with the tip "You are the only member of this group."
 - **Expense list:** the group's expenses as described in 5.5. With none, the message "No expenses yet" and "Expenses you add will appear here." with its illustration, centered vertically in a box that runs from the actions ("Settle up") down to 16 px above the floating "Add expense" button.
 - **Add expense:** a floating green pill button at the bottom right of the content. It opens the add-expense page (5.5).
 - **Wide screens:** the band stretches edge to edge; the content below it sits in one centered column about 720 px wide, as on the other pages. The band starts at the very top of the screen (no app header above it), below the device's status bar or notch.
@@ -194,6 +194,8 @@ Route `/groups/<id>/expenses/new`, opened from the group page's "Add expense" bu
 
 **Expense list on the group page (replaces the empty list once expenses exist)**
 - Flat list, newest date first (the most recently added first within a day), with a quiet grey "September 2025" header (month in full and year) above each month's expenses, including the newest month; the headers scroll with the list. Each row: date (month over day), a colored category tile, the title with "You paid …" (or "Priya paid …") under it, and on the right "you lent" (green), "you borrowed" (orange-red), "no balance" (the user paid exactly their own share, for example in a group of one) or "not involved", with the amount.
+- A **payment** (5.7) is one line instead: the same date column, then its icon (two arrows, in green) with no colored tile behind it, and the text "You paid Priya £200.00", "Priya paid you £45.50" or "Priya paid Sam £10.00" (first names; the amount in the payment's own currency). It has no "paid" line under it and nothing at the end of the row, since the sentence says everything.
+- The date column is 48 px high (the month 16 px and the day 32 px of line), whatever the row's content.
 - Tapping a row opens the expense's details page (5.6).
 
 **Balance line (group page)**
@@ -216,6 +218,19 @@ Route `/groups/<id>/expenses/<expenseId>`, opened by tapping an expense on the g
 - The receipt photos under "Receipts" as thumbnails in order; tapping one shows it at full size, with the others a swipe away. A photo that is not on this device (for example added by another member and not yet synced) shows a grey square "Not on this device". Left out when there are none.
 - An expense that does not exist, was deleted, is in another group, or is in a group the user is not in shows "Expense not found" ("It may have been deleted, or you may not be a member of its group.") with a "Back to the group" button. Loading shows grey placeholders; a failed load shows "Couldn't load this expense" with "Try again".
 
+### 5.7 Settle up
+Route `/groups/<id>/settle`, opened by the "Settle up" pill on the group page (5.4). It records that one member paid another outside the app, so it counts against what they owe each other. It looks like add expense: no card, a header with Back, the heading "Settle up" and a tick (Save), then the group's icon and name.
+- **Who paid?** A dropdown of the group's members, "You" first, with you chosen. Any member can be the payer, so a payment between two other members can be recorded too.
+- **Who received it?** A dropdown of the other members (the payer is left out), empty until chosen ("Choose a person"). Choosing someone as payer who is the chosen recipient empties the recipient.
+- **The sentence:** once both are chosen, "You paid Priya", "Priya paid you" or "Priya paid Sam" in large type, centered, under the two dropdowns.
+- **Amount:** below the sentence, the currency button (the group's default to start, the same picker as add expense) and the amount (greater than 0, at most 1 billion, with the currency's decimals).
+- **Besides:** the date (today by default), notes (up to 1000 characters) and receipt photos (up to 10), the same fields as add expense.
+- **Validation:** checked when Save is pressed, every problem at once beside its field ("Choose who received it.", "Enter an amount.", and the add-expense messages for the currency, date and notes). A payer cannot be their own recipient.
+- **Saving:** "Payment recorded." and back to the group page, where the balance has changed and the payment is on top of the list (5.5). Receipt photos are kept first and taken off again if the payment is not saved, as for an expense. A failure shows "Couldn't record the payment. Please try again." and keeps what was typed.
+- **Leaving:** Back asks "Discard this payment?" once anything has been entered or changed (a different payer counts), and reloading or closing the tab shows the browser's own warning.
+- **Other states:** grey placeholders while loading, "Couldn't load this group" with Try again, and "Group not found" for a group that does not exist, was deleted or that the user is not in. The tab title is "Settle up · OwnLedger".
+- **A payment's details page** (5.6) is titled "You paid Priya" (also the tab's title), shows the amount, "Settlement · Mon, 5 Oct 2026", who added it, and its notes and receipts, with no split section.
+
 ## 6. Open questions
 - Google Cloud setup: the OAuth client ID is not created yet (Drive API, consent screen in Testing mode, authorized origins, test users).
 - Member removal: what happens to a removed member's access and local data.
@@ -224,7 +239,7 @@ Route `/groups/<id>/expenses/<expenseId>`, opened by tapping an expense on the g
 - Tags on expenses.
 - Editing and deleting expenses, and how the edit history is shown.
 - Several payers for one expense ("Multiple people" is switched off for now).
-- Settle up: recording a payment between two members.
+- Settle up: suggesting the amount and the person from the balance, editing or deleting a payment (with expenses, below), and simplifying debts across three or more people.
 - Budget details (personal vs group, alerts).
 - Charts library.
 - Receipt cleanup rules for deleted expenses, and an optional compression setting.

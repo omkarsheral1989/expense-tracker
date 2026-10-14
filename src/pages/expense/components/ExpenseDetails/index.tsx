@@ -29,6 +29,8 @@ export function ExpenseDetails({ expense, datasetId }: Props) {
   const navigate = useNavigate()
   const { token } = theme.useToken()
   const category = expenseService.categoryOf(expense.category)
+  // A settlement is worded by who paid whom ("You paid Priya"), and has no split to show.
+  const isSettlement = expense.category === expenseService.settlementCategory
 
   function renderHeader() {
     return (
@@ -59,7 +61,7 @@ export function ExpenseDetails({ expense, datasetId }: Props) {
         <CategoryIcon category={expense.category} size={48} />
         <Flex vertical style={{ minWidth: 0 }}>
           <Title level={3} style={{ margin: 0, overflowWrap: 'anywhere' }}>
-            {expense.description}
+            {expenseService.titleOf(expense)}
           </Title>
           <Text style={{ fontSize: 28, fontWeight: 600 }}>
             {moneyService.format(expense.amountMinor, expense.currency)}
@@ -85,6 +87,19 @@ export function ExpenseDetails({ expense, datasetId }: Props) {
         </Avatar>
         <Text style={{ overflowWrap: 'anywhere' }}>{shareSentence(share, expense.currency)}</Text>
       </Flex>
+    )
+  }
+
+  function renderSplit() {
+    if (isSettlement) return null
+    return (
+      <>
+        <Divider style={{ margin: '16px 0' }} />
+        <Text strong>{SPLIT_METHOD_LABELS[expense.method]}</Text>
+        <Flex vertical gap={12} role="list" aria-label="Who paid and owes" style={{ marginTop: 12 }}>
+          {expense.shares.map(renderShare)}
+        </Flex>
+      </>
     )
   }
 
@@ -118,11 +133,7 @@ export function ExpenseDetails({ expense, datasetId }: Props) {
     <>
       {renderHeader()}
       {renderSummary()}
-      <Divider style={{ margin: '16px 0' }} />
-      <Text strong>{SPLIT_METHOD_LABELS[expense.method]}</Text>
-      <Flex vertical gap={12} role="list" aria-label="Who paid and owes" style={{ marginTop: 12 }}>
-        {expense.shares.map(renderShare)}
-      </Flex>
+      {renderSplit()}
       {renderNotes()}
       {renderReceipts()}
     </>

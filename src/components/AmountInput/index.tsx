@@ -1,6 +1,6 @@
 import { Input, type InputRef } from 'antd'
 import { useLayoutEffect, useRef, type ChangeEvent } from 'react'
-import { moneyService } from '../../../../../services/moneyService'
+import { moneyService } from '../../services/moneyService'
 import { caretAfter, keptBefore } from './utils.ts'
 
 type Props = {

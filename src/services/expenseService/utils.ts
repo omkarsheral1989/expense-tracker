@@ -1,5 +1,6 @@
-import { CATEGORY_GROUPS, DEFAULT_CATEGORY } from './constants.ts'
-import type { Category, CategoryKey, SplitInput, SplitResult } from './types.ts'
+import { shortName } from '../groupService/utils.ts'
+import { CATEGORY_GROUPS, DEFAULT_CATEGORY, SETTLEMENT_CATEGORY } from './constants.ts'
+import type { Category, CategoryKey, ExpenseDetails, SplitInput, SplitResult } from './types.ts'
 
 /** Most shares one person can be given with the "shares" method. */
 const MAX_SHARES = 1000
@@ -175,4 +176,28 @@ export function pairBalances(
     }
   }
   return [...totals.values()].filter((total) => total.amountMinor !== 0)
+}
+
+/** A person as a settlement's wording names them. */
+type NamedPerson = { isYou: boolean; name: string | null; email: string | null }
+
+/**
+ * Who paid whom in a settlement, as a sentence: "You paid Priya", "Priya paid
+ * you" or "Priya paid Sam". People are named by first name.
+ */
+export function settlementSentence(payer: NamedPerson, recipient: NamedPerson): string {
+  const payerName = payer.isYou ? 'You' : shortName(payer)
+  const recipientName = recipient.isYou ? 'you' : shortName(recipient)
+  return `${payerName} paid ${recipientName}`
+}
+
+/**
+ * What an expense's details page calls it: its description, or for a
+ * settlement who paid whom ("You paid Priya"), worked out from its shares.
+ */
+export function titleOf(expense: Pick<ExpenseDetails, 'category' | 'description' | 'shares'>): string {
+  if (expense.category !== SETTLEMENT_CATEGORY) return expense.description
+  const payer = expense.shares.find((share) => share.paidMinor > 0)
+  const recipient = expense.shares.find((share) => share.owedMinor > 0)
+  return payer && recipient ? settlementSentence(payer, recipient) : expense.description
 }

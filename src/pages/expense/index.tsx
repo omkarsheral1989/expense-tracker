@@ -63,7 +63,7 @@ export function ExpensePage() {
   function renderTitle() {
     if (state.status !== 'ready') return null
     // React only accepts one string inside <title>, so the text is joined first.
-    return <title>{`${state.data ? state.data.description : 'Expense not found'} · OwnLedger`}</title>
+    return <title>{`${state.data ? expenseService.titleOf(state.data) : 'Expense not found'} · OwnLedger`}</title>
   }
 
   // A message (couldn't load, expense not found) is centered on the screen; the

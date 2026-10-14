@@ -1,7 +1,7 @@
 import { CloseOutlined } from '@ant-design/icons'
 import { Button } from 'antd'
-import { useObjectUrl } from '../../../../../../hooks/useObjectUrl'
-import { RADIUS } from '../../../../../../theme/radius.ts'
+import { useObjectUrl } from '../../../hooks/useObjectUrl'
+import { RADIUS } from '../../../theme/radius.ts'
 
 /** Width and height of a chosen photo's preview, in pixels. */
 const PREVIEW_SIZE = 64

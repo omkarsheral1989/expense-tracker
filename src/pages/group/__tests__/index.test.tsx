@@ -11,7 +11,7 @@ import type { CreateExpenseInput } from '../../../services/expenseService/types.
 import { groupService } from '../../../services/groupService'
 import { useAuthStore } from '../../../stores/useAuthStore'
 import { setUpTestDatabase } from '../../../testing/database.ts'
-import { addTestExpense } from '../../../testing/expenses.ts'
+import { addTestExpense, addTestSettlement } from '../../../testing/expenses.ts'
 import { GUEST_PERSON_ID, renderPage } from '../../../testing/render.tsx'
 import { GroupPage } from '../index.tsx'
 import { expectCenteredMessage } from '../../../testing/centered.ts'
@@ -254,7 +254,6 @@ describe('GroupPage', () => {
     it.each([
       ['button', 'Search'],
       ['button', 'Add trip dates'],
-      ['button', 'Settle up'],
     ] as const)('switches off the %s "%s"', async (role, name) => {
       const id = await createGroup(me, { name: 'Goa trip' })
       renderGroup(id)
@@ -262,7 +261,7 @@ describe('GroupPage', () => {
       expect(await screen.findByRole(role, { name: named(name) })).toBeDisabled()
     })
 
-    it.each(['Search', 'Add trip dates', 'Settle up'])(
+    it.each(['Search', 'Add trip dates'])(
       'says "Coming soon" when the pointer rests on "%s"',
       async (name) => {
         const id = await createGroup(me, { name: 'Goa trip' })
@@ -381,6 +380,44 @@ describe('GroupPage', () => {
     })
   })
 
+  describe('settling up', () => {
+    it('opens the settle-up page of this group from the "Settle up" pill', async () => {
+      const id = await createGroup(me, { name: 'Goa trip', memberEmails: ['priya@gmail.com'] })
+      const { currentPath } = renderGroup(id)
+
+      const pill = await screen.findByRole('button', { name: 'Settle up' })
+      expect(pill).toBeEnabled()
+      await userEvent.hover(pill)
+      expect(screen.queryByText('Coming soon')).not.toBeInTheDocument()
+      await userEvent.click(pill)
+
+      expect(currentPath()).toBe(ROUTES.settleUp(id))
+    })
+
+    it('switches the pill off in a group of one, with a tip saying why, and does not open the page', async () => {
+      const id = await createGroup(me, { name: 'Goa trip' })
+      const { currentPath } = renderGroup(id)
+
+      const pill = await screen.findByRole('button', { name: 'Settle up' })
+      expect(pill).toBeDisabled()
+      // A disabled button gets no pointer events, so the tip hangs on its wrapper.
+      await userEvent.hover(pill.parentElement as HTMLElement)
+      expect(await screen.findByText('You are the only member of this group.')).toBeInTheDocument()
+      await userEvent.click(pill)
+
+      expect(currentPath()).toBe(ROUTES.group(id))
+    })
+
+    it('counts a member who has left as no one to settle up with', async () => {
+      const id = await createGroup(me, { name: 'Goa trip', memberEmails: ['priya@gmail.com'] })
+      const [priyaRow] = await testDb.db.select({ id: people.id }).from(people).where(eq(people.email, 'priya@gmail.com'))
+      await testDb.db.update(groupMembers).set({ deletedAt: new Date() }).where(eq(groupMembers.personId, priyaRow.id))
+      renderGroup(id)
+
+      expect(await screen.findByRole('button', { name: 'Settle up' })).toBeDisabled()
+    })
+  })
+
   describe('adding an expense', () => {
     it('opens the add-expense page of this group', async () => {
       const id = await createGroup(me, { name: 'Goa trip' })
@@ -408,6 +445,46 @@ describe('GroupPage', () => {
       expect(screen.getByRole('img', { name: 'Dining out' })).toHaveStyle({ background: 'rgb(232, 89, 12)' })
       expect(screen.getByRole('img', { name: 'Taxi' })).toHaveStyle({ background: 'rgb(25, 113, 194)' })
       expect(screen.queryByText('No expenses yet')).not.toBeInTheDocument()
+    })
+
+    it('words a payment as one line, "You paid Priya £10.00", with no category tile, payer line or status', async () => {
+      const id = await createGroup(me, { name: 'Goa trip', memberEmails: ['priya@gmail.com'] })
+      await addExpense(me.email, id, { description: 'Dinner', date: '2026-10-01' })
+      await addTestSettlement(testDb.db, me.email, 'priya@gmail.com', id, { date: '2026-10-08' })
+      await addTestSettlement(testDb.db, 'priya@gmail.com', me.email, id, { amountMinor: 250, date: '2026-10-05' })
+      renderGroup(id)
+
+      expect(await expenseRows()).toEqual([
+        'Oct | 8 | You paid Priya £10.00',
+        'Oct | 5 | Priya paid you £2.50',
+        'Oct | 1 | Dinner | You paid £30.00 | you lent | £15.00',
+      ])
+      // A payment's icon has no colored tile behind it, unlike a category's.
+      const [icon] = screen.getAllByRole('img', { name: 'Settlement' })
+      expect(icon).not.toHaveStyle({ background: 'rgb(12, 166, 120)' })
+      expect(icon).toHaveStyle({ color: 'rgb(12, 166, 120)' })
+      expect(screen.queryByText('Payment')).not.toBeInTheDocument()
+    })
+
+    it('opens a payment\'s details when its row is tapped', async () => {
+      const id = await createGroup(me, { name: 'Goa trip', memberEmails: ['priya@gmail.com'] })
+      const expenseId = await addTestSettlement(testDb.db, me.email, 'priya@gmail.com', id)
+      const { currentPath } = renderGroup(id)
+
+      await userEvent.click(await screen.findByText('You paid Priya £10.00'))
+
+      expect(currentPath()).toBe(ROUTES.expense(id, expenseId))
+    })
+
+    it('shows the balance a payment leaves, and the date column keeps its 48 px height', async () => {
+      const id = await createGroup(me, { name: 'Goa trip', memberEmails: ['priya@gmail.com'] })
+      await addExpense(me.email, id, { description: 'Dinner' })
+      await addTestSettlement(testDb.db, 'priya@gmail.com', me.email, id, { amountMinor: 1500 })
+      renderGroup(id)
+
+      expect(await screen.findByText("You're all settled up")).toBeInTheDocument()
+      const [dateColumn] = (await screen.findAllByText('Oct')).map((month) => month.parentElement as HTMLElement)
+      expect(dateColumn).toHaveStyle({ height: '48px' })
     })
 
     it('puts a "month year" header above the expenses of each month, even the newest', async () => {

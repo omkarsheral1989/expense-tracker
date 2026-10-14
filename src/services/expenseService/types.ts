@@ -51,6 +51,32 @@ export type CreateExpenseInput = {
   receipts: ReceiptInput[]
 }
 
+/** What the settle-up form sends: one member paid another, outside the app. */
+export type CreateSettlementInput = {
+  /** The person id of the member who paid; null or empty until chosen. */
+  payerId: string
+  /** The person id of the member who received the money; empty until chosen. */
+  recipientId: string
+  /** In minor units of `currency`; null when the amount field is empty. */
+  amountMinor: number | null
+  /** An ISO 4217 code such as 'INR'. */
+  currency: string
+  /** The day of the payment, 'YYYY-MM-DD'. */
+  date: string
+  notes: string
+  /** Receipt photos already kept in the photo store, in order (at most 10). */
+  receipts: ReceiptInput[]
+}
+
+export type CreateSettlementField = keyof CreateSettlementInput
+
+/** One message per field, shown beside that field. */
+export type CreateSettlementErrors = Partial<Record<CreateSettlementField, string>>
+
+export type CreateSettlementResult =
+  | { ok: true; expenseId: string }
+  | { ok: false; errors: CreateSettlementErrors }
+
 /** The fields of the form a problem can be attached to. */
 export type CreateExpenseField = keyof CreateExpenseInput
 
@@ -80,6 +106,8 @@ export type ExpenseListItem = {
   date: string
   /** Null only for an expense whose shares record no payment (not expected). */
   payer: ExpensePayer | null
+  /** Who received the money; only present on a settlement. */
+  recipient?: ExpensePayer
   /** What the user paid towards it, in minor units. */
   yourPaidMinor: number
   /** What the user's own share of it is, in minor units. */

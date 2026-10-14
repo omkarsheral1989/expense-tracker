@@ -1,7 +1,7 @@
 import { Button } from 'antd'
 import { useState } from 'react'
-import { CONTROL_HEIGHT } from '../../../../../theme/controlHeight.ts'
-import { currencyService } from '../../../../../services/currencyService'
+import { CONTROL_HEIGHT } from '../../theme/controlHeight.ts'
+import { currencyService } from '../../services/currencyService'
 import { CurrencyPicker } from './CurrencyPicker'
 import { labelFontSize } from './utils.ts'
 

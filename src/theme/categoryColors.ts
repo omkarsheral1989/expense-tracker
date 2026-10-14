@@ -11,5 +11,6 @@ export const CATEGORY_GROUP_COLORS: Record<CategoryGroupKey, string> = {
   life: '#c2255c',
   transport: '#1971c2',
   uncategorized: '#868e96',
+  settlement: '#0ca678',
   utilities: '#0c8599',
 }

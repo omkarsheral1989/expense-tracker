@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { CATEGORY_GROUPS, DEFAULT_CATEGORY } from '../constants.ts'
+import { CATEGORY_GROUPS, DEFAULT_CATEGORY, SETTLEMENT_CATEGORY } from '../constants.ts'
 import type { SplitMethod } from '../../../db/types.ts'
-import { CATEGORIES, categoryOf, computeShares, debtsOf, isCategoryKey, pairBalances, SPLIT_DOES_NOT_ADD_UP } from '../utils.ts'
+import { expenseService } from '../index.ts'
+import { CATEGORIES, categoryOf, computeShares, debtsOf, isCategoryKey, pairBalances, settlementSentence, SPLIT_DOES_NOT_ADD_UP, titleOf } from '../utils.ts'
 
 const MEMBERS = ['me', 'priya', 'sam']
 
@@ -167,7 +168,7 @@ describe('categories', () => {
     const keys = CATEGORIES.map((category) => category.key)
     expect(new Set(keys).size).toBe(keys.length)
     for (const category of CATEGORIES) {
-      if (category.key === DEFAULT_CATEGORY) continue
+      if (category.key === DEFAULT_CATEGORY || category.key === SETTLEMENT_CATEGORY) continue
       expect(category.key.startsWith(`${category.group}.`)).toBe(true)
     }
   })
@@ -181,9 +182,23 @@ describe('categories', () => {
       'Transportation',
       'Uncategorized',
       'Utilities',
+      // Only given to a payment between two members; the picker leaves it out.
+      'Settlement',
     ])
     expect(CATEGORIES.length).toBeGreaterThanOrEqual(40)
     expect(CATEGORIES.length).toBeLessThanOrEqual(50)
+  })
+
+  it('keeps the settlement category out of the picker\'s groups but knows it', () => {
+    expect(expenseService.categoryGroups.map((group) => group.label)).not.toContain('Settlement')
+    expect(expenseService.categoryGroups.flatMap((group) => group.categories.map((category) => category.key))).not.toContain(SETTLEMENT_CATEGORY)
+    expect(isCategoryKey(SETTLEMENT_CATEGORY)).toBe(true)
+    expect(categoryOf(SETTLEMENT_CATEGORY)).toEqual({
+      key: 'settlement',
+      label: 'Settlement',
+      group: 'settlement',
+      groupLabel: 'Settlement',
+    })
   })
 
   it('has "General" as the default, in Uncategorized', () => {
@@ -274,5 +289,44 @@ describe('pairBalances', () => {
 
   it('ignores debts between two other people', () => {
     expect(pairBalances('me', [lunch('priya', 1000, ['priya', 'sam'])])).toEqual([])
+  })
+})
+
+describe('settlementSentence', () => {
+  const you = { isYou: true, name: 'Omkar', email: 'omkar@gmail.com' }
+  const priya = { isYou: false, name: 'Priya Shah', email: 'priya@gmail.com' }
+  const sam = { isYou: false, name: null, email: 'sam@gmail.com' }
+
+  it('says "You paid Priya" when you paid, naming people by first name', () => {
+    expect(settlementSentence(you, priya)).toBe('You paid Priya')
+  })
+
+  it('says "Priya paid you" when you received it', () => {
+    expect(settlementSentence(priya, you)).toBe('Priya paid you')
+  })
+
+  it('names both when neither is you, using the email\'s name when there is no name', () => {
+    expect(settlementSentence(priya, sam)).toBe('Priya paid Sam')
+    expect(settlementSentence(sam, priya)).toBe('Sam paid Priya')
+  })
+})
+
+describe('titleOf', () => {
+  const shares = [
+    { personId: 'a', email: 'omkar@gmail.com', name: 'Omkar', isYou: true, paidMinor: 500, owedMinor: 0 },
+    { personId: 'b', email: 'priya@gmail.com', name: 'Priya', isYou: false, paidMinor: 0, owedMinor: 500 },
+  ]
+
+  it('is the description of an ordinary expense', () => {
+    expect(titleOf({ category: 'food.dining_out', description: 'Dinner', shares })).toBe('Dinner')
+  })
+
+  it('is who paid whom for a settlement', () => {
+    expect(titleOf({ category: SETTLEMENT_CATEGORY, description: 'Payment', shares })).toBe('You paid Priya')
+  })
+
+  it('falls back to the description for a settlement without a payer and a recipient', () => {
+    expect(titleOf({ category: SETTLEMENT_CATEGORY, description: 'Payment', shares: [shares[0]] })).toBe('Payment')
+    expect(titleOf({ category: SETTLEMENT_CATEGORY, description: 'Payment', shares: [] })).toBe('Payment')
   })
 })

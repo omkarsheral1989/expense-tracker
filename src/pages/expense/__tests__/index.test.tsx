@@ -11,7 +11,7 @@ import { photoService } from '../../../services/photoService'
 import type { CreateExpenseInput } from '../../../services/expenseService/types.ts'
 import { useAuthStore } from '../../../stores/useAuthStore'
 import { setUpTestDatabase } from '../../../testing/database.ts'
-import { addTestExpense, personIdOf } from '../../../testing/expenses.ts'
+import { addTestExpense, addTestSettlement, personIdOf } from '../../../testing/expenses.ts'
 import { renderPage } from '../../../testing/render.tsx'
 import { ExpensePage } from '../index.tsx'
 import { expectCenteredMessage } from '../../../testing/centered.ts'
@@ -91,6 +91,47 @@ describe('ExpensePage', () => {
     expect(screen.getByText('Added by you')).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Dining out' })).toBeInTheDocument()
     await waitFor(() => expect(document.title).toBe('Beach shack dinner · OwnLedger'))
+  })
+
+  describe('a payment between two members', () => {
+    it('is titled by who paid whom, with its amount, category and day, and has no split', async () => {
+      const id = await createGroup()
+      const expenseId = await addTestSettlement(testDb.db, me.email, 'priya@gmail.com', id, { amountMinor: 4550, date: '2026-10-05' })
+      renderExpense(id, expenseId)
+
+      expect(await screen.findByRole('heading', { name: 'You paid Priya' })).toBeInTheDocument()
+      expect(screen.getByText('£45.50')).toBeInTheDocument()
+      expect(screen.getByText('Settlement · Mon, 5 Oct 2026')).toBeInTheDocument()
+      expect(screen.getByText('Added by you')).toBeInTheDocument()
+      await waitFor(() => expect(document.title).toBe('You paid Priya · OwnLedger'))
+      expect(screen.queryByText(/^Split by/)).not.toBeInTheDocument()
+      expect(screen.queryByRole('list', { name: 'Who paid and owes' })).not.toBeInTheDocument()
+      expect(screen.queryByText('Payment')).not.toBeInTheDocument()
+    })
+
+    it('says "Priya paid you" when you received it, and names both when it was between others', async () => {
+      const id = await createGroup()
+      const toYou = await addTestSettlement(testDb.db, 'priya@gmail.com', me.email, id)
+      const between = await addTestSettlement(testDb.db, 'priya@gmail.com', 'sam@gmail.com', id)
+
+      renderExpense(id, toYou)
+      expect(await screen.findByRole('heading', { name: 'Priya paid you' })).toBeInTheDocument()
+      cleanup()
+
+      renderExpense(id, between)
+      expect(await screen.findByRole('heading', { name: 'Priya paid Sam' })).toBeInTheDocument()
+      // It was recorded by Priya, who paid.
+      expect(screen.getByText('Added by Priya Shah')).toBeInTheDocument()
+    })
+
+    it('shows its notes and receipts like any expense', async () => {
+      const id = await createGroup()
+      const expenseId = await addTestSettlement(testDb.db, me.email, 'priya@gmail.com', id, { notes: 'Cash at the airport' })
+      renderExpense(id, expenseId)
+
+      expect(await screen.findByText('Notes')).toBeInTheDocument()
+      expect(screen.getByText('Cash at the airport')).toBeInTheDocument()
+    })
   })
 
   it('says how it was split and what each person paid and owes, you first', async () => {
