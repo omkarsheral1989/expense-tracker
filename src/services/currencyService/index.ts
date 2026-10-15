@@ -79,6 +79,11 @@ export const currencyService = {
     return code && isValid(code) ? code : null
   },
 
+  /** One currency's full picker label in the user's language ('GBP – British Pound (£)'), or the code itself when it is unknown. */
+  label(code: string, locale: string): string {
+    return optionsFor(locale).find((option) => option.value === code)?.label ?? code
+  },
+
   /**
    * Every currency as a picker entry, labelled in the user's language and
    * sorted by code. `firstCode`, when given, is moved to the top.

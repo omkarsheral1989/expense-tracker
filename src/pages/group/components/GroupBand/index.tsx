@@ -9,6 +9,7 @@ import { Flex, Typography } from 'antd'
 import { useNavigate } from 'react-router'
 import { GroupTypeIcon } from '../../../../components/GroupTypeIcon'
 import { ROUTES } from '../../../../routes.ts'
+import { currencyService } from '../../../../services/currencyService'
 import type { GroupDetails } from '../../../../services/groupService/types.ts'
 import { GROUP_TYPE_COLORS } from '../../../../theme/groupTypeColors.ts'
 import { belowStatusBar } from '../../../../theme/safeArea.ts'
@@ -85,7 +86,10 @@ export function GroupBand({ group, onOpenMembers }: Props) {
         <BandChip icon={<TeamOutlined />} onClick={onOpenMembers}>
           {peopleCount} {peopleCount === 1 ? 'person' : 'people'}
         </BandChip>
-        <BandChip>{group.defaultCurrency}</BandChip>
+        <BandChip tip={currencyService.label(group.defaultCurrency, navigator.language)}>
+          {currencyService.symbol(group.defaultCurrency, navigator.language) ??
+            group.defaultCurrency}
+        </BandChip>
       </Flex>
     )
   }

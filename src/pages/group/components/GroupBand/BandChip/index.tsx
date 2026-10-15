@@ -1,6 +1,7 @@
-import { Button } from 'antd'
+import { Button, Tooltip } from 'antd'
 import type { ReactNode } from 'react'
 import { ComingSoon } from '../../../../../components/ComingSoon'
+import { CONTROL_HEIGHT } from '../../../../../theme/controlHeight.ts'
 import { PILL_RADIUS } from '../../../../../theme/radius.ts'
 
 type Props = {
@@ -13,10 +14,12 @@ type Props = {
   onClick?: () => void
   /** The chip's feature is not built yet: it is switched off with a "Coming soon" tip. */
   comingSoon?: boolean
+  /** A tip shown when the pointer rests on the chip, for a chip whose text is short for something longer. */
+  tip?: string
 }
 
 /** A translucent dark pill on the colored band, holding a short fact or an action. */
-export function BandChip({ icon, children, onClick, comingSoon }: Props) {
+export function BandChip({ icon, children, onClick, comingSoon, tip }: Props) {
   const chip = (
     <Button
       type="text"
@@ -27,6 +30,8 @@ export function BandChip({ icon, children, onClick, comingSoon }: Props) {
       // A chip with no action only shows information, so it is not clickable.
       style={{
         padding: '0 14px',
+        // A one-character chip (a currency symbol) is a circle, not a narrower pill.
+        minWidth: CONTROL_HEIGHT,
         borderRadius: PILL_RADIUS,
         color: '#fff',
         background: 'rgba(0, 0, 0, 0.28)',
@@ -39,5 +44,6 @@ export function BandChip({ icon, children, onClick, comingSoon }: Props) {
     </Button>
   )
 
-  return comingSoon ? <ComingSoon>{chip}</ComingSoon> : chip
+  if (comingSoon) return <ComingSoon>{chip}</ComingSoon>
+  return tip ? <Tooltip title={tip}>{chip}</Tooltip> : chip
 }

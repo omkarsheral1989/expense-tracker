@@ -157,12 +157,31 @@ describe('GroupPage', () => {
   })
 
   describe('the colored band', () => {
-    it('shows the group\'s name and its default currency as a chip', async () => {
+    it('shows the group\'s name and its default currency\'s symbol as a chip', async () => {
       const id = await createGroup(me, { name: 'Goa trip', defaultCurrency: 'EUR' })
       renderGroup(id)
 
       expect(await screen.findByRole('heading', { name: 'Goa trip' })).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: 'EUR' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: '€' })).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'EUR' })).not.toBeInTheDocument()
+    })
+
+    it('names the whole currency when the pointer rests on the currency chip', async () => {
+      const id = await createGroup(me, { name: 'Goa trip', defaultCurrency: 'GBP' })
+      renderGroup(id)
+
+      const chip = await screen.findByRole('button', { name: '£' })
+      expect(screen.queryByText('GBP – British Pound (£)')).not.toBeInTheDocument()
+      await userEvent.hover(chip)
+
+      expect(await screen.findByText('GBP – British Pound (£)')).toBeInTheDocument()
+    })
+
+    it('shows the currency code on the chip when its symbol is shared with other currencies', async () => {
+      const id = await createGroup(me, { name: 'Stockholm', defaultCurrency: 'SEK' })
+      renderGroup(id)
+
+      expect(await screen.findByRole('button', { name: 'SEK' })).toBeInTheDocument()
     })
 
     it.each([
@@ -305,7 +324,7 @@ describe('GroupPage', () => {
       const id = await createGroup(me, { name: 'Goa trip' })
       renderGroup(id)
 
-      await userEvent.click(await screen.findByRole('button', { name: 'GBP' }))
+      await userEvent.click(await screen.findByRole('button', { name: '£' }))
 
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     })

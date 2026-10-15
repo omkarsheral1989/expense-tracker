@@ -84,6 +84,17 @@ describe('currencyService.options', () => {
   })
 })
 
+describe('currencyService.label', () => {
+  it('gives one currency\'s picker label', () => {
+    expect(currencyService.label('GBP', 'en')).toBe('GBP – British Pound (£)')
+    expect(currencyService.label('CHF', 'en')).toBe('CHF – Swiss Franc')
+  })
+
+  it('gives the code itself for a currency that does not exist', () => {
+    expect(currencyService.label('ZZZ', 'en')).toBe('ZZZ')
+  })
+})
+
 describe('currencyService.symbol', () => {
   it('gives a symbol that tells the currency apart', () => {
     expect(currencyService.symbol('INR', 'en-US')).toBe('₹')
