@@ -35,7 +35,10 @@ export default defineConfig({
         // PGlite's WebAssembly (about 10 MB) and data (about 6 MB) files must be
         // cached for the app to open its database offline, so the default 2 MB
         // limit per file is raised.
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,wasm,data,webmanifest}'],
+        // Not the web manifest: the plugin adds it to the precache itself, and
+        // listing it twice (with two revisions) makes the service worker's
+        // install fail, so nothing is cached and the app cannot open offline.
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,wasm,data}'],
         maximumFileSizeToCacheInBytes: 20 * 1024 * 1024,
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,

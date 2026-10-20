@@ -21,6 +21,15 @@ fi
 cd "$root"
 bun run build
 
+# A file listed twice in the service worker's precache (with two revisions)
+# makes its install fail, so nothing is cached and the app cannot open offline.
+duplicates="$(grep -o 'url:"[^"]*"' dist/sw.js | sort | uniq -d || true)"
+if [ -n "$duplicates" ]; then
+  echo "dist/sw.js precaches these files more than once, so the app would not work offline:" >&2
+  echo "$duplicates" >&2
+  exit 1
+fi
+
 # Replace the folder, so files from older builds (hashed names) do not pile up.
 rm -rf "$pages/ownledger"
 cp -R "$root/dist" "$pages/ownledger"
