@@ -320,13 +320,13 @@ describe('GroupPage', () => {
       expect(page.currentPath()).toBe(ROUTES.editGroup(id))
     })
 
-    it('does nothing when the currency chip is pressed', async () => {
+    it('opens the edit page of this group from the currency chip', async () => {
       const id = await createGroup(me, { name: 'Goa trip' })
-      renderGroup(id)
+      const page = renderGroup(id)
 
       await userEvent.click(await screen.findByRole('button', { name: '£' }))
 
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      expect(page.currentPath()).toBe(ROUTES.editGroup(id))
     })
   })
 

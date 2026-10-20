@@ -86,7 +86,10 @@ export function GroupBand({ group, onOpenMembers }: Props) {
         <BandChip icon={<TeamOutlined />} onClick={onOpenMembers}>
           {peopleCount} {peopleCount === 1 ? 'person' : 'people'}
         </BandChip>
-        <BandChip tip={currencyService.label(group.defaultCurrency, navigator.language)}>
+        <BandChip
+          tip={currencyService.label(group.defaultCurrency, navigator.language)}
+          onClick={() => navigate(ROUTES.editGroup(group.id))}
+        >
           {currencyService.symbol(group.defaultCurrency, navigator.language) ??
             group.defaultCurrency}
         </BandChip>
