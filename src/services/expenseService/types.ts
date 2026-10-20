@@ -169,4 +169,39 @@ export type ExpenseDetails = {
   shares: ExpenseShareDetails[]
   /** Its receipt photos, in order; the pictures are in the photo store under these ids. */
   receipts: { id: string; mimeType: string }[]
+  /** Who saved the latest edit and when; null for an expense that was never edited. */
+  lastEdit: ExpenseLastEdit | null
 }
+
+/** Who saved an expense's latest edit, and when. */
+export type ExpenseLastEdit = {
+  by: { email: string | null; name: string | null; isYou: boolean }
+  at: Date
+}
+
+/** What the edit-expense form needs: an expense as it was saved, in the form's own terms. */
+export type ExpenseToEdit = {
+  id: string
+  description: string
+  category: string
+  amountMinor: number
+  currency: string
+  /** 'YYYY-MM-DD'. */
+  date: string
+  notes: string | null
+  /** The person id of the member who paid. */
+  paidBy: string
+  split: SplitInput
+  /** Its receipt photos, in order, as they were stored. */
+  receipts: ReceiptInput[]
+}
+
+/** What the edit-expense form sends: the same as a new expense. */
+export type UpdateExpenseInput = CreateExpenseInput
+
+export type UpdateExpenseResult =
+  /** `changed` is false when nothing differed, so nothing was written. */
+  | { ok: true; changed: boolean }
+  | { ok: false; errors: CreateExpenseErrors }
+  /** The expense cannot be edited by this user: unknown, deleted, a payment, another group's, or a group they are not in. */
+  | { ok: false; notFound: true }

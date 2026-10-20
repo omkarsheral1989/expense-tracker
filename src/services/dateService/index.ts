@@ -36,10 +36,22 @@ function formatMonth(day: string): string {
   return `${FULL_MONTH_NAMES[date.getMonth()]} ${date.getFullYear()}`
 }
 
+/**
+ * A moment as "20 Oct 2026, 3:45 pm": the day written as elsewhere in the app,
+ * the time in the language and clock style of `locale` (a 24-hour clock where
+ * that is the custom).
+ */
+function formatDateTime(moment: Date, locale: string): string {
+  const day = `${moment.getDate()} ${MONTH_NAMES[moment.getMonth()]} ${moment.getFullYear()}`
+  const time = new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit' }).format(moment)
+  return `${day}, ${time}`
+}
+
 /** Days ('YYYY-MM-DD', without a time) as the app writes and reads them. */
 export const dateService = {
   toDay,
   fromDay,
   formatDay,
   formatMonth,
+  formatDateTime,
 }

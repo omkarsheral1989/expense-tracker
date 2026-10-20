@@ -1,5 +1,6 @@
 import { DownOutlined } from '@ant-design/icons'
-import { Button, Dropdown, Tag } from 'antd'
+import { Button, Dropdown } from 'antd'
+import { GroupLabel } from '../../../../../components/GroupLabel'
 import { GROUP_TYPE_CONTENT } from '../../../../../components/GroupTypeIcon/content.tsx'
 import type { GroupSummary } from '../../../../../services/groupService/types.ts'
 import { PILL_RADIUS } from '../../../../../theme/radius.ts'
@@ -22,16 +23,7 @@ type Props = {
 export function GroupSwitcher({ group, groups, onSwitch }: Props) {
   const icon = GROUP_TYPE_CONTENT[group.type].icon
 
-  if (groups.length <= 1) {
-    return (
-      <Tag
-        icon={icon}
-        style={{ borderRadius: PILL_RADIUS, paddingInline: 10, fontSize: 14, lineHeight: '26px', margin: 0 }}
-      >
-        {group.name}
-      </Tag>
-    )
-  }
+  if (groups.length <= 1) return <GroupLabel group={group} />
 
   return (
     <Dropdown

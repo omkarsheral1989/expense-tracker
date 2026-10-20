@@ -1,3 +1,4 @@
+import type { ExpenseChange, ExpenseSnapshot } from '../../db/types.ts'
 import { shortName } from '../groupService/utils.ts'
 import { CATEGORY_GROUPS, DEFAULT_CATEGORY, SETTLEMENT_CATEGORY } from './constants.ts'
 import type { Category, CategoryKey, ExpenseDetails, SplitInput, SplitResult } from './types.ts'
@@ -200,4 +201,72 @@ export function titleOf(expense: Pick<ExpenseDetails, 'category' | 'description'
   const payer = expense.shares.find((share) => share.paidMinor > 0)
   const recipient = expense.shares.find((share) => share.owedMinor > 0)
   return payer && recipient ? settlementSentence(payer, recipient) : expense.description
+}
+
+/** The member who paid, or null when the shares record no payment. */
+export function payerOf(snapshot: ExpenseSnapshot): string | null {
+  return snapshot.shares.find((share) => share.paidMinor > 0)?.personId ?? null
+}
+
+/** Everyone in either version, once. */
+function peopleIn(a: ExpenseSnapshot, b: ExpenseSnapshot): string[] {
+  return [...new Set([...a.shares, ...b.shares].map((share) => share.personId))]
+}
+
+/** What was entered for one person under the method; 0 for a person with no share. */
+function enteredFor(snapshot: ExpenseSnapshot, personId: string): number {
+  return snapshot.shares.find((share) => share.personId === personId)?.inputValue ?? 0
+}
+
+/** Whether two versions use the same method with the same numbers entered for everyone. */
+function sameEntered(a: ExpenseSnapshot, b: ExpenseSnapshot): boolean {
+  return (
+    a.method === b.method &&
+    peopleIn(a, b).every((personId) => enteredFor(a, personId) === enteredFor(b, personId))
+  )
+}
+
+/**
+ * Whether two versions are split the same way: the same payer, method and
+ * numbers entered. With the same amount, their shares are then the same too.
+ */
+export function sameSplitInput(a: ExpenseSnapshot, b: ExpenseSnapshot): boolean {
+  return payerOf(a) === payerOf(b) && sameEntered(a, b)
+}
+
+/**
+ * What an edit changed: one entry per field that differs between the version
+ * before and after, with the old and new value. `paidBy` is the payer's person
+ * id; `split` holds the method and what was entered per person; `receipts`
+ * holds the photo ids before and after, in order.
+ */
+export function expenseChanges(before: ExpenseSnapshot, after: ExpenseSnapshot): ExpenseChange[] {
+  const changes: ExpenseChange[] = []
+  const note = (field: ExpenseChange['field'], from: unknown, to: unknown) => {
+    if (from !== to) changes.push({ field, from, to })
+  }
+
+  note('description', before.description, after.description)
+  note('category', before.category, after.category)
+  note('amount', before.amountMinor, after.amountMinor)
+  note('currency', before.currency, after.currency)
+  note('date', before.date, after.date)
+  note('notes', before.notes, after.notes)
+  note('paidBy', payerOf(before), payerOf(after))
+
+  if (!sameEntered(before, after)) {
+    const entered = (snapshot: ExpenseSnapshot) => ({
+      method: snapshot.method,
+      values: Object.fromEntries(
+        peopleIn(before, after).map((personId) => [personId, enteredFor(snapshot, personId)]),
+      ),
+    })
+    changes.push({ field: 'split', from: entered(before), to: entered(after) })
+  }
+
+  const photoIds = (snapshot: ExpenseSnapshot) => snapshot.photos.map((photo) => photo.id)
+  if (photoIds(before).join() !== photoIds(after).join()) {
+    changes.push({ field: 'receipts', from: photoIds(before), to: photoIds(after) })
+  }
+  return changes
 }

@@ -5,6 +5,7 @@ import { SignedInLayout } from './components/SignedInLayout'
 import { useSyncSessionAcrossTabs } from './hooks/useSyncSessionAcrossTabs'
 import { AddExpensePage } from './pages/addExpense'
 import { CreateGroupPage } from './pages/createGroup'
+import { EditExpensePage } from './pages/editExpense'
 import { EditGroupPage } from './pages/editGroup'
 import { ExpensePage } from './pages/expense'
 import { GetStartedPage } from './pages/getStarted'
@@ -38,6 +39,7 @@ function App() {
           <Route path={ROUTES.settleUpPattern} element={<SettleUpPage />} />
           <Route path={ROUTES.newExpensePattern} element={<AddExpensePage />} />
           <Route path={ROUTES.expensePattern} element={<ExpensePage />} />
+          <Route path={ROUTES.editExpensePattern} element={<EditExpensePage />} />
         </Route>
         <Route path="*" element={<Navigate to={ROUTES.welcome} replace />} />
       </Routes>

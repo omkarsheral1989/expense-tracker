@@ -7,11 +7,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getDb } from '../../../db/client.ts'
 import { expenses, people } from '../../../db/schema.ts'
 import { ROUTES } from '../../../routes.ts'
+import { expenseService } from '../../../services/expenseService'
 import { photoService } from '../../../services/photoService'
 import type { CreateExpenseInput } from '../../../services/expenseService/types.ts'
 import { useAuthStore } from '../../../stores/useAuthStore'
 import { setUpTestDatabase } from '../../../testing/database.ts'
-import { addTestExpense, addTestSettlement, personIdOf } from '../../../testing/expenses.ts'
+import { addTestExpense, addTestSettlement, expenseInput, personIdOf } from '../../../testing/expenses.ts'
 import { renderPage } from '../../../testing/render.tsx'
 import { ExpensePage } from '../index.tsx'
 import { expectCenteredMessage } from '../../../testing/centered.ts'
@@ -45,7 +46,7 @@ function renderExpense(groupId: string, expenseId: string) {
   return renderPage(<ExpensePage />, {
     path: ROUTES.expense(groupId, expenseId),
     pattern: ROUTES.expensePattern,
-    routes: [ROUTES.groupPattern],
+    routes: [ROUTES.groupPattern, ROUTES.editExpensePattern],
   })
 }
 
@@ -246,16 +247,93 @@ describe('ExpensePage', () => {
     expect(await screen.findByText('Added by Priya Shah')).toBeInTheDocument()
   })
 
-  it('switches off editing and deleting, saying "Coming soon"', async () => {
+  it('opens the edit page of this expense from Edit', async () => {
+    const id = await createGroup()
+    const expenseId = await addExpense(id)
+    const { currentPath } = renderExpense(id, expenseId)
+
+    await userEvent.click(await screen.findByRole('button', { name: /Edit$/ }))
+
+    expect(currentPath()).toBe(ROUTES.editExpense(id, expenseId))
+  })
+
+  it('switches off deleting, saying "Coming soon"', async () => {
     const id = await createGroup()
     const expenseId = await addExpense(id)
     renderExpense(id, expenseId)
 
+    const remove = await screen.findByRole('button', { name: 'Delete' })
+    expect(remove).toBeDisabled()
+    await userEvent.hover(remove.parentElement as HTMLElement)
+    expect(await screen.findByText('Coming soon')).toBeInTheDocument()
+  })
+
+  it('switches off editing a payment between members, saying "Coming soon"', async () => {
+    const id = await createGroup()
+    const payment = await addTestSettlement(testDb.db, me.email, 'priya@gmail.com', id)
+    const { currentPath } = renderExpense(id, payment)
+
     const edit = await screen.findByRole('button', { name: /Edit$/ })
     expect(edit).toBeDisabled()
-    expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled()
     await userEvent.hover(edit.parentElement as HTMLElement)
     expect(await screen.findByText('Coming soon')).toBeInTheDocument()
+    expect(currentPath()).toBe(ROUTES.expense(id, payment))
+  })
+
+  describe('the last edit', () => {
+    it('is not mentioned for an expense that was never edited', async () => {
+      const id = await createGroup()
+      const expenseId = await addExpense(id)
+      renderExpense(id, expenseId)
+
+      await screen.findByText('Added by you')
+      expect(screen.queryByText(/^Edited by/)).not.toBeInTheDocument()
+    })
+
+    it('says who edited it last and when, in the device\'s style of time', async () => {
+      const id = await createGroup()
+      const expenseId = await addExpense(id)
+      const input = await expenseInput(testDb.db, me.email, id, { description: 'Beach shack lunch' })
+      await expenseService.updateExpense(testDb.db, await personIdOf(testDb.db, me.email), id, expenseId, input)
+      renderExpense(id, expenseId)
+
+      // The clock stands at 12:00 on 8 Oct 2026; jsdom's language is US English.
+      expect(await screen.findByText(/^Edited by you, 8 Oct 2026, 12:00\s?PM$/)).toBeInTheDocument()
+    })
+
+    it('names the person when someone else edited it', async () => {
+      const id = await createGroup()
+      const expenseId = await addExpense(id)
+      const priyaId = await personIdOf(testDb.db, 'priya@gmail.com')
+      const input = await expenseInput(testDb.db, 'priya@gmail.com', id, { description: 'Beach shack lunch' })
+      await expenseService.updateExpense(testDb.db, priyaId, id, expenseId, input)
+      renderExpense(id, expenseId)
+
+      expect(await screen.findByText(/^Edited by Priya Shah, 8 Oct 2026/)).toBeInTheDocument()
+    })
+
+    it('names only the latest editor after several edits', async () => {
+      const id = await createGroup()
+      const expenseId = await addExpense(id)
+      const meId = await personIdOf(testDb.db, me.email)
+      const priyaId = await personIdOf(testDb.db, 'priya@gmail.com')
+      await expenseService.updateExpense(testDb.db, priyaId, id, expenseId, await expenseInput(testDb.db, 'priya@gmail.com', id, { description: 'Lunch' }))
+      vi.setSystemTime(new Date(2026, 9, 8, 15, 30))
+      await expenseService.updateExpense(testDb.db, meId, id, expenseId, await expenseInput(testDb.db, me.email, id, { description: 'Brunch' }))
+      renderExpense(id, expenseId)
+
+      expect(await screen.findByText(/^Edited by you, 8 Oct 2026, 3:30\s?PM$/)).toBeInTheDocument()
+      expect(screen.queryByText(/Edited by Priya/)).not.toBeInTheDocument()
+    })
+
+    it('is not shown on a payment, which cannot be edited', async () => {
+      const id = await createGroup()
+      const payment = await addTestSettlement(testDb.db, me.email, 'priya@gmail.com', id)
+      renderExpense(id, payment)
+
+      await screen.findByRole('heading', { name: 'You paid Priya' })
+      expect(screen.queryByText(/^Edited by/)).not.toBeInTheDocument()
+    })
   })
 
   it('goes back to the group with Back', async () => {

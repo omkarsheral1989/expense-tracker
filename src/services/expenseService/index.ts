@@ -1,7 +1,16 @@
 import { and, asc, desc, eq, inArray, isNull, max, sql } from 'drizzle-orm'
 import { displayName } from '../groupService/utils.ts'
 import type { Database } from '../../db/client.ts'
-import { expensePhotos, expenseShares, expenses, groupMembers, groups, people } from '../../db/schema.ts'
+import {
+  expensePhotos,
+  expenseRevisions,
+  expenseShares,
+  expenses,
+  groupMembers,
+  groups,
+  people,
+} from '../../db/schema.ts'
+import type { ExpenseSnapshot } from '../../db/types.ts'
 import {
   CATEGORY_GROUPS,
   DEFAULT_CATEGORY,
@@ -20,9 +29,22 @@ import type {
   ExpenseDetails,
   ExpenseListItem,
   ExpensePayer,
+  ExpenseToEdit,
   PersonBalance,
+  UpdateExpenseInput,
+  UpdateExpenseResult,
 } from './types.ts'
-import { CATEGORIES, categoryOf, computeShares, pairBalances, settlementSentence, titleOf } from './utils.ts'
+import {
+  CATEGORIES,
+  categoryOf,
+  computeShares,
+  expenseChanges,
+  pairBalances,
+  payerOf,
+  sameSplitInput,
+  settlementSentence,
+  titleOf,
+} from './utils.ts'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
@@ -351,13 +373,216 @@ export const expenseService = {
       .where(and(eq(expensePhotos.expenseId, expenseId), isNull(expensePhotos.deletedAt)))
       .orderBy(asc(expensePhotos.position), asc(expensePhotos.id))
 
+    const [revision] = await db
+      .select({
+        editedAt: expenseRevisions.editedAt,
+        editorId: expenseRevisions.editedBy,
+        editorEmail: people.email,
+        editorName: people.name,
+      })
+      .from(expenseRevisions)
+      .innerJoin(people, eq(people.id, expenseRevisions.editedBy))
+      .where(eq(expenseRevisions.expenseId, expenseId))
+      .orderBy(desc(expenseRevisions.editedAt), desc(expenseRevisions.id))
+      .limit(1)
+
     const { createdById, createdByEmail, createdByName, ...details } = expense
     return {
       ...details,
       createdBy: { email: createdByEmail, name: createdByName, isYou: createdById === userId },
       shares,
       receipts,
+      lastEdit: revision
+        ? {
+            by: { email: revision.editorEmail, name: revision.editorName, isYou: revision.editorId === userId },
+            at: revision.editedAt,
+          }
+        : null,
     }
+  },
+
+  /**
+   * One expense as the edit form needs it: its fields, who paid, how it was
+   * split (the method and what was entered for each person) and its photos.
+   * Null when the user cannot edit it: the cases of `getExpense`, and a
+   * payment between members, which has no edit form yet.
+   */
+  async getExpenseToEdit(
+    db: Database,
+    userId: string,
+    groupId: string,
+    expenseId: string,
+  ): Promise<ExpenseToEdit | null> {
+    if (!UUID.test(groupId) || !UUID.test(expenseId)) return null
+    return db.transaction(async (tx) => {
+      const found = await loadEditable(tx, userId, groupId, expenseId)
+      if (!found) return null
+      const { expense, snapshot } = found
+      return {
+        id: expenseId,
+        description: snapshot.description,
+        category: snapshot.category,
+        amountMinor: snapshot.amountMinor,
+        currency: snapshot.currency,
+        date: snapshot.date,
+        notes: snapshot.notes,
+        paidBy: payerOf(snapshot) ?? expense.createdBy,
+        split: {
+          method: snapshot.method,
+          values: Object.fromEntries(snapshot.shares.map((share) => [share.personId, share.inputValue ?? 0])),
+        },
+        receipts: snapshot.photos.map(({ id, mimeType, sizeBytes }) => ({ id, mimeType, sizeBytes })),
+      }
+    })
+  },
+
+  /**
+   * Saves an edit of an expense: any field, who paid, the split and the
+   * photos. The input is the same as for a new expense and checked by the same
+   * rules; problems come back as one message per field, all at once. When
+   * something changed, one revision is stored with the expense as it was
+   * before, who edited it, when, and what changed (never overwritten, so every
+   * earlier version stays); when nothing did, nothing is written and `changed`
+   * is false. A photo taken off the expense keeps its row (soft-deleted) and
+   * its picture in the photo store. The shares are only worked out again when
+   * the amount, the payer or the split changed, so editing the notes never
+   * moves anyone's part. `{ ok: false, notFound: true }` for an expense the
+   * user cannot edit (see `getExpenseToEdit`).
+   */
+  async updateExpense(
+    db: Database,
+    userId: string,
+    groupId: string,
+    expenseId: string,
+    input: UpdateExpenseInput,
+  ): Promise<UpdateExpenseResult> {
+    if (!UUID.test(groupId) || !UUID.test(expenseId)) return { ok: false, notFound: true }
+    const parsed = createExpenseSchema.safeParse(input)
+
+    return db.transaction(async (tx): Promise<UpdateExpenseResult> => {
+      const found = await loadEditable(tx, userId, groupId, expenseId)
+      if (!found) return { ok: false, notFound: true }
+      const { snapshot: before, memberIds } = found
+
+      const errors = parsed.success ? {} : toFieldErrors(parsed.error)
+      const amountMinor = parsed.success ? parsed.data.amountMinor : input.amountMinor
+      const result =
+        typeof amountMinor === 'number' && Number.isSafeInteger(amountMinor) && amountMinor > 0 && !errors.split
+          ? computeShares(amountMinor, input.split, input.paidBy, memberIds)
+          : null
+      if (result && !result.ok) {
+        if (result.message === 'Choose who paid.') errors.paidBy ??= result.message
+        else errors.split = result.message
+      }
+      if (!parsed.success || !result?.ok) return { ok: false, errors }
+
+      const { description, category, currency, date, notes, split, receipts } = parsed.data
+      const known = new Map(before.photos.map((photo) => [photo.id, photo]))
+      const newShares = result.shares
+      const after: ExpenseSnapshot = {
+        description,
+        category,
+        amountMinor: parsed.data.amountMinor,
+        currency,
+        date,
+        notes,
+        method: split.method,
+        shares: newShares,
+        photos: receipts.map((receipt, position) => ({ ...receipt, position })),
+      }
+      // Until the amount, the payer or the split changes, everyone keeps the
+      // part they had, even if the group has new members since.
+      const sharesStay = before.amountMinor === after.amountMinor && sameSplitInput(before, after)
+      if (sharesStay) after.shares = before.shares
+
+      const changes = expenseChanges(before, after)
+      if (changes.length === 0) return { ok: true, changed: false }
+
+      const editedAt = new Date()
+      await tx.insert(expenseRevisions).values({
+        expenseId,
+        editedBy: userId,
+        editedAt,
+        before,
+        changes,
+        updatedBy: userId,
+        updatedAt: editedAt,
+      })
+      await tx
+        .update(expenses)
+        .set({
+          description,
+          category,
+          amountMinor: after.amountMinor,
+          currency,
+          date,
+          notes,
+          method: split.method,
+          updatedBy: userId,
+          updatedAt: editedAt,
+        })
+        .where(eq(expenses.id, expenseId))
+
+      if (!sharesStay) {
+        const existing = new Set(before.shares.map((share) => share.personId))
+        const stored = new Set(newShares.map((share) => share.personId))
+        for (const share of newShares) {
+          if (existing.has(share.personId)) {
+            await tx
+              .update(expenseShares)
+              .set({
+                paidMinor: share.paidMinor,
+                owedMinor: share.owedMinor,
+                inputValue: share.inputValue,
+                updatedBy: userId,
+                updatedAt: editedAt,
+              })
+              .where(and(eq(expenseShares.expenseId, expenseId), eq(expenseShares.personId, share.personId)))
+          } else {
+            await tx
+              .insert(expenseShares)
+              .values({ ...share, expenseId, updatedBy: userId, updatedAt: editedAt })
+          }
+        }
+        // Someone with a part before who is no longer a member gets no part now.
+        for (const personId of existing) {
+          if (stored.has(personId)) continue
+          await tx
+            .update(expenseShares)
+            .set({ paidMinor: 0, owedMinor: 0, inputValue: null, updatedBy: userId, updatedAt: editedAt })
+            .where(and(eq(expenseShares.expenseId, expenseId), eq(expenseShares.personId, personId)))
+        }
+      }
+
+      const kept = new Set(receipts.map((receipt) => receipt.id))
+      const removed = before.photos.filter((photo) => !kept.has(photo.id)).map((photo) => photo.id)
+      if (removed.length > 0) {
+        await tx
+          .update(expensePhotos)
+          .set({ deletedAt: editedAt, updatedBy: userId, updatedAt: editedAt })
+          .where(and(eq(expensePhotos.expenseId, expenseId), inArray(expensePhotos.id, removed)))
+      }
+      for (const [position, receipt] of receipts.entries()) {
+        const old = known.get(receipt.id)
+        if (!old) {
+          await tx.insert(expensePhotos).values({
+            id: receipt.id,
+            expenseId,
+            position,
+            mimeType: receipt.mimeType,
+            sizeBytes: receipt.sizeBytes,
+            updatedBy: userId,
+            updatedAt: editedAt,
+          })
+        } else if (old.position !== position) {
+          await tx
+            .update(expensePhotos)
+            .set({ position, updatedBy: userId, updatedAt: editedAt })
+            .where(eq(expensePhotos.id, receipt.id))
+        }
+      }
+      return { ok: true, changed: true }
+    })
   },
 
   /**
@@ -470,4 +695,63 @@ export const expenseService = {
       .limit(RECENT_CURRENCY_COUNT)
     return rows.map((row) => row.currency)
   },
+}
+
+/**
+ * Reads what an edit needs inside a transaction: the group's live members, and
+ * the expense as it is stored, when the user is a live member of the group and
+ * the expense is live, in that group and not a payment. Null otherwise.
+ */
+async function loadEditable(
+  tx: Pick<Database, 'select'>,
+  userId: string,
+  groupId: string,
+  expenseId: string,
+) {
+  const members = await tx
+    .select({ personId: groupMembers.personId })
+    .from(groupMembers)
+    .innerJoin(groups, and(eq(groups.id, groupMembers.groupId), isNull(groups.deletedAt)))
+    .where(and(eq(groupMembers.groupId, groupId), isNull(groupMembers.deletedAt)))
+  const memberIds = members.map((member) => member.personId)
+  if (!memberIds.includes(userId)) return null
+
+  const [expense] = await tx
+    .select()
+    .from(expenses)
+    .where(and(eq(expenses.id, expenseId), eq(expenses.groupId, groupId), isNull(expenses.deletedAt)))
+  if (!expense || expense.category === SETTLEMENT_CATEGORY) return null
+
+  const shares = await tx
+    .select()
+    .from(expenseShares)
+    .where(and(eq(expenseShares.expenseId, expenseId), isNull(expenseShares.deletedAt)))
+  const photos = await tx
+    .select()
+    .from(expensePhotos)
+    .where(and(eq(expensePhotos.expenseId, expenseId), isNull(expensePhotos.deletedAt)))
+    .orderBy(asc(expensePhotos.position), asc(expensePhotos.id))
+
+  const snapshot: ExpenseSnapshot = {
+    description: expense.description,
+    category: expense.category,
+    amountMinor: expense.amountMinor,
+    currency: expense.currency,
+    date: expense.date,
+    notes: expense.notes,
+    method: expense.method,
+    shares: shares.map((share) => ({
+      personId: share.personId,
+      paidMinor: share.paidMinor,
+      owedMinor: share.owedMinor,
+      inputValue: share.inputValue,
+    })),
+    photos: photos.map((photo, position) => ({
+      id: photo.id,
+      position,
+      mimeType: photo.mimeType,
+      sizeBytes: photo.sizeBytes,
+    })),
+  }
+  return { expense, snapshot, memberIds }
 }

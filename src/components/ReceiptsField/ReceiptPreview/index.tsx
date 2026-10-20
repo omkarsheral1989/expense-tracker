@@ -7,7 +7,8 @@ import { RADIUS } from '../../../theme/radius.ts'
 const PREVIEW_SIZE = 64
 
 type Props = {
-  file: File
+  /** The picture to show; null shows an empty square (a stored photo that is not on this device). */
+  file: Blob | null
   /** Its place among the chosen photos, from 1, for screen readers. */
   number: number
   onRemove: () => void

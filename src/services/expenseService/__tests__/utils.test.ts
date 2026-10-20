@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { CATEGORY_GROUPS, DEFAULT_CATEGORY, SETTLEMENT_CATEGORY } from '../constants.ts'
-import type { SplitMethod } from '../../../db/types.ts'
+import type { ExpenseSnapshot, SplitMethod } from '../../../db/types.ts'
 import { expenseService } from '../index.ts'
-import { CATEGORIES, categoryOf, computeShares, debtsOf, isCategoryKey, pairBalances, settlementSentence, SPLIT_DOES_NOT_ADD_UP, titleOf } from '../utils.ts'
+import { CATEGORIES, categoryOf, computeShares, debtsOf, expenseChanges, isCategoryKey, pairBalances, payerOf, sameSplitInput, settlementSentence, SPLIT_DOES_NOT_ADD_UP, titleOf } from '../utils.ts'
 
 const MEMBERS = ['me', 'priya', 'sam']
 
@@ -328,5 +328,112 @@ describe('titleOf', () => {
   it('falls back to the description for a settlement without a payer and a recipient', () => {
     expect(titleOf({ category: SETTLEMENT_CATEGORY, description: 'Payment', shares: [shares[0]] })).toBe('Payment')
     expect(titleOf({ category: SETTLEMENT_CATEGORY, description: 'Payment', shares: [] })).toBe('Payment')
+  })
+})
+
+const SNAPSHOT: ExpenseSnapshot = {
+  description: 'Dinner',
+  category: 'food.dining_out',
+  amountMinor: 1000,
+  currency: 'INR',
+  date: '2026-10-08',
+  notes: null,
+  method: 'equal',
+  shares: [
+    { personId: 'me', paidMinor: 1000, owedMinor: 500, inputValue: 1 },
+    { personId: 'priya', paidMinor: 0, owedMinor: 500, inputValue: 1 },
+  ],
+  photos: [{ id: 'a', position: 0, mimeType: 'image/jpeg', sizeBytes: 5 }],
+}
+
+describe('payerOf', () => {
+  it('is the person who paid, or null when no share records a payment', () => {
+    expect(payerOf(SNAPSHOT)).toBe('me')
+    expect(payerOf({ ...SNAPSHOT, shares: [{ personId: 'priya', paidMinor: 0, owedMinor: 0, inputValue: null }] })).toBeNull()
+  })
+})
+
+describe('sameSplitInput', () => {
+  it('is true for the same payer, method and numbers, whatever the amounts came to', () => {
+    const rounded = { ...SNAPSHOT, shares: SNAPSHOT.shares.map((share) => ({ ...share, owedMinor: 1 })) }
+    expect(sameSplitInput(SNAPSHOT, rounded)).toBe(true)
+  })
+
+  it('counts a missing person as 0', () => {
+    const withSam = { ...SNAPSHOT, shares: [...SNAPSHOT.shares, { personId: 'sam', paidMinor: 0, owedMinor: 0, inputValue: 0 }] }
+    expect(sameSplitInput(SNAPSHOT, withSam)).toBe(true)
+  })
+
+  it.each([
+    ['another payer', { shares: [{ personId: 'me', paidMinor: 0, owedMinor: 500, inputValue: 1 }, { personId: 'priya', paidMinor: 1000, owedMinor: 500, inputValue: 1 }] }],
+    ['another method', { method: 'shares' as const }],
+    ['another number', { shares: [{ personId: 'me', paidMinor: 1000, owedMinor: 1000, inputValue: 1 }, { personId: 'priya', paidMinor: 0, owedMinor: 0, inputValue: 0 }] }],
+  ])('is false for %s', (_name, changed) => {
+    expect(sameSplitInput(SNAPSHOT, { ...SNAPSHOT, ...changed })).toBe(false)
+  })
+})
+
+describe('expenseChanges', () => {
+  it('is empty for identical versions', () => {
+    expect(expenseChanges(SNAPSHOT, { ...SNAPSHOT })).toEqual([])
+  })
+
+  it('names each changed field with its old and new value, in a fixed order', () => {
+    const after: ExpenseSnapshot = {
+      ...SNAPSHOT,
+      description: 'Lunch',
+      category: 'food.groceries',
+      amountMinor: 2000,
+      currency: 'GBP',
+      date: '2026-10-09',
+      notes: 'Cash',
+    }
+    expect(expenseChanges(SNAPSHOT, after)).toEqual([
+      { field: 'description', from: 'Dinner', to: 'Lunch' },
+      { field: 'category', from: 'food.dining_out', to: 'food.groceries' },
+      { field: 'amount', from: 1000, to: 2000 },
+      { field: 'currency', from: 'INR', to: 'GBP' },
+      { field: 'date', from: '2026-10-08', to: '2026-10-09' },
+      { field: 'notes', from: null, to: 'Cash' },
+    ])
+  })
+
+  it('names a new payer separately from a new split', () => {
+    const swapped: ExpenseSnapshot = {
+      ...SNAPSHOT,
+      shares: [
+        { personId: 'me', paidMinor: 0, owedMinor: 500, inputValue: 1 },
+        { personId: 'priya', paidMinor: 1000, owedMinor: 500, inputValue: 1 },
+      ],
+    }
+    expect(expenseChanges(SNAPSHOT, swapped)).toEqual([{ field: 'paidBy', from: 'me', to: 'priya' }])
+  })
+
+  it('records a split change with the method and the numbers entered for everyone', () => {
+    const after: ExpenseSnapshot = {
+      ...SNAPSHOT,
+      method: 'percent',
+      shares: [
+        { personId: 'me', paidMinor: 1000, owedMinor: 700, inputValue: 70 },
+        { personId: 'priya', paidMinor: 0, owedMinor: 300, inputValue: 30 },
+      ],
+    }
+    expect(expenseChanges(SNAPSHOT, after)).toEqual([
+      {
+        field: 'split',
+        from: { method: 'equal', values: { me: 1, priya: 1 } },
+        to: { method: 'percent', values: { me: 70, priya: 30 } },
+      },
+    ])
+  })
+
+  it('records the photo ids before and after when photos were added or taken off', () => {
+    const photos = [
+      { id: 'b', position: 0, mimeType: 'image/png', sizeBytes: 9 },
+      { id: 'a', position: 1, mimeType: 'image/jpeg', sizeBytes: 5 },
+    ]
+    expect(expenseChanges(SNAPSHOT, { ...SNAPSHOT, photos })).toEqual([
+      { field: 'receipts', from: ['a'], to: ['b', 'a'] },
+    ])
   })
 })

@@ -21,9 +21,9 @@ type Props = {
 }
 
 /**
- * One expense: its category, description, amount and day, who added it and who paid, how
- * it was split and what each person owes, its notes and its receipt photos. Editing and deleting are
- * shown switched off ("Coming soon").
+ * One expense: its category, description, amount and day, who added it, who paid and who edited it last, how
+ * it was split and what each person owes, its notes and its receipt photos. Edit opens
+ * the edit page (not for a payment); Delete is switched off ("Coming soon").
  */
 export function ExpenseDetails({ expense, datasetId }: Props) {
   const navigate = useNavigate()
@@ -31,6 +31,24 @@ export function ExpenseDetails({ expense, datasetId }: Props) {
   const category = expenseService.categoryOf(expense.category)
   // A settlement is worded by who paid whom ("You paid Priya"), and has no split to show.
   const isSettlement = expense.category === expenseService.settlementCategory
+
+  // A payment between members has no edit form yet.
+  function renderEditButton() {
+    if (isSettlement) {
+      return (
+        <ComingSoon>
+          <Button icon={<EditOutlined />} disabled>
+            Edit
+          </Button>
+        </ComingSoon>
+      )
+    }
+    return (
+      <Button icon={<EditOutlined />} onClick={() => navigate(ROUTES.editExpense(expense.groupId, expense.id))}>
+        Edit
+      </Button>
+    )
+  }
 
   function renderHeader() {
     return (
@@ -42,11 +60,7 @@ export function ExpenseDetails({ expense, datasetId }: Props) {
           onClick={() => navigate(ROUTES.group(expense.groupId))}
         />
         <Flex gap={8}>
-          <ComingSoon>
-            <Button icon={<EditOutlined />} disabled>
-              Edit
-            </Button>
-          </ComingSoon>
+          {renderEditButton()}
           <ComingSoon>
             <Button icon={<DeleteOutlined />} aria-label="Delete" disabled />
           </ComingSoon>
@@ -65,6 +79,16 @@ export function ExpenseDetails({ expense, datasetId }: Props) {
           {paidSentence(share, expense.currency)}
         </Text>
       ))
+  }
+
+  function renderLastEdit() {
+    if (!expense.lastEdit) return null
+    const { by, at } = expense.lastEdit
+    return (
+      <Text type="secondary">
+        Edited by {by.isYou ? 'you' : displayName(by)}, {dateService.formatDateTime(at, navigator.language)}
+      </Text>
+    )
   }
 
   function renderSummary() {
@@ -86,6 +110,7 @@ export function ExpenseDetails({ expense, datasetId }: Props) {
             Added by {expense.createdBy.isYou ? 'you' : displayName(expense.createdBy)}
           </Text>
           {renderPayers()}
+          {renderLastEdit()}
         </Flex>
       </Flex>
     )

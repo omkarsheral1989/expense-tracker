@@ -36,6 +36,13 @@
       "when": 1791981940568,
       "tag": "0004_people_email_optional",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792498721588,
+      "tag": "0005_expense_revisions",
+      "breakpoints": true
     }
   ]
 }

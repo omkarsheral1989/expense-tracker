@@ -8,7 +8,7 @@ import {
   GROUP_NAME_MAX_LENGTH,
 } from '../constants.ts'
 import { runMigrations } from '../migrate.ts'
-import { expenseShares, expenses, groupMembers, groups, people } from '../schema.ts'
+import { expenseRevisions, expenseShares, expenses, groupMembers, groups, people } from '../schema.ts'
 
 let pg: PGlite
 let db: Database
@@ -20,7 +20,7 @@ beforeAll(async () => {
 
 afterAll(() => pg.close())
 
-beforeEach(() => pg.exec('truncate expense_photos, expense_shares, expenses, group_members, groups, people cascade'))
+beforeEach(() => pg.exec('truncate expense_revisions, expense_photos, expense_shares, expenses, group_members, groups, people cascade'))
 
 /** A person who made their own row, the way the signed-in user does. */
 async function addPerson(email: string) {
@@ -48,7 +48,7 @@ describe('migrations', () => {
   it('can run again without changing anything', async () => {
     await runMigrations(pg)
     const { rows } = await pg.query('select name from ownledger_migrations')
-    expect(rows).toHaveLength(5)
+    expect(rows).toHaveLength(6)
   })
 
   it('does not record a file that fails, and applies nothing from it', async () => {
@@ -276,5 +276,39 @@ describe('expenses', () => {
 
     const [stored] = await db.select().from(expenseShares).where(eq(expenseShares.personId, owner))
     expect(stored).toMatchObject({ paidMinor: 123456, owedMinor: 123456, inputValue: 1 })
+  })
+  it('stores a revision with the expense as it was and what changed, as JSON, for a real expense and editor', async () => {
+    const { owner, expense } = await addExpense()
+    const before = {
+      description: 'Dinner',
+      category: 'food.dining_out',
+      amountMinor: 123456,
+      currency: 'INR',
+      date: '2026-10-08',
+      notes: null,
+      method: 'equal' as const,
+      shares: [{ personId: owner, paidMinor: 123456, owedMinor: 123456, inputValue: 1 }],
+      photos: [],
+    }
+    const changes = [{ field: 'description' as const, from: 'Dinner', to: 'Lunch' }]
+    const editedAt = new Date('2026-10-20T12:15:00Z')
+
+    await db
+      .insert(expenseRevisions)
+      .values({ expenseId: expense.id, editedBy: owner, editedAt, before, changes, updatedBy: owner, updatedAt: editedAt })
+
+    const [stored] = await db.select().from(expenseRevisions).where(eq(expenseRevisions.expenseId, expense.id))
+    expect(stored).toMatchObject({ editedBy: owner, before, changes, deletedAt: null })
+    expect(stored.editedAt).toEqual(editedAt)
+    await expect(
+      db.insert(expenseRevisions).values({
+        expenseId: crypto.randomUUID(),
+        editedBy: owner,
+        editedAt,
+        before,
+        changes,
+        updatedBy: owner,
+      }),
+    ).rejects.toThrow()
   })
 })

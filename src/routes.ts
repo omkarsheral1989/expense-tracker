@@ -25,4 +25,8 @@ export const ROUTES = {
   expense: (groupId: string, expenseId: string) => `/groups/${groupId}/expenses/${expenseId}`,
   /** The same address as a pattern for the router. "new" above is matched first. */
   expensePattern: '/groups/:id/expenses/:expenseId',
+  /** Where one expense of a group is edited. */
+  editExpense: (groupId: string, expenseId: string) => `/groups/${groupId}/expenses/${expenseId}/edit`,
+  /** The same address as a pattern for the router. */
+  editExpensePattern: '/groups/:id/expenses/:expenseId/edit',
 } as const

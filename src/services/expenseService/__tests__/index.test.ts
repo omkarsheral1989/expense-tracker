@@ -587,6 +587,7 @@ describe('getExpense', () => {
         { personId: samId, email: 'sam@gmail.com', name: null, isYou: false, paidMinor: 900, owedMinor: 0 },
       ],
       receipts: [],
+      lastEdit: null,
     })
   })
 

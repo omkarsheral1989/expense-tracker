@@ -5,6 +5,7 @@ import {
   date,
   index,
   integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
@@ -19,7 +20,7 @@ import {
   GROUP_TYPES,
   SPLIT_METHODS,
 } from './constants.ts'
-import type { GroupType, SplitMethod } from './types.ts'
+import type { ExpenseChange, ExpenseSnapshot, GroupType, SplitMethod } from './types.ts'
 
 /**
  * Columns every synced table has: a UUID primary key (never auto-increment, so
@@ -215,4 +216,30 @@ export const expensePhotos = pgTable(
     check('expense_photos_is_image', sql`${table.mimeType} like 'image/%'`),
     check('expense_photos_size_not_negative', sql`${table.sizeBytes} >= 0`),
   ],
+)
+
+/**
+ * The history of an expense: one row each time someone saved an edit that
+ * changed something. It is only ever inserted, never updated or deleted, so
+ * `updated_at` equals `edited_at` and `deleted_at` stays null. The expense
+ * itself holds the current version; a revision holds the version before that
+ * edit and what the edit changed.
+ */
+export const expenseRevisions = pgTable(
+  'expense_revisions',
+  {
+    ...syncColumns(),
+    expenseId: uuid('expense_id')
+      .notNull()
+      .references(() => expenses.id),
+    editedBy: uuid('edited_by')
+      .notNull()
+      .references(() => people.id),
+    editedAt: timestamp('edited_at', { withTimezone: true }).notNull(),
+    /** The expense as it was before this edit. */
+    before: jsonb('before').$type<ExpenseSnapshot>().notNull(),
+    /** What this edit changed, one entry per field, with old and new values. */
+    changes: jsonb('changes').$type<ExpenseChange[]>().notNull(),
+  },
+  (table) => [index('expense_revisions_expense_idx').on(table.expenseId)],
 )

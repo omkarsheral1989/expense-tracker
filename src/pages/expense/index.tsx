@@ -1,13 +1,13 @@
 import { Button, Card, Flex, Result, Skeleton } from 'antd'
 import { useParams } from 'react-router'
 import { CenteredMessage } from '../../components/CenteredMessage'
+import { ExpenseNotFound } from '../../components/ExpenseNotFound'
 import { getDb } from '../../db/client.ts'
 import { useAsyncData } from '../../hooks/useAsyncData'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
 import { expenseService } from '../../services/expenseService'
 import { belowStatusBar } from '../../theme/safeArea.ts'
 import { ExpenseDetails } from './components/ExpenseDetails'
-import { ExpenseNotFound } from './components/ExpenseNotFound'
 
 /** A column about 560 px wide, centered, like the add-expense page. */
 const COLUMN_STYLE = { width: '100%', maxWidth: 560, margin: '0 auto', padding: `${belowStatusBar(24)} 16px 24px` } as const
