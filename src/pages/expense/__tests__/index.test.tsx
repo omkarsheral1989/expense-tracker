@@ -89,6 +89,7 @@ describe('ExpensePage', () => {
     expect(screen.getByText('£9.00')).toBeInTheDocument()
     expect(screen.getByText('Dining out · Mon, 5 Oct 2026')).toBeInTheDocument()
     expect(screen.getByText('Added by you')).toBeInTheDocument()
+    expect(screen.getByText('You paid £9.00')).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Dining out' })).toBeInTheDocument()
     await waitFor(() => expect(document.title).toBe('Beach shack dinner · OwnLedger'))
   })
@@ -105,7 +106,8 @@ describe('ExpensePage', () => {
       expect(screen.getByText('Added by you')).toBeInTheDocument()
       await waitFor(() => expect(document.title).toBe('You paid Priya · OwnLedger'))
       expect(screen.queryByText(/^Split by/)).not.toBeInTheDocument()
-      expect(screen.queryByRole('list', { name: 'Who paid and owes' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('list', { name: 'Who owes' })).not.toBeInTheDocument()
+      expect(screen.queryByText(/ paid £/)).not.toBeInTheDocument()
       expect(screen.queryByText('Payment')).not.toBeInTheDocument()
     })
 
@@ -134,7 +136,7 @@ describe('ExpensePage', () => {
     })
   })
 
-  it('says how it was split and what each person paid and owes, you first', async () => {
+  it('says who paid under who added it, and lists what each person owes, you first', async () => {
     const id = await createGroup()
     const [meId, priyaId, samId] = await Promise.all(
       [me.email, 'priya@gmail.com', 'sam@gmail.com'].map((email) => personIdOf(testDb.db, email)),
@@ -146,11 +148,28 @@ describe('ExpensePage', () => {
     renderExpense(id, expenseId)
 
     expect(await screen.findByText('Split by shares')).toBeInTheDocument()
-    const list = screen.getByRole('list', { name: 'Who paid and owes' })
+    expect(screen.getByText('Priya Shah paid £9.00')).toBeInTheDocument()
+    const list = screen.getByRole('list', { name: 'Who owes' })
     expect(within(list).getAllByRole('listitem').map((item) => item.textContent)).toEqual([
       'YYou owe £3.00',
-      'PPriya Shah paid £9.00 and owes £6.00',
+      'PPriya Shah owes £6.00',
     ])
+  })
+
+  it('leaves a payer who owes nothing out of the list', async () => {
+    const id = await createGroup()
+    const [meId, priyaId, samId] = await Promise.all(
+      [me.email, 'priya@gmail.com', 'sam@gmail.com'].map((email) => personIdOf(testDb.db, email)),
+    )
+    const expenseId = await addExpense(id, {
+      paidBy: priyaId,
+      split: { method: 'equal', values: { [meId]: 1, [priyaId]: 0, [samId]: 0 } },
+    })
+    renderExpense(id, expenseId)
+
+    expect(await screen.findByText('Priya Shah paid £9.00')).toBeInTheDocument()
+    const list = screen.getByRole('list', { name: 'Who owes' })
+    expect(within(list).getAllByRole('listitem').map((item) => item.textContent)).toEqual(['YYou owe £9.00'])
   })
 
   it('shows the notes, keeping their lines, and no notes section without them', async () => {

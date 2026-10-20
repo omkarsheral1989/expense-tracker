@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ExpenseShareDetails } from '../../../../../services/expenseService/types.ts'
-import { displayName, shareSentence } from '../utils.ts'
+import { displayName, owedSentence, paidSentence } from '../utils.ts'
 
 const you: ExpenseShareDetails = {
   personId: 'me',
@@ -21,14 +21,23 @@ describe('displayName', () => {
   })
 })
 
-describe('shareSentence', () => {
+describe('paidSentence', () => {
   it.each([
-    [{ ...you, paidMinor: 900, owedMinor: 300 }, 'You paid £9.00 and owe £3.00'],
-    [{ ...you, owedMinor: 300 }, 'You owe £3.00'],
-    [{ ...you, paidMinor: 900 }, 'You paid £9.00'],
-    [{ ...priya, paidMinor: 900, owedMinor: 300 }, 'Priya Shah paid £9.00 and owes £3.00'],
-    [{ ...priya, owedMinor: 600 }, 'Priya Shah owes £6.00'],
+    [{ ...you, paidMinor: 900, owedMinor: 300 }, 'You paid £9.00'],
+    [{ ...priya, paidMinor: 900 }, 'Priya Shah paid £9.00'],
+    [{ ...priya, name: null, paidMinor: 900 }, 'priya@gmail.com paid £9.00'],
   ])('says %j as %j', (share, sentence) => {
-    expect(shareSentence(share, 'GBP')).toBe(sentence)
+    expect(paidSentence(share, 'GBP')).toBe(sentence)
+  })
+})
+
+describe('owedSentence', () => {
+  it.each([
+    [{ ...you, owedMinor: 300 }, 'You owe £3.00'],
+    [{ ...you, paidMinor: 900, owedMinor: 300 }, 'You owe £3.00'],
+    [{ ...priya, owedMinor: 600 }, 'Priya Shah owes £6.00'],
+    [{ ...priya, paidMinor: 900, owedMinor: 300 }, 'Priya Shah owes £3.00'],
+  ])('says %j as %j', (share, sentence) => {
+    expect(owedSentence(share, 'GBP')).toBe(sentence)
   })
 })

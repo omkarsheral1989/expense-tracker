@@ -7,17 +7,13 @@ export function displayName(person: { isYou: boolean; name: string | null; email
   return person.isYou ? 'You' : groupService.displayName(person)
 }
 
-/**
- * One person's part as a sentence: "You paid £9.00 and owe £3.00", "Priya
- * Shah owes £6.00" or "sam@gmail.com paid £9.00".
- */
-export function shareSentence(share: ExpenseShareDetails, currency: string): string {
-  const name = displayName(share)
-  const paid = moneyService.format(share.paidMinor, currency)
-  const owed = moneyService.format(share.owedMinor, currency)
-  const owe = share.isYou ? 'owe' : 'owes'
+/** Who paid, as a sentence: "You paid £9.00" or "Priya Shah paid £9.00". */
+export function paidSentence(share: ExpenseShareDetails, currency: string): string {
+  return `${displayName(share)} paid ${moneyService.format(share.paidMinor, currency)}`
+}
 
-  if (share.paidMinor > 0 && share.owedMinor > 0) return `${name} paid ${paid} and ${owe} ${owed}`
-  if (share.paidMinor > 0) return `${name} paid ${paid}`
-  return `${name} ${owe} ${owed}`
+/** What one person owes, as a sentence: "You owe £3.00" or "Priya Shah owes £6.00". */
+export function owedSentence(share: ExpenseShareDetails, currency: string): string {
+  const owe = share.isYou ? 'owe' : 'owes'
+  return `${displayName(share)} ${owe} ${moneyService.format(share.owedMinor, currency)}`
 }

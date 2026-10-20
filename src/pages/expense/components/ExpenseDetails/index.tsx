@@ -10,7 +10,7 @@ import type { ExpenseDetails, ExpenseShareDetails } from '../../../../services/e
 import { moneyService } from '../../../../services/moneyService'
 import { SPLIT_METHOD_LABELS } from './content.ts'
 import { ReceiptGallery } from './ReceiptGallery'
-import { displayName, shareSentence } from './utils.ts'
+import { displayName, owedSentence, paidSentence } from './utils.ts'
 
 const { Paragraph, Text, Title } = Typography
 
@@ -21,8 +21,8 @@ type Props = {
 }
 
 /**
- * One expense: its category, description, amount and day, who added it, how
- * it was split and each person's part, its notes and its receipt photos. Editing and deleting are
+ * One expense: its category, description, amount and day, who added it and who paid, how
+ * it was split and what each person owes, its notes and its receipt photos. Editing and deleting are
  * shown switched off ("Coming soon").
  */
 export function ExpenseDetails({ expense, datasetId }: Props) {
@@ -55,6 +55,18 @@ export function ExpenseDetails({ expense, datasetId }: Props) {
     )
   }
 
+  // A settlement's title already says who paid whom.
+  function renderPayers() {
+    if (isSettlement) return null
+    return expense.shares
+      .filter((share) => share.paidMinor > 0)
+      .map((share) => (
+        <Text key={share.personId} type="secondary">
+          {paidSentence(share, expense.currency)}
+        </Text>
+      ))
+  }
+
   function renderSummary() {
     return (
       <Flex align="flex-start" gap={16}>
@@ -73,6 +85,7 @@ export function ExpenseDetails({ expense, datasetId }: Props) {
           <Text type="secondary">
             Added by {expense.createdBy.isYou ? 'you' : displayName(expense.createdBy)}
           </Text>
+          {renderPayers()}
         </Flex>
       </Flex>
     )
@@ -85,7 +98,7 @@ export function ExpenseDetails({ expense, datasetId }: Props) {
         <Avatar style={{ flex: 'none', background: token.colorPrimaryBg, color: token.colorPrimary }}>
           {name.charAt(0).toUpperCase()}
         </Avatar>
-        <Text style={{ overflowWrap: 'anywhere' }}>{shareSentence(share, expense.currency)}</Text>
+        <Text style={{ overflowWrap: 'anywhere' }}>{owedSentence(share, expense.currency)}</Text>
       </Flex>
     )
   }
@@ -96,8 +109,8 @@ export function ExpenseDetails({ expense, datasetId }: Props) {
       <>
         <Divider style={{ margin: '16px 0' }} />
         <Text strong>{SPLIT_METHOD_LABELS[expense.method]}</Text>
-        <Flex vertical gap={12} role="list" aria-label="Who paid and owes" style={{ marginTop: 12 }}>
-          {expense.shares.map(renderShare)}
+        <Flex vertical gap={12} role="list" aria-label="Who owes" style={{ marginTop: 12 }}>
+          {expense.shares.filter((share) => share.owedMinor > 0).map(renderShare)}
         </Flex>
       </>
     )
