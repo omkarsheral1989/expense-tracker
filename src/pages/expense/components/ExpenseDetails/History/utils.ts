@@ -1,4 +1,4 @@
-import type { ExpenseChange, SplitMethod } from '../../../../../db/types.ts'
+import type { ExpenseChange, ExpenseEventKind, SplitMethod } from '../../../../../db/types.ts'
 import { dateService } from '../../../../../services/dateService'
 import { expenseService } from '../../../../../services/expenseService'
 import type { ExpenseHistoryEntry, ExpensePerson } from '../../../../../services/expenseService/types.ts'
@@ -153,10 +153,10 @@ export function historyLines(entry: ExpenseHistoryEntry, people: People): Histor
     .flatMap((change) => lineFor(change, entry, people))
 }
 
-/** The header of an entry: "You edited this expense", "You deleted this payment". */
+/** The header of an entry: "You added this expense", "You edited this expense", "You deleted this payment", "You restored this expense". */
 export function historyHeader(
   by: { isYou: boolean; name: string | null; email: string | null },
-  did: 'edited' | 'added' | 'deleted',
+  did: ExpenseEventKind,
   noun: 'expense' | 'payment' = 'expense',
 ): string {
   return `${displayName(by)} ${did} this ${noun}`

@@ -11,12 +11,13 @@ type Props = {
 }
 
 /**
- * Everything that happened to an expense, newest first: that it was deleted,
- * each edit with what it changed, and last that it was added. Shown only once
- * the expense has been edited or deleted.
+ * Everything that happened to an expense, newest first, as the events record it
+ * (ADR-042): each edit with what it changed, that it was deleted or restored,
+ * and last that it was added. Shown only once something besides adding it has
+ * happened.
  */
 export function History({ expense }: Props) {
-  if (expense.history.length === 0 && !expense.deleted) return null
+  if (expense.history.every((entry) => entry.kind === 'added')) return null
   const noun = expense.category === expenseService.settlementCategory ? 'payment' : 'expense'
 
   return (
@@ -26,18 +27,14 @@ export function History({ expense }: Props) {
         History
       </Text>
       <Flex vertical gap={16} role="list" aria-label="History">
-        {expense.deleted && (
-          <HistoryEntry header={historyHeader(expense.deleted.by, 'deleted', noun)} at={expense.deleted.at} />
-        )}
-        {expense.history.map((entry) => (
+        {expense.history.map((entry, index) => (
           <HistoryEntry
-            key={entry.at.getTime()}
-            header={historyHeader(entry.by, 'edited')}
+            key={index}
+            header={historyHeader(entry.by, entry.kind, noun)}
             at={entry.at}
             lines={historyLines(entry, expense.people)}
           />
         ))}
-        <HistoryEntry header={historyHeader(expense.createdBy, 'added', noun)} at={expense.createdAt} />
       </Flex>
     </>
   )

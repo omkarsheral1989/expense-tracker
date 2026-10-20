@@ -1,4 +1,4 @@
-import type { GROUP_TYPES, SPLIT_METHODS } from './constants.ts'
+import type { EXPENSE_EVENT_KINDS, GROUP_TYPES, SPLIT_METHODS } from './constants.ts'
 
 /** One of the kinds of group a user can create: 'trip', 'home', 'couple' or 'other'. */
 export type GroupType = (typeof GROUP_TYPES)[number]
@@ -62,3 +62,6 @@ export type ExpenseChange = {
   from: unknown
   to: unknown
 }
+
+/** What an expense event records: 'added', 'edited', 'deleted' or 'restored'. */
+export type ExpenseEventKind = (typeof EXPENSE_EVENT_KINDS)[number]

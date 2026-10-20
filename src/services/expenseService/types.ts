@@ -1,4 +1,4 @@
-import type { ExpenseChange, SplitMethod } from '../../db/types.ts'
+import type { ExpenseChange, ExpenseEventKind, SplitMethod } from '../../db/types.ts'
 import type { ReceiptInput } from '../photoService/types.ts'
 import type { CATEGORY_GROUPS } from './constants.ts'
 
@@ -177,7 +177,7 @@ export type ExpenseDetails = {
   createdAt: Date
   /** Who deleted it and when; null for an expense that was not deleted. A deleted one is shown read-only. */
   deleted: { by: ExpensePerson; at: Date } | null
-  /** Every edit, newest first; empty for an expense that was never edited. */
+  /** Everything that happened to it, newest first: added, edited, deleted and restored. */
   history: ExpenseHistoryEntry[]
   /**
    * Everyone an entry of the history refers to (who paid, who was in a split),
@@ -189,12 +189,14 @@ export type ExpenseDetails = {
 /** A person as the details page names them. */
 export type ExpensePerson = { email: string | null; name: string | null; isYou: boolean }
 
-/** One edit of an expense: who saved it, when, and what it changed. */
+/** One event of an expense: what happened, who did it, when, and for an edit what it changed. */
 export type ExpenseHistoryEntry = {
+  kind: ExpenseEventKind
   by: ExpensePerson
   at: Date
+  /** What an edit changed; empty for the other kinds. */
   changes: ExpenseChange[]
-  /** The expense's currency before this edit, to write the old cost in. */
+  /** The expense's currency before an edit, to write the old cost in; its own currency for the other kinds. */
   currencyBefore: string
 }
 
@@ -235,3 +237,10 @@ export type DeleteExpenseResult =
   | { ok: true }
   /** The user cannot delete it: unknown, malformed, already deleted, another group's, or a group they are not in. */
   | { ok: false; notFound: true }
+
+export type RestoreExpenseResult =
+  | { ok: true }
+  /** The user cannot see it: unknown, malformed, another group's, or a group they are not in. */
+  | { ok: false; notFound: true }
+  /** It is not deleted (for example someone else restored it a moment ago). */
+  | { ok: false; notDeleted: true }

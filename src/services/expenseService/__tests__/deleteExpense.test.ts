@@ -2,7 +2,7 @@ import { PGlite } from '@electric-sql/pglite'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createDatabase, type Database } from '../../../db/client.ts'
-import { expensePhotos, expenseRevisions, expenseShares, expenses } from '../../../db/schema.ts'
+import { expenseEvents, expensePhotos, expenseShares, expenses } from '../../../db/schema.ts'
 import { addTestExpense, addTestSettlement, expenseInput, personIdOf } from '../../../testing/expenses.ts'
 import { createTestGroup, type TestUser } from '../../../testing/groups.ts'
 import { groupService } from '../../groupService'
@@ -85,7 +85,9 @@ describe('expenseService.deleteExpense', () => {
     expect(await db.select().from(expenseShares).where(eq(expenseShares.expenseId, expenseId))).toHaveLength(2)
     const [row] = await db.select().from(expensePhotos).where(eq(expensePhotos.id, photo.id))
     expect(row.deletedAt).toBeNull()
-    expect(await db.select().from(expenseRevisions).where(eq(expenseRevisions.expenseId, expenseId))).toHaveLength(1)
+    // The events stay too: added, edited, and now deleted.
+    const events = await db.select().from(expenseEvents).where(eq(expenseEvents.expenseId, expenseId))
+    expect(events.map((event) => event.kind).toSorted()).toEqual(['added', 'deleted', 'edited'])
   })
 
   it('keeps it in the list and details, marked as deleted, and out of the edit form and further edits', async () => {
@@ -126,8 +128,8 @@ describe('expenseService.deleteExpense', () => {
     await remove(omkar, groupId, expenseId)
 
     const details = await expenseService.getExpense(db, omkarId, groupId, expenseId)
-    expect(details?.history).toHaveLength(1)
-    expect(details?.history[0].changes[0]).toEqual({ field: 'description', from: 'Dinner', to: 'Lunch' })
+    expect(details?.history.map((entry) => entry.kind)).toEqual(['deleted', 'edited', 'added'])
+    expect(details?.history[1].changes[0]).toEqual({ field: 'description', from: 'Dinner', to: 'Lunch' })
     expect(details?.description).toBe('Lunch')
   })
 

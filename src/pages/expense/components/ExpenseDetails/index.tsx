@@ -1,5 +1,6 @@
-import { ArrowLeftOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons'
+import { ArrowLeftOutlined, DeleteOutlined, EditOutlined, UndoOutlined } from '@ant-design/icons'
 import { App, Avatar, Button, Divider, Flex, theme, Typography } from 'antd'
+import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { CategoryIcon } from '../../../../components/CategoryIcon'
 import { ComingSoon } from '../../../../components/ComingSoon'
@@ -20,19 +21,22 @@ type Props = {
   expense: ExpenseDetails
   /** Names the device's photo store, which holds the receipts. */
   datasetId: string
-  /** The user's person id: a deletion is saved as theirs. */
+  /** The user's person id: a deletion or restoration is saved as theirs. */
   userId: string
+  /** Called after the expense was changed here (restored), so the page reads it again. */
+  onChanged: () => void
 }
 
 /**
  * One expense: its category, description, amount and day, who added it, who paid and who edited it last, how
  * it was split and what each person owes, its notes and its receipt photos. Edit opens
  * the edit page (not for a payment); Delete asks first and then removes the expense or payment.
- * A deleted expense is shown read-only: no Edit or Delete, and who deleted it and when.
+ * A deleted expense is shown read-only, with Restore in place of Edit and Delete, and who deleted it and when.
  */
-export function ExpenseDetails({ expense, datasetId, userId }: Props) {
+export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props) {
   const navigate = useNavigate()
   const { message, modal } = App.useApp()
+  const [restoring, setRestoring] = useState(false)
   const { token } = theme.useToken()
   const category = expenseService.categoryOf(expense.category)
   // A settlement is worded by who paid whom ("You paid Priya"), and has no split to show.
@@ -64,6 +68,42 @@ export function ExpenseDetails({ expense, datasetId, userId }: Props) {
     })
   }
 
+  async function handleRestore() {
+    setRestoring(true)
+    try {
+      const result = await expenseService.restoreExpense(await getDb(), userId, expense.groupId, expense.id)
+      if (!result.ok && 'notFound' in result) {
+        message.error(`This ${noun} is no longer available.`)
+        navigate(ROUTES.group(expense.groupId))
+        return
+      }
+      if (result.ok) message.success(`${noun === 'payment' ? 'Payment' : 'Expense'} restored.`)
+      else message.error(`This ${noun} was already restored.`)
+      onChanged()
+    } catch {
+      message.error(`Couldn't restore the ${noun}. Please try again.`)
+    } finally {
+      setRestoring(false)
+    }
+  }
+
+  // A deleted expense has Restore where a live one has Edit and Delete.
+  function renderActions() {
+    if (expense.deleted) {
+      return (
+        <Button icon={<UndoOutlined />} loading={restoring} onClick={handleRestore}>
+          Restore
+        </Button>
+      )
+    }
+    return (
+      <Flex gap={8}>
+        {renderEditButton()}
+        <Button icon={<DeleteOutlined />} aria-label="Delete" onClick={confirmDelete} />
+      </Flex>
+    )
+  }
+
   // A payment between members has no edit form yet.
   function renderEditButton() {
     if (isSettlement) {
@@ -85,18 +125,20 @@ export function ExpenseDetails({ expense, datasetId, userId }: Props) {
   function renderHeader() {
     return (
       <Flex align="center" justify="space-between" style={{ marginBottom: 16 }}>
-        <Button
-          type="text"
-          icon={<ArrowLeftOutlined />}
-          aria-label="Back"
-          onClick={() => navigate(ROUTES.group(expense.groupId))}
-        />
-        {!expense.deleted && (
-          <Flex gap={8}>
-            {renderEditButton()}
-            <Button icon={<DeleteOutlined />} aria-label="Delete" onClick={confirmDelete} />
-          </Flex>
-        )}
+        <Flex align="center" gap={8} style={{ minWidth: 0 }}>
+          <Button
+            type="text"
+            icon={<ArrowLeftOutlined />}
+            aria-label="Back"
+            onClick={() => navigate(ROUTES.group(expense.groupId))}
+          />
+          {expense.deleted && (
+            <Title level={3} style={{ margin: 0 }}>
+              Deleted {noun}
+            </Title>
+          )}
+        </Flex>
+        {renderActions()}
       </Flex>
     )
   }

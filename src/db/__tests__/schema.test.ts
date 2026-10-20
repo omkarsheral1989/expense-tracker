@@ -48,7 +48,7 @@ describe('migrations', () => {
   it('can run again without changing anything', async () => {
     await runMigrations(pg)
     const { rows } = await pg.query('select name from ownledger_migrations')
-    expect(rows).toHaveLength(7)
+    expect(rows).toHaveLength(8)
   })
 
   it('does not record a file that fails, and applies nothing from it', async () => {
@@ -112,7 +112,7 @@ describe('migration 0006, which adds when an expense was created', () => {
     const names = Object.keys(all).sort()
     const last = names.find((name) => name.endsWith('0006_expense_created_at.sql')) as string
     // A database as it was before this migration.
-    await runMigrations(old, Object.fromEntries(names.filter((name) => name !== last).map((name) => [name, all[name]])))
+    await runMigrations(old, Object.fromEntries(names.filter((name) => name < last).map((name) => [name, all[name]])))
 
     const person = crypto.randomUUID()
     const group = crypto.randomUUID()
@@ -146,6 +146,98 @@ describe('migration 0006, which adds when an expense was created', () => {
     const createdAt = Object.fromEntries(rows.map((row) => [row.id, row.created_at.toISOString()]))
     expect(createdAt[neverEdited]).toBe('2026-10-10T10:00:00.000Z')
     expect(createdAt[edited]).toBe('2026-10-12T08:30:00.000Z')
+    await old.close()
+  })
+})
+
+describe('migration 0007, which adds expense events and copies the history into them', () => {
+  const all = import.meta.glob('../migrations/*.sql', {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  }) as Record<string, string>
+
+  it('makes an added event for each expense, an edited event for each edit and a deleted event for each deleted one', async () => {
+    const old = new PGlite()
+    const names = Object.keys(all).sort()
+    const last = names.find((name) => name.endsWith('0007_expense_events.sql')) as string
+    // A database as it was before this migration.
+    await runMigrations(old, Object.fromEntries(names.filter((name) => name < last).map((name) => [name, all[name]])))
+
+    const [omkar, priya, group] = [crypto.randomUUID(), crypto.randomUUID(), crypto.randomUUID()]
+    await old.query('insert into people (id, email, updated_by) values ($1, $2, $1), ($3, $4, $3)', [omkar, 'omkar@gmail.com', priya, 'priya@gmail.com'])
+    await old.query(
+      "insert into groups (id, name, type, default_currency, created_by, updated_by) values ($1, 'G', 'trip', 'INR', $2, $2)",
+      [group, omkar],
+    )
+    const photo = crypto.randomUUID()
+    const addExpense = async (description: string, amount: number, extra = '') => {
+      const id = crypto.randomUUID()
+      await old.query(
+        `insert into expenses (id, group_id, description, category, amount_minor, currency, date, notes, method, created_by, created_at, updated_by, updated_at ${extra ? ', deleted_at' : ''})
+         values ($1, $2, $3, 'general', $4, 'INR', '2026-10-08', 'Card', 'equal', $5, '2026-10-10T10:00:00Z', $5, '2026-10-10T10:00:00Z' ${extra ? ", '2026-10-12T09:00:00Z'" : ''})`,
+        [id, group, description, amount, omkar],
+      )
+      await old.query(
+        'insert into expense_shares (expense_id, person_id, paid_minor, owed_minor, input_value, updated_by) values ($1, $2, $3, $4, 1, $2), ($1, $5, 0, $4, 1, $2)',
+        [id, omkar, amount, amount / 2, priya],
+      )
+      return id
+    }
+    const plain = await addExpense('Plain', 1000)
+    const edited = await addExpense('Edited now', 3000)
+    const deleted = await addExpense('Deleted', 500, 'deleted')
+    await old.query("update expenses set updated_by = $1 where id = $2", [priya, deleted])
+    await old.query('insert into expense_photos (id, expense_id, position, mime_type, size_bytes, updated_by) values ($1, $2, 0, $3, 9, $4)', [photo, edited, 'image/png', omkar])
+    // Two edits of one expense: 1000 to 2000 to 3000 (its description is as after the last).
+    const beforeOf = (amountMinor: number, description: string) => ({
+      description, category: 'general', amountMinor, currency: 'INR', date: '2026-10-08', notes: 'Card', method: 'equal',
+      shares: [], photos: [],
+    })
+    await old.query(
+      "insert into expense_revisions (expense_id, edited_by, edited_at, before, changes, updated_by, updated_at) values ($1, $2, '2026-10-11T08:00:00Z', $3, $4, $2, '2026-10-11T08:00:00Z'), ($1, $5, '2026-10-12T08:00:00Z', $6, $7, $5, '2026-10-12T08:00:00Z')",
+      [edited, omkar, JSON.stringify(beforeOf(1000, 'Edited first')), JSON.stringify([{ field: 'amount', from: 1000, to: 2000 }]), priya, JSON.stringify(beforeOf(2000, 'Edited second')), JSON.stringify([{ field: 'amount', from: 2000, to: 3000 }])],
+    )
+
+    await runMigrations(old, all)
+
+    const { rows } = await old.query<{ expense_id: string; kind: string; acted_by: string; occurred_at: Date; snapshot: Record<string, unknown>; changes: unknown[] }>(
+      'select expense_id, kind, acted_by, occurred_at, snapshot, changes from expense_events order by occurred_at, kind',
+    )
+    const of = (id: string) => rows.filter((row) => row.expense_id === id).map((row) => [row.kind, row.acted_by === omkar ? 'omkar' : 'priya', row.occurred_at.toISOString(), (row.snapshot as { amountMinor: number }).amountMinor])
+    expect(of(plain)).toEqual([['added', 'omkar', '2026-10-10T10:00:00.000Z', 1000]])
+    // Added: the first revision's "before" (1000); edits: the next "before" (2000), then the expense as it is now (3000).
+    expect(of(edited)).toEqual([
+      ['added', 'omkar', '2026-10-10T10:00:00.000Z', 1000],
+      ['edited', 'omkar', '2026-10-11T08:00:00.000Z', 2000],
+      ['edited', 'priya', '2026-10-12T08:00:00.000Z', 3000],
+    ])
+    expect(rows.filter((row) => row.expense_id === edited && row.kind === 'edited').map((row) => row.changes)).toEqual([
+      [{ field: 'amount', from: 1000, to: 2000 }],
+      [{ field: 'amount', from: 2000, to: 3000 }],
+    ])
+    // A deleted expense: added, then deleted by whoever last changed it, when it was deleted.
+    expect(of(deleted)).toEqual([
+      ['added', 'omkar', '2026-10-10T10:00:00.000Z', 500],
+      ['deleted', 'priya', '2026-10-12T09:00:00.000Z', 500],
+    ])
+    // The expense as it is now is built from the expense, its shares and its photos.
+    const [now] = rows.filter((row) => row.expense_id === edited && row.kind === 'edited').slice(-1)
+    expect(now.snapshot).toMatchObject({
+      description: 'Edited now',
+      category: 'general',
+      currency: 'INR',
+      date: '2026-10-08',
+      notes: 'Card',
+      method: 'equal',
+      photos: [{ id: photo, position: 0, mimeType: 'image/png', sizeBytes: 9 }],
+    })
+    expect((now.snapshot as { shares: unknown[] }).shares).toEqual(
+      expect.arrayContaining([
+        { personId: omkar, paidMinor: 3000, owedMinor: 1500, inputValue: 1 },
+        { personId: priya, paidMinor: 0, owedMinor: 1500, inputValue: 1 },
+      ]),
+    )
     await old.close()
   })
 })

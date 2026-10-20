@@ -15,12 +15,13 @@ import {
 } from 'drizzle-orm/pg-core'
 import {
   EXPENSE_DESCRIPTION_MAX_LENGTH,
+  EXPENSE_EVENT_KINDS,
   EXPENSE_NOTES_MAX_LENGTH,
   GROUP_NAME_MAX_LENGTH,
   GROUP_TYPES,
   SPLIT_METHODS,
 } from './constants.ts'
-import type { ExpenseChange, ExpenseSnapshot, GroupType, SplitMethod } from './types.ts'
+import type { ExpenseChange, ExpenseEventKind, ExpenseSnapshot, GroupType, SplitMethod } from './types.ts'
 
 /**
  * Columns every synced table has: a UUID primary key (never auto-increment, so
@@ -221,6 +222,10 @@ export const expensePhotos = pgTable(
 )
 
 /**
+ * Legacy (ADR-042): the edit history before expense events replaced it. Nothing
+ * reads or writes it any more; it stays defined so that `drizzle-kit` does not
+ * generate a DROP TABLE by itself, until a migration drops it on purpose.
+ *
  * The history of an expense: one row each time someone saved an edit that
  * changed something. It is only ever inserted, never updated or deleted, so
  * `updated_at` equals `edited_at` and `deleted_at` stays null. The expense
@@ -244,4 +249,42 @@ export const expenseRevisions = pgTable(
     changes: jsonb('changes').$type<ExpenseChange[]>().notNull(),
   },
   (table) => [index('expense_revisions_expense_idx').on(table.expenseId)],
+)
+
+/**
+ * Everything that happens to an expense, one row per event: it was added,
+ * edited, deleted or restored (ADR-042). Only ever inserted, never updated or
+ * deleted, so `updated_at` equals `occurred_at` and `deleted_at` stays null.
+ * The expense itself holds the current state; the events are its whole
+ * history, and the source of the Activity page. `group_id` and `kind` let
+ * events of groups join the same feed later.
+ */
+export const expenseEvents = pgTable(
+  'expense_events',
+  {
+    ...syncColumns(),
+    groupId: uuid('group_id')
+      .notNull()
+      .references(() => groups.id),
+    expenseId: uuid('expense_id')
+      .notNull()
+      .references(() => expenses.id),
+    kind: text('kind').$type<ExpenseEventKind>().notNull(),
+    actedBy: uuid('acted_by')
+      .notNull()
+      .references(() => people.id),
+    occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull(),
+    /** The whole expense as it is right after this event. */
+    snapshot: jsonb('snapshot').$type<ExpenseSnapshot>().notNull(),
+    /** What an 'edited' event changed, with old and new values; empty for the other kinds. */
+    changes: jsonb('changes').$type<ExpenseChange[]>().notNull().default([]),
+  },
+  (table) => [
+    check(
+      'expense_events_kind',
+      sql`${table.kind} in (${sql.raw(EXPENSE_EVENT_KINDS.map((kind) => `'${kind}'`).join(', '))})`,
+    ),
+    index('expense_events_expense_idx').on(table.expenseId, table.occurredAt),
+    index('expense_events_group_idx').on(table.groupId, table.occurredAt),
+  ],
 )

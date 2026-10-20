@@ -5,9 +5,10 @@ import userEvent from '@testing-library/user-event'
 import { eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getDb } from '../../../db/client.ts'
-import { expenseRevisions, expenseShares, expenses, people } from '../../../db/schema.ts'
+import { expenseEvents, expenseShares, expenses, people } from '../../../db/schema.ts'
 import { ROUTES } from '../../../routes.ts'
 import { useAuthStore } from '../../../stores/useAuthStore'
+import { personIdOf } from '../../../testing/expenses.ts'
 import { amountInput, descriptionInput, me, named, notesInput, saveButton, sentence, setUpEditExpenseTests } from './helpers.tsx'
 
 // Pages reach the database through `getDb`; point it at the in-memory one.
@@ -20,6 +21,12 @@ vi.mock('../../../db/client.ts', async (importOriginal) => {
 })
 
 const { testDb, createGroup, addExpense, renderEdit } = setUpEditExpenseTests()
+
+/** The edit events of the expenses saved so far, oldest first. */
+async function editEvents() {
+  const rows = await testDb.db.select().from(expenseEvents).where(eq(expenseEvents.kind, 'edited'))
+  return rows.toSorted((a, b) => a.occurredAt.getTime() - b.occurredAt.getTime())
+}
 
 describe('EditExpensePage', () => {
   let user: ReturnType<typeof userEvent.setup>
@@ -139,7 +146,7 @@ describe('EditExpensePage', () => {
       expect(shares).toEqual({ omkar: [2450, 818, 1], priya: [0, 816, 1], sam: [0, 816, 1] })
     })
 
-    it('stores one revision with the old values and what changed', async () => {
+    it('records one edit event with who, when, what changed and the expense as it is after', async () => {
       const id = await createGroup()
       const expenseId = await addExpense(id)
       await open(id, expenseId)
@@ -149,11 +156,12 @@ describe('EditExpensePage', () => {
       await user.click(saveButton())
       await screen.findByText('Expense updated.')
 
-      const revisions = await testDb.db.select().from(expenseRevisions)
-      expect(revisions).toHaveLength(1)
-      expect(revisions[0].before).toMatchObject({ description: 'Beach shack dinner', amountMinor: 900, notes: 'Card' })
-      expect(revisions[0].changes).toEqual([{ field: 'description', from: 'Beach shack dinner', to: 'Lunch' }])
-      expect(revisions[0].editedAt).toEqual(new Date(2026, 9, 20, 12, 0))
+      const events = await editEvents()
+      expect(events).toHaveLength(1)
+      expect(events[0].snapshot).toMatchObject({ description: 'Lunch', amountMinor: 900, notes: 'Card' })
+      expect(events[0].changes).toEqual([{ field: 'description', from: 'Beach shack dinner', to: 'Lunch' }])
+      expect(events[0].occurredAt).toEqual(new Date(2026, 9, 20, 12, 0))
+      expect(events[0].actedBy).toBe(await personIdOf(testDb.db, me.email))
     })
 
     it('changes who paid and how it is split', async () => {
@@ -169,7 +177,7 @@ describe('EditExpensePage', () => {
 
       await screen.findByText('Expense updated.')
       expect((await saved(expenseId)).shares).toEqual({ omkar: [0, 300, 1], priya: [900, 300, 1], sam: [0, 300, 1] })
-      const [revision] = await testDb.db.select().from(expenseRevisions)
+      const [revision] = await editEvents()
       expect(revision.changes.map((change) => change.field)).toEqual(['paidBy'])
     })
 
@@ -184,12 +192,12 @@ describe('EditExpensePage', () => {
 
       await waitFor(() => expect(page.currentPath()).toBe(ROUTES.expense(id, expenseId)))
       expect(screen.queryByText('Expense updated.')).not.toBeInTheDocument()
-      expect(await testDb.db.select().from(expenseRevisions)).toEqual([])
+      expect(await editEvents()).toEqual([])
       const [after] = await testDb.db.select().from(expenses).where(eq(expenses.id, expenseId))
       expect(after.updatedAt).toEqual(before.updatedAt)
     })
 
-    it('edits the same expense again and again, each edit keeping its own revision', async () => {
+    it('edits the same expense again and again, each edit keeping its own event', async () => {
       const id = await createGroup()
       const expenseId = await addExpense(id)
 
@@ -203,8 +211,8 @@ describe('EditExpensePage', () => {
         cleanup()
       }
 
-      const revisions = await testDb.db.select().from(expenseRevisions).orderBy(expenseRevisions.editedAt, expenseRevisions.id)
-      expect(revisions.map((revision) => revision.before.description).toSorted()).toEqual(['Beach shack dinner', 'Brunch', 'Lunch'])
+      const events = await editEvents()
+      expect(events.map((event) => event.snapshot.description).toSorted()).toEqual(['Brunch', 'Lunch', 'Tea'])
       await open(id, expenseId)
       expect(descriptionInput()).toHaveValue('Tea')
     })
@@ -222,7 +230,7 @@ describe('EditExpensePage', () => {
       expect(await within(field(descriptionInput())).findByText('Enter a description.')).toBeInTheDocument()
       expect(within(field(amountInput())).getByText('Enter an amount.')).toBeInTheDocument()
       expect(notesInput()).toHaveValue('Card')
-      expect(await testDb.db.select().from(expenseRevisions)).toEqual([])
+      expect(await editEvents()).toEqual([])
       expect((await saved(expenseId)).expense.description).toBe('Beach shack dinner')
 
       // A message goes as soon as its field is edited.
@@ -245,7 +253,7 @@ describe('EditExpensePage', () => {
       expect(await screen.findByText('The split no longer adds up.')).toBeInTheDocument()
       await user.click(saveButton())
       await waitFor(() => expect(screen.getAllByText('The split no longer adds up.').length).toBeGreaterThan(0))
-      expect(await testDb.db.select().from(expenseRevisions)).toEqual([])
+      expect(await editEvents()).toEqual([])
     })
 
     it('says so and keeps what was typed when saving fails', async () => {

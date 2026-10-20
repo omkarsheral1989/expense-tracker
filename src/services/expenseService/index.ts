@@ -2,16 +2,17 @@ import { and, asc, desc, eq, inArray, isNull, max, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import { displayName } from '../groupService/utils.ts'
 import type { Database } from '../../db/client.ts'
+import { EXPENSE_EVENT_KINDS } from '../../db/constants.ts'
 import {
   expensePhotos,
-  expenseRevisions,
+  expenseEvents,
   expenseShares,
   expenses,
   groupMembers,
   groups,
   people,
 } from '../../db/schema.ts'
-import type { ExpenseSnapshot } from '../../db/types.ts'
+import type { ExpenseChange, ExpenseEventKind, ExpenseSnapshot } from '../../db/types.ts'
 import {
   CATEGORY_GROUPS,
   DEFAULT_CATEGORY,
@@ -29,10 +30,12 @@ import type {
   CurrencyBalance,
   DeleteExpenseResult,
   ExpenseDetails,
+  ExpenseHistoryEntry,
   ExpenseListItem,
   ExpensePayer,
   ExpenseToEdit,
   PersonBalance,
+  RestoreExpenseResult,
   UpdateExpenseInput,
   UpdateExpenseResult,
 } from './types.ts'
@@ -149,6 +152,24 @@ export const expenseService = {
           })),
         )
       }
+      await recordEvent(tx, {
+        groupId,
+        expenseId: id,
+        kind: 'added',
+        userId,
+        at: updatedAt,
+        snapshot: {
+          description,
+          category,
+          amountMinor: parsed.data.amountMinor,
+          currency,
+          date,
+          notes,
+          method: split.method,
+          shares: result.shares,
+          photos: receipts.map((receipt, position) => ({ ...receipt, position })),
+        },
+      })
       return { ok: true, expenseId: id }
     })
   },
@@ -399,25 +420,35 @@ export const expenseService = {
       .where(and(eq(expensePhotos.expenseId, expenseId), isNull(expensePhotos.deletedAt)))
       .orderBy(asc(expensePhotos.position), asc(expensePhotos.id))
 
-    const revisions = await db
+    const events = await db
       .select({
-        editedAt: expenseRevisions.editedAt,
-        editorId: expenseRevisions.editedBy,
-        editorEmail: people.email,
-        editorName: people.name,
-        changes: expenseRevisions.changes,
-        before: expenseRevisions.before,
+        kind: expenseEvents.kind,
+        occurredAt: expenseEvents.occurredAt,
+        actorId: expenseEvents.actedBy,
+        actorEmail: people.email,
+        actorName: people.name,
+        changes: expenseEvents.changes,
+        snapshot: expenseEvents.snapshot,
       })
-      .from(expenseRevisions)
-      .innerJoin(people, eq(people.id, expenseRevisions.editedBy))
-      .where(eq(expenseRevisions.expenseId, expenseId))
-      .orderBy(desc(expenseRevisions.editedAt), desc(expenseRevisions.id))
-    const history = revisions.map((revision) => ({
-      by: { email: revision.editorEmail, name: revision.editorName, isYou: revision.editorId === userId },
-      at: revision.editedAt,
-      changes: revision.changes,
-      currencyBefore: revision.before.currency,
-    }))
+      .from(expenseEvents)
+      .innerJoin(people, eq(people.id, expenseEvents.actedBy))
+      .where(eq(expenseEvents.expenseId, expenseId))
+    // Newest first; events at the same moment keep the order things happen in.
+    const history: ExpenseHistoryEntry[] = events
+      .toSorted(
+        (a, b) =>
+          b.occurredAt.getTime() - a.occurredAt.getTime() ||
+          EXPENSE_EVENT_KINDS.indexOf(b.kind) - EXPENSE_EVENT_KINDS.indexOf(a.kind),
+      )
+      .map((event) => ({
+        kind: event.kind,
+        by: { email: event.actorEmail, name: event.actorName, isYou: event.actorId === userId },
+        at: event.occurredAt,
+        changes: event.changes,
+        // What an edit changed the currency from, if it did; otherwise the one it has.
+        currencyBefore: String(event.changes.find((change) => change.field === 'currency')?.from ?? event.snapshot.currency),
+      }))
+    const lastEdit = history.find((entry) => entry.kind === 'edited')
 
     // Everyone a change refers to: who paid, and who was in a split.
     const referred = new Set<string>()
@@ -450,7 +481,7 @@ export const expenseService = {
       createdBy: { email: createdByEmail, name: createdByName, isYou: createdById === userId },
       shares,
       receipts,
-      lastEdit: history[0] ? { by: history[0].by, at: history[0].at } : null,
+      lastEdit: lastEdit ? { by: lastEdit.by, at: lastEdit.at } : null,
       history,
       people: Object.fromEntries(
         referredPeople.map((person) => [person.id, { email: person.email, name: person.name, isYou: person.id === userId }]),
@@ -556,15 +587,7 @@ export const expenseService = {
       if (changes.length === 0) return { ok: true, changed: false }
 
       const editedAt = new Date()
-      await tx.insert(expenseRevisions).values({
-        expenseId,
-        editedBy: userId,
-        editedAt,
-        before,
-        changes,
-        updatedBy: userId,
-        updatedAt: editedAt,
-      })
+      await recordEvent(tx, { groupId, expenseId, kind: 'edited', userId, at: editedAt, snapshot: after, changes })
       await tx
         .update(expenses)
         .set({
@@ -680,7 +703,58 @@ export const expenseService = {
         .set({ deletedAt, updatedAt: deletedAt, updatedBy: userId })
         .where(and(eq(expenses.id, expenseId), eq(expenses.groupId, groupId), isNull(expenses.deletedAt)))
         .returning({ id: expenses.id })
-      return deleted.length > 0 ? { ok: true } : { ok: false, notFound: true }
+      if (deleted.length === 0) return { ok: false, notFound: true }
+
+      const stored = await loadSnapshot(tx, groupId, expenseId)
+      if (stored) {
+        await recordEvent(tx, { groupId, expenseId, kind: 'deleted', userId, at: deletedAt, snapshot: stored.snapshot })
+      }
+      return { ok: true }
+    })
+  },
+
+  /**
+   * Brings a deleted expense (or payment) back, exactly as it was: its
+   * `deleted_at` is cleared, it counts in the balances and the edit page again,
+   * and the group counts as changed. A `restored` event is recorded. A user
+   * who cannot see the expense (unknown or malformed id, another group's, not
+   * a member) gets `{ ok: false, notFound: true }`; an expense that is not
+   * deleted (for example restored by someone else a moment ago) gets
+   * `{ ok: false, notDeleted: true }`.
+   */
+  async restoreExpense(
+    db: Database,
+    userId: string,
+    groupId: string,
+    expenseId: string,
+  ): Promise<RestoreExpenseResult> {
+    if (!UUID.test(groupId) || !UUID.test(expenseId)) return { ok: false, notFound: true }
+
+    return db.transaction(async (tx): Promise<RestoreExpenseResult> => {
+      const [membership] = await tx
+        .select({ id: groupMembers.id })
+        .from(groupMembers)
+        .innerJoin(groups, and(eq(groups.id, groupMembers.groupId), isNull(groups.deletedAt)))
+        .where(
+          and(
+            eq(groupMembers.groupId, groupId),
+            eq(groupMembers.personId, userId),
+            isNull(groupMembers.deletedAt),
+          ),
+        )
+      if (!membership) return { ok: false, notFound: true }
+
+      const stored = await loadSnapshot(tx, groupId, expenseId)
+      if (!stored) return { ok: false, notFound: true }
+      if (stored.expense.deletedAt === null) return { ok: false, notDeleted: true }
+
+      const restoredAt = new Date()
+      await tx
+        .update(expenses)
+        .set({ deletedAt: null, updatedAt: restoredAt, updatedBy: userId })
+        .where(eq(expenses.id, expenseId))
+      await recordEvent(tx, { groupId, expenseId, kind: 'restored', userId, at: restoredAt, snapshot: stored.snapshot })
+      return { ok: true }
     })
   },
 
@@ -796,30 +870,20 @@ export const expenseService = {
   },
 }
 
-/**
- * Reads what an edit needs inside a transaction: the group's live members, and
- * the expense as it is stored, when the user is a live member of the group and
- * the expense is live, in that group and not a payment. Null otherwise.
- */
-async function loadEditable(
-  tx: Pick<Database, 'select'>,
-  userId: string,
-  groupId: string,
-  expenseId: string,
-) {
-  const members = await tx
-    .select({ personId: groupMembers.personId })
-    .from(groupMembers)
-    .innerJoin(groups, and(eq(groups.id, groupMembers.groupId), isNull(groups.deletedAt)))
-    .where(and(eq(groupMembers.groupId, groupId), isNull(groupMembers.deletedAt)))
-  const memberIds = members.map((member) => member.personId)
-  if (!memberIds.includes(userId)) return null
+/** What the helpers below need of a database or a transaction. */
+type Reader = Pick<Database, 'select'>
+type Writer = Pick<Database, 'select' | 'insert'>
 
+/**
+ * The expense as it is stored now, with its live shares and photos, whether or
+ * not the expense is deleted. Null when there is no such expense in that group.
+ */
+async function loadSnapshot(tx: Reader, groupId: string, expenseId: string) {
   const [expense] = await tx
     .select()
     .from(expenses)
-    .where(and(eq(expenses.id, expenseId), eq(expenses.groupId, groupId), isNull(expenses.deletedAt)))
-  if (!expense || expense.category === SETTLEMENT_CATEGORY) return null
+    .where(and(eq(expenses.id, expenseId), eq(expenses.groupId, groupId)))
+  if (!expense) return null
 
   const shares = await tx
     .select()
@@ -852,5 +916,53 @@ async function loadEditable(
       sizeBytes: photo.sizeBytes,
     })),
   }
-  return { expense, snapshot, memberIds }
+  return { expense, snapshot }
+}
+
+/**
+ * Records one event of an expense (ADR-042): who, when, the expense as it is
+ * right after it and, for an edit, what changed. Events are only ever inserted.
+ */
+async function recordEvent(
+  tx: Writer,
+  event: {
+    groupId: string
+    expenseId: string
+    kind: ExpenseEventKind
+    userId: string
+    at: Date
+    snapshot: ExpenseSnapshot
+    changes?: ExpenseChange[]
+  },
+) {
+  await tx.insert(expenseEvents).values({
+    groupId: event.groupId,
+    expenseId: event.expenseId,
+    kind: event.kind,
+    actedBy: event.userId,
+    occurredAt: event.at,
+    snapshot: event.snapshot,
+    changes: event.changes ?? [],
+    updatedBy: event.userId,
+    updatedAt: event.at,
+  })
+}
+
+/**
+ * Reads what an edit needs inside a transaction: the group's live members, and
+ * the expense as it is stored, when the user is a live member of the group and
+ * the expense is live, in that group and not a payment. Null otherwise.
+ */
+async function loadEditable(tx: Reader, userId: string, groupId: string, expenseId: string) {
+  const members = await tx
+    .select({ personId: groupMembers.personId })
+    .from(groupMembers)
+    .innerJoin(groups, and(eq(groups.id, groupMembers.groupId), isNull(groups.deletedAt)))
+    .where(and(eq(groupMembers.groupId, groupId), isNull(groupMembers.deletedAt)))
+  const memberIds = members.map((member) => member.personId)
+  if (!memberIds.includes(userId)) return null
+
+  const stored = await loadSnapshot(tx, groupId, expenseId)
+  if (!stored || stored.expense.deletedAt !== null || stored.expense.category === SETTLEMENT_CATEGORY) return null
+  return { ...stored, memberIds }
 }

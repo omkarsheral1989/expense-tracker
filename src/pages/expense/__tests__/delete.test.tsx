@@ -235,6 +235,30 @@ describe('ExpensePage: deleting', () => {
       expect(page.currentPath()).toBe(ROUTES.group(id))
     })
 
+    it('is titled "Deleted expense", or "Deleted payment" for a payment, and a live one has no such title', async () => {
+      const id = await createGroup()
+      const expenseId = await addExpense(id)
+      const payment = await addTestSettlement(testDb.db, me.email, 'priya@gmail.com', id)
+
+      renderExpense(id, expenseId)
+      await screen.findByRole('heading', { name: 'Beach shack dinner' })
+      expect(screen.queryByRole('heading', { name: /^Deleted / })).not.toBeInTheDocument()
+      cleanup()
+
+      await remove(me.email, id, expenseId)
+      await remove(me.email, id, payment)
+      renderExpense(id, expenseId)
+      const title = await screen.findByRole('heading', { name: 'Deleted expense' })
+      // It sits beside Back, in the header row, above the expense's own title.
+      expect(title.parentElement).toContainElement(screen.getByRole('button', { name: 'Back' }))
+      expect(screen.getByRole('heading', { name: 'Beach shack dinner' })).toBeInTheDocument()
+      cleanup()
+
+      renderExpense(id, payment)
+      expect(await screen.findByRole('heading', { name: 'Deleted payment' })).toBeInTheDocument()
+      expect(screen.getByRole('heading', { name: 'You paid Priya' })).toBeInTheDocument()
+    })
+
     it('names someone else who deleted it', async () => {
       const id = await createGroup()
       const expenseId = await addExpense(id)

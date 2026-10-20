@@ -645,7 +645,7 @@ describe('getExpense', () => {
       lastEdit: null,
       deleted: null,
       createdAt: expect.any(Date),
-      history: [],
+      history: [expect.objectContaining({ kind: 'added' })],
       people: {},
     })
   })

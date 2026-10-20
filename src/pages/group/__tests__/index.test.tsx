@@ -560,6 +560,23 @@ describe('GroupPage', () => {
         expect(rows[1]).toBe("Oct | 8 | You deleted 'First' (£30.00)")
       })
 
+      it('is a normal row again, in its own place, once it is restored, and counts towards the balance', async () => {
+        const id = await createGroup(me, { name: 'Goa trip', memberEmails: ['priya@gmail.com'] })
+        await addExpense(me.email, id, { description: 'Taxi', date: '2026-10-08', amountMinor: 1000 })
+        const back = await addExpense(me.email, id, { description: 'Dinner', date: '2026-10-05' })
+        await remove(me.email, id, back)
+        await expenseService.restoreExpense(testDb.db, await personIdOf(testDb.db, me.email), id, back)
+        renderGroup(id)
+
+        expect(await expenseRows()).toEqual([
+          'Oct | 8 | Taxi | You paid £10.00 | you lent | £5.00',
+          'Oct | 5 | Dinner | You paid £30.00 | you lent | £15.00',
+        ])
+        expect(screen.queryByRole('img', { name: 'Deleted' })).not.toBeInTheDocument()
+        expect(screen.queryByText(/You deleted/)).not.toBeInTheDocument()
+        expect(await screen.findByText(/Priya owes you/)).toBeInTheDocument()
+      })
+
       it('opens the deleted expense when its line is tapped', async () => {
         const id = await createGroup(me, { name: 'Goa trip' })
         const gone = await addExpense(me.email, id)

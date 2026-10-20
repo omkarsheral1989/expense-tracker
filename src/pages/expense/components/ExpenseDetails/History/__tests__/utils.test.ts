@@ -11,7 +11,7 @@ const people: Record<string, ExpensePerson> = {
 
 /** One edit by you, in INR unless said otherwise, with the changes given. */
 function entry(changes: ExpenseChange[], currencyBefore = 'INR'): ExpenseHistoryEntry {
-  return { by: people.me, at: new Date(2026, 9, 20, 18, 15), changes, currencyBefore }
+  return { kind: 'edited', by: people.me, at: new Date(2026, 9, 20, 18, 15), changes, currencyBefore }
 }
 
 const lines = (changes: ExpenseChange[], currencyBefore?: string) =>

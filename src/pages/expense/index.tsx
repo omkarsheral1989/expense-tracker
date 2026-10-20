@@ -25,6 +25,8 @@ export function ExpensePage() {
   const { state, retry } = useAsyncData(
     async () => expenseService.getExpense(await getDb(), userId, id, expenseId),
     `${userId}:${id}:${expenseId}`,
+    // After a restoration the page reads the expense again, and meanwhile keeps showing it.
+    { keepPrevious: true },
   )
 
   // Visitors who are not in the app are sent away by `RequireAuth` before this matters.
@@ -53,7 +55,7 @@ export function ExpensePage() {
         )
       case 'ready':
         return state.data ? (
-          <ExpenseDetails expense={state.data} datasetId={datasetId} userId={userId} />
+          <ExpenseDetails expense={state.data} datasetId={datasetId} userId={userId} onChanged={retry} />
         ) : (
           <ExpenseNotFound groupId={id} />
         )

@@ -5,7 +5,7 @@ import userEvent from '@testing-library/user-event'
 import { and, asc, eq, isNull } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getDb } from '../../../db/client.ts'
-import { expensePhotos, expenseRevisions } from '../../../db/schema.ts'
+import { expenseEvents, expensePhotos } from '../../../db/schema.ts'
 import { ROUTES } from '../../../routes.ts'
 import { expenseService } from '../../../services/expenseService'
 import { photoService } from '../../../services/photoService'
@@ -28,6 +28,12 @@ vi.mock('../../../db/client.ts', async (importOriginal) => {
 
 const me = { id: '1', email: 'omkar@gmail.com', name: 'Omkar Sheral' }
 const testDb = setUpTestDatabase()
+
+/** The edit events of the expenses saved so far, oldest first. */
+async function editEvents() {
+  const rows = await testDb.db.select().from(expenseEvents).where(eq(expenseEvents.kind, 'edited'))
+  return rows.toSorted((a, b) => a.occurredAt.getTime() - b.occurredAt.getTime())
+}
 
 const photo = (name: string, type = 'image/jpeg') => new File([`picture ${name}`], name, { type })
 const chooser = () => screen.getByTestId('receipt-chooser') as HTMLInputElement
@@ -151,7 +157,7 @@ describe('EditExpensePage: receipt photos', () => {
     const deleted = await testDb.db.select().from(expensePhotos).where(eq(expensePhotos.expenseId, expenseId))
     expect(deleted.every((row) => row.deletedAt === null)).toBe(true)
     // Nothing about the photos changed, so the history does not mention them.
-    const [revision] = await testDb.db.select().from(expenseRevisions)
+    const [revision] = await editEvents()
     expect(revision.changes.map((change) => change.field)).toEqual(['description'])
   })
 
@@ -218,8 +224,9 @@ describe('EditExpensePage: receipt photos', () => {
     await screen.findByRole('img', { name: 'Receipt photo 2' })
     expect(removeButtons()).toHaveLength(2)
 
-    const revisions = await testDb.db.select().from(expenseRevisions).orderBy(asc(expenseRevisions.editedAt))
-    expect(revisions.map((revision) => revision.before.photos.map((row) => row.id))).toEqual([[a.id], [a.id, b], [a.id, b, c]])
+    const revisions = await editEvents()
+    // Each edit's event holds the photos the expense had right after it.
+    expect(revisions.map((revision) => revision.snapshot.photos.map((row) => row.id))).toEqual([[a.id, b], [a.id, b, c], [b, c]])
     expect(revisions.map((revision) => revision.changes.map((change) => change.field))).toEqual([
       ['receipts'],
       ['notes', 'receipts'],
@@ -254,7 +261,7 @@ describe('EditExpensePage: receipt photos', () => {
     expect(await store().getPhoto(removedIds[0])).toBeNull()
     expect(await store().getPhoto(receipts[0].id)).not.toBeNull()
     expect(await livePhotoIds(groupId, expenseId)).toEqual([receipts[0].id])
-    expect(await testDb.db.select().from(expenseRevisions)).toEqual([])
+    expect(await editEvents()).toEqual([])
     // The form still shows both photos, so the user can fix the description and try again.
     expect(removeButtons()).toHaveLength(2)
   })
@@ -328,7 +335,7 @@ describe('EditExpensePage: receipt photos', () => {
     await saveAndWaitForDetails(page, groupId, expenseId)
 
     expect(await livePhotoIds(groupId, expenseId)).toEqual(receipts.map((receipt) => receipt.id))
-    expect(await testDb.db.select().from(expenseRevisions)).toEqual([])
+    expect(await editEvents()).toEqual([])
     expect(screen.queryByText('Expense updated.')).not.toBeInTheDocument()
   })
 
