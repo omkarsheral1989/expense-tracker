@@ -588,6 +588,9 @@ describe('getExpense', () => {
       ],
       receipts: [],
       lastEdit: null,
+      createdAt: expect.any(Date),
+      history: [],
+      people: {},
     })
   })
 

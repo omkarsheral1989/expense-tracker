@@ -36,6 +36,12 @@ function formatMonth(day: string): string {
   return `${FULL_MONTH_NAMES[date.getMonth()]} ${date.getFullYear()}`
 }
 
+/** A day written plainly, without a weekday: "5 Oct 2026". */
+function formatDate(day: string): string {
+  const date = fromDay(day)
+  return `${date.getDate()} ${MONTH_NAMES[date.getMonth()]} ${date.getFullYear()}`
+}
+
 /**
  * A moment as "20 Oct 2026, 3:45 pm": the day written as elsewhere in the app,
  * the time in the language and clock style of `locale` (a 24-hour clock where
@@ -53,5 +59,6 @@ export const dateService = {
   fromDay,
   formatDay,
   formatMonth,
+  formatDate,
   formatDateTime,
 }

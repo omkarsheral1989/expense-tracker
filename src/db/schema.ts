@@ -141,6 +141,8 @@ export const expenses = pgTable(
     createdBy: uuid('created_by')
       .notNull()
       .references(() => people.id),
+    /** When the expense was added; set once, never changed by an edit. */
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     check(

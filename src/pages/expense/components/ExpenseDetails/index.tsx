@@ -9,6 +9,7 @@ import { expenseService } from '../../../../services/expenseService'
 import type { ExpenseDetails, ExpenseShareDetails } from '../../../../services/expenseService/types.ts'
 import { moneyService } from '../../../../services/moneyService'
 import { SPLIT_METHOD_LABELS } from './content.ts'
+import { History } from './History'
 import { ReceiptGallery } from './ReceiptGallery'
 import { displayName, owedSentence, paidSentence } from './utils.ts'
 
@@ -174,6 +175,7 @@ export function ExpenseDetails({ expense, datasetId }: Props) {
       {renderSplit()}
       {renderNotes()}
       {renderReceipts()}
+      <History expense={expense} />
     </>
   )
 }

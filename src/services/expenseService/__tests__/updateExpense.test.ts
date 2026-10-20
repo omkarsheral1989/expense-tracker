@@ -425,6 +425,71 @@ describe('expenseService.getExpense: last edit', () => {
   })
 })
 
+describe('expenseService.getExpense: created time and history', () => {
+  it('has the time it was added, which an edit does not change', async () => {
+    const groupId = await createGroup(omkar, [priya.email])
+    const before = new Date()
+    const expenseId = await addTestExpense(db, omkar.email, groupId, dinner)
+    const after = new Date()
+    const omkarId = await personIdOf(db, omkar.email)
+
+    const added = (await expenseService.getExpense(db, omkarId, groupId, expenseId))?.createdAt
+    expect(added?.getTime()).toBeGreaterThanOrEqual(before.getTime())
+    expect(added?.getTime()).toBeLessThanOrEqual(after.getTime())
+
+    await edit(omkar.email, expenseId, groupId, { description: 'Lunch' })
+
+    expect((await expenseService.getExpense(db, omkarId, groupId, expenseId))?.createdAt).toEqual(added)
+  })
+
+  it('has no history for an expense that was never edited', async () => {
+    const groupId = await createGroup(omkar, [priya.email])
+    const expenseId = await addTestExpense(db, omkar.email, groupId, dinner)
+
+    const details = await expenseService.getExpense(db, await personIdOf(db, omkar.email), groupId, expenseId)
+
+    expect(details?.history).toEqual([])
+    expect(details?.people).toEqual({})
+  })
+
+  it('lists every edit newest first, with who, when, what changed and the currency before', async () => {
+    const groupId = await createGroup(omkar, [priya.email, sam.email])
+    const [omkarId, priyaId, samId] = await Promise.all([omkar, priya, sam].map((user) => personIdOf(db, user.email)))
+    const expenseId = await addTestExpense(db, omkar.email, groupId, dinner)
+
+    await edit(omkar.email, expenseId, groupId, { currency: 'GBP', amountMinor: 2000 })
+    await edit(priya.email, expenseId, groupId, {
+      paidBy: priyaId,
+      split: { method: 'percent', values: { [omkarId]: 50, [priyaId]: 30, [samId]: 20 } },
+    })
+
+    const asOmkar = await expenseService.getExpense(db, omkarId, groupId, expenseId)
+    expect(asOmkar?.history).toHaveLength(2)
+    const [latest, first] = asOmkar?.history ?? []
+    expect(latest.by).toEqual({ email: priya.email, name: null, isYou: false })
+    expect(latest.currencyBefore).toBe('GBP')
+    expect(latest.changes.map((change) => change.field)).toEqual(['paidBy', 'split'])
+    expect(latest.at.getTime()).toBeGreaterThanOrEqual(first.at.getTime())
+    expect(first.by).toEqual({ email: omkar.email, name: 'Omkar', isYou: true })
+    expect(first.currencyBefore).toBe('INR')
+    expect(first.changes).toEqual([
+      { field: 'amount', from: 1000, to: 2000 },
+      { field: 'currency', from: 'INR', to: 'GBP' },
+    ])
+
+    // Everyone the changes mention, named for whoever reads them.
+    expect(asOmkar?.people).toEqual({
+      [omkarId]: { email: omkar.email, name: 'Omkar', isYou: true },
+      [priyaId]: { email: priya.email, name: null, isYou: false },
+      [samId]: { email: sam.email, name: null, isYou: false },
+    })
+    const asPriya = await expenseService.getExpense(db, priyaId, groupId, expenseId)
+    expect(asPriya?.people[priyaId].isYou).toBe(true)
+    expect(asPriya?.history[1].by.isYou).toBe(false)
+    expect(asPriya?.history[0].by.isYou).toBe(true)
+  })
+})
+
 /** Saves a person who is not in any group yet and returns their id. */
 async function createPerson(user: TestUser): Promise<string> {
   await createGroup(user)

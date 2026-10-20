@@ -213,13 +213,22 @@ Route `/groups/<id>/expenses/new`, opened from the group page's "Add expense" bu
 5. Receipt photos, kept on this device (upload and download come with sync).
 
 ### 5.6 Expense details
-Route `/groups/<id>/expenses/<expenseId>`, opened by tapping an expense on the group page. A first version: it shows the expense; deleting and a page showing the edit history come later.
+Route `/groups/<id>/expenses/<expenseId>`, opened by tapping an expense on the group page. A first version: it shows the expense and its edit history; deleting comes later.
 
 - Back (to the group), an **Edit** button that opens the edit page (5.6a; switched off with "Coming soon" on a payment) and a Delete button switched off ("Coming soon").
 - The category tile, the description, the amount in large type, the category's name and the day ("Dining out · Mon, 5 Oct 2026"), "Added by you" (or the person's name) and, under it, who paid in the same grey text: "You paid £9.00" or "Priya Shah paid £9.00" (one line per payer; a payment has none, since its title says who paid whom). Once an expense has been edited, a further grey line says who edited it last and when: "Edited by you, 20 Oct 2026, 3:45 pm" ("Edited by Priya Shah, …"; the time in the device's language and clock style).
 - How it was split ("Split equally", "Split by exact amounts", "Split by percentages", "Split by shares", "Split by adjustment") and one line per person who owes something, the user first: "You owe £3.00", "Priya Shah owes £6.00". A person who owes nothing, such as a payer who is owed the full amount, has no line there.
 - The notes, keeping their line breaks, under "Notes" (left out when there are none).
 - The receipt photos under "Receipts" as thumbnails in order; tapping one shows it at full size, with the others a swipe away. A photo that is not on this device (for example added by another member and not yet synced) shows a grey square "Not on this device". Left out when there are none.
+- **History**, last on the page, after a divider and under the heading "History": shown only once the expense has been edited, newest first. Each edit is a block: a header "You edited this expense · 20 Oct 2026, 6:15 pm" ("Priya Shah edited this expense · …"; a person with no name by their email; the time in the device's language and clock style), then one line per thing that edit changed, in this order:
+  - "Description changed from 'Dinner' to 'Lunch'" and "Notes changed from 'x' to 'y'" ("Notes added: 'y'" when there were none, "Notes removed (were 'x')" when cleared). Text longer than 80 characters is cut with "…".
+  - "Category changed from Dining out to Groceries" (the category names).
+  - "Cost changed from ₹100.00 to ₹120.00"; when the currency changed too, each amount is in its own currency ("from ₹100.00 to £120.00") and there is no separate currency line; when only the currency changed, "Currency changed from INR to GBP".
+  - "Date changed from 5 Oct 2026 to 6 Oct 2026".
+  - "Paid by changed from you to Priya Shah".
+  - "Split changed from equally to by percentages" (the method names as at the top of the split section, "Split equally" read as "equally", and "Split by exact amounts" as "by exact amounts"), or, when only the numbers changed, "Split changed" followed by one nested line per person whose entered value changed, in the units of the method: "Priya Shah: 30% to 40%", "Sam: 2 shares to 1 share", "Dev Patel: ₹100.00 to ₹150.00", "Sam: in the split to not in the split", "Omkar: +₹5.00 to +₹10.00" for an adjustment. When the method itself changed, each person's line goes from the old units to the new ("Priya Shah: in the split to 40%"), for everyone whose entered value differs once both are written out. People are named as elsewhere on the page ("you" for the user).
+  - "1 photo added", "2 photos removed" (a line each when both happened).
+  The last entry, the oldest, is "You added this expense · 20 Oct 2026, 5:40 pm" (who created it and when). A payment between members has no history, since it cannot be edited.
 - An expense that does not exist, was deleted, is in another group, or is in a group the user is not in shows "Expense not found" ("It may have been deleted, or you may not be a member of its group.") with a "Back to the group" button. Loading shows grey placeholders; a failed load shows "Couldn't load this expense" with "Try again".
 
 ### 5.6a Edit expense
@@ -228,7 +237,7 @@ Route `/groups/<id>/expenses/<expenseId>/edit`, opened by the **Edit** button on
 - **Validation:** the same rules and messages as add expense, checked when Save is pressed. If the amount changes after exact amounts were entered, "The split no longer adds up" blocks Save until it is fixed.
 - **Saving:** shows "Expense updated." and returns to the details page, which shows the new values and the "Edited by" line. The expense counts as activity: its group moves to the top of the home list, and the expense keeps its date's place in the list. When nothing was changed (spaces around the description and notes do not count), Save simply goes back, with no message and nothing stored. A failure shows "Couldn't save the changes. Please try again." and keeps what was typed. An expense deleted in the meantime shows "This expense is no longer available." and goes to the group page.
 - **Leaving:** Back asks "Discard your changes?" ("What you changed will be lost.", Discard / Keep editing) once something has changed, and goes straight back otherwise; reloading or closing the tab shows the browser's own warning.
-- **History:** every save that changes something stores one revision of the expense: who edited it, when (date and time), the expense exactly as it was before (every field, the split and the list of photos) and which fields changed with their old and new values (description, category, amount, currency, date, notes, who paid, the split, receipts added or removed). Nothing is ever overwritten, so each earlier version can be shown or restored later. The page that shows the history is not built yet. A photo taken off an expense stays on the device, so an earlier version can still show it.
+- **History:** every save that changes something stores one revision of the expense: who edited it, when (date and time), the expense exactly as it was before (every field, the split and the list of photos) and which fields changed with their old and new values (description, category, amount, currency, date, notes, who paid, the split, receipts added or removed). Nothing is ever overwritten, so each earlier version can be shown or restored later. The details page shows it (5.6). A photo taken off an expense stays on the device, so an earlier version can still show it.
 - **Other states:** grey placeholders while loading, "Couldn't load this expense" with Try again, and "Expense not found" (the same message as the details page) for an expense that does not exist, was deleted, is in another group or in a group the user is not in. The tab title is "Edit expense · OwnLedger".
 
 ### 5.7 Settle up
@@ -250,7 +259,7 @@ Route `/groups/<id>/settle`, opened by the "Settle up" pill on the group page (5
 - Adding or changing a person's email later (so a member added without one can be invited), renaming a person, and how sync treats members without an email.
 - Group page: what the search button opens, how trip dates work (which group types, start and end), and what else the pill row holds (balances, totals, charts).
 - Tags on expenses.
-- Deleting expenses, editing a payment between members, restoring an earlier version, and how the edit history is shown (the page for it).
+- Deleting expenses, editing a payment between members, and restoring an earlier version (from the history on the details page).
 - Several payers for one expense ("Multiple people" is switched off for now).
 - Settle up: suggesting the amount and the person from the balance, editing or deleting a payment (with expenses, below), and simplifying debts across three or more people.
 - Budget details (personal vs group, alerts).

@@ -1,4 +1,4 @@
-import type { SplitMethod } from '../../db/types.ts'
+import type { ExpenseChange, SplitMethod } from '../../db/types.ts'
 import type { ReceiptInput } from '../photoService/types.ts'
 import type { CATEGORY_GROUPS } from './constants.ts'
 
@@ -171,11 +171,32 @@ export type ExpenseDetails = {
   receipts: { id: string; mimeType: string }[]
   /** Who saved the latest edit and when; null for an expense that was never edited. */
   lastEdit: ExpenseLastEdit | null
+  /** When it was added. */
+  createdAt: Date
+  /** Every edit, newest first; empty for an expense that was never edited. */
+  history: ExpenseHistoryEntry[]
+  /**
+   * Everyone an entry of the history refers to (who paid, who was in a split),
+   * by person id, so that no screen has to look anyone up.
+   */
+  people: Record<string, ExpensePerson>
+}
+
+/** A person as the details page names them. */
+export type ExpensePerson = { email: string | null; name: string | null; isYou: boolean }
+
+/** One edit of an expense: who saved it, when, and what it changed. */
+export type ExpenseHistoryEntry = {
+  by: ExpensePerson
+  at: Date
+  changes: ExpenseChange[]
+  /** The expense's currency before this edit, to write the old cost in. */
+  currencyBefore: string
 }
 
 /** Who saved an expense's latest edit, and when. */
 export type ExpenseLastEdit = {
-  by: { email: string | null; name: string | null; isYou: boolean }
+  by: ExpensePerson
   at: Date
 }
 

@@ -48,7 +48,7 @@ describe('migrations', () => {
   it('can run again without changing anything', async () => {
     await runMigrations(pg)
     const { rows } = await pg.query('select name from ownledger_migrations')
-    expect(rows).toHaveLength(6)
+    expect(rows).toHaveLength(7)
   })
 
   it('does not record a file that fails, and applies nothing from it', async () => {
@@ -96,6 +96,56 @@ describe('upgrading a database that already has the first migration', () => {
         [person],
       ),
     ).rejects.toThrow()
+    await old.close()
+  })
+})
+
+describe('migration 0006, which adds when an expense was created', () => {
+  const all = import.meta.glob('../migrations/*.sql', {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  }) as Record<string, string>
+
+  it('gives an expense never edited its last change, and an edited one its first edit', async () => {
+    const old = new PGlite()
+    const names = Object.keys(all).sort()
+    const last = names.find((name) => name.endsWith('0006_expense_created_at.sql')) as string
+    // A database as it was before this migration.
+    await runMigrations(old, Object.fromEntries(names.filter((name) => name !== last).map((name) => [name, all[name]])))
+
+    const person = crypto.randomUUID()
+    const group = crypto.randomUUID()
+    await old.query('insert into people (id, email, updated_by) values ($1, $2, $1)', [person, 'omkar@gmail.com'])
+    await old.query(
+      "insert into groups (id, name, type, default_currency, created_by, updated_by) values ($1, 'G', 'trip', 'INR', $2, $2)",
+      [group, person],
+    )
+    const addExpense = async (updatedAt: string) => {
+      const id = crypto.randomUUID()
+      await old.query(
+        `insert into expenses (id, group_id, description, category, amount_minor, currency, date, method, created_by, updated_by, updated_at)
+         values ($1, $2, 'Dinner', 'general', 1000, 'INR', '2026-10-08', 'equal', $3, $3, $4)`,
+        [id, group, person, updatedAt],
+      )
+      return id
+    }
+    const neverEdited = await addExpense('2026-10-10T10:00:00Z')
+    const edited = await addExpense('2026-10-14T09:00:00Z')
+    for (const editedAt of ['2026-10-12T08:30:00Z', '2026-10-14T09:00:00Z']) {
+      await old.query(
+        `insert into expense_revisions (expense_id, edited_by, edited_at, before, changes, updated_by, updated_at)
+         values ($1, $2, $3, '{}', '[]', $2, $3)`,
+        [edited, person, editedAt],
+      )
+    }
+
+    await runMigrations(old, all)
+
+    const { rows } = await old.query<{ id: string; created_at: Date }>('select id, created_at from expenses')
+    const createdAt = Object.fromEntries(rows.map((row) => [row.id, row.created_at.toISOString()]))
+    expect(createdAt[neverEdited]).toBe('2026-10-10T10:00:00.000Z')
+    expect(createdAt[edited]).toBe('2026-10-12T08:30:00.000Z')
     await old.close()
   })
 })

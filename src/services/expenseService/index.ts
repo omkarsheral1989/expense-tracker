@@ -122,6 +122,7 @@ export const expenseService = {
         notes,
         method: split.method,
         createdBy: userId,
+        createdAt: updatedAt,
         updatedBy: userId,
         updatedAt,
       })
@@ -343,6 +344,7 @@ export const expenseService = {
         createdById: expenses.createdBy,
         createdByEmail: people.email,
         createdByName: people.name,
+        createdAt: expenses.createdAt,
       })
       .from(expenses)
       .innerJoin(people, eq(people.id, expenses.createdBy))
@@ -373,18 +375,47 @@ export const expenseService = {
       .where(and(eq(expensePhotos.expenseId, expenseId), isNull(expensePhotos.deletedAt)))
       .orderBy(asc(expensePhotos.position), asc(expensePhotos.id))
 
-    const [revision] = await db
+    const revisions = await db
       .select({
         editedAt: expenseRevisions.editedAt,
         editorId: expenseRevisions.editedBy,
         editorEmail: people.email,
         editorName: people.name,
+        changes: expenseRevisions.changes,
+        before: expenseRevisions.before,
       })
       .from(expenseRevisions)
       .innerJoin(people, eq(people.id, expenseRevisions.editedBy))
       .where(eq(expenseRevisions.expenseId, expenseId))
       .orderBy(desc(expenseRevisions.editedAt), desc(expenseRevisions.id))
-      .limit(1)
+    const history = revisions.map((revision) => ({
+      by: { email: revision.editorEmail, name: revision.editorName, isYou: revision.editorId === userId },
+      at: revision.editedAt,
+      changes: revision.changes,
+      currencyBefore: revision.before.currency,
+    }))
+
+    // Everyone a change refers to: who paid, and who was in a split.
+    const referred = new Set<string>()
+    for (const { changes } of history) {
+      for (const change of changes) {
+        if (change.field === 'paidBy') {
+          for (const id of [change.from, change.to]) if (typeof id === 'string') referred.add(id)
+        } else if (change.field === 'split') {
+          for (const side of [change.from, change.to]) {
+            const values = (side as { values?: Record<string, number> } | null)?.values ?? {}
+            for (const id of Object.keys(values)) referred.add(id)
+          }
+        }
+      }
+    }
+    const referredPeople =
+      referred.size === 0
+        ? []
+        : await db
+            .select({ id: people.id, email: people.email, name: people.name })
+            .from(people)
+            .where(inArray(people.id, [...referred]))
 
     const { createdById, createdByEmail, createdByName, ...details } = expense
     return {
@@ -392,12 +423,11 @@ export const expenseService = {
       createdBy: { email: createdByEmail, name: createdByName, isYou: createdById === userId },
       shares,
       receipts,
-      lastEdit: revision
-        ? {
-            by: { email: revision.editorEmail, name: revision.editorName, isYou: revision.editorId === userId },
-            at: revision.editedAt,
-          }
-        : null,
+      lastEdit: history[0] ? { by: history[0].by, at: history[0].at } : null,
+      history,
+      people: Object.fromEntries(
+        referredPeople.map((person) => [person.id, { email: person.email, name: person.name, isYou: person.id === userId }]),
+      ),
     }
   },
 
