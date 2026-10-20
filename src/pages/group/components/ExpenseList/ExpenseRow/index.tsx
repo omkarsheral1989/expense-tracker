@@ -1,5 +1,6 @@
-import { SwapOutlined } from '@ant-design/icons'
-import { Flex, Typography } from 'antd'
+import { DeleteOutlined, SwapOutlined } from '@ant-design/icons'
+import { Flex, theme, Typography } from 'antd'
+import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 import { CategoryIcon } from '../../../../../components/CategoryIcon'
 import { useColorScheme } from '../../../../../hooks/useColorScheme'
@@ -23,11 +24,13 @@ type Props = {
 /**
  * One expense in the group's list: the date (month over day), its category
  * tile, the description with who paid under it, and on the right what it means
- * for the user ("you lent" in green, "you borrowed" in orange-red). The
- * whole row opens the expense's details.
+ * for the user ("you lent" in green, "you borrowed" in orange-red). A payment
+ * and a deleted expense are one line each instead. The whole row opens the
+ * expense's details.
  */
 export function ExpenseRow({ expense, groupId }: Props) {
   const scheme = useColorScheme()
+  const { token } = theme.useToken()
   const { month, day } = dateParts(expense.date)
   const status = expenseStatus(expense)
 
@@ -77,25 +80,32 @@ export function ExpenseRow({ expense, groupId }: Props) {
     )
   }
 
-  // A settlement is one line: its icon with no tile behind it, and no amount
-  // or status at the end.
-  function renderSettlement(text: string) {
+  // A settlement and a deleted expense are one line: an icon with no tile
+  // behind it, and no amount or status at the end.
+  function renderLine(icon: ReactNode, label: string, color: string, text: string) {
     return (
       <>
         <Flex
           align="center"
           justify="center"
           role="img"
-          aria-label="Settlement"
-          style={{ flex: 'none', width: 40, height: 40, fontSize: 24, color: CATEGORY_GROUP_COLORS.settlement }}
+          aria-label={label}
+          style={{ flex: 'none', width: 40, height: 40, fontSize: 24, color }}
         >
-          <SwapOutlined />
+          {icon}
         </Flex>
         <Text strong style={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>
           {text}
         </Text>
       </>
     )
+  }
+
+  // "You deleted 'Dinner' (£9.00)", or "You deleted a payment (You paid Priya £200.00)".
+  function deletedText(deleted: NonNullable<ExpenseListItem['deleted']>) {
+    const who = deleted.by.isYou ? 'You' : groupService.shortName(deleted.by)
+    const what = settlement ? `a payment (${settlement})` : `'${expense.description}' (${moneyService.format(expense.amountMinor, expense.currency)})`
+    return `${who} deleted ${what}`
   }
 
   function renderExpense() {
@@ -113,6 +123,12 @@ export function ExpenseRow({ expense, groupId }: Props) {
     )
   }
 
+  function renderBody() {
+    if (expense.deleted) return renderLine(<DeleteOutlined />, 'Deleted', token.colorTextTertiary, deletedText(expense.deleted))
+    if (settlement) return renderLine(<SwapOutlined />, 'Settlement', CATEGORY_GROUP_COLORS.settlement, settlement)
+    return renderExpense()
+  }
+
   return (
     <div role="listitem">
       <Link
@@ -120,7 +136,7 @@ export function ExpenseRow({ expense, groupId }: Props) {
         style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', color: 'inherit' }}
       >
         {renderDate()}
-        {settlement ? renderSettlement(settlement) : renderExpense()}
+        {renderBody()}
       </Link>
     </div>
   )

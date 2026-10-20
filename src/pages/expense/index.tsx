@@ -13,8 +13,8 @@ import { ExpenseDetails } from './components/ExpenseDetails'
 const COLUMN_STYLE = { width: '100%', maxWidth: 560, margin: '0 auto', padding: `${belowStatusBar(24)} 16px 24px` } as const
 
 /**
- * The details of one expense of a group. For now it only shows them; editing,
- * deleting and the history of changes come later.
+ * The details of one expense of a group, with its history of changes, and the
+ * way to edit or delete it.
  */
 export function ExpensePage() {
   const user = useCurrentUser()
@@ -53,7 +53,7 @@ export function ExpensePage() {
         )
       case 'ready':
         return state.data ? (
-          <ExpenseDetails expense={state.data} datasetId={datasetId} />
+          <ExpenseDetails expense={state.data} datasetId={datasetId} userId={userId} />
         ) : (
           <ExpenseNotFound groupId={id} />
         )

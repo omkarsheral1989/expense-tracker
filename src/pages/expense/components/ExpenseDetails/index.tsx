@@ -1,8 +1,9 @@
 import { ArrowLeftOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons'
-import { Avatar, Button, Divider, Flex, theme, Typography } from 'antd'
+import { App, Avatar, Button, Divider, Flex, theme, Typography } from 'antd'
 import { useNavigate } from 'react-router'
 import { CategoryIcon } from '../../../../components/CategoryIcon'
 import { ComingSoon } from '../../../../components/ComingSoon'
+import { getDb } from '../../../../db/client.ts'
 import { ROUTES } from '../../../../routes.ts'
 import { dateService } from '../../../../services/dateService'
 import { expenseService } from '../../../../services/expenseService'
@@ -19,19 +20,49 @@ type Props = {
   expense: ExpenseDetails
   /** Names the device's photo store, which holds the receipts. */
   datasetId: string
+  /** The user's person id: a deletion is saved as theirs. */
+  userId: string
 }
 
 /**
  * One expense: its category, description, amount and day, who added it, who paid and who edited it last, how
  * it was split and what each person owes, its notes and its receipt photos. Edit opens
- * the edit page (not for a payment); Delete is switched off ("Coming soon").
+ * the edit page (not for a payment); Delete asks first and then removes the expense or payment.
+ * A deleted expense is shown read-only: no Edit or Delete, and who deleted it and when.
  */
-export function ExpenseDetails({ expense, datasetId }: Props) {
+export function ExpenseDetails({ expense, datasetId, userId }: Props) {
   const navigate = useNavigate()
+  const { message, modal } = App.useApp()
   const { token } = theme.useToken()
   const category = expenseService.categoryOf(expense.category)
   // A settlement is worded by who paid whom ("You paid Priya"), and has no split to show.
   const isSettlement = expense.category === expenseService.settlementCategory
+
+  // What this is called in messages: an expense, or a payment between members.
+  const noun = isSettlement ? 'payment' : 'expense'
+
+  async function handleDelete() {
+    try {
+      const result = await expenseService.deleteExpense(await getDb(), userId, expense.groupId, expense.id)
+      if (result.ok) message.success(`${noun === 'payment' ? 'Payment' : 'Expense'} deleted.`)
+      else message.error(`This ${noun} is no longer available.`)
+      navigate(ROUTES.group(expense.groupId))
+    } catch {
+      message.error(`Couldn't delete the ${noun}. Please try again.`)
+    }
+  }
+
+  function confirmDelete() {
+    modal.confirm({
+      title: `Delete this ${noun}?`,
+      content: 'It will be removed from the group, and the balances will change.',
+      okText: 'Delete',
+      okButtonProps: { danger: true },
+      cancelText: 'Cancel',
+      // The dialog stays open, with its button busy, until this is done.
+      onOk: handleDelete,
+    })
+  }
 
   // A payment between members has no edit form yet.
   function renderEditButton() {
@@ -60,12 +91,12 @@ export function ExpenseDetails({ expense, datasetId }: Props) {
           aria-label="Back"
           onClick={() => navigate(ROUTES.group(expense.groupId))}
         />
-        <Flex gap={8}>
-          {renderEditButton()}
-          <ComingSoon>
-            <Button icon={<DeleteOutlined />} aria-label="Delete" disabled />
-          </ComingSoon>
-        </Flex>
+        {!expense.deleted && (
+          <Flex gap={8}>
+            {renderEditButton()}
+            <Button icon={<DeleteOutlined />} aria-label="Delete" onClick={confirmDelete} />
+          </Flex>
+        )}
       </Flex>
     )
   }
@@ -92,6 +123,16 @@ export function ExpenseDetails({ expense, datasetId }: Props) {
     )
   }
 
+  function renderDeleted() {
+    if (!expense.deleted) return null
+    const { by, at } = expense.deleted
+    return (
+      <Text type="secondary">
+        Deleted by {by.isYou ? 'you' : displayName(by)}, {dateService.formatDateTime(at, navigator.language)}
+      </Text>
+    )
+  }
+
   function renderSummary() {
     return (
       <Flex align="flex-start" gap={16}>
@@ -112,6 +153,7 @@ export function ExpenseDetails({ expense, datasetId }: Props) {
           </Text>
           {renderPayers()}
           {renderLastEdit()}
+          {renderDeleted()}
         </Flex>
       </Flex>
     )

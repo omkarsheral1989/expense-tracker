@@ -5,7 +5,7 @@ import userEvent from '@testing-library/user-event'
 import { eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getDb } from '../../../db/client.ts'
-import { expenses, people } from '../../../db/schema.ts'
+import { people } from '../../../db/schema.ts'
 import { ROUTES } from '../../../routes.ts'
 import { expenseService } from '../../../services/expenseService'
 import { photoService } from '../../../services/photoService'
@@ -257,17 +257,6 @@ describe('ExpensePage', () => {
     expect(currentPath()).toBe(ROUTES.editExpense(id, expenseId))
   })
 
-  it('switches off deleting, saying "Coming soon"', async () => {
-    const id = await createGroup()
-    const expenseId = await addExpense(id)
-    renderExpense(id, expenseId)
-
-    const remove = await screen.findByRole('button', { name: 'Delete' })
-    expect(remove).toBeDisabled()
-    await userEvent.hover(remove.parentElement as HTMLElement)
-    expect(await screen.findByText('Coming soon')).toBeInTheDocument()
-  })
-
   it('switches off editing a payment between members, saying "Coming soon"', async () => {
     const id = await createGroup()
     const payment = await addTestSettlement(testDb.db, me.email, 'priya@gmail.com', id)
@@ -346,11 +335,9 @@ describe('ExpensePage', () => {
     expect(currentPath()).toBe(ROUTES.group(id))
   })
 
-  it('says "Expense not found" for a deleted or unknown expense, with a way back', async () => {
+  it('says "Expense not found" for an unknown expense, with a way back', async () => {
     const id = await createGroup()
-    const expenseId = await addExpense(id)
-    await testDb.db.update(expenses).set({ deletedAt: new Date() }).where(eq(expenses.id, expenseId))
-    const { currentPath } = renderExpense(id, expenseId)
+    const { currentPath } = renderExpense(id, crypto.randomUUID())
 
     expect(await screen.findByText('Expense not found')).toBeInTheDocument()
     expectCenteredMessage(screen.getByText('Expense not found'))

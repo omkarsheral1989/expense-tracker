@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, inArray, isNull, max, sql } from 'drizzle-orm'
+import { alias } from 'drizzle-orm/pg-core'
 import { displayName } from '../groupService/utils.ts'
 import type { Database } from '../../db/client.ts'
 import {
@@ -26,6 +27,7 @@ import type {
   CreateSettlementInput,
   CreateSettlementResult,
   CurrencyBalance,
+  DeleteExpenseResult,
   ExpenseDetails,
   ExpenseListItem,
   ExpensePayer,
@@ -206,10 +208,12 @@ export const expenseService = {
   },
 
   /**
-   * A group's expenses as one user sees them: newest day first (the latest
-   * change first within a day), each with who paid and what the user paid and
-   * owes. Deleted expenses and shares are left out. Empty for someone who is not in
-   * the group.
+   * A group's expenses as one user sees them: newest day first (the most
+   * recently added first within a day, so an edit or a deletion never moves
+   * one), each with who paid and what the user paid and owes. A deleted
+   * expense is still listed, marked with who deleted it and when, so that the
+   * list can show it as a line; the balances never count it. Empty for someone
+   * who is not in the group.
    */
   async listExpenses(
     db: Database,
@@ -229,6 +233,7 @@ export const expenseService = {
       )
     if (!member) return []
 
+    const deleter = alias(people, 'deleter')
     const rows = await db
       .select({
         id: expenses.id,
@@ -237,10 +242,15 @@ export const expenseService = {
         amountMinor: expenses.amountMinor,
         currency: expenses.currency,
         date: expenses.date,
+        deletedAt: expenses.deletedAt,
+        deleterId: deleter.id,
+        deleterEmail: deleter.email,
+        deleterName: deleter.name,
       })
       .from(expenses)
-      .where(and(eq(expenses.groupId, groupId), isNull(expenses.deletedAt)))
-      .orderBy(desc(expenses.date), desc(expenses.updatedAt), desc(expenses.id))
+      .leftJoin(deleter, eq(deleter.id, expenses.updatedBy))
+      .where(eq(expenses.groupId, groupId))
+      .orderBy(desc(expenses.date), desc(expenses.createdAt), desc(expenses.id))
     if (rows.length === 0) return []
 
     const shares = await db
@@ -292,10 +302,17 @@ export const expenseService = {
         isYou: recipientShare.personId === userId,
       }
 
+      const { deletedAt, deleterId, deleterEmail, deleterName, ...listed } = row
       return {
-        ...row,
+        ...listed,
         payer,
         ...(recipient && { recipient }),
+        ...(deletedAt && {
+          deleted: {
+            by: { personId: deleterId ?? '', email: deleterEmail, name: deleterName, isYou: deleterId === userId },
+            at: deletedAt,
+          },
+        }),
         yourPaidMinor: mine?.paidMinor ?? 0,
         yourOwedMinor: mine?.owedMinor ?? 0,
         involved: !!mine && (mine.paidMinor > 0 || mine.owedMinor > 0),
@@ -304,10 +321,11 @@ export const expenseService = {
   },
 
   /**
-   * One expense with every member's part, for its details page. Null when the
-   * user cannot see it: an unknown or malformed id, a deleted expense, one of
-   * another group, or a group the user is not a member of (they all look the
-   * same, as for groups).
+   * One expense with every member's part, for its details page. A deleted
+   * expense is returned too, with who deleted it and when (`deleted`), to be
+   * shown read-only. Null when the user cannot see it: an unknown or malformed
+   * id, one of another group, or a group the user is not a member of (they all
+   * look the same, as for groups).
    */
   async getExpense(
     db: Database,
@@ -330,6 +348,7 @@ export const expenseService = {
       )
     if (!membership) return null
 
+    const deleter = alias(people, 'deleter')
     const [expense] = await db
       .select({
         id: expenses.id,
@@ -345,10 +364,15 @@ export const expenseService = {
         createdByEmail: people.email,
         createdByName: people.name,
         createdAt: expenses.createdAt,
+        deletedAt: expenses.deletedAt,
+        deleterId: deleter.id,
+        deleterEmail: deleter.email,
+        deleterName: deleter.name,
       })
       .from(expenses)
       .innerJoin(people, eq(people.id, expenses.createdBy))
-      .where(and(eq(expenses.id, expenseId), eq(expenses.groupId, groupId), isNull(expenses.deletedAt)))
+      .leftJoin(deleter, eq(deleter.id, expenses.updatedBy))
+      .where(and(eq(expenses.id, expenseId), eq(expenses.groupId, groupId)))
     if (!expense) return null
 
     const rows = await db
@@ -417,9 +441,12 @@ export const expenseService = {
             .from(people)
             .where(inArray(people.id, [...referred]))
 
-    const { createdById, createdByEmail, createdByName, ...details } = expense
+    const { createdById, createdByEmail, createdByName, deletedAt, deleterId, deleterEmail, deleterName, ...details } = expense
     return {
       ...details,
+      deleted: deletedAt
+        ? { by: { email: deleterEmail, name: deleterName, isYou: deleterId === userId }, at: deletedAt }
+        : null,
       createdBy: { email: createdByEmail, name: createdByName, isYou: createdById === userId },
       shares,
       receipts,
@@ -612,6 +639,48 @@ export const expenseService = {
         }
       }
       return { ok: true, changed: true }
+    })
+  },
+
+  /**
+   * Deletes an expense, or a payment between members (which is an expense in
+   * the settlement category): it is marked deleted, by this user and now, and
+   * leaves every screen, the balances and the list. Nothing is erased: its
+   * split, edit history and photos stay, so it could be brought back later,
+   * and the group counts as changed (it moves to the top of the home list).
+   * `{ ok: false, notFound: true }` for an expense the user cannot see: an
+   * unknown or malformed id, one already deleted, another group's, or a group
+   * the user is not in.
+   */
+  async deleteExpense(
+    db: Database,
+    userId: string,
+    groupId: string,
+    expenseId: string,
+  ): Promise<DeleteExpenseResult> {
+    if (!UUID.test(groupId) || !UUID.test(expenseId)) return { ok: false, notFound: true }
+
+    return db.transaction(async (tx): Promise<DeleteExpenseResult> => {
+      const [membership] = await tx
+        .select({ id: groupMembers.id })
+        .from(groupMembers)
+        .innerJoin(groups, and(eq(groups.id, groupMembers.groupId), isNull(groups.deletedAt)))
+        .where(
+          and(
+            eq(groupMembers.groupId, groupId),
+            eq(groupMembers.personId, userId),
+            isNull(groupMembers.deletedAt),
+          ),
+        )
+      if (!membership) return { ok: false, notFound: true }
+
+      const deletedAt = new Date()
+      const deleted = await tx
+        .update(expenses)
+        .set({ deletedAt, updatedAt: deletedAt, updatedBy: userId })
+        .where(and(eq(expenses.id, expenseId), eq(expenses.groupId, groupId), isNull(expenses.deletedAt)))
+        .returning({ id: expenses.id })
+      return deleted.length > 0 ? { ok: true } : { ok: false, notFound: true }
     })
   },
 

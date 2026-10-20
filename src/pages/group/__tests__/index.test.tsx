@@ -7,11 +7,12 @@ import { getDb } from '../../../db/client.ts'
 import { expenseShares, groupMembers, groups, people } from '../../../db/schema.ts'
 import { ABOVE_FLOATING_BUTTON } from '../../../components/FloatingPillButton/constants.ts'
 import { ROUTES } from '../../../routes.ts'
+import { expenseService } from '../../../services/expenseService'
 import type { CreateExpenseInput } from '../../../services/expenseService/types.ts'
 import { groupService } from '../../../services/groupService'
 import { useAuthStore } from '../../../stores/useAuthStore'
 import { setUpTestDatabase } from '../../../testing/database.ts'
-import { addTestExpense, addTestSettlement } from '../../../testing/expenses.ts'
+import { addTestExpense, addTestSettlement, personIdOf } from '../../../testing/expenses.ts'
 import { GUEST_PERSON_ID, renderPage } from '../../../testing/render.tsx'
 import { GroupPage } from '../index.tsx'
 import { expectCenteredMessage } from '../../../testing/centered.ts'
@@ -483,6 +484,92 @@ describe('GroupPage', () => {
       expect(icon).not.toHaveStyle({ background: 'rgb(12, 166, 120)' })
       expect(icon).toHaveStyle({ color: 'rgb(12, 166, 120)' })
       expect(screen.queryByText('Payment')).not.toBeInTheDocument()
+    })
+
+    describe('a deleted expense', () => {
+      async function remove(email: string, groupId: string, expenseId: string) {
+        const result = await expenseService.deleteExpense(testDb.db, await personIdOf(testDb.db, email), groupId, expenseId)
+        if (!result.ok) throw new Error('Not deleted.')
+      }
+
+      it('stays in its own place as one line, "You deleted \'Dinner\' (£30.00)", with a bin and no tile, payer line or status', async () => {
+        const id = await createGroup(me, { name: 'Goa trip', memberEmails: ['priya@gmail.com'] })
+        await addExpense(me.email, id, { description: 'Taxi', date: '2026-10-08', amountMinor: 1000 })
+        const gone = await addExpense(me.email, id, { description: 'Dinner', date: '2026-10-05' })
+        await addExpense(me.email, id, { description: 'Hotel', date: '2026-10-01', amountMinor: 5000 })
+        await remove(me.email, id, gone)
+        renderGroup(id)
+
+        expect(await expenseRows()).toEqual([
+          'Oct | 8 | Taxi | You paid £10.00 | you lent | £5.00',
+          "Oct | 5 | You deleted 'Dinner' (£30.00)",
+          'Oct | 1 | Hotel | You paid £50.00 | you lent | £25.00',
+        ])
+        // Its icon has no colored tile behind it, unlike a category's.
+        const bin = screen.getByRole('img', { name: 'Deleted' })
+        expect(bin).not.toHaveStyle({ background: 'rgb(232, 89, 12)' })
+        // Only the two live expenses have a tile; the deleted one has none.
+        expect(screen.getAllByRole('img', { name: 'Dining out' })).toHaveLength(2)
+      })
+
+      it('names the person who deleted it by first name when it was not you', async () => {
+        const id = await createGroup(me, { name: 'Goa trip', memberEmails: ['priya@gmail.com'] })
+        await testDb.db.update(people).set({ name: 'Priya Shah' }).where(eq(people.email, 'priya@gmail.com'))
+        const gone = await addExpense(me.email, id, { description: 'Taxi', amountMinor: 1000 })
+        await remove('priya@gmail.com', id, gone)
+        renderGroup(id)
+
+        expect(await expenseRows()).toEqual(["Oct | 8 | Priya deleted 'Taxi' (£10.00)"])
+      })
+
+      it('words a deleted payment as "You deleted a payment (You paid Priya £10.00)"', async () => {
+        const id = await createGroup(me, { name: 'Goa trip', memberEmails: ['priya@gmail.com'] })
+        const payment = await addTestSettlement(testDb.db, me.email, 'priya@gmail.com', id, { date: '2026-10-08' })
+        await remove(me.email, id, payment)
+        renderGroup(id)
+
+        expect(await expenseRows()).toEqual(['Oct | 8 | You deleted a payment (You paid Priya £10.00)'])
+        expect(screen.queryByText('Payment')).not.toBeInTheDocument()
+      })
+
+      it('does not count towards the balance, and the list is not empty for it', async () => {
+        const id = await createGroup(me, { name: 'Goa trip', memberEmails: ['priya@gmail.com'] })
+        const gone = await addExpense(me.email, id, { description: 'Dinner' })
+        renderGroup(id)
+        expect(await screen.findByText(/Priya owes you/)).toBeInTheDocument()
+        cleanup()
+
+        await remove(me.email, id, gone)
+        renderGroup(id)
+
+        expect(await screen.findByText("You're all settled up")).toBeInTheDocument()
+        expect(screen.queryByText(/owes you/)).not.toBeInTheDocument()
+        expect(screen.queryByText('No expenses yet')).not.toBeInTheDocument()
+        expect(await expenseRows()).toEqual(["Oct | 8 | You deleted 'Dinner' (£30.00)"])
+      })
+
+      it('keeps its place when another expense of the day is added after it', async () => {
+        const id = await createGroup(me, { name: 'Goa trip' })
+        const first = await addExpense(me.email, id, { description: 'First', date: '2026-10-08' })
+        await addExpense(me.email, id, { description: 'Second', date: '2026-10-08' })
+        await remove(me.email, id, first)
+        renderGroup(id)
+
+        const rows = await expenseRows()
+        expect(rows[0]).toMatch(/Second/)
+        expect(rows[1]).toBe("Oct | 8 | You deleted 'First' (£30.00)")
+      })
+
+      it('opens the deleted expense when its line is tapped', async () => {
+        const id = await createGroup(me, { name: 'Goa trip' })
+        const gone = await addExpense(me.email, id)
+        await remove(me.email, id, gone)
+        const { currentPath } = renderGroup(id)
+
+        await userEvent.click(await screen.findByText("You deleted 'Dinner' (£30.00)"))
+
+        expect(currentPath()).toBe(ROUTES.expense(id, gone))
+      })
     })
 
     it('opens a payment\'s details when its row is tapped', async () => {

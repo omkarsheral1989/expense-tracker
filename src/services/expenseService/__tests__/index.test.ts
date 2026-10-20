@@ -62,6 +62,11 @@ async function changedAt(expenseId: string, iso: string) {
   await db.update(expenses).set({ updatedAt: new Date(iso) }).where(eq(expenses.id, expenseId))
 }
 
+/** Sets when an expense was added, which orders the expenses of one day. */
+async function addedAt(expenseId: string, iso: string) {
+  await db.update(expenses).set({ createdAt: new Date(iso) }).where(eq(expenses.id, expenseId))
+}
+
 async function personId(email: string) {
   const [person] = await db.select({ id: people.id }).from(people).where(eq(people.email, email))
   return person.id
@@ -370,7 +375,7 @@ describe('listExpenses', () => {
     ]
     for (const [index, [description, date]] of added.entries()) {
       const id = await addExpense('omkar@gmail.com', groupId, { description, date })
-      await changedAt(id, `2026-10-08T10:0${index}:00Z`)
+      await addedAt(id, `2026-10-08T10:0${index}:00Z`)
     }
 
     const list = await expenseService.listExpenses(db, personIdForEmail('omkar@gmail.com'), groupId)
@@ -380,6 +385,20 @@ describe('listExpenses', () => {
       'Middle',
       'Old',
     ])
+  })
+
+  it('keeps an expense in its place when it is changed later', async () => {
+    const groupId = await createGroup(omkar)
+    const first = await addExpense('omkar@gmail.com', groupId, { description: 'First', date: '2026-10-08' })
+    const second = await addExpense('omkar@gmail.com', groupId, { description: 'Second', date: '2026-10-08' })
+    await addedAt(first, '2026-10-08T10:00:00Z')
+    await addedAt(second, '2026-10-08T10:01:00Z')
+
+    // The older one is changed now: it stays below the newer one.
+    await changedAt(first, '2099-01-01T10:00:00Z')
+
+    const list = await expenseService.listExpenses(db, personIdForEmail('omkar@gmail.com'), groupId)
+    expect(list.map((expense) => expense.description)).toEqual(['Second', 'First'])
   })
 
   it('says who paid and what the viewer paid and owes', async () => {
@@ -430,16 +449,52 @@ describe('listExpenses', () => {
     expect(row).toMatchObject({ id, yourPaidMinor: 0, yourOwedMinor: 0, involved: false })
   })
 
-  it('leaves out deleted expenses and other groups\' expenses', async () => {
-    const groupId = await createGroup(omkar)
+  it('lists other groups\' expenses nowhere, and deleted ones marked with who deleted them and when', async () => {
+    const groupId = await createGroup(omkar, ['priya@gmail.com'])
     const other = await createGroup(omkar)
     const deleted = await addExpense('omkar@gmail.com', groupId, { description: 'Deleted' })
     await addExpense('omkar@gmail.com', groupId, { description: 'Kept' })
     await addExpense('omkar@gmail.com', other, { description: 'Elsewhere' })
-    await db.update(expenses).set({ deletedAt: new Date() }).where(eq(expenses.id, deleted))
+    const deletedAt = new Date('2026-10-20T12:00:00Z')
+    await db
+      .update(expenses)
+      .set({ deletedAt, updatedAt: deletedAt, updatedBy: await personId('priya@gmail.com') })
+      .where(eq(expenses.id, deleted))
 
     const list = await expenseService.listExpenses(db, personIdForEmail('omkar@gmail.com'), groupId)
-    expect(list.map((expense) => expense.description)).toEqual(['Kept'])
+
+    expect(list.map((expense) => expense.description).toSorted()).toEqual(['Deleted', 'Kept'])
+    const gone = list.find((expense) => expense.id === deleted)
+    expect(gone?.deleted).toEqual({
+      by: { personId: await personId('priya@gmail.com'), email: 'priya@gmail.com', name: null, isYou: false },
+      at: deletedAt,
+    })
+    expect(list.find((expense) => expense.description === 'Kept')?.deleted).toBeUndefined()
+    // The payer and the amount are still there, to word the line.
+    expect(gone).toMatchObject({ amountMinor: 1000, payer: { isYou: true } })
+  })
+
+  it('says "you" when the viewer deleted it', async () => {
+    const groupId = await createGroup(omkar)
+    const id = await addExpense('omkar@gmail.com', groupId)
+    await expenseService.deleteExpense(db, personIdForEmail('omkar@gmail.com'), groupId, id)
+
+    const [row] = await expenseService.listExpenses(db, personIdForEmail('omkar@gmail.com'), groupId)
+
+    expect(row.deleted?.by.isYou).toBe(true)
+  })
+
+  it('keeps a deleted expense in its place', async () => {
+    const groupId = await createGroup(omkar)
+    const first = await addExpense('omkar@gmail.com', groupId, { description: 'First', date: '2026-10-08' })
+    const second = await addExpense('omkar@gmail.com', groupId, { description: 'Second', date: '2026-10-08' })
+    await addedAt(first, '2026-10-08T10:00:00Z')
+    await addedAt(second, '2026-10-08T10:01:00Z')
+
+    await expenseService.deleteExpense(db, personIdForEmail('omkar@gmail.com'), groupId, first)
+
+    const list = await expenseService.listExpenses(db, personIdForEmail('omkar@gmail.com'), groupId)
+    expect(list.map((expense) => expense.description)).toEqual(['Second', 'First'])
   })
 })
 
@@ -588,6 +643,7 @@ describe('getExpense', () => {
       ],
       receipts: [],
       lastEdit: null,
+      deleted: null,
       createdAt: expect.any(Date),
       history: [],
       people: {},
@@ -609,21 +665,18 @@ describe('getExpense', () => {
     ])
   })
 
-  it('is null for an unknown, malformed or deleted expense, another group\'s, or a group you are not in', async () => {
+  it('is null for an unknown or malformed expense, another group\'s, or a group you are not in', async () => {
     const groupId = await createGroup(omkar, ['priya@gmail.com'])
     const other = await createGroup(omkar)
     const id = await addExpense('omkar@gmail.com', groupId)
     const priyas = await createGroup(priya)
     const hers = await addExpense('priya@gmail.com', priyas)
-    const deleted = await addExpense('omkar@gmail.com', groupId)
-    await db.update(expenses).set({ deletedAt: new Date() }).where(eq(expenses.id, deleted))
 
     const get = (group: string, expense: string, email = 'omkar@gmail.com') =>
       expenseService.getExpense(db, personIdForEmail(email), group, expense)
     expect(await get(groupId, id)).not.toBeNull()
     expect(await get(groupId, crypto.randomUUID())).toBeNull()
     expect(await get(groupId, 'not-an-id')).toBeNull()
-    expect(await get(groupId, deleted)).toBeNull()
     expect(await get(other, id)).toBeNull()
     expect(await get(priyas, hers)).toBeNull()
     expect(await get(groupId, id, 'nobody@gmail.com')).toBeNull()

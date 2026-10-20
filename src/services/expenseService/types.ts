@@ -114,6 +114,8 @@ export type ExpenseListItem = {
   yourOwedMinor: number
   /** Whether the user paid or has a share. */
   involved: boolean
+  /** Who deleted it and when; only present on a deleted expense, which the list still shows as a line. */
+  deleted?: { by: ExpensePayer; at: Date }
 }
 
 /** One person's part in a new expense. */
@@ -173,6 +175,8 @@ export type ExpenseDetails = {
   lastEdit: ExpenseLastEdit | null
   /** When it was added. */
   createdAt: Date
+  /** Who deleted it and when; null for an expense that was not deleted. A deleted one is shown read-only. */
+  deleted: { by: ExpensePerson; at: Date } | null
   /** Every edit, newest first; empty for an expense that was never edited. */
   history: ExpenseHistoryEntry[]
   /**
@@ -225,4 +229,9 @@ export type UpdateExpenseResult =
   | { ok: true; changed: boolean }
   | { ok: false; errors: CreateExpenseErrors }
   /** The expense cannot be edited by this user: unknown, deleted, a payment, another group's, or a group they are not in. */
+  | { ok: false; notFound: true }
+
+export type DeleteExpenseResult =
+  | { ok: true }
+  /** The user cannot delete it: unknown, malformed, already deleted, another group's, or a group they are not in. */
   | { ok: false; notFound: true }

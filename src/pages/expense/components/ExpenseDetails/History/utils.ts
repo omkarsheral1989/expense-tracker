@@ -153,7 +153,11 @@ export function historyLines(entry: ExpenseHistoryEntry, people: People): Histor
     .flatMap((change) => lineFor(change, entry, people))
 }
 
-/** The header of an edit or of the expense's creation: "You edited this expense". */
-export function historyHeader(by: { isYou: boolean; name: string | null; email: string | null }, did: 'edited' | 'added'): string {
-  return `${displayName(by)} ${did} this expense`
+/** The header of an entry: "You edited this expense", "You deleted this payment". */
+export function historyHeader(
+  by: { isYou: boolean; name: string | null; email: string | null },
+  did: 'edited' | 'added' | 'deleted',
+  noun: 'expense' | 'payment' = 'expense',
+): string {
+  return `${displayName(by)} ${did} this ${noun}`
 }
