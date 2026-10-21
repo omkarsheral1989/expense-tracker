@@ -3,7 +3,7 @@
 _Last updated: 2026-10-21_. A manual check of backup, bringing a backup back, and group sync (PRD 5.8, ADR-044) against real Google Drive with two Google accounts. The automated tests only use a fake Drive, so this is the first run against Google itself. Tick each box, and write down anything that differs (the dialog's text, the browser console, the Network tab).
 
 You need:
-- **Account A** (the group's creator) and **account B** (a member), both `@gmail.com`.
+- **Account A** (the group's creator) and **account B** (a member), both `@gmail.com`. A third account **C** is needed only for step 4.6 (a member added later); add it as a test user too.
 - **Three fresh Chrome profiles**: A1 and A2 for account A (two "devices"), B1 for account B. The app keeps one set of data per browser profile, and the first Google account to sign in there owns it (ADR-035). Use new profiles, not your everyday one, so no guest data there is taken over.
 
 ## 1. Google Cloud setup (once)
@@ -59,6 +59,16 @@ A new client ID can take a few minutes to work; a sign-in error right after crea
    - [ ] The members sheet: B is **no longer Pending**.
 2. [ ] On B, **rename** the group to **Drive test 2** and Sync. Then on A, Sync.
    - [ ] A's group is now Drive test 2, and A's Drive folder is renamed to **Drive test 2** (only the creator's sync renames it).
+3. [ ] **Delete and restore.** On B, delete Taxi and press the band's Sync. On A, Sync.
+   - [ ] A's list shows "B deleted 'Taxi' (£9.00)", and the balance no longer counts it.
+   - [ ] On A, open the deleted Taxi and press **Restore**, then Sync on A and on B. B's list shows Taxi as a normal row again, and its History has both the deletion and the restoration.
+4. [ ] **A payment.** On B, **Settle up**: B paid A the amount B owes. Sync on B, then on A.
+   - [ ] A's list shows "B paid you £…", and both devices read "You're all settled up" (or the same remaining balance).
+5. [ ] **Both edit the same expense before syncing.** On A, change Dinner's description to "Dinner A"; a minute later on B, change it to "Dinner B", without syncing in between. Sync on A, then B, then A again.
+   - [ ] Both devices show "Dinner B" (the later edit wins), and Dinner's History on both shows both edits.
+6. [ ] **A member added later** (needs a third Gmail account, C; skip if you have none). On A, open the members sheet → **Add member** → **Add a new member** with C's email, then Sync.
+   - [ ] The group's line says **Shared with C's first name**, and C gets Drive's sharing email.
+   - [ ] In a fresh profile, C signs in and Syncs: "New group: Drive test 2" appears with every expense.
 
 ## 5. Another device, and a cleared one (account A)
 
@@ -69,8 +79,13 @@ There is no Restore button: Sync adds the backup in Drive to the device before w
    - [ ] Drive test 2, with Dinner (and its photos and history), Taxi and B's edit, is on the home page, with no duplicate groups, expenses or people (one account A, one B, one Sam).
    - [ ] In A's Drive, `backup.json` still holds everything (download it and look for Drive test 2): the empty device did not replace it with less.
 3. [ ] Press Sync again in A1, where everything is already present: nothing is duplicated or lost.
-4. [ ] **A cleared device.** In A1, DevTools → Application → **Clear site data**, reload, sign in with account A again and press Sync. Everything comes back as in step 2.
-5. [ ] **No backup at all.** Move `OwnLedger/Backup` to the bin in A's Drive, clear A2's site data as in step 4, sign in and Sync. Drive test 2 comes back as **New group: Drive test 2**, from its own folder, and a new `Backup` is made.
+4. [ ] **Two devices of one account, one after the other.** On A2, add an expense **Snacks, £4.00** to Drive test 2 and Sync. On A1, add **Fuel, £20.00** and Sync. Then Sync on A2 again.
+   - [ ] Both devices have Snacks and Fuel.
+   - [ ] The group folder still has **one** `<account A's email>.json` (A1 and A2 write the same file).
+5. [ ] **A cleared device.** In A1, DevTools → Application → **Clear site data**, reload, sign in with account A again and press Sync. Everything comes back as in step 2.
+   - [ ] The group folder still has **one** `<account A's email>.json`, and no new file for A (A's person id may have changed, the file did not).
+   - [ ] On B, Sync, then open the members sheet: A is listed **once**, and A's expenses still say A paid them.
+6. [ ] **No backup at all.** Move `OwnLedger/Backup` to the bin in A's Drive, clear A2's site data as in step 5, sign in and Sync. Drive test 2 comes back as **New group: Drive test 2**, from its own folder, and a new `Backup` is made.
 
 ## 6. Failures
 
