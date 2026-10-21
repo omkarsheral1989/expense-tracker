@@ -276,8 +276,10 @@ export const expenseEvents = pgTable(
     occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull(),
     /** The whole expense as it is right after this event. */
     snapshot: jsonb('snapshot').$type<ExpenseSnapshot>().notNull(),
-    /** What an 'edited' event changed, with old and new values; empty for the other kinds. */
+    /** What an 'edited' or 'reverted' event changed, with old and new values; empty for the other kinds. */
     changes: jsonb('changes').$type<ExpenseChange[]>().notNull().default([]),
+    /** For a 'reverted' event: the event whose version was put back. */
+    restoredFrom: uuid('restored_from').references((): AnyPgColumn => expenseEvents.id),
   },
   (table) => [
     check(

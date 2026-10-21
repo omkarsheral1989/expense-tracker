@@ -48,7 +48,7 @@ describe('migrations', () => {
   it('can run again without changing anything', async () => {
     await runMigrations(pg)
     const { rows } = await pg.query('select name from ownledger_migrations')
-    expect(rows).toHaveLength(8)
+    expect(rows).toHaveLength(9)
   })
 
   it('does not record a file that fails, and applies nothing from it', async () => {

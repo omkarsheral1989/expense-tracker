@@ -1,5 +1,5 @@
 import { Flex, Image } from 'antd'
-import { photoService } from '../../../../../services/photoService'
+import { photoService } from '../../services/photoService'
 import { ReceiptThumbnail } from './ReceiptThumbnail'
 
 type Props = {

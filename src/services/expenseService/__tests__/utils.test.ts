@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { CATEGORY_GROUPS, DEFAULT_CATEGORY, SETTLEMENT_CATEGORY } from '../constants.ts'
 import type { ExpenseSnapshot, SplitMethod } from '../../../db/types.ts'
 import { expenseService } from '../index.ts'
-import { CATEGORIES, categoryOf, computeShares, debtsOf, expenseChanges, isCategoryKey, pairBalances, payerOf, sameSplitInput, settlementSentence, SPLIT_DOES_NOT_ADD_UP, titleOf } from '../utils.ts'
+import { CATEGORIES, categoryOf, computeShares, debtsOf, expenseChanges, isCategoryKey, pairBalances, payerOf, sameSnapshot, sameSplitInput, settlementSentence, SPLIT_DOES_NOT_ADD_UP, titleOf } from '../utils.ts'
 
 const MEMBERS = ['me', 'priya', 'sam']
 
@@ -435,5 +435,35 @@ describe('expenseChanges', () => {
     expect(expenseChanges(SNAPSHOT, { ...SNAPSHOT, photos })).toEqual([
       { field: 'receipts', from: ['a'], to: ['b', 'a'] },
     ])
+  })
+})
+
+describe('sameSnapshot', () => {
+  it('is true for the same version, whatever the order of the shares, and a missing entered value is 0', () => {
+    expect(sameSnapshot(SNAPSHOT, { ...SNAPSHOT })).toBe(true)
+    expect(sameSnapshot(SNAPSHOT, { ...SNAPSHOT, shares: SNAPSHOT.shares.toReversed() })).toBe(true)
+    const none = { ...SNAPSHOT, shares: SNAPSHOT.shares.map((share) => ({ ...share, inputValue: null })) }
+    const zero = { ...SNAPSHOT, shares: SNAPSHOT.shares.map((share) => ({ ...share, inputValue: 0 })) }
+    expect(sameSnapshot(none, zero)).toBe(true)
+  })
+
+  it.each([
+    ['description', { description: 'Lunch' }],
+    ['category', { category: 'general' }],
+    ['amount', { amountMinor: 1200 }],
+    ['currency', { currency: 'GBP' }],
+    ['date', { date: '2026-10-09' }],
+    ['notes', { notes: 'Cash' }],
+    ['no notes against empty notes', { notes: '' }],
+    ['method', { method: 'shares' as const }],
+    ['what someone paid', { shares: [{ personId: 'me', paidMinor: 900, owedMinor: 500, inputValue: 1 }, { personId: 'priya', paidMinor: 0, owedMinor: 500, inputValue: 1 }] }],
+    ['what someone owes', { shares: [{ personId: 'me', paidMinor: 1000, owedMinor: 501, inputValue: 1 }, { personId: 'priya', paidMinor: 0, owedMinor: 500, inputValue: 1 }] }],
+    ['what was entered', { shares: [{ personId: 'me', paidMinor: 1000, owedMinor: 500, inputValue: 2 }, { personId: 'priya', paidMinor: 0, owedMinor: 500, inputValue: 1 }] }],
+    ['a person', { shares: [{ personId: 'me', paidMinor: 1000, owedMinor: 500, inputValue: 1 }, { personId: 'sam', paidMinor: 0, owedMinor: 500, inputValue: 1 }] }],
+    ['the photos', { photos: [] }],
+    ['the order of the photos', { photos: [{ id: 'b', position: 0, mimeType: 'image/jpeg', sizeBytes: 5 }, { id: 'a', position: 1, mimeType: 'image/jpeg', sizeBytes: 5 }] }],
+  ])('is false when %s differs', (_name, change) => {
+    const base = { ...SNAPSHOT, photos: [{ id: 'a', position: 0, mimeType: 'image/jpeg', sizeBytes: 5 }, { id: 'b', position: 1, mimeType: 'image/jpeg', sizeBytes: 5 }] }
+    expect(sameSnapshot(base, { ...base, ...change })).toBe(false)
   })
 })

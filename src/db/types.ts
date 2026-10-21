@@ -63,5 +63,5 @@ export type ExpenseChange = {
   to: unknown
 }
 
-/** What an expense event records: 'added', 'edited', 'deleted' or 'restored'. */
+/** What an expense event records: 'added', 'edited', 'deleted', 'restored' or 'reverted'. */
 export type ExpenseEventKind = (typeof EXPENSE_EVENT_KINDS)[number]

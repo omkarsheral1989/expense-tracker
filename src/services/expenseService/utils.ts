@@ -270,3 +270,28 @@ export function expenseChanges(before: ExpenseSnapshot, after: ExpenseSnapshot):
   }
   return changes
 }
+
+/**
+ * Whether two versions of an expense are the same in every way that can be put
+ * back: the fields, what each person paid, owed and entered, and the photos in
+ * order.
+ */
+export function sameSnapshot(a: ExpenseSnapshot, b: ExpenseSnapshot): boolean {
+  const shares = (snapshot: ExpenseSnapshot) =>
+    JSON.stringify(
+      snapshot.shares
+        .map((share) => [share.personId, share.paidMinor, share.owedMinor, share.inputValue ?? 0])
+        .toSorted((x, y) => String(x[0]).localeCompare(String(y[0]))),
+    )
+  return (
+    a.description === b.description &&
+    a.category === b.category &&
+    a.amountMinor === b.amountMinor &&
+    a.currency === b.currency &&
+    a.date === b.date &&
+    a.notes === b.notes &&
+    a.method === b.method &&
+    shares(a) === shares(b) &&
+    a.photos.map((photo) => photo.id).join() === b.photos.map((photo) => photo.id).join()
+  )
+}

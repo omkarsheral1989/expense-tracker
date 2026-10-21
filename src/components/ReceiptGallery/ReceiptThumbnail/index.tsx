@@ -1,9 +1,9 @@
 import { PictureOutlined } from '@ant-design/icons'
 import { Flex, Image, Skeleton, theme, Typography } from 'antd'
-import { useAsyncData } from '../../../../../../hooks/useAsyncData'
-import { useObjectUrl } from '../../../../../../hooks/useObjectUrl'
-import type { PhotoStore } from '../../../../../../services/photoService/types.ts'
-import { RADIUS } from '../../../../../../theme/radius.ts'
+import { useAsyncData } from '../../../hooks/useAsyncData'
+import { useObjectUrl } from '../../../hooks/useObjectUrl'
+import type { PhotoStore } from '../../../services/photoService/types.ts'
+import { RADIUS } from '../../../theme/radius.ts'
 
 const { Text } = Typography
 

@@ -1,21 +1,18 @@
 import { ArrowLeftOutlined, DeleteOutlined, EditOutlined, UndoOutlined } from '@ant-design/icons'
-import { App, Avatar, Button, Divider, Flex, theme, Typography } from 'antd'
+import { App, Button, Flex, Typography } from 'antd'
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
-import { CategoryIcon } from '../../../../components/CategoryIcon'
 import { ComingSoon } from '../../../../components/ComingSoon'
+import { ExpenseBody } from '../../../../components/ExpenseBody'
+import { displayName } from '../../../../components/ExpenseWording'
 import { getDb } from '../../../../db/client.ts'
 import { ROUTES } from '../../../../routes.ts'
 import { dateService } from '../../../../services/dateService'
 import { expenseService } from '../../../../services/expenseService'
-import type { ExpenseDetails, ExpenseShareDetails } from '../../../../services/expenseService/types.ts'
-import { moneyService } from '../../../../services/moneyService'
-import { SPLIT_METHOD_LABELS } from './content.ts'
+import type { ExpenseDetails } from '../../../../services/expenseService/types.ts'
 import { History } from './History'
-import { ReceiptGallery } from './ReceiptGallery'
-import { displayName, owedSentence, paidSentence } from './utils.ts'
 
-const { Paragraph, Text, Title } = Typography
+const { Text, Title } = Typography
 
 type Props = {
   expense: ExpenseDetails
@@ -37,8 +34,6 @@ export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props)
   const navigate = useNavigate()
   const { message, modal } = App.useApp()
   const [restoring, setRestoring] = useState(false)
-  const { token } = theme.useToken()
-  const category = expenseService.categoryOf(expense.category)
   // A settlement is worded by who paid whom ("You paid Priya"), and has no split to show.
   const isSettlement = expense.category === expenseService.settlementCategory
 
@@ -143,18 +138,6 @@ export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props)
     )
   }
 
-  // A settlement's title already says who paid whom.
-  function renderPayers() {
-    if (isSettlement) return null
-    return expense.shares
-      .filter((share) => share.paidMinor > 0)
-      .map((share) => (
-        <Text key={share.personId} type="secondary">
-          {paidSentence(share, expense.currency)}
-        </Text>
-      ))
-  }
-
   function renderLastEdit() {
     if (!expense.lastEdit) return null
     const { by, at } = expense.lastEdit
@@ -175,90 +158,28 @@ export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props)
     )
   }
 
-  function renderSummary() {
-    return (
-      <Flex align="flex-start" gap={16}>
-        <CategoryIcon category={expense.category} size={48} />
-        <Flex vertical style={{ minWidth: 0 }}>
-          <Title level={3} style={{ margin: 0, overflowWrap: 'anywhere' }}>
-            {expenseService.titleOf(expense)}
-          </Title>
-          <Text style={{ fontSize: 28, fontWeight: 600 }}>
-            {moneyService.format(expense.amountMinor, expense.currency)}
-          </Text>
-          <Text type="secondary">
-            {category.label === 'Other' ? `${category.groupLabel}: Other` : category.label} ·{' '}
-            {dateService.formatDay(expense.date, dateService.toDay(new Date()))}
-          </Text>
-          <Text type="secondary">
-            Added by {expense.createdBy.isYou ? 'you' : displayName(expense.createdBy)}
-          </Text>
-          {renderPayers()}
-          {renderLastEdit()}
-          {renderDeleted()}
-        </Flex>
-      </Flex>
-    )
-  }
-
-  function renderShare(share: ExpenseShareDetails) {
-    const name = displayName(share)
-    return (
-      <Flex key={share.personId} align="center" gap={12} role="listitem">
-        <Avatar style={{ flex: 'none', background: token.colorPrimaryBg, color: token.colorPrimary }}>
-          {name.charAt(0).toUpperCase()}
-        </Avatar>
-        <Text style={{ overflowWrap: 'anywhere' }}>{owedSentence(share, expense.currency)}</Text>
-      </Flex>
-    )
-  }
-
-  function renderSplit() {
-    if (isSettlement) return null
-    return (
-      <>
-        <Divider style={{ margin: '16px 0' }} />
-        <Text strong>{SPLIT_METHOD_LABELS[expense.method]}</Text>
-        <Flex vertical gap={12} role="list" aria-label="Who owes" style={{ marginTop: 12 }}>
-          {expense.shares.filter((share) => share.owedMinor > 0).map(renderShare)}
-        </Flex>
-      </>
-    )
-  }
-
-  function renderNotes() {
-    if (!expense.notes) return null
-    return (
-      <>
-        <Divider style={{ margin: '16px 0' }} />
-        <Text strong>Notes</Text>
-        <Paragraph style={{ whiteSpace: 'pre-wrap', margin: '4px 0 0', overflowWrap: 'anywhere' }}>
-          {expense.notes}
-        </Paragraph>
-      </>
-    )
-  }
-
-  function renderReceipts() {
-    if (expense.receipts.length === 0) return null
-    return (
-      <>
-        <Divider style={{ margin: '16px 0' }} />
-        <Text strong style={{ display: 'block', marginBottom: 8 }}>
-          Receipts
-        </Text>
-        <ReceiptGallery receipts={expense.receipts} datasetId={datasetId} />
-      </>
-    )
-  }
-
   return (
     <>
       {renderHeader()}
-      {renderSummary()}
-      {renderSplit()}
-      {renderNotes()}
-      {renderReceipts()}
+      <ExpenseBody
+        description={expense.description}
+        category={expense.category}
+        amountMinor={expense.amountMinor}
+        currency={expense.currency}
+        date={expense.date}
+        notes={expense.notes}
+        method={expense.method}
+        shares={expense.shares}
+        receipts={expense.receipts}
+        datasetId={datasetId}
+        before={<Text type="secondary">Added by {expense.createdBy.isYou ? 'you' : displayName(expense.createdBy)}</Text>}
+        after={
+          <>
+            {renderLastEdit()}
+            {renderDeleted()}
+          </>
+        }
+      />
       <History expense={expense} />
     </>
   )

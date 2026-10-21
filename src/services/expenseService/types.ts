@@ -191,13 +191,17 @@ export type ExpensePerson = { email: string | null; name: string | null; isYou: 
 
 /** One event of an expense: what happened, who did it, when, and for an edit what it changed. */
 export type ExpenseHistoryEntry = {
+  /** The event's id, which names this version of the expense. */
+  id: string
   kind: ExpenseEventKind
   by: ExpensePerson
   at: Date
-  /** What an edit changed; empty for the other kinds. */
+  /** What an edit or a reversion changed; empty for the other kinds. */
   changes: ExpenseChange[]
   /** The expense's currency before an edit, to write the old cost in; its own currency for the other kinds. */
   currencyBefore: string
+  /** For a 'reverted' entry: when the version it put back was made. */
+  restoredFromAt?: Date
 }
 
 /** Who saved an expense's latest edit, and when. */
@@ -244,3 +248,43 @@ export type RestoreExpenseResult =
   | { ok: false; notFound: true }
   /** It is not deleted (for example someone else restored it a moment ago). */
   | { ok: false; notDeleted: true }
+
+/** The expense as it was right after one event of its history, for the version page. */
+export type ExpenseVersion = {
+  groupId: string
+  expenseId: string
+  /** The event: what happened, who did it, when, and what it changed. */
+  event: ExpenseHistoryEntry
+  /** The expense as it was right after the event. */
+  version: {
+    description: string
+    category: string
+    amountMinor: number
+    currency: string
+    /** 'YYYY-MM-DD'. */
+    date: string
+    notes: string | null
+    method: SplitMethod
+    /** The viewer first, then the others A to Z; only those who paid or owed something. */
+    shares: ExpenseShareDetails[]
+    /** Its receipt photos, in order. */
+    receipts: { id: string; mimeType: string }[]
+  }
+  /** Everyone the event's changes refer to, by person id. */
+  people: Record<string, ExpensePerson>
+  /** The version equals the expense as it is now, so there is nothing to go back to. */
+  isCurrent: boolean
+  /** The expense is deleted now: it has to be restored first. */
+  expenseDeleted: boolean
+  /** The expense is a payment between members, which cannot be edited. */
+  isPayment: boolean
+}
+
+export type RestoreVersionResult =
+  | { ok: true }
+  /** The user cannot do this: unknown or malformed id, an event of another expense, another group's, not a member, or a payment. */
+  | { ok: false; notFound: true }
+  /** The expense is deleted: restore it first. */
+  | { ok: false; expenseDeleted: true }
+  /** The version equals the expense as it is now. */
+  | { ok: false; alreadyCurrent: true }

@@ -1,8 +1,9 @@
 import { Divider, Flex, Typography } from 'antd'
 import { expenseService } from '../../../../../services/expenseService'
 import type { ExpenseDetails } from '../../../../../services/expenseService/types.ts'
-import { HistoryEntry } from './HistoryEntry'
-import { historyHeader, historyLines } from './utils.ts'
+import { historyHeader, historyLines } from '../../../../../components/ExpenseWording'
+import { HistoryEntry } from '../../../../../components/HistoryEntry'
+import { ROUTES } from '../../../../../routes.ts'
 
 const { Text } = Typography
 
@@ -30,9 +31,10 @@ export function History({ expense }: Props) {
         {expense.history.map((entry, index) => (
           <HistoryEntry
             key={index}
-            header={historyHeader(entry.by, entry.kind, noun)}
+            header={historyHeader(entry.by, entry.kind, noun, entry.restoredFromAt)}
             at={entry.at}
             lines={historyLines(entry, expense.people)}
+            to={ROUTES.expenseVersion(expense.groupId, expense.id, entry.id)}
           />
         ))}
       </Flex>

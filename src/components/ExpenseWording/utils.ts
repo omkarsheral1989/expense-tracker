@@ -1,6 +1,6 @@
-import type { ExpenseShareDetails } from '../../../../services/expenseService/types.ts'
-import { groupService } from '../../../../services/groupService'
-import { moneyService } from '../../../../services/moneyService'
+import type { ExpenseShareDetails } from '../../services/expenseService/types.ts'
+import { groupService } from '../../services/groupService'
+import { moneyService } from '../../services/moneyService'
 
 /** How the page names a person: "You", or their name (their email when no name is known). */
 export function displayName(person: { isYou: boolean; name: string | null; email: string | null }): string {

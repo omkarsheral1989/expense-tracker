@@ -25,6 +25,11 @@ export const ROUTES = {
   expense: (groupId: string, expenseId: string) => `/groups/${groupId}/expenses/${expenseId}`,
   /** The same address as a pattern for the router. "new" above is matched first. */
   expensePattern: '/groups/:id/expenses/:expenseId',
+  /** The expense as it was right after one event of its history, with the way to put it back. */
+  expenseVersion: (groupId: string, expenseId: string, eventId: string) =>
+    `/groups/${groupId}/expenses/${expenseId}/versions/${eventId}`,
+  /** The same address as a pattern for the router. */
+  expenseVersionPattern: '/groups/:id/expenses/:expenseId/versions/:eventId',
   /** Where one expense of a group is edited. */
   editExpense: (groupId: string, expenseId: string) => `/groups/${groupId}/expenses/${expenseId}/edit`,
   /** The same address as a pattern for the router. */

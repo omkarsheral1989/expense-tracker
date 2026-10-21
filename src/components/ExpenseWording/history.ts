@@ -1,10 +1,10 @@
-import type { ExpenseChange, ExpenseEventKind, SplitMethod } from '../../../../../db/types.ts'
-import { dateService } from '../../../../../services/dateService'
-import { expenseService } from '../../../../../services/expenseService'
-import type { ExpenseHistoryEntry, ExpensePerson } from '../../../../../services/expenseService/types.ts'
-import { moneyService } from '../../../../../services/moneyService'
-import { SPLIT_METHOD_LABELS } from '../content.ts'
-import { displayName } from '../utils.ts'
+import type { ExpenseChange, ExpenseEventKind, SplitMethod } from '../../db/types.ts'
+import { dateService } from '../../services/dateService'
+import { expenseService } from '../../services/expenseService'
+import type { ExpenseHistoryEntry, ExpensePerson } from '../../services/expenseService/types.ts'
+import { moneyService } from '../../services/moneyService'
+import { SPLIT_METHOD_LABELS } from './content.ts'
+import { displayName } from './utils.ts'
 
 /** Text longer than this is cut, with "…", when a line quotes it. */
 export const QUOTE_MAX_LENGTH = 80
@@ -153,11 +153,21 @@ export function historyLines(entry: ExpenseHistoryEntry, people: People): Histor
     .flatMap((change) => lineFor(change, entry, people))
 }
 
-/** The header of an entry: "You added this expense", "You edited this expense", "You deleted this payment", "You restored this expense". */
+/**
+ * The header of an entry: "You added this expense", "You edited this expense",
+ * "You deleted this payment", "You restored this expense", or, for going back
+ * to an earlier version, "You restored the version from 20 Oct 2026, 6:04 pm"
+ * (`restoredFromAt` is when that version was made).
+ */
 export function historyHeader(
   by: { isYou: boolean; name: string | null; email: string | null },
   did: ExpenseEventKind,
   noun: 'expense' | 'payment' = 'expense',
+  restoredFromAt?: Date,
 ): string {
+  if (did === 'reverted') {
+    const from = restoredFromAt ? ` from ${dateService.formatDateTime(restoredFromAt, navigator.language)}` : ''
+    return `${displayName(by)} restored the version${from}`
+  }
   return `${displayName(by)} ${did} this ${noun}`
 }

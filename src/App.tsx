@@ -8,6 +8,7 @@ import { CreateGroupPage } from './pages/createGroup'
 import { EditExpensePage } from './pages/editExpense'
 import { EditGroupPage } from './pages/editGroup'
 import { ExpensePage } from './pages/expense'
+import { ExpenseVersionPage } from './pages/expenseVersion'
 import { GetStartedPage } from './pages/getStarted'
 import { GroupPage } from './pages/group'
 import { HomePage } from './pages/home'
@@ -40,6 +41,7 @@ function App() {
           <Route path={ROUTES.newExpensePattern} element={<AddExpensePage />} />
           <Route path={ROUTES.expensePattern} element={<ExpensePage />} />
           <Route path={ROUTES.editExpensePattern} element={<EditExpensePage />} />
+          <Route path={ROUTES.expenseVersionPattern} element={<ExpenseVersionPage />} />
         </Route>
         <Route path="*" element={<Navigate to={ROUTES.welcome} replace />} />
       </Routes>

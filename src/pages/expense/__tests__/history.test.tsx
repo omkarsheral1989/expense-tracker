@@ -1,10 +1,11 @@
 // @vitest-environment jsdom
 import 'fake-indexeddb/auto'
 import { cleanup, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getDb } from '../../../db/client.ts'
-import { people } from '../../../db/schema.ts'
+import { expenseEvents, people } from '../../../db/schema.ts'
 import { ROUTES } from '../../../routes.ts'
 import { expenseService } from '../../../services/expenseService'
 import type { CreateExpenseInput } from '../../../services/expenseService/types.ts'
@@ -43,7 +44,7 @@ function renderExpense(groupId: string, expenseId: string) {
   return renderPage(<ExpensePage />, {
     path: ROUTES.expense(groupId, expenseId),
     pattern: ROUTES.expensePattern,
-    routes: [ROUTES.groupPattern, ROUTES.editExpensePattern],
+    routes: [ROUTES.groupPattern, ROUTES.editExpensePattern, ROUTES.expenseVersionPattern],
   })
 }
 
@@ -231,6 +232,67 @@ describe('ExpensePage: history', () => {
 
     await screen.findByText('History')
     expect(entryTexts().at(-1)).toBe('Priya Shah added this expense · 20 Oct 2026, 12:00 PM')
+  })
+
+  describe('opening a version', () => {
+    it('makes every entry a link to the version of that event, the newest and the adding too', async () => {
+      const id = await createGroup()
+      const expenseId = await addExpense(id)
+      await editAt(me.email, id, expenseId, 13, 0, { description: 'Lunch' })
+      const meId = await personIdOf(testDb.db, me.email)
+      vi.setSystemTime(new Date(2026, 9, 21, 14, 0))
+      await expenseService.deleteExpense(testDb.db, meId, id, expenseId)
+      renderExpense(id, expenseId)
+
+      await screen.findByText('History')
+      const events = await testDb.db.select().from(expenseEvents).where(eq(expenseEvents.expenseId, expenseId))
+      const links = within(history()).getAllByRole('link')
+      // Newest first: deleted, edited, added.
+      expect(links.map((link) => link.getAttribute('href'))).toEqual(
+        ['deleted', 'edited', 'added'].map((kind) => ROUTES.expenseVersion(id, expenseId, events.find((event) => event.kind === kind)!.id)),
+      )
+      expect(links.map((link) => link.textContent?.split(' · ')[0])).toEqual([
+        'You deleted this expense',
+        'You edited this expense',
+        'You added this expense',
+      ])
+    })
+
+    it('opens the version of an entry when it is tapped', async () => {
+      const id = await createGroup()
+      const expenseId = await addExpense(id)
+      await editAt(me.email, id, expenseId, 13, 0, { description: 'Lunch' })
+      const page = renderExpense(id, expenseId)
+      await screen.findByText('History')
+      const [, added] = within(history()).getAllByRole('link')
+      const [addedEvent] = (await testDb.db.select().from(expenseEvents).where(eq(expenseEvents.expenseId, expenseId)))
+        .filter((event) => event.kind === 'added')
+
+      await userEvent.click(added)
+
+      expect(page.currentPath()).toBe(ROUTES.expenseVersion(id, expenseId, addedEvent.id))
+    })
+
+    it('shows the plain header for a version that was put back: "You restored the version from …", with what changed back', async () => {
+      const id = await createGroup()
+      const expenseId = await addExpense(id)
+      await editAt(me.email, id, expenseId, 13, 0, { description: 'Lunch', amountMinor: 1200 })
+      const meId = await personIdOf(testDb.db, me.email)
+      const [added] = await testDb.db.select().from(expenseEvents).where(eq(expenseEvents.kind, 'added'))
+      vi.setSystemTime(new Date(2026, 9, 21, 9, 30))
+      await expenseService.restoreVersion(testDb.db, meId, id, expenseId, added.id)
+      renderExpense(id, expenseId)
+
+      await screen.findByText('History')
+      const [reverted] = entries()
+      expect(reverted.textContent).toMatch(/^You restored the version from 20 Oct 2026, 12:00\s?PM · 21 Oct 2026, 9:30\s?AM/)
+      expect(within(reverted).getAllByRole('listitem').map((line) => line.textContent)).toEqual([
+        "Description changed from 'Lunch' to 'Beach shack dinner'",
+        'Cost changed from £12.00 to £9.00',
+      ])
+      // The edit is now an older entry, and the "Edited by" line names the reversion.
+      expect(await screen.findByText(/^Edited by you, 21 Oct 2026, 9:30\s?AM$/)).toBeInTheDocument()
+    })
   })
 
   it('counts photos added and removed', async () => {

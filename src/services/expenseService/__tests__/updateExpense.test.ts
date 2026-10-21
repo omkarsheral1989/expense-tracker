@@ -479,6 +479,7 @@ describe('expenseService.getExpense: created time and history', () => {
 
     expect(details?.history).toEqual([
       {
+        id: expect.any(String),
         kind: 'added',
         by: { email: omkar.email, name: 'Omkar', isYou: true },
         at: details?.createdAt,

@@ -26,8 +26,12 @@ export const EXPENSE_NOTES_MAX_LENGTH = 1000
  */
 export const SPLIT_METHODS = ['equal', 'exact', 'percent', 'shares', 'adjustment'] as const
 
-/** What an expense event records: the expense was added, edited, deleted or restored. */
-export const EXPENSE_EVENT_KINDS = ['added', 'edited', 'deleted', 'restored'] as const
+/**
+ * What an expense event records: the expense was added, edited, deleted or
+ * restored (brought back after a deletion), or reverted (put back to an earlier
+ * version).
+ */
+export const EXPENSE_EVENT_KINDS = ['added', 'edited', 'deleted', 'restored', 'reverted'] as const
 
 /** Most receipt photos one expense can have. */
 export const MAX_RECEIPTS_PER_EXPENSE = 10

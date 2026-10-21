@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { ExpenseShareDetails } from '../../../../../services/expenseService/types.ts'
+import type { ExpenseShareDetails } from '../../../services/expenseService/types.ts'
 import { displayName, owedSentence, paidSentence } from '../utils.ts'
 
 const you: ExpenseShareDetails = {

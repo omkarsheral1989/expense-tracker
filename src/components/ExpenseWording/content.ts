@@ -1,4 +1,4 @@
-import type { SplitMethod } from '../../../../db/types.ts'
+import type { SplitMethod } from '../../db/types.ts'
 
 /** How the details page names each split method. Every method must have an entry. */
 export const SPLIT_METHOD_LABELS: Record<SplitMethod, string> = {

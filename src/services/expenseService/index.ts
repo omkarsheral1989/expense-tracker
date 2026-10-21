@@ -31,11 +31,14 @@ import type {
   DeleteExpenseResult,
   ExpenseDetails,
   ExpenseHistoryEntry,
+  ExpensePerson,
   ExpenseListItem,
   ExpensePayer,
   ExpenseToEdit,
   PersonBalance,
+  ExpenseVersion,
   RestoreExpenseResult,
+  RestoreVersionResult,
   UpdateExpenseInput,
   UpdateExpenseResult,
 } from './types.ts'
@@ -46,6 +49,7 @@ import {
   expenseChanges,
   pairBalances,
   payerOf,
+  sameSnapshot,
   sameSplitInput,
   settlementSentence,
   titleOf,
@@ -422,6 +426,7 @@ export const expenseService = {
 
     const events = await db
       .select({
+        id: expenseEvents.id,
         kind: expenseEvents.kind,
         occurredAt: expenseEvents.occurredAt,
         actorId: expenseEvents.actedBy,
@@ -429,6 +434,7 @@ export const expenseService = {
         actorName: people.name,
         changes: expenseEvents.changes,
         snapshot: expenseEvents.snapshot,
+        restoredFrom: expenseEvents.restoredFrom,
       })
       .from(expenseEvents)
       .innerJoin(people, eq(people.id, expenseEvents.actedBy))
@@ -440,37 +446,11 @@ export const expenseService = {
           b.occurredAt.getTime() - a.occurredAt.getTime() ||
           EXPENSE_EVENT_KINDS.indexOf(b.kind) - EXPENSE_EVENT_KINDS.indexOf(a.kind),
       )
-      .map((event) => ({
-        kind: event.kind,
-        by: { email: event.actorEmail, name: event.actorName, isYou: event.actorId === userId },
-        at: event.occurredAt,
-        changes: event.changes,
-        // What an edit changed the currency from, if it did; otherwise the one it has.
-        currencyBefore: String(event.changes.find((change) => change.field === 'currency')?.from ?? event.snapshot.currency),
-      }))
-    const lastEdit = history.find((entry) => entry.kind === 'edited')
+      .map((event) => historyEntryOf(event, userId, events.find((other) => other.id === event.restoredFrom)?.occurredAt))
+    // Going back to an earlier version changes the expense as an edit does.
+    const lastEdit = history.find((entry) => entry.kind === 'edited' || entry.kind === 'reverted')
 
-    // Everyone a change refers to: who paid, and who was in a split.
-    const referred = new Set<string>()
-    for (const { changes } of history) {
-      for (const change of changes) {
-        if (change.field === 'paidBy') {
-          for (const id of [change.from, change.to]) if (typeof id === 'string') referred.add(id)
-        } else if (change.field === 'split') {
-          for (const side of [change.from, change.to]) {
-            const values = (side as { values?: Record<string, number> } | null)?.values ?? {}
-            for (const id of Object.keys(values)) referred.add(id)
-          }
-        }
-      }
-    }
-    const referredPeople =
-      referred.size === 0
-        ? []
-        : await db
-            .select({ id: people.id, email: people.email, name: people.name })
-            .from(people)
-            .where(inArray(people.id, [...referred]))
+    const referencedPeople = await peopleReferredBy(db, userId, history.map((entry) => entry.changes))
 
     const { createdById, createdByEmail, createdByName, deletedAt, deleterId, deleterEmail, deleterName, ...details } = expense
     return {
@@ -483,9 +463,7 @@ export const expenseService = {
       receipts,
       lastEdit: lastEdit ? { by: lastEdit.by, at: lastEdit.at } : null,
       history,
-      people: Object.fromEntries(
-        referredPeople.map((person) => [person.id, { email: person.email, name: person.name, isYou: person.id === userId }]),
-      ),
+      people: referencedPeople,
     }
   },
 
@@ -759,6 +737,222 @@ export const expenseService = {
   },
 
   /**
+   * The expense as it was right after one event of its history (any event: each
+   * holds the whole expense), for the page of that version. It works on a
+   * deleted expense and on a payment, and says whether the version is the
+   * expense as it is now (`isCurrent`), whether the expense is deleted and
+   * whether it is a payment, which decide if it can be put back. Null when the
+   * user cannot see it: an unknown or malformed id, an event of another
+   * expense, another group's expense, or a group the user is not a member of.
+   */
+  async getExpenseVersion(
+    db: Database,
+    userId: string,
+    groupId: string,
+    expenseId: string,
+    eventId: string,
+  ): Promise<ExpenseVersion | null> {
+    if (!UUID.test(groupId) || !UUID.test(expenseId) || !UUID.test(eventId)) return null
+
+    const [membership] = await db
+      .select({ id: groupMembers.id })
+      .from(groupMembers)
+      .innerJoin(groups, and(eq(groups.id, groupMembers.groupId), isNull(groups.deletedAt)))
+      .where(
+        and(eq(groupMembers.groupId, groupId), eq(groupMembers.personId, userId), isNull(groupMembers.deletedAt)),
+      )
+    if (!membership) return null
+
+    const stored = await loadSnapshot(db, groupId, expenseId)
+    if (!stored) return null
+
+    const events = await db
+      .select({
+        id: expenseEvents.id,
+        kind: expenseEvents.kind,
+        occurredAt: expenseEvents.occurredAt,
+        actorId: expenseEvents.actedBy,
+        actorEmail: people.email,
+        actorName: people.name,
+        changes: expenseEvents.changes,
+        snapshot: expenseEvents.snapshot,
+        restoredFrom: expenseEvents.restoredFrom,
+      })
+      .from(expenseEvents)
+      .innerJoin(people, eq(people.id, expenseEvents.actedBy))
+      .where(eq(expenseEvents.expenseId, expenseId))
+    const event = events.find((one) => one.id === eventId)
+    if (!event) return null
+
+    const snapshot = event.snapshot
+    const named = await db
+      .select({ id: people.id, email: people.email, name: people.name })
+      .from(people)
+      .where(inArray(people.id, snapshot.shares.length > 0 ? snapshot.shares.map((share) => share.personId) : [event.actorId]))
+    const label = (share: { name: string | null; email: string | null }) => displayName(share).toLowerCase()
+    const shares = snapshot.shares
+      .filter((share) => share.paidMinor > 0 || share.owedMinor > 0)
+      .map((share) => {
+        const person = named.find((one) => one.id === share.personId)
+        return {
+          personId: share.personId,
+          email: person?.email ?? null,
+          name: person?.name ?? null,
+          isYou: share.personId === userId,
+          paidMinor: share.paidMinor,
+          owedMinor: share.owedMinor,
+        }
+      })
+      .sort((a, b) => Number(b.isYou) - Number(a.isYou) || label(a).localeCompare(label(b)))
+
+    return {
+      groupId,
+      expenseId,
+      event: historyEntryOf(event, userId, events.find((other) => other.id === event.restoredFrom)?.occurredAt),
+      version: {
+        description: snapshot.description,
+        category: snapshot.category,
+        amountMinor: snapshot.amountMinor,
+        currency: snapshot.currency,
+        date: snapshot.date,
+        notes: snapshot.notes,
+        method: snapshot.method,
+        shares,
+        receipts: snapshot.photos.map((photo) => ({ id: photo.id, mimeType: photo.mimeType })),
+      },
+      people: await peopleReferredBy(db, userId, [event.changes]),
+      isCurrent: sameSnapshot(snapshot, stored.snapshot),
+      expenseDeleted: stored.expense.deletedAt !== null,
+      isPayment: stored.expense.category === SETTLEMENT_CATEGORY,
+    }
+  },
+
+  /**
+   * Puts an expense back to the version it had right after one event of its
+   * history: the fields, who paid, what each person paid, owed and entered
+   * (written back as they were, not worked out again), and the photos (rows
+   * taken off since are brought back, rows added since are taken off; the
+   * pictures never left the device). It counts as activity, records a
+   * `reverted` event (the restored state, what changed, and which version it
+   * went back to), and the version it replaced stays in the history, so it can
+   * be put back the same way. Refused for a deleted expense (`expenseDeleted`:
+   * restore it first), a version equal to the current one (`alreadyCurrent`)
+   * and, as `notFound`, everything the user cannot do: an unknown or malformed
+   * id, an event of another expense, another group's expense, a group they are
+   * not in, and a payment between members.
+   */
+  async restoreVersion(
+    db: Database,
+    userId: string,
+    groupId: string,
+    expenseId: string,
+    eventId: string,
+  ): Promise<RestoreVersionResult> {
+    if (!UUID.test(groupId) || !UUID.test(expenseId) || !UUID.test(eventId)) return { ok: false, notFound: true }
+
+    return db.transaction(async (tx): Promise<RestoreVersionResult> => {
+      const [membership] = await tx
+        .select({ id: groupMembers.id })
+        .from(groupMembers)
+        .innerJoin(groups, and(eq(groups.id, groupMembers.groupId), isNull(groups.deletedAt)))
+        .where(
+          and(eq(groupMembers.groupId, groupId), eq(groupMembers.personId, userId), isNull(groupMembers.deletedAt)),
+        )
+      if (!membership) return { ok: false, notFound: true }
+
+      const stored = await loadSnapshot(tx, groupId, expenseId)
+      if (!stored || stored.expense.category === SETTLEMENT_CATEGORY) return { ok: false, notFound: true }
+      if (stored.expense.deletedAt !== null) return { ok: false, expenseDeleted: true }
+
+      const [event] = await tx
+        .select()
+        .from(expenseEvents)
+        .where(and(eq(expenseEvents.id, eventId), eq(expenseEvents.expenseId, expenseId)))
+      if (!event) return { ok: false, notFound: true }
+
+      const target = event.snapshot
+      const current = stored.snapshot
+      if (sameSnapshot(target, current)) return { ok: false, alreadyCurrent: true }
+
+      const at = new Date()
+      await tx
+        .update(expenses)
+        .set({
+          description: target.description,
+          category: target.category,
+          amountMinor: target.amountMinor,
+          currency: target.currency,
+          date: target.date,
+          notes: target.notes,
+          method: target.method,
+          updatedBy: userId,
+          updatedAt: at,
+        })
+        .where(eq(expenses.id, expenseId))
+
+      // Shares: every row of the expense, even one taken off earlier, since a person has one row.
+      const shareRows = await tx.select().from(expenseShares).where(eq(expenseShares.expenseId, expenseId))
+      const wanted = new Set(target.shares.map((share) => share.personId))
+      for (const share of target.shares) {
+        const row = shareRows.find((one) => one.personId === share.personId)
+        const values = { paidMinor: share.paidMinor, owedMinor: share.owedMinor, inputValue: share.inputValue, deletedAt: null, updatedBy: userId, updatedAt: at }
+        if (row) await tx.update(expenseShares).set(values).where(eq(expenseShares.id, row.id))
+        else await tx.insert(expenseShares).values({ ...values, expenseId, personId: share.personId })
+      }
+      // A person with a share now and none in that version had no part then.
+      for (const row of shareRows) {
+        if (wanted.has(row.personId) || row.deletedAt !== null) continue
+        await tx
+          .update(expenseShares)
+          .set({ paidMinor: 0, owedMinor: 0, inputValue: null, updatedBy: userId, updatedAt: at })
+          .where(eq(expenseShares.id, row.id))
+      }
+
+      // Photos: the version's, in its order; any other live row is taken off.
+      const photoRows = await tx.select().from(expensePhotos).where(eq(expensePhotos.expenseId, expenseId))
+      const kept = new Set(target.photos.map((photo) => photo.id))
+      for (const [position, photo] of target.photos.entries()) {
+        const row = photoRows.find((one) => one.id === photo.id)
+        if (row) {
+          await tx
+            .update(expensePhotos)
+            .set({ position, deletedAt: null, updatedBy: userId, updatedAt: at })
+            .where(eq(expensePhotos.id, photo.id))
+        } else {
+          await tx.insert(expensePhotos).values({
+            id: photo.id,
+            expenseId,
+            position,
+            mimeType: photo.mimeType,
+            sizeBytes: photo.sizeBytes,
+            updatedBy: userId,
+            updatedAt: at,
+          })
+        }
+      }
+      for (const row of photoRows) {
+        if (kept.has(row.id) || row.deletedAt !== null) continue
+        await tx
+          .update(expensePhotos)
+          .set({ deletedAt: at, updatedBy: userId, updatedAt: at })
+          .where(eq(expensePhotos.id, row.id))
+      }
+
+      await recordEvent(tx, {
+        groupId,
+        expenseId,
+        kind: 'reverted',
+        userId,
+        at,
+        snapshot: target,
+        changes: expenseChanges(current, target),
+        restoredFrom: eventId,
+      })
+      return { ok: true }
+    })
+  },
+
+  /**
    * What the user and each other person in a group owe each other, one entry
    * per person and currency that is not settled, in the order of the people's
    * names (or emails) and then currency codes. Worked out from the live shares
@@ -933,6 +1127,8 @@ async function recordEvent(
     at: Date
     snapshot: ExpenseSnapshot
     changes?: ExpenseChange[]
+    /** For a 'reverted' event: the event whose version was put back. */
+    restoredFrom?: string
   },
 ) {
   await tx.insert(expenseEvents).values({
@@ -943,6 +1139,7 @@ async function recordEvent(
     occurredAt: event.at,
     snapshot: event.snapshot,
     changes: event.changes ?? [],
+    restoredFrom: event.restoredFrom ?? null,
     updatedBy: event.userId,
     updatedAt: event.at,
   })
@@ -965,4 +1162,57 @@ async function loadEditable(tx: Reader, userId: string, groupId: string, expense
   const stored = await loadSnapshot(tx, groupId, expenseId)
   if (!stored || stored.expense.deletedAt !== null || stored.expense.category === SETTLEMENT_CATEGORY) return null
   return { ...stored, memberIds }
+}
+
+/** What the history shows of one event: what happened, who did it, when, and what it changed. */
+function historyEntryOf(
+  event: {
+    id: string
+    kind: ExpenseEventKind
+    occurredAt: Date
+    actorId: string
+    actorEmail: string | null
+    actorName: string | null
+    changes: ExpenseChange[]
+    snapshot: ExpenseSnapshot
+  },
+  userId: string,
+  restoredFromAt?: Date,
+): ExpenseHistoryEntry {
+  return {
+    id: event.id,
+    kind: event.kind,
+    by: { email: event.actorEmail, name: event.actorName, isYou: event.actorId === userId },
+    at: event.occurredAt,
+    changes: event.changes,
+    // What an edit changed the currency from, if it did; otherwise the one it has.
+    currencyBefore: String(event.changes.find((change) => change.field === 'currency')?.from ?? event.snapshot.currency),
+    ...(restoredFromAt && { restoredFromAt }),
+  }
+}
+
+/**
+ * Everyone the given changes refer to (who paid, who was in a split), by person
+ * id, as the viewer sees them, so that no screen has to look anyone up.
+ */
+async function peopleReferredBy(db: Reader, userId: string, changeLists: ExpenseChange[][]): Promise<Record<string, ExpensePerson>> {
+  const referred = new Set<string>()
+  for (const changes of changeLists) {
+    for (const change of changes) {
+      if (change.field === 'paidBy') {
+        for (const id of [change.from, change.to]) if (typeof id === 'string') referred.add(id)
+      } else if (change.field === 'split') {
+        for (const side of [change.from, change.to]) {
+          const values = (side as { values?: Record<string, number> } | null)?.values ?? {}
+          for (const id of Object.keys(values)) referred.add(id)
+        }
+      }
+    }
+  }
+  if (referred.size === 0) return {}
+  const found = await db
+    .select({ id: people.id, email: people.email, name: people.name })
+    .from(people)
+    .where(inArray(people.id, [...referred]))
+  return Object.fromEntries(found.map((person) => [person.id, { email: person.email, name: person.name, isYou: person.id === userId }]))
 }

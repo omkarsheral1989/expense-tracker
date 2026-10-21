@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import type { ExpenseChange } from '../../../../../../db/types.ts'
-import type { ExpenseHistoryEntry, ExpensePerson } from '../../../../../../services/expenseService/types.ts'
-import { historyHeader, historyLines, QUOTE_MAX_LENGTH } from '../utils.ts'
+import type { ExpenseChange } from '../../../db/types.ts'
+import type { ExpenseHistoryEntry, ExpensePerson } from '../../../services/expenseService/types.ts'
+import { historyHeader, historyLines, QUOTE_MAX_LENGTH } from '../history.ts'
 
 const people: Record<string, ExpensePerson> = {
   me: { email: 'omkar@gmail.com', name: 'Omkar', isYou: true },
@@ -11,7 +11,7 @@ const people: Record<string, ExpensePerson> = {
 
 /** One edit by you, in INR unless said otherwise, with the changes given. */
 function entry(changes: ExpenseChange[], currencyBefore = 'INR'): ExpenseHistoryEntry {
-  return { kind: 'edited', by: people.me, at: new Date(2026, 9, 20, 18, 15), changes, currencyBefore }
+  return { id: 'event', kind: 'edited', by: people.me, at: new Date(2026, 9, 20, 18, 15), changes, currencyBefore }
 }
 
 const lines = (changes: ExpenseChange[], currencyBefore?: string) =>
@@ -179,5 +179,24 @@ describe('historyHeader', () => {
     expect(historyHeader(people.me, 'edited')).toBe('You edited this expense')
     expect(historyHeader(people.priya, 'edited')).toBe('Priya Shah edited this expense')
     expect(historyHeader(people.sam, 'added')).toBe('sam@gmail.com added this expense')
+  })
+
+  it('says "restored the version from <time>" for going back to an earlier version', () => {
+    const from = new Date(2026, 9, 20, 18, 4)
+    expect(historyHeader(people.me, 'reverted', 'expense', from)).toMatch(/^You restored the version from 20 Oct 2026, 6:04\s?PM$/)
+    expect(historyHeader(people.priya, 'reverted', 'expense', from)).toMatch(/^Priya Shah restored the version from 20 Oct 2026/)
+    // Without the time of that version, it still reads.
+    expect(historyHeader(people.me, 'reverted')).toBe('You restored the version')
+  })
+
+  it('words the edit and the other kinds, for an expense and for a payment', () => {
+    expect(historyHeader(people.me, 'added')).toBe('You added this expense')
+    expect(historyHeader(people.me, 'restored')).toBe('You restored this expense')
+    expect(historyHeader(people.me, 'deleted', 'payment')).toBe('You deleted this payment')
+  })
+
+  it('writes the lines of a reversion as it does those of an edit', () => {
+    const entry: ExpenseHistoryEntry = { id: 'x', kind: 'reverted', by: people.me, at: new Date(), changes: [{ field: 'description', from: 'Lunch', to: 'Dinner' }], currencyBefore: 'INR' }
+    expect(historyLines(entry, people)).toEqual([{ text: "Description changed from 'Lunch' to 'Dinner'" }])
   })
 })

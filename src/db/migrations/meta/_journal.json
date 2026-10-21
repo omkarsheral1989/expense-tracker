@@ -57,6 +57,13 @@
       "when": 1792524777285,
       "tag": "0007_expense_events",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792564596264,
+      "tag": "0008_expense_event_reverted",
+      "breakpoints": true
     }
   ]
 }
