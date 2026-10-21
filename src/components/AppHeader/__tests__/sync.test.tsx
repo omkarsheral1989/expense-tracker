@@ -98,10 +98,12 @@ async function closeDialog() {
   await userEvent.click(buttons[buttons.length - 1])
 }
 
-/** The progress dialog's lines, as text. */
+/** The progress dialog's first line (the Backup line), as text. */
 async function progress() {
-  return (await screen.findByRole('list', { name: 'Progress' })).textContent
+  const list = await screen.findByRole('list', { name: 'Progress' })
+  return within(list).getAllByRole('listitem')[0].textContent
 }
+
 
 beforeEach(() => {
   fake.clientId = 'test-client-id'

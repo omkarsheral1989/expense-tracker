@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { EXPENSE_EVENT_KINDS, GROUP_TYPES, SPLIT_METHODS } from '../../db/constants.ts'
-import { BACKUP_APP, BACKUP_FORMAT, BACKUP_KIND } from './constants.ts'
+import { BACKUP_APP, BACKUP_FORMAT, BACKUP_KIND, GROUP_FILE_KIND } from './constants.ts'
 
 // A backup is downloaded from Drive, so it is untrusted (CLAUDE.md, ADR-010):
 // every row is checked here, and the database's constraints check the rest.
@@ -115,6 +115,17 @@ export const backupFileSchema = z.object({
   app: z.literal(BACKUP_APP),
   kind: z.literal(BACKUP_KIND),
   format: z.literal(BACKUP_FORMAT),
+  writtenAt: timestamp,
+  writtenBy: z.uuid(),
+  rows: backupRowsSchema,
+})
+
+/** A member's file of a group: the whole group as the writer's device knows it (ADR-044). */
+export const groupFileSchema = z.object({
+  app: z.literal(BACKUP_APP),
+  kind: z.literal(GROUP_FILE_KIND),
+  format: z.literal(BACKUP_FORMAT),
+  groupId: z.uuid(),
   writtenAt: timestamp,
   writtenBy: z.uuid(),
   rows: backupRowsSchema,

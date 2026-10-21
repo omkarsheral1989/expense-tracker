@@ -1,4 +1,4 @@
-import { CheckCircleFilled, CloseCircleFilled, LoadingOutlined } from '@ant-design/icons'
+import { CheckCircleFilled, ClockCircleOutlined, CloseCircleFilled, LoadingOutlined } from '@ant-design/icons'
 import { Button, Flex, Typography, theme } from 'antd'
 import { useSyncStore } from '../../stores/useSyncStore'
 import type { SyncStep } from '../../stores/useSyncStore/types.ts'
@@ -7,8 +7,9 @@ import { AdaptiveDialog } from '../AdaptiveDialog'
 const { Text } = Typography
 
 /**
- * The progress of a sync or restore (PRD 5.8): one line per step, each with a
- * spinner, a tick or a cross, and what it is doing or what went wrong. Closing
+ * The progress of a sync or restore (PRD 5.8): one line per step (the backup,
+ * then each group), each with a spinner, a tick, a clock (waiting for the
+ * group's creator) or a cross, and what it is doing or what went wrong. Closing
  * it does not stop the run; pressing Sync again opens it.
  */
 export function SyncDialog() {
@@ -18,6 +19,7 @@ export function SyncDialog() {
   function renderIcon(step: SyncStep) {
     if (step.status === 'running') return <LoadingOutlined style={{ color: token.colorPrimary }} />
     if (step.status === 'done') return <CheckCircleFilled style={{ color: token.colorSuccess }} />
+    if (step.status === 'waiting') return <ClockCircleOutlined style={{ color: token.colorTextSecondary }} />
     return <CloseCircleFilled style={{ color: token.colorError }} />
   }
 

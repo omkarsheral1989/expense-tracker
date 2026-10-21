@@ -5,25 +5,35 @@ import { dateService } from '../../../services/dateService'
 import { syncService } from '../../../services/syncService'
 import { useSyncStore } from '../../../stores/useSyncStore'
 import { SyncIconButton } from '../SyncIconButton'
+import type { SyncButtonProps } from '../types.ts'
 
 /**
- * The signed-in user's Sync button: backs up (and later syncs every group),
- * asking Google for Drive access the first time. Its tip says when the last
- * sync finished on this device.
+ * The signed-in user's Sync button: backs up and syncs every group, or only
+ * `group`, asking Google for Drive access the first time. Its tip says when
+ * the last sync (of everything, or of that group) finished on this device.
  */
-export function DriveSyncButton() {
-  const { sync, running } = useSync()
+export function DriveSyncButton({ group, onBand }: SyncButtonProps) {
+  const { sync, syncGroup, running } = useSync()
   const dataVersion = useSyncStore((state) => state.dataVersion)
   const { state } = useAsyncData(
-    async () => syncService.lastSyncedAt(await getDb()),
-    String(dataVersion),
+    async () => {
+      const db = await getDb()
+      return group ? syncService.lastGroupSyncAt(db, group.id) : syncService.lastSyncedAt(db)
+    },
+    `${group?.id ?? 'all'}:${dataVersion}`,
     { keepPrevious: true },
   )
 
   const lastSyncedAt = state.status === 'ready' ? state.data : null
-  const tip = lastSyncedAt
-    ? `Last synced ${dateService.formatTimeAgo(lastSyncedAt, new Date(), navigator.language)}`
-    : 'Sync and back up'
+  let tip = group ? 'Sync this group' : 'Sync and back up'
+  if (lastSyncedAt) tip = `Last synced ${dateService.formatTimeAgo(lastSyncedAt, new Date(), navigator.language)}`
 
-  return <SyncIconButton tip={tip} spinning={running} onClick={sync} />
+  return (
+    <SyncIconButton
+      tip={tip}
+      spinning={running}
+      onBand={onBand}
+      onClick={() => (group ? syncGroup(group.id, group.name) : sync())}
+    />
+  )
 }

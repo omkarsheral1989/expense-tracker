@@ -16,3 +16,22 @@ export type RestoreResult =
   | { ok: false; reason: 'none' }
   /** The backup file is not valid OwnLedger data, so nothing was imported. */
   | { ok: false; reason: 'invalid' }
+
+/** Where a group's sync has got to: reading the members' files, or writing the user's own. */
+export type GroupSyncStep = 'receiving' | 'sending'
+
+export type GroupSyncResult =
+  | {
+      status: 'synced'
+      /** First names of the people the folder was just shared with. */
+      sharedWith: string[]
+      /** First names of the members whose file was not valid OwnLedger data, so it was skipped. */
+      unreadable: string[]
+      /** People who now have another id, as for a restore (old id → new id). */
+      renamed: Map<string, string>
+    }
+  /** The group's folder does not exist yet, and only its creator makes it (ADR-044). */
+  | { status: 'waiting'; creatorName: string }
+
+/** A group found shared with the user and brought onto the device. */
+export type FoundGroup = { groupId: string; name: string }

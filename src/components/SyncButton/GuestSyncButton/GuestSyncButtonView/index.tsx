@@ -1,13 +1,14 @@
 import { App } from 'antd'
 import { SyncIconButton } from '../../SyncIconButton'
+import type { SyncButtonProps } from '../../types.ts'
 
-type Props = {
+type Props = SyncButtonProps & {
   /** Starts the Google sign-in, which makes that account the owner of this device's data. */
   onSignIn: () => void
 }
 
 /** A guest's Sync button: it explains that sync needs a Google sign-in, and offers one. */
-export function GuestSyncButtonView({ onSignIn }: Props) {
+export function GuestSyncButtonView({ group, onBand, onSignIn }: Props) {
   const { modal } = App.useApp()
 
   function askToSignIn() {
@@ -22,5 +23,5 @@ export function GuestSyncButtonView({ onSignIn }: Props) {
     })
   }
 
-  return <SyncIconButton tip="Sync and back up" onClick={askToSignIn} />
+  return <SyncIconButton tip={group ? 'Sync this group' : 'Sync and back up'} onBand={onBand} onClick={askToSignIn} />
 }

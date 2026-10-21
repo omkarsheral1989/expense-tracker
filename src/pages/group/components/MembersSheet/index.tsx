@@ -8,6 +8,8 @@ type Props = {
   onClose: () => void
   /** The user first, then the others A to Z, already in the order to show. */
   members: GroupMember[]
+  /** The members whose own file this device has read in the group's folder: they are not Pending (from `syncService.syncedMembers`). */
+  syncedIds: ReadonlySet<string>
   groupId: string
   /** The user's person id: they add the new members. */
   userId: string
@@ -19,7 +21,7 @@ type Props = {
  * The members of the group: a sheet that slides up from the bottom on phones
  * and in from the right on wider screens. Its last row adds a member.
  */
-export function MembersSheet({ open, onClose, members, groupId, userId, onMemberAdded }: Props) {
+export function MembersSheet({ open, onClose, members, syncedIds, groupId, userId, onMemberAdded }: Props) {
   const screens = Grid.useBreakpoint()
 
   return (
@@ -30,7 +32,7 @@ export function MembersSheet({ open, onClose, members, groupId, userId, onMember
       placement={screens.md ? 'right' : 'bottom'}
       size={screens.md ? 'default' : 420}
     >
-      <MemberList members={members} />
+      <MemberList members={members} syncedIds={syncedIds} />
       <AddMemberRow
         groupId={groupId}
         userId={userId}

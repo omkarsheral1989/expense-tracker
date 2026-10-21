@@ -117,6 +117,92 @@ describe('driveService.client', () => {
     expect(String(fetchMock.mock.calls[0][0])).toContain('/files/p1?alt=media')
   })
 
+  it('finds the app\'s items by tag and properties, by owner, across pages', async () => {
+    const client = drive()
+    respond({ files: [{ id: 'g1', name: 'Goa' }], nextPageToken: 'next' })
+    respond({ files: [{ id: 'g2', name: 'Flat' }] })
+    respond({ files: [] })
+    respond({ files: [] })
+
+    expect((await client.findAll('group', 'any', { ownledgerGroupId: 'abc' })).map((file) => file.id)).toEqual(['g1', 'g2'])
+    await client.findAll('group', 'others')
+    await client.findOwn('member-file', 'folder-1', { ownledgerPersonId: 'p1' })
+
+    const query = (call: number) => new URL(String(fetchMock.mock.calls[call][0])).searchParams.get('q')!
+    expect(query(0)).toContain("properties has { key='ownledger' and value='group' }")
+    expect(query(0)).toContain("properties has { key='ownledgerGroupId' and value='abc' }")
+    expect(query(0)).not.toContain('owners')
+    expect(new URL(String(fetchMock.mock.calls[1][0])).searchParams.get('pageToken')).toBe('next')
+    expect(query(2)).toContain("not 'me' in owners")
+    expect(query(3)).toContain("'me' in owners")
+    expect(query(3)).toContain("properties has { key='ownledgerPersonId' and value='p1' }")
+    expect(query(3)).toContain("'folder-1' in parents")
+  })
+
+  it('creates folders and JSON files with further properties', async () => {
+    const client = drive()
+    respond({ id: 'f1', name: 'Goa' })
+    respond({ id: 'f2', name: 'p1.json' })
+
+    await client.createFolder('Goa', 'group', 'groups-1', { ownledgerGroupId: 'abc' })
+    await client.createJson('p1.json', 'member-file', 'f1', { a: 1 }, { ownledgerPersonId: 'p1' })
+
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body)).properties).toEqual({ ownledgerGroupId: 'abc', ownledger: 'group' })
+    expect(String(fetchMock.mock.calls[1][1]?.body)).toContain('"properties":{"ownledgerPersonId":"p1","ownledger":"member-file"}')
+  })
+
+  it('renames a file', async () => {
+    const client = drive()
+    respond({ id: 'f1', name: 'Goa 2026' })
+
+    await client.rename('f1', 'Goa 2026')
+
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(String(url)).toContain('/drive/v3/files/f1?')
+    expect(init?.method).toBe('PATCH')
+    expect(JSON.parse(String(init?.body))).toEqual({ name: 'Goa 2026' })
+  })
+
+  it('lists whom a folder is shared with, lower-cased, across pages, and shares it as an editor with Drive\'s email', async () => {
+    const client = drive()
+    respond({ permissions: [{ emailAddress: 'Omkar@gmail.com' }, { type: 'anyone' }], nextPageToken: 'n' })
+    respond({ permissions: [{ emailAddress: 'priya@gmail.com' }] })
+    respond({})
+
+    expect(await client.sharedWith('f1')).toEqual(['omkar@gmail.com', 'priya@gmail.com'])
+    await client.share('f1', 'dev@gmail.com')
+
+    const [url, init] = fetchMock.mock.calls[2]
+    expect(String(url)).toContain('/files/f1/permissions?sendNotificationEmail=true')
+    expect(JSON.parse(String(init?.body))).toEqual({ type: 'user', role: 'writer', emailAddress: 'dev@gmail.com' })
+  })
+
+  it('makes a shortcut to a folder, tagged', async () => {
+    const client = drive()
+    respond({ id: 's1', name: 'Goa' })
+
+    await client.createShortcut('Goa', 'group-shortcut', 'groups-1', 'f1', { ownledgerGroupId: 'abc' })
+
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toEqual({
+      name: 'Goa',
+      mimeType: 'application/vnd.google-apps.shortcut',
+      parents: ['groups-1'],
+      shortcutDetails: { targetId: 'f1' },
+      properties: { ownledgerGroupId: 'abc', ownledger: 'group-shortcut' },
+    })
+  })
+
+  it('gives a short reason for a refusal: the status and Google\'s own message', async () => {
+    const client = drive()
+    respond(JSON.stringify({ error: { code: 403, message: 'The user does not have sufficient permissions for this file.' } }), 403)
+    respond('plain text', 500)
+
+    expect(((await client.findOwn('root').catch((error: unknown) => error)) as DriveError).reason).toBe(
+      '403: The user does not have sufficient permissions for this file.',
+    )
+    expect(((await client.findOwn('root').catch((error: unknown) => error)) as DriveError).reason).toBe('500: plain text')
+  })
+
   it('reports expired access, other refusals and a failed network apart', async () => {
     const client = drive()
     respond('expired', 401)

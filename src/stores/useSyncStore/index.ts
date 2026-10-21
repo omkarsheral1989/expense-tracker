@@ -17,6 +17,7 @@ export const useSyncStore = create<SyncState>()((set) => ({
     set((state) => ({
       steps: state.steps.map((step) => (step.key === key ? { ...step, ...change } : step)),
     })),
+  addStep: (step) => set((state) => ({ steps: [...state.steps, step] })),
   finish: () => set((state) => ({ running: false, dataVersion: state.dataVersion + 1 })),
   openDialog: () => set({ dialogOpen: true }),
   closeDialog: () => set({ dialogOpen: false }),

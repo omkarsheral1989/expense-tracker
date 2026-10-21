@@ -3,6 +3,7 @@ export const DRIVE_API = 'https://www.googleapis.com/drive/v3/files'
 export const DRIVE_UPLOAD_API = 'https://www.googleapis.com/upload/drive/v3/files'
 
 export const FOLDER_MIME_TYPE = 'application/vnd.google-apps.folder'
+export const SHORTCUT_MIME_TYPE = 'application/vnd.google-apps.shortcut'
 
 /** The Drive property that tags everything the app creates (ADR-044), and its values. */
 export const OWNLEDGER_PROPERTY = 'ownledger'
@@ -12,16 +13,23 @@ export const DRIVE_ITEM_KINDS = {
   backupFile: 'backup-file',
   backupPhotos: 'backup-photos',
   backupPhoto: 'backup-photo',
+  groups: 'groups',
+  group: 'group',
+  memberFile: 'member-file',
+  groupShortcut: 'group-shortcut',
 } as const
 
-/** The Drive property that holds a photo's id on its file. */
+/** The Drive properties that hold a photo's, group's and person's id on the app's files. */
 export const PHOTO_ID_PROPERTY = 'ownledgerPhotoId'
+export const GROUP_ID_PROPERTY = 'ownledgerGroupId'
+export const PERSON_ID_PROPERTY = 'ownledgerPersonId'
 
 /** The folder names people see in their Drive. The app never finds anything by name. */
 export const ROOT_FOLDER_NAME = 'OwnLedger'
 export const BACKUP_FOLDER_NAME = 'Backup'
 export const BACKUP_FILE_NAME = 'backup.json'
 export const BACKUP_PHOTOS_FOLDER_NAME = 'photos'
+export const GROUPS_FOLDER_NAME = 'Groups'
 
 /** Full Drive access (ADR-009), asked for on the first Sync, with the basic scopes to check whose Drive it is. */
 export const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive'

@@ -255,3 +255,30 @@ describe('backupService.lastBackedUpAt and recordBackup', () => {
     expect(await backupService.lastBackedUpAt(target)).toEqual(new Date('2026-10-21T11:00:00Z'))
   })
 })
+
+describe('backupService.parseGroupFile and exportGroup', () => {
+  it('reads back a group\'s file for that group only', async () => {
+    const { groupId, userId } = await sourceData()
+    const text = JSON.stringify(await backupService.exportGroup(source, groupId, userId))
+
+    expect(backupService.parseGroupFile(text, groupId)).toMatchObject({ kind: 'group', groupId, writtenBy: userId })
+    expect(backupService.parseGroupFile(text, crypto.randomUUID())).toBeNull()
+    expect(backupService.parseGroupFile('not json', groupId)).toBeNull()
+    // A backup is not a group's file.
+    expect(backupService.parseGroupFile(JSON.stringify(await backupService.exportAll(source, userId)), groupId)).toBeNull()
+  })
+
+  it('writes only that group and the people it names', async () => {
+    const { groupId, userId } = await sourceData()
+    const other = await createTestGroup(source, omkar, { name: 'Flat', type: 'home', defaultCurrency: 'INR', memberEmails: ['dev@gmail.com'] })
+    if (!other.ok) throw new Error('group not created')
+    await addTestExpense(source, omkar.email, other.groupId, { description: 'Rent' })
+
+    const file = await backupService.exportGroup(source, groupId, userId)
+
+    expect(file.rows.groups.map((group) => group.name)).toEqual(['Goa trip'])
+    expect(file.rows.expenses.map((expense) => expense.description).sort()).toEqual(['Beach dinner', 'Taxi'])
+    expect(file.rows.people.map((person) => person.email).sort()).toEqual(['omkar@gmail.com', 'priya@gmail.com'])
+    expect(file.rows.expenseEvents.every((event) => event.groupId === groupId)).toBe(true)
+  })
+})

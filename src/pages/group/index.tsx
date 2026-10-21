@@ -7,6 +7,8 @@ import { useCurrentUser } from '../../hooks/useCurrentUser'
 import { expenseService } from '../../services/expenseService'
 import type { ExpenseListItem, PersonBalance } from '../../services/expenseService/types.ts'
 import { groupService } from '../../services/groupService'
+import { syncService } from '../../services/syncService'
+import { useSyncStore } from '../../stores/useSyncStore'
 import type { GroupDetails } from '../../services/groupService/types.ts'
 import { ActionPills } from './components/ActionPills'
 import { AddExpenseButton } from './components/AddExpenseButton'
@@ -34,8 +36,10 @@ export function GroupPage() {
   const { id = '' } = useParams()
 
   const userId = user?.personId ?? ''
-  // `keepPrevious`: reading the group again (after a member is added) keeps what
-  // is shown, so the members sheet stays open instead of flashing the placeholder.
+  // Read again after a sync, which may bring in other members' changes.
+  const dataVersion = useSyncStore((syncState) => syncState.dataVersion)
+  // `keepPrevious`: reading the group again (after a member is added, or a sync)
+  // keeps what is shown, so the members sheet stays open instead of flashing the placeholder.
   const { state, retry } = useAsyncData(async () => {
     const db = await getDb()
     const group = await groupService.getGroup(db, userId, id)
@@ -44,8 +48,9 @@ export function GroupPage() {
       group,
       expenses: await expenseService.listExpenses(db, userId, id),
       balances: await expenseService.groupBalances(db, userId, id),
+      syncedIds: await syncService.syncedMembers(db, id),
     }
-  }, `${userId}:${id}`, { keepPrevious: true })
+  }, `${userId}:${id}:${dataVersion}`, { keepPrevious: true })
 
   // Visitors who are not in the app are sent away by `RequireAuth` before this matters.
   if (!user) return null
@@ -84,6 +89,7 @@ export function GroupPage() {
     group: GroupDetails,
     expenses: ExpenseListItem[],
     balances: PersonBalance[],
+    syncedIds: ReadonlySet<string>,
   ) {
     return (
       <Flex vertical style={{ flex: 1 }}>
@@ -105,6 +111,7 @@ export function GroupPage() {
           open={membersOpen}
           onClose={() => setMembersOpen(false)}
           members={group.members}
+          syncedIds={syncedIds}
           groupId={group.id}
           userId={userId}
           onMemberAdded={retry}
@@ -129,7 +136,7 @@ export function GroupPage() {
         return renderError()
       case 'ready':
         return state.data
-          ? renderGroup(state.data.group, state.data.expenses, state.data.balances)
+          ? renderGroup(state.data.group, state.data.expenses, state.data.balances, state.data.syncedIds)
           : renderNotFound()
     }
   }

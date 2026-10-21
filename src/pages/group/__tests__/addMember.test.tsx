@@ -14,6 +14,10 @@ import { renderPage } from '../../../testing/render.tsx'
 import { GroupPage } from '../index.tsx'
 
 // Pages reach the database through `getDb`; point it at the in-memory one.
+// The band's Sync button lets a guest sign in with Google; without a client id it only says that is not set up,
+// so the tests do not depend on this machine's .env.local (there is no Google provider in tests).
+vi.mock('../../../config.ts', () => ({ GOOGLE_CLIENT_ID: '', REQUIRE_INSTALL: true }))
+
 vi.mock('../../../db/client.ts', async (importOriginal) => {
   const { testDatabase } = await import('../../../testing/currentDatabase.ts')
   return {

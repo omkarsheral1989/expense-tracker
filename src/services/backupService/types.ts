@@ -1,11 +1,14 @@
 import type { z } from 'zod'
-import type { backupFileSchema, backupRowsSchema } from './schemas.ts'
+import type { backupFileSchema, backupRowsSchema, groupFileSchema } from './schemas.ts'
 
 /** Every synced row of the device's data, table by table, as a backup holds them. */
 export type BackupRows = z.output<typeof backupRowsSchema>
 
 /** A backup file as read from Drive, once checked. */
 export type BackupFile = z.output<typeof backupFileSchema>
+
+/** A member's file of a group as read from Drive, once checked. */
+export type GroupFile = z.output<typeof groupFileSchema>
 
 export type ImportResult = {
   /**

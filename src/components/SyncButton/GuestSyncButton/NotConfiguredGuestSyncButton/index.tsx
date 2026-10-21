@@ -1,4 +1,5 @@
 import { App } from 'antd'
+import type { SyncButtonProps } from '../../types.ts'
 import { GuestSyncButtonView } from '../GuestSyncButtonView'
 
 /**
@@ -6,11 +7,12 @@ import { GuestSyncButtonView } from '../GuestSyncButtonView'
  * button is rendered separately and "Sign in with Google" only explains what
  * is missing.
  */
-export function NotConfiguredGuestSyncButton() {
+export function NotConfiguredGuestSyncButton(props: SyncButtonProps) {
   const { message } = App.useApp()
 
   return (
     <GuestSyncButtonView
+      {...props}
       onSignIn={() =>
         message.error('Google sign-in is not configured yet (VITE_GOOGLE_CLIENT_ID is missing).')
       }

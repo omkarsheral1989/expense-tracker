@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import type { Database } from '../../db/client.ts'
 import {
   expenseEvents,
@@ -10,10 +10,11 @@ import {
   people,
   syncStatus,
 } from '../../db/schema.ts'
-import { BACKUP_APP, BACKUP_FORMAT, BACKUP_KIND } from './constants.ts'
+import { BACKUP_APP, BACKUP_FORMAT, BACKUP_KIND, GROUP_FILE_KIND } from './constants.ts'
 import { mergeBackupRows } from './merge.ts'
-import { backupFileSchema } from './schemas.ts'
-import type { BackupFile, ImportResult } from './types.ts'
+import { backupFileSchema, groupFileSchema } from './schemas.ts'
+import type { BackupFile, GroupFile, ImportResult } from './types.ts'
+import { idsIn, rowsOfGroup } from './utils.ts'
 
 const BACKUP_SCOPE = 'backup'
 
@@ -56,6 +57,60 @@ export const backupService = {
   /** Merges a backup into the device's data, all or nothing. */
   importAll(db: Database, file: BackupFile): Promise<ImportResult> {
     return db.transaction((tx) => mergeBackupRows(tx, file.rows))
+  },
+
+  /**
+   * A member's file of a group (ADR-044): the whole group as this device knows
+   * it, deleted rows and history included, and every person its rows name
+   * (nobody else known on the device).
+   */
+  async exportGroup(db: Database, groupId: string, writtenBy: string): Promise<GroupFile> {
+    return db.transaction(async (tx) => {
+      const groupExpenses = await tx.select().from(expenses).where(eq(expenses.groupId, groupId))
+      const expenseIds = groupExpenses.map((expense) => expense.id)
+      const ofExpenses = expenseIds.length > 0
+      const rows = {
+        groups: await tx.select().from(groups).where(eq(groups.id, groupId)),
+        groupMembers: await tx.select().from(groupMembers).where(eq(groupMembers.groupId, groupId)),
+        expenses: groupExpenses,
+        expenseShares: ofExpenses
+          ? await tx.select().from(expenseShares).where(inArray(expenseShares.expenseId, expenseIds))
+          : [],
+        expensePhotos: ofExpenses
+          ? await tx.select().from(expensePhotos).where(inArray(expensePhotos.expenseId, expenseIds))
+          : [],
+        expenseEvents: await tx.select().from(expenseEvents).where(eq(expenseEvents.groupId, groupId)),
+      }
+      const named = [...idsIn(rows)]
+      const namedPeople = named.length ? await tx.select().from(people).where(inArray(people.id, named)) : []
+      return {
+        app: BACKUP_APP,
+        kind: GROUP_FILE_KIND,
+        format: BACKUP_FORMAT,
+        groupId,
+        writtenAt: new Date(),
+        writtenBy,
+        rows: { people: namedPeople, ...rows },
+      }
+    })
+  },
+
+  /** A member's file of this group, checked, or null when it is not valid OwnLedger data for it. */
+  parseGroupFile(text: string, groupId: string): GroupFile | null {
+    try {
+      const parsed = groupFileSchema.safeParse(JSON.parse(text))
+      return parsed.success && parsed.data.groupId === groupId ? parsed.data : null
+    } catch {
+      return null // not JSON
+    }
+  },
+
+  /**
+   * Merges a member's file into the device's data, all or nothing, taking only
+   * the rows of its group (`rowsOfGroup`): a file cannot change anything else.
+   */
+  importGroup(db: Database, file: GroupFile): Promise<ImportResult> {
+    return db.transaction((tx) => mergeBackupRows(tx, rowsOfGroup(file.rows, file.groupId)))
   },
 
   /** When this device last finished a backup, or null if it never has. */

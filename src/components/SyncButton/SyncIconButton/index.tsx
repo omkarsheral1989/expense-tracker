@@ -6,11 +6,13 @@ type Props = {
   tip: string
   /** True while a sync or restore runs: the icon spins. */
   spinning?: boolean
+  /** True on a group's colored band: white with no border, like the band's other round buttons. */
+  onBand?: boolean
   onClick: () => void
 }
 
 /** The round Sync button: a cloud with arrows (ADR-044). */
-export function SyncIconButton({ tip, spinning = false, onClick }: Props) {
+export function SyncIconButton({ tip, spinning = false, onBand = false, onClick }: Props) {
   return (
     <Tooltip title={tip}>
       <Button
@@ -18,6 +20,7 @@ export function SyncIconButton({ tip, spinning = false, onClick }: Props) {
         aria-label="Sync"
         icon={<CloudSyncOutlined spin={spinning} />}
         onClick={onClick}
+        style={onBand ? { background: '#fff', color: '#262626', border: 'none' } : undefined}
       />
     </Tooltip>
   )

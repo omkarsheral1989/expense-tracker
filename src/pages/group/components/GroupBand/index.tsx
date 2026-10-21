@@ -8,6 +8,7 @@ import {
 import { Flex, Typography } from 'antd'
 import { useNavigate } from 'react-router'
 import { GroupTypeIcon } from '../../../../components/GroupTypeIcon'
+import { SyncButton } from '../../../../components/SyncButton'
 import { ROUTES } from '../../../../routes.ts'
 import { currencyService } from '../../../../services/currencyService'
 import type { GroupDetails } from '../../../../services/groupService/types.ts'
@@ -27,7 +28,7 @@ type Props = {
 
 /**
  * The colored band at the top of a group's page, in the color of the group's
- * type: back, search and edit buttons, the group's icon and name, and a row
+ * type: back, search, sync (this group only) and edit buttons, the group's icon and name, and a row
  * of chips with a fact or an action each.
  */
 export function GroupBand({ group, onOpenMembers }: Props) {
@@ -44,6 +45,7 @@ export function GroupBand({ group, onOpenMembers }: Props) {
         />
         <Flex gap={12}>
           <BandIconButton icon={<SearchOutlined />} label="Search" />
+          <SyncButton group={{ id: group.id, name: group.name }} onBand />
           <BandIconButton
             icon={<EditOutlined />}
             label="Edit group"

@@ -1,6 +1,7 @@
-export type SyncStepStatus = 'running' | 'done' | 'error'
+/** 'waiting': a group whose creator has not synced it yet (a clock instead of a tick). */
+export type SyncStepStatus = 'running' | 'done' | 'error' | 'waiting'
 
-/** One line of the progress dialog: the backup, or (later) a group. */
+/** One line of the progress dialog: the backup, or a group. */
 export type SyncStep = {
   key: string
   label: string
@@ -24,6 +25,8 @@ export type SyncState = {
   /** Starts a run: opens the dialog with these lines. */
   start: (title: string, steps: SyncStep[]) => void
   updateStep: (key: string, change: Partial<Omit<SyncStep, 'key'>>) => void
+  /** Adds a line at the end, as a run reaches the next group. */
+  addStep: (step: SyncStep) => void
   /** Ends a run; the dialog stays open until it is closed. */
   finish: () => void
   openDialog: () => void

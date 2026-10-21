@@ -11,14 +11,28 @@ export type DriveFile = {
   properties?: Record<string, string>
 }
 
+/** Whose files a search covers: the user's own, others' shared with the user, or both. */
+export type DriveOwner = 'me' | 'others' | 'any'
+
 /** Drive's API for one access token: the calls the app makes, nothing else. */
 export type DriveClient = {
-  /** The app's file or folder of this kind owned by the user, under `parentId` when given, or null. */
-  findOwn(kind: DriveItemKind, parentId?: string): Promise<DriveFile | null>
-  /** A new folder, tagged with its kind. */
-  createFolder(name: string, kind: DriveItemKind, parentId?: string): Promise<DriveFile>
-  /** A new JSON file, tagged with its kind. */
-  createJson(name: string, kind: DriveItemKind, parentId: string, content: unknown): Promise<DriveFile>
+  /**
+   * The app's file or folder of this kind owned by the user, under `parentId`
+   * and with these properties when given (the oldest when there are several), or null.
+   */
+  findOwn(kind: DriveItemKind, parentId?: string, properties?: Record<string, string>): Promise<DriveFile | null>
+  /** Every file or folder of this kind the user can see, by owner and properties, the oldest first. */
+  findAll(kind: DriveItemKind, owner: DriveOwner, properties?: Record<string, string>): Promise<DriveFile[]>
+  /** A new folder, tagged with its kind and any further properties. */
+  createFolder(name: string, kind: DriveItemKind, parentId?: string, properties?: Record<string, string>): Promise<DriveFile>
+  /** A new JSON file, tagged with its kind and any further properties. */
+  createJson(
+    name: string,
+    kind: DriveItemKind,
+    parentId: string,
+    content: unknown,
+    properties?: Record<string, string>,
+  ): Promise<DriveFile>
   /** Replaces a file's content with JSON. */
   updateJson(fileId: string, content: unknown): Promise<DriveFile>
   /** A file's content as text. */
@@ -35,4 +49,18 @@ export type DriveClient = {
   ): Promise<DriveFile>
   /** A file's content as a Blob. */
   downloadBlob(fileId: string): Promise<Blob>
+  /** Gives a file or folder another name. */
+  rename(fileId: string, name: string): Promise<DriveFile>
+  /** The emails a file or folder is shared with (its owner included), lower-cased. */
+  sharedWith(fileId: string): Promise<string[]>
+  /** Shares a file or folder with someone as an editor; Drive emails them. */
+  share(fileId: string, email: string): Promise<void>
+  /** A shortcut to `targetId` in `parentId`, tagged with its kind and properties. */
+  createShortcut(
+    name: string,
+    kind: DriveItemKind,
+    parentId: string,
+    targetId: string,
+    properties?: Record<string, string>,
+  ): Promise<DriveFile>
 }

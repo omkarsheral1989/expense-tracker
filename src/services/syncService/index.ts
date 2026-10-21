@@ -14,6 +14,7 @@ import type { DriveClient, DriveFile, DriveItemKind } from '../driveService/type
 import { photoService } from '../photoService'
 import type { PhotoStore } from '../photoService/types.ts'
 import { PHOTO_TRANSFERS_AT_ONCE } from './constants.ts'
+import { groupSync } from './groups.ts'
 import type { PhotoProgress, PhotosResult, RestoreResult } from './types.ts'
 import { isOutOfSpace, photoFileName, runPool } from './utils.ts'
 
@@ -168,8 +169,10 @@ export const syncService = {
     return { failures, outOfSpace }
   },
 
-  /** When the last sync (for now, the backup of the data) finished on this device. */
+  /** When the last sync (the backup of the data, which every full Sync starts with) finished on this device. */
   lastSyncedAt(db: Database): Promise<Date | null> {
     return backupService.lastBackedUpAt(db)
   },
+
+  ...groupSync,
 }

@@ -17,3 +17,12 @@ export const OUT_OF_SPACE_MESSAGE = 'This device is out of space. Free some spac
 export function photoCount(count: number) {
   return count === 1 ? '1 photo' : `${count} photos`
 }
+
+export const GROUP_STEP_DETAILS = {
+  receiving: 'Getting changes…',
+  sending: 'Sending your changes…',
+  synced: 'Synced',
+} as const
+
+export const GROUP_FAILED_MESSAGE = "Couldn't sync this group. Press Sync to try again."
+export const SHARED_FAILED_MESSAGE = "Couldn't look for groups shared with you. Press Sync to try again."
