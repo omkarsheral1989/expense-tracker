@@ -98,6 +98,16 @@ describe('SettleUpPage', () => {
   })
 
   describe('when it opens', () => {
+    it('has a quiet header title beside Back: a level 3 heading of 16 px and medium weight, and an outlined Back button', async () => {
+      const id = await createGroup()
+      renderSettleUp(id)
+      const title = await screen.findByRole('heading', { name: 'Settle up', level: 3 })
+      expect(title).toHaveStyle({ fontSize: '16px', fontWeight: '500' })
+      expect(title.parentElement).toContainElement(screen.getByRole('button', { name: 'Back' }))
+      // Back is an outlined square like the Edit and Delete buttons, not a bare icon.
+      expect(screen.getByRole('button', { name: 'Back' })).toHaveClass('ant-btn-variant-outlined')
+    })
+
     it('asks who paid (you) and who received it (nobody yet), with an empty amount in the group\'s currency and today\'s date', async () => {
       const id = await createGroup({ defaultCurrency: 'EUR' })
       renderSettleUp(id)

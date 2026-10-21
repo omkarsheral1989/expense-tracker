@@ -1,4 +1,4 @@
-import { ArrowLeftOutlined, CheckOutlined } from '@ant-design/icons'
+import { CheckOutlined } from '@ant-design/icons'
 import { App, Button, Divider, Flex, Form, Input, Typography } from 'antd'
 import { useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router'
@@ -19,6 +19,8 @@ import { SplitField } from './SplitField'
 import { splitProblem } from './SplitField/utils.ts'
 import type { FormValues } from './types.ts'
 import { hasUnsavedInput, recentCurrencyCodes, toFormFields } from './utils.ts'
+import { HEADER_TITLE_STYLE } from '../../theme/headerTitle.ts'
+import { BackButton } from '../BackButton'
 
 const { Title } = Typography
 
@@ -175,8 +177,8 @@ export function ExpenseForm({
     return (
       <Flex align="center" justify="space-between" gap={8} style={{ marginBottom: 16 }}>
         <Flex align="center" gap={8}>
-          <Button type="text" icon={<ArrowLeftOutlined />} aria-label="Back" onClick={handleLeave} />
-          <Title level={3} style={{ margin: 0 }}>
+          <BackButton onClick={handleLeave} />
+          <Title level={3} style={HEADER_TITLE_STYLE}>
             {heading}
           </Title>
         </Flex>

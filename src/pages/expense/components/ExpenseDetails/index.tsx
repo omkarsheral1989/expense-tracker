@@ -1,4 +1,4 @@
-import { ArrowLeftOutlined, DeleteOutlined, EditOutlined, UndoOutlined } from '@ant-design/icons'
+import { DeleteOutlined, EditOutlined, UndoOutlined } from '@ant-design/icons'
 import { App, Button, Flex, Typography } from 'antd'
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
@@ -11,6 +11,8 @@ import { dateService } from '../../../../services/dateService'
 import { expenseService } from '../../../../services/expenseService'
 import type { ExpenseDetails } from '../../../../services/expenseService/types.ts'
 import { History } from './History'
+import { HEADER_TITLE_STYLE } from '../../../../theme/headerTitle.ts'
+import { BackButton } from '../../../../components/BackButton'
 
 const { Text, Title } = Typography
 
@@ -121,17 +123,11 @@ export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props)
     return (
       <Flex align="center" justify="space-between" style={{ marginBottom: 16 }}>
         <Flex align="center" gap={8} style={{ minWidth: 0 }}>
-          <Button
-            type="text"
-            icon={<ArrowLeftOutlined />}
-            aria-label="Back"
-            onClick={() => navigate(ROUTES.group(expense.groupId))}
-          />
-          {expense.deleted && (
-            <Title level={3} style={{ margin: 0 }}>
-              Deleted {noun}
-            </Title>
-          )}
+          <BackButton onClick={() => navigate(ROUTES.group(expense.groupId))} />
+          {/* Still a heading, but quieter than the expense's own title below it. */}
+          <Title level={3} style={HEADER_TITLE_STYLE}>
+            {expense.deleted ? `Deleted ${noun}` : noun === 'payment' ? 'Payment' : 'Expense'}
+          </Title>
         </Flex>
         {renderActions()}
       </Flex>

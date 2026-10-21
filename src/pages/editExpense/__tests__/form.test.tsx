@@ -72,6 +72,17 @@ describe('EditExpensePage', () => {
   }
 
   describe('opening', () => {
+    it('has a quiet header title beside Back: a level 3 heading of 16 px and medium weight, and an outlined Back button', async () => {
+      const id = await createGroup()
+      const expenseId = await addExpense(id)
+      renderEdit(id, expenseId)
+      const title = await screen.findByRole('heading', { name: 'Edit expense', level: 3 })
+      expect(title).toHaveStyle({ fontSize: '16px', fontWeight: '500' })
+      expect(title.parentElement).toContainElement(screen.getByRole('button', { name: 'Back' }))
+      // Back is an outlined square like the Edit and Delete buttons, not a bare icon.
+      expect(screen.getByRole('button', { name: 'Back' })).toHaveClass('ant-btn-variant-outlined')
+    })
+
     it('is the expense form, titled "Edit expense", opened with what was saved', async () => {
       const id = await createGroup()
       const expenseId = await addExpense(id)

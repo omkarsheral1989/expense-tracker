@@ -1,4 +1,4 @@
-import { ArrowLeftOutlined, UndoOutlined } from '@ant-design/icons'
+import { UndoOutlined } from '@ant-design/icons'
 import { App, Button, Divider, Flex, Typography } from 'antd'
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
@@ -10,6 +10,8 @@ import { ROUTES } from '../../../../routes.ts'
 import { dateService } from '../../../../services/dateService'
 import { expenseService } from '../../../../services/expenseService'
 import type { ExpenseVersion } from '../../../../services/expenseService/types.ts'
+import { HEADER_TITLE_STYLE } from '../../../../theme/headerTitle.ts'
+import { BackButton } from '../../../../components/BackButton'
 
 const { Text, Title } = Typography
 
@@ -84,8 +86,8 @@ export function VersionDetails({ data, datasetId, userId, onChanged }: Props) {
     <>
       <Flex align="center" justify="space-between" style={{ marginBottom: 16 }}>
         <Flex align="center" gap={8} style={{ minWidth: 0 }}>
-          <Button type="text" icon={<ArrowLeftOutlined />} aria-label="Back" onClick={() => navigate(toExpense)} />
-          <Title level={3} style={{ margin: 0 }}>
+          <BackButton onClick={() => navigate(toExpense)} />
+          <Title level={3} style={HEADER_TITLE_STYLE}>
             Version
           </Title>
         </Flex>

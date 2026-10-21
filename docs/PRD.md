@@ -1,6 +1,6 @@
 # Product Requirements: OwnLedger
 
-_Last updated: 2026-10-23_
+_Last updated: 2026-10-24_
 
 ## 1. Overview
 **OwnLedger** is an installable, offline-capable web app (PWA) for tracking personal expenses and expenses shared in groups (trips, home, couples, others). Everything is stored locally on the user's device. Groups are shared between members through a Google Drive folder. There is no backend.
@@ -79,6 +79,8 @@ _Last updated: 2026-10-23_
 **Message screens:** a screen that is only a message ("Group not found", "Expense not found", "Couldn't load …" with Try again, "OwnLedger is open in another tab", "Couldn't open your data", and "Opening your data…") is centered vertically and horizontally: on the whole screen when the page has no header, and in the space below the header when it has one (the home page's "Couldn't load your groups" is centered between its heading and the floating Create group button).
 
 **Browser tab titles:** each signed-in page sets the tab's title: "Your groups · OwnLedger" (home), the group's name followed by " · OwnLedger" (group page), "Create a group · OwnLedger", "Add expense · OwnLedger" and the expense's description followed by " · OwnLedger" (expense details; "Expense not found · OwnLedger" for a missing one).
+
+**Header titles:** a page that has a Back button (the shared `BackButton`: a 40 px outlined square with an arrow, the look of the Edit and Delete buttons at the other end) titles its header with a quiet heading beside it, 16 px and medium weight (`HEADER_TITLE_STYLE`), smaller than the content's own title below it: "Expense" or "Payment" on an expense's details (5.6; "Deleted expense" or "Deleted payment" once deleted), "Add expense", "Edit expense", "Version" (5.6c), "Settle up", "Create a group" and "Edit group".
 
 ### 5.1 Welcome (logged out)
 Single scrolling page, English only, friendly and colorful look (teal/green accent, Ant Design components, icons, gradients and emoji; no image assets). Follows the system light/dark setting. Sections, in order:
@@ -216,7 +218,7 @@ Route `/groups/<id>/expenses/new`, opened from the group page's "Add expense" bu
 ### 5.6 Expense details
 Route `/groups/<id>/expenses/<expenseId>`, opened by tapping an expense on the group page. It shows the expense and its edit history, and leads to editing and deleting it.
 
-- **A deleted expense** opens here too, read-only: the title "Deleted expense" ("Deleted payment" for a payment) beside Back, in the heading style of "Edit expense", and, instead of Edit and Delete, a **Restore** button (5.6b), a grey line "Deleted by you, 21 Oct 2026, 3:45 pm" ("Deleted by Priya Shah, …") after "Edited by", everything else as for any expense (split, notes, receipts), and a History section that is always shown and starts with "You deleted this expense · 21 Oct 2026, 3:45 pm" (see below). Its edit page shows "Expense not found" (5.6a).
+- **A deleted expense** opens here too, read-only: the title "Deleted expense" ("Deleted payment" for a payment) beside Back (the header titles above, as "Expense" or "Payment" on a live one), and, instead of Edit and Delete, a **Restore** button (5.6b), a grey line "Deleted by you, 21 Oct 2026, 3:45 pm" ("Deleted by Priya Shah, …") after "Edited by", everything else as for any expense (split, notes, receipts), and a History section that is always shown and starts with "You deleted this expense · 21 Oct 2026, 3:45 pm" (see below). Its edit page shows "Expense not found" (5.6a).
 - Back (to the group), an **Edit** button that opens the edit page (5.6a; switched off with "Coming soon" on a payment) and a **Delete** button that asks first (5.6b).
 - The category tile, the description, the amount in large type, the category's name and the day ("Dining out · Mon, 5 Oct 2026"), "Added by you" (or the person's name) and, under it, who paid in the same grey text: "You paid £9.00" or "Priya Shah paid £9.00" (one line per payer; a payment has none, since its title says who paid whom). Once an expense has been edited, a further grey line says who edited it last and when: "Edited by you, 20 Oct 2026, 3:45 pm" ("Edited by Priya Shah, …"; the time in the device's language and clock style).
 - How it was split ("Split equally", "Split by exact amounts", "Split by percentages", "Split by shares", "Split by adjustment") and one line per person who owes something, the user first: "You owe £3.00", "Priya Shah owes £6.00". A person who owes nothing, such as a payer who is owed the full amount, has no line there.

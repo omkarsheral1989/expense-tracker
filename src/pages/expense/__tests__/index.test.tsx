@@ -109,7 +109,8 @@ describe('ExpensePage', () => {
       expect(screen.queryByText(/^Split by/)).not.toBeInTheDocument()
       expect(screen.queryByRole('list', { name: 'Who owes' })).not.toBeInTheDocument()
       expect(screen.queryByText(/ paid £/)).not.toBeInTheDocument()
-      expect(screen.queryByText('Payment')).not.toBeInTheDocument()
+      // The stored description "Payment" is not shown as the title; the only "Payment" is the header's.
+      expect(screen.getAllByText('Payment')).toHaveLength(1)
     })
 
     it('says "Priya paid you" when you received it, and names both when it was between others', async () => {
@@ -245,6 +246,25 @@ describe('ExpensePage', () => {
     renderExpense(id, expenseId)
 
     expect(await screen.findByText('Added by Priya Shah')).toBeInTheDocument()
+  })
+
+  it('has a quiet header title beside Back: "Expense", or "Payment" for a payment, a level 3 heading of 16 px and medium weight, and an outlined Back button', async () => {
+    const id = await createGroup()
+    const expenseId = await addExpense(id)
+    const payment = await addTestSettlement(testDb.db, me.email, 'priya@gmail.com', id)
+
+    renderExpense(id, expenseId)
+    const title = await screen.findByRole('heading', { name: 'Expense', level: 3 })
+    expect(title).toHaveStyle({ fontSize: '16px', fontWeight: '500' })
+    expect(title.parentElement).toContainElement(screen.getByRole('button', { name: 'Back' }))
+    // Back is an outlined square like the Edit and Delete buttons, not a bare icon.
+    expect(screen.getByRole('button', { name: 'Back' })).toHaveClass('ant-btn-variant-outlined')
+    // The expense's own title below it stays the large one.
+    expect(screen.getByRole('heading', { name: 'Beach shack dinner' })).not.toHaveStyle({ fontSize: '16px' })
+    cleanup()
+
+    renderExpense(id, payment)
+    expect(await screen.findByRole('heading', { name: 'Payment', level: 3 })).toHaveStyle({ fontSize: '16px', fontWeight: '500' })
   })
 
   it('opens the edit page of this expense from Edit', async () => {

@@ -115,6 +115,15 @@ describe('CreateGroupPage', () => {
   })
 
   describe('when it opens', () => {
+    it('has a quiet header title beside Back: a level 3 heading of 16 px and medium weight, and an outlined Back button', async () => {
+      renderForm()
+      const title = await screen.findByRole('heading', { name: 'Create a group', level: 3 })
+      expect(title).toHaveStyle({ fontSize: '16px', fontWeight: '500' })
+      expect(title.parentElement).toContainElement(screen.getByRole('button', { name: 'Back' }))
+      // Back is an outlined square like the Edit and Delete buttons, not a bare icon.
+      expect(screen.getByRole('button', { name: 'Back' })).toHaveClass('ant-btn-variant-outlined')
+    })
+
     it('has Trip selected, the region\'s currency chosen, and no name or members', async () => {
       renderForm()
 

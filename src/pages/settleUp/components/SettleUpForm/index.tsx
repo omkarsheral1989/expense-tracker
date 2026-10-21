@@ -1,4 +1,4 @@
-import { ArrowLeftOutlined, CheckOutlined } from '@ant-design/icons'
+import { CheckOutlined } from '@ant-design/icons'
 import { App, Button, Divider, Flex, Form, Input, Select, Typography } from 'antd'
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
@@ -19,6 +19,8 @@ import { photoService } from '../../../../services/photoService'
 import type { ReceiptInput } from '../../../../services/photoService/types.ts'
 import type { FormValues } from './types.ts'
 import { hasUnsavedInput, memberLabel, recentCurrencyCodes, toFormFields } from './utils.ts'
+import { HEADER_TITLE_STYLE } from '../../../../theme/headerTitle.ts'
+import { BackButton } from '../../../../components/BackButton'
 
 const { Text, Title } = Typography
 
@@ -141,8 +143,8 @@ export function SettleUpForm({ group, datasetId, userId, recentCurrencies }: Pro
     return (
       <Flex align="center" justify="space-between" gap={8} style={{ marginBottom: 16 }}>
         <Flex align="center" gap={8}>
-          <Button type="text" icon={<ArrowLeftOutlined />} aria-label="Back" onClick={handleLeave} />
-          <Title level={3} style={{ margin: 0 }}>
+          <BackButton onClick={handleLeave} />
+          <Title level={3} style={HEADER_TITLE_STYLE}>
             Settle up
           </Title>
         </Flex>

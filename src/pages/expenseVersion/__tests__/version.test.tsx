@@ -53,6 +53,16 @@ describe('ExpenseVersionPage', () => {
   }
 
   describe('the page', () => {
+    it('has a quiet header title beside Back: a level 3 heading of 16 px and medium weight, and an outlined Back button', async () => {
+      const { groupId, expenseId, added } = await editedExpense()
+      renderVersion(groupId, expenseId, added.id)
+      const title = await screen.findByRole('heading', { name: 'Version', level: 3 })
+      expect(title).toHaveStyle({ fontSize: '16px', fontWeight: '500' })
+      expect(title.parentElement).toContainElement(screen.getByRole('button', { name: 'Back' }))
+      // Back is an outlined square like the Edit and Delete buttons, not a bare icon.
+      expect(screen.getByRole('button', { name: 'Back' })).toHaveClass('ant-btn-variant-outlined')
+    })
+
     it('shows the expense as it was right after an event: title, amount, category and day, who paid, split, notes', async () => {
       const { groupId, expenseId, added } = await editedExpense()
       renderVersion(groupId, expenseId, added.id)

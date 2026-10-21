@@ -1,4 +1,3 @@
-import { ArrowLeftOutlined } from '@ant-design/icons'
 import { App, Button, Flex, Form, Input, Typography } from 'antd'
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
@@ -14,6 +13,8 @@ import { GroupTypeSelector } from '../../../../components/GroupTypeSelector'
 import { MemberSelect } from '../../../../components/MemberSelect'
 import type { FormValues } from './types.ts'
 import { hasUnsavedInput, toFormFields } from './utils.ts'
+import { HEADER_TITLE_STYLE } from '../../../../theme/headerTitle.ts'
+import { BackButton } from '../../../../components/BackButton'
 
 const { Title, Text } = Typography
 
@@ -88,13 +89,8 @@ export function CreateGroupForm({ creatorId }: Props) {
   function renderHeader() {
     return (
       <Flex align="center" gap={8} style={{ marginBottom: 24 }}>
-        <Button
-          type="text"
-          icon={<ArrowLeftOutlined />}
-          aria-label="Back"
-          onClick={handleLeave}
-        />
-        <Title level={3} style={{ margin: 0 }}>
+        <BackButton onClick={handleLeave} />
+        <Title level={3} style={HEADER_TITLE_STYLE}>
           Create a group
         </Title>
       </Flex>
