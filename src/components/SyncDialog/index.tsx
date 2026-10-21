@@ -12,7 +12,7 @@ import { AdaptiveDialog } from '../AdaptiveDialog'
 const { Text } = Typography
 
 /**
- * The progress of a sync or restore (PRD 5.8): one line per step (the backup,
+ * The progress of a sync (PRD 5.8): one line per step (the backup,
  * then each group), each with a spinner, a tick, a clock (waiting for the
  * group's creator) or a cross, and what it is doing or what went wrong. Closing
  * it does not stop the run; pressing Sync again opens it. Once a run has ended
@@ -79,9 +79,8 @@ export function SyncDialog() {
   )
 }
 
-/** When the last sync of what a run synced finished: everything, or one group; nothing for a restore. */
+/** When the last sync of what a run synced finished: everything, or one group. */
 async function lastSyncedAt(scope: SyncScope): Promise<Date | null> {
-  if (scope.kind === 'restore') return null
   const db = await getDb()
   return scope.kind === 'group' ? syncService.lastGroupSyncAt(db, scope.groupId) : syncService.lastSyncedAt(db)
 }

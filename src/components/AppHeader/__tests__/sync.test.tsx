@@ -7,6 +7,7 @@ import { groups } from '../../../db/schema.ts'
 import { ROUTES } from '../../../routes.ts'
 import { backupService } from '../../../services/backupService'
 import { DRIVE_SCOPE } from '../../../services/driveService/constants.ts'
+import type { DriveClient, DriveFile } from '../../../services/driveService/types.ts'
 import { useAuthStore } from '../../../stores/useAuthStore'
 import { useSyncStore } from '../../../stores/useSyncStore'
 import { setUpTestDatabase } from '../../../testing/database.ts'
@@ -226,12 +227,20 @@ describe('the Sync button, signed in', () => {
 })
 
 describe('photos in the backup', () => {
+  /** Lets the backup's own photo uploads through `upload`, and every other upload (a group's) as it was. */
+  function backupUploads(upload: (...args: Parameters<DriveClient['createFile']>) => Promise<DriveFile>) {
+    const createFile = fake.drive!.client.createFile
+    return vi.spyOn(fake.drive!.client, 'createFile').mockImplementation((...args) =>
+      args[1] === 'backup-photo' ? upload(...args) : createFile(...args),
+    )
+  }
+
   it('shows how many photos are backed up as it goes, then Backed up', async () => {
     stubGoogle()
     const [photoId] = await expenseWithPhotos(1)
     const createFile = fake.drive!.client.createFile
     let release = () => {}
-    vi.spyOn(fake.drive!.client, 'createFile').mockImplementation(async (...args) => {
+    backupUploads(async (...args) => {
       await new Promise<void>((resolve) => (release = resolve))
       return createFile(...args)
     })
@@ -248,111 +257,180 @@ describe('photos in the backup', () => {
   it('says how many photos could not be backed up, one or several', async () => {
     stubGoogle()
     await expenseWithPhotos(2)
-    vi.spyOn(fake.drive!.client, 'createFile').mockRejectedValue(new Error('upload failed'))
+    const createFile = fake.drive!.client.createFile
+    let failures = 2
+    backupUploads(async (...args) => {
+      if (failures-- > 0) throw new Error('upload failed')
+      return createFile(...args)
+    })
     renderHeader()
 
     await userEvent.click(syncButton())
     await waitFor(async () => expect(await progress()).toBe("Backup2 photos couldn't be backed up. Press Sync to try again."))
 
     // One of them went the next time.
-    const createFile = vi.mocked(fake.drive!.client.createFile)
-    createFile.mockRejectedValueOnce(new Error('upload failed'))
-    createFile.mockResolvedValueOnce({ id: 'x', name: 'x.jpg' })
+    failures = 1
     await userEvent.click(syncButton())
     await waitFor(async () => expect(await progress()).toBe("Backup1 photo couldn't be backed up. Press Sync to try again."))
   })
 
-  it('downloads the photos the device lacks when restoring', async () => {
-    stubGoogle()
+  /** Two photos backed up, then taken off the device and out of the group's folder, so only the backup has them. */
+  async function photosOnlyInTheBackup() {
     const ids = await expenseWithPhotos(2)
     renderHeader()
     await userEvent.click(syncButton())
     await waitFor(async () => expect(await progress()).toBe('BackupBacked up'))
     for (const id of ids) await store().deletePhoto(id)
+    for (const [id, file] of fake.drive!.files) if (file.properties?.ownledger === 'group-photo') fake.drive!.files.delete(id)
     await closeDialog()
+    return ids
+  }
 
-    await userEvent.click(screen.getByRole('button', { name: 'Account menu' }))
-    await userEvent.click(await screen.findByText('Restore from Drive'))
+  it('downloads the backup\'s photos the device lacks, before the groups sync', async () => {
+    stubGoogle()
+    const ids = await photosOnlyInTheBackup()
+    const downloadBlob = fake.drive!.client.downloadBlob
+    let release = () => {}
+    const held = new Promise<void>((resolve) => (release = resolve))
+    vi.spyOn(fake.drive!.client, 'downloadBlob').mockImplementation(async (fileId) => {
+      await held
+      return downloadBlob(fileId)
+    })
 
-    await waitFor(async () => expect(await progress()).toBe('BackupRestored'))
+    await userEvent.click(syncButton())
+
+    await waitFor(async () => expect(await progress()).toBe('BackupDownloading photos… 0 of 2'))
+    release()
+    await waitFor(async () => expect(await progress()).toBe('BackupBacked up'))
     for (const id of ids) expect(await store().getPhoto(id)).not.toBeNull()
   })
 
-  it('says how many photos could not be restored, and when the device is full', async () => {
+  it('says how many of the backup\'s photos could not be downloaded, and when the device is full', async () => {
     stubGoogle()
-    const ids = await expenseWithPhotos(2)
-    renderHeader()
-    await userEvent.click(syncButton())
-    await waitFor(async () => expect(await progress()).toBe('BackupBacked up'))
-    for (const id of ids) await store().deletePhoto(id)
-    await closeDialog()
+    await photosOnlyInTheBackup()
     const downloads = vi.spyOn(fake.drive!.client, 'downloadBlob').mockRejectedValue(new Error('download failed'))
 
-    await userEvent.click(screen.getByRole('button', { name: 'Account menu' }))
-    await userEvent.click(await screen.findByText('Restore from Drive'))
+    await userEvent.click(syncButton())
     await waitFor(async () =>
-      expect(await progress()).toBe("Backup2 photos couldn't be restored. Restore from Drive again to try again."),
+      expect(await progress()).toBe("Backup2 photos couldn't be downloaded. Press Sync to try again."),
     )
-    expect(await screen.findByText('Backup restored.')).toBeInTheDocument()
 
     downloads.mockResolvedValue(new Blob(['photo'], { type: 'image/jpeg' }))
     vi.spyOn(IDBObjectStore.prototype, 'put').mockImplementation(() => {
       throw new DOMException('The quota has been exceeded.', 'QuotaExceededError')
     })
     await closeDialog()
-    await userEvent.click(screen.getByRole('button', { name: 'Account menu' }))
-    await userEvent.click(await screen.findByText('Restore from Drive'))
+    await userEvent.click(syncButton())
     await waitFor(async () =>
-      expect(await progress()).toBe('BackupThis device is out of space. Free some space, then restore again.'),
+      expect(await progress()).toBe('BackupThis device is out of space. Free some space, then sync again.'),
     )
   })
 })
 
-describe('Restore from Drive', () => {
-  async function restoreFromMenu() {
-    await userEvent.click(screen.getByRole('button', { name: 'Account menu' }))
-    await userEvent.click(await screen.findByText('Restore from Drive'))
-  }
-
-  it('adds the backup to the data without asking, and says so', async () => {
-    stubGoogle()
+describe('the backup already in Drive', () => {
+  /** Syncs once (so Drive has a backup with Goa trip), then the device loses its groups. */
+  async function backupThenLoseGroups() {
     await createTestGroup(testDb.db, profile, { name: 'Goa trip', type: 'trip', defaultCurrency: 'GBP' })
     renderHeader()
     await userEvent.click(syncButton())
     await waitFor(async () => expect(await progress()).toBe('BackupBacked up'))
-    // The device lost the group since; the backup still has it.
     await testDb.db.execute('truncate groups cascade')
     await closeDialog()
+  }
 
-    await restoreFromMenu()
+  const backupGroups = () =>
+    backupService.parse(fake.drive!.named('backup.json')!.content!)?.rows.groups.map((group) => group.name)
 
-    expect(await screen.findByText('Backup restored.')).toBeInTheDocument()
-    expect(await screen.findByText('Restoring')).toBeInTheDocument()
-    expect(await progress()).toBe('BackupRestored')
-    expect((await testDb.db.select().from(groups)).map((group) => group.name)).toEqual(['Goa trip'])
-    expect(useSyncStore.getState().dataVersion).toBe(2)
-  })
-
-  it('says when there is no backup in the Drive', async () => {
+  it('is added to the device by the next Sync, which then writes it back with nothing lost', async () => {
     stubGoogle()
-    renderHeader()
+    await backupThenLoseGroups()
+    // Only the backup has the group now: its folder is gone too.
+    for (const [id, file] of fake.drive!.files) if (file.properties?.ownledgerGroupId) fake.drive!.files.delete(id)
 
-    await restoreFromMenu()
+    await userEvent.click(syncButton())
 
-    await waitFor(async () => expect(await progress()).toBe('BackupNo backup found in your Drive.'))
+    await waitFor(async () => expect(await progress()).toBe('BackupBacked up'))
+    expect((await testDb.db.select().from(groups)).map((group) => group.name)).toEqual(['Goa trip'])
+    expect(backupGroups()).toEqual(['Goa trip'])
+    expect(screen.queryByText('Restoring')).not.toBeInTheDocument()
   })
 
-  it('says when the backup cannot be read, and changes nothing', async () => {
+  it('is got first and written last: "Getting your backup…", then "Waiting for your groups…", then "Saving your data…"', async () => {
+    stubGoogle()
+    await backupThenLoseGroups()
+    const backupId = fake.drive!.named('backup.json')!.id
+    // The backup file's download and its writing each wait until released.
+    const hold = (method: 'download' | 'updateJson', heldId: string) => {
+      const original = fake.drive!.client[method] as (...args: unknown[]) => Promise<unknown>
+      let release = () => {}
+      const held = new Promise<void>((resolve) => (release = resolve))
+      vi.spyOn(fake.drive!.client, method).mockImplementation((async (fileId: string, ...rest: unknown[]) => {
+        if (fileId === heldId) await held
+        return original(fileId, ...rest)
+      }) as never)
+      return release
+    }
+    const releaseDownload = hold('download', backupId)
+    const releaseWrite = hold('updateJson', backupId)
+    // Goa trip's sync reads its folder; held there, the backup waits for it.
+    const listChildren = fake.drive!.client.listChildren
+    let releaseGroup = () => {}
+    const groupHeld = new Promise<void>((resolve) => (releaseGroup = resolve))
+    vi.spyOn(fake.drive!.client, 'listChildren').mockImplementation(async (folderId) => {
+      if (fake.drive!.files.get(folderId)?.properties?.ownledger === 'group') await groupHeld
+      return listChildren(folderId)
+    })
+
+    await userEvent.click(syncButton())
+
+    await waitFor(async () => expect(await progress()).toBe('BackupGetting your backup…'))
+    releaseDownload()
+    await waitFor(async () => expect(await progress()).toBe('BackupWaiting for your groups…'))
+    releaseGroup()
+    await waitFor(async () => expect(await progress()).toBe('BackupSaving your data…'))
+    releaseWrite()
+    await waitFor(async () => expect(await progress()).toBe('BackupBacked up'))
+  })
+
+  it('is replaced, without a message, when it cannot be read', async () => {
     stubGoogle()
     renderHeader()
     await userEvent.click(syncButton())
     await waitFor(async () => expect(await progress()).toBe('BackupBacked up'))
     fake.drive!.named('backup.json')!.content = '{"app":"ownledger"}'
+    await createTestGroup(testDb.db, profile, { name: 'Goa trip', type: 'trip', defaultCurrency: 'GBP' })
     await closeDialog()
 
-    await restoreFromMenu()
+    await userEvent.click(syncButton())
 
-    await waitFor(async () => expect(await progress()).toBe("BackupThe backup in your Drive couldn't be read."))
+    await waitFor(async () => expect(useSyncStore.getState().dataVersion).toBe(2))
+    expect(await progress()).toBe('BackupBacked up')
+    expect(backupGroups()).toEqual(['Goa trip'])
+  })
+
+  it('is left as it is when it could not be added to the device, and the groups still sync', async () => {
+    stubGoogle()
+    await backupThenLoseGroups()
+    const before = fake.drive!.named('backup.json')!.content
+    await createTestGroup(testDb.db, profile, { name: 'Lisbon', type: 'trip', defaultCurrency: 'GBP' })
+    vi.spyOn(backupService, 'importAll').mockRejectedValueOnce(new Error('merge failed'))
+
+    await userEvent.click(syncButton())
+
+    await waitFor(async () => expect(useSyncStore.getState().dataVersion).toBe(2))
+    const lines = within(screen.getByRole('list', { name: 'Progress' })).getAllByRole('listitem').map((line) => line.textContent)
+    // Goa trip still comes back, from its own folder.
+    expect(lines).toEqual(["BackupCouldn't back up. Press Sync to try again.", 'LisbonSynced', 'New group: Goa tripSynced'])
+    expect(fake.drive!.named('backup.json')!.content).toBe(before)
+  })
+
+  it('leaves no Restore from Drive in the account menu: Sync does it', async () => {
+    renderHeader()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Account menu' }))
+
+    expect(await screen.findByText('Sign out')).toBeInTheDocument()
+    expect(screen.queryByText('Restore from Drive')).not.toBeInTheDocument()
   })
 })
 

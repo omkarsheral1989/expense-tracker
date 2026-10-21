@@ -165,10 +165,12 @@ export const groupSync = {
   },
 
   /**
-   * Brings onto the device the groups shared with the user that it does not
-   * have: those whose folder holds a valid member's file listing a live
-   * member with the user's email. Folders that do not are left alone. Only
-   * merges: `syncGroup` then writes the user's file and the shortcut.
+   * Brings onto the device the groups it does not have whose folder is shared
+   * with the user or is their own (a group they created, for example after the
+   * app's data was cleared): those whose folder holds a valid member's file
+   * listing a live member with the user's email. Folders that do not are left
+   * alone. Only merges: `syncGroup` then writes the user's file and, for a
+   * folder of someone else's, the shortcut.
    */
   async findSharedGroups(
     db: Database,
@@ -179,7 +181,7 @@ export const groupSync = {
     const found: FoundGroup[] = []
     const renamed = new Map<string, string>()
 
-    for (const folder of await drive.findAll(DRIVE_ITEM_KINDS.group, 'others')) {
+    for (const folder of await drive.findAll(DRIVE_ITEM_KINDS.group, 'any')) {
       const groupId = folder.properties?.[GROUP_ID_PROPERTY]
       if (!groupId || known.has(groupId)) continue
       known.add(groupId)

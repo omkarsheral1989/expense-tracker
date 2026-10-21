@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import type { SyncState } from './types.ts'
 
 /**
- * The sync or restore that is running and what its progress dialog shows
+ * The sync that is running and what its progress dialog shows
  * (ADR-044). Kept outside the components so closing the dialog, or leaving the
  * page, does not stop it. In memory only.
  */

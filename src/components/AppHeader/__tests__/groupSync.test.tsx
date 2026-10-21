@@ -220,8 +220,32 @@ describe('groups in a full Sync', () => {
     })
     renderHeader()
 
-    expect(await syncAll()).toEqual(['BackupBacked up', 'Goa tripSign-in to Drive expired. Press Continue to carry on.'])
+    // The backup is written after the groups, so the stop leaves it unwritten.
+    expect(await syncAll()).toEqual(['BackupNot backed up: the sync stopped.', 'Goa tripSign-in to Drive expired. Press Continue to carry on.'])
     expect(useAuthStore.getState().driveToken).toBeNull()
+    expect([...fake.world!.files.values()].some((file) => file.name === 'backup.json')).toBe(false)
+  })
+})
+
+describe('a device whose data was cleared', () => {
+  it('gets back the groups the user created from their own folders, as new groups', async () => {
+    await omkarsGroup('Goa trip')
+    renderHeader()
+    await syncAll()
+    // No backup to bring them back: only the group's own folder has them.
+    for (const [id, file] of fake.world!.files) if (file.name === 'backup.json') fake.world!.files.delete(id)
+    await testDb.db.execute('truncate groups cascade')
+
+    const runs = useSyncStore.getState().dataVersion
+    await userEvent.click(screen.getByRole('button', { name: 'Sync' }))
+    await waitFor(() => expect(useSyncStore.getState().dataVersion).toBe(runs + 1))
+
+    const lines = within(screen.getByRole('list', { name: 'Progress' })).getAllByRole('listitem').map((line) => line.textContent)
+    expect(lines).toEqual(['BackupBacked up', 'New group: Goa tripSynced'])
+
+    expect((await testDb.db.select().from(groups)).map((group) => group.name)).toEqual(['Goa trip'])
+    // The folder is the user's own, so no shortcut to it is added.
+    expect([...fake.world!.files.values()].filter((file) => file.properties?.ownledger === 'group-shortcut')).toEqual([])
   })
 })
 
@@ -350,7 +374,7 @@ describe('failures that stop the run', () => {
     })
     renderHeader()
 
-    expect(await syncAll()).toEqual(['BackupBacked up', 'Goa tripSign-in to Drive expired. Press Continue to carry on.'])
+    expect(await syncAll()).toEqual(['BackupNot backed up: the sync stopped.', 'Goa tripSign-in to Drive expired. Press Continue to carry on.'])
     expect(google.asked).toBe(1)
     const runs = useSyncStore.getState().dataVersion
 
@@ -372,7 +396,7 @@ describe('failures that stop the run', () => {
     })
     renderHeader()
 
-    expect(await syncAll()).toEqual(['BackupBacked up', 'Goa tripLost the connection. Press Sync to try again.'])
+    expect(await syncAll()).toEqual(['BackupNot backed up: the sync stopped.', 'Goa tripLost the connection. Press Sync to try again.'])
     expect(within(footer()).queryByRole('button', { name: 'Continue' })).not.toBeInTheDocument()
   })
 
@@ -383,7 +407,8 @@ describe('failures that stop the run', () => {
     )
     renderHeader()
 
-    expect(await syncAll()).toEqual(['BackupYour Google Drive is full. Free some space in Drive, then sync again.'])
+    // The first file written is Goa trip's: the backup comes after the groups.
+    expect(await syncAll()).toEqual(['BackupNot backed up: the sync stopped.', 'Goa tripYour Google Drive is full. Free some space in Drive, then sync again.'])
   })
 
   it('carries on after a group that failed for any other reason, with no Continue', async () => {
@@ -441,14 +466,4 @@ describe('the sync dialog', () => {
     await waitFor(() => expect(dialogFooter()).toHaveTextContent('Last synced just now'))
   })
 
-  it('says nothing of the last sync after a restore', async () => {
-    renderHeader()
-    await syncAll()
-    await waitFor(() => expect(dialogFooter()).toHaveTextContent('Last synced just now'))
-    await userEvent.click(screen.getByRole('button', { name: 'Account menu' }))
-    await userEvent.click(await screen.findByText('Restore from Drive'))
-    await waitFor(() => expect(useSyncStore.getState().dataVersion).toBe(2))
-
-    expect(within(dialogFooter()).queryByText(/^Last synced/)).not.toBeInTheDocument()
-  })
 })

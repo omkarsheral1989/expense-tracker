@@ -14,7 +14,20 @@ export const EXPIRED_MESSAGE = 'Sign-in to Drive expired. Press Continue to carr
 export const CONNECTION_MESSAGE = 'Lost the connection. Press Sync to try again.'
 export const DRIVE_FULL_MESSAGE = 'Your Google Drive is full. Free some space in Drive, then sync again.'
 
-export const OUT_OF_SPACE_MESSAGE = 'This device is out of space. Free some space, then restore again.'
+export const OUT_OF_SPACE_MESSAGE = 'This device is out of space. Free some space, then sync again.'
+
+/** What the Backup line says as a full Sync goes on: getting the backup in Drive first, writing it after the groups. */
+export const BACKUP_DETAILS = {
+  getting: 'Getting your backup…',
+  downloading: 'Downloading photos…',
+  waiting: 'Waiting for your groups…',
+  saving: 'Saving your data…',
+  uploading: 'Backing up photos…',
+  done: 'Backed up',
+  stopped: 'Not backed up: the sync stopped.',
+} as const
+
+export const BACKUP_FAILED_MESSAGE = "Couldn't back up. Press Sync to try again."
 
 /** "1 photo" or "N photos". */
 export function photoCount(count: number) {
@@ -35,5 +48,4 @@ export const GROUP_PHOTO_DETAILS: Record<PhotoDirection, string> = {
   receiving: 'Getting photos…',
 }
 
-export const GROUP_OUT_OF_SPACE_MESSAGE = 'This device is out of space. Free some space, then sync again.'
 export const SHARED_FAILED_MESSAGE = "Couldn't look for groups shared with you. Press Sync to try again."

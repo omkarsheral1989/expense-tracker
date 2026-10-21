@@ -4,7 +4,7 @@ import { Button, Tooltip } from 'antd'
 type Props = {
   /** Shown on hover: what the button does, or when the last sync finished. */
   tip: string
-  /** True while a sync or restore runs: the icon spins. */
+  /** True while a sync runs: the icon spins. */
   spinning?: boolean
   /** True on a group's colored band: white with no border, like the band's other round buttons. */
   onBand?: boolean

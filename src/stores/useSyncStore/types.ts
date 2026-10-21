@@ -10,14 +10,14 @@ export type SyncStep = {
   detail: string
 }
 
-/** What a run synced, so the dialog can say when it last finished: everything, one group, or nothing (a restore). */
-export type SyncScope = { kind: 'all' } | { kind: 'group'; groupId: string } | { kind: 'restore' }
+/** What a run synced, so the dialog can say when it last finished: everything, or one group. */
+export type SyncScope = { kind: 'all' } | { kind: 'group'; groupId: string }
 
 export type SyncState = {
-  /** A sync or restore is running. */
+  /** A sync is running. */
   running: boolean
   dialogOpen: boolean
-  /** The dialog's title: "Syncing" or "Restoring". */
+  /** The dialog's title: "Syncing". */
   title: string
   steps: SyncStep[]
   scope: SyncScope
@@ -28,7 +28,7 @@ export type SyncState = {
    */
   resume: (() => void) | null
   /**
-   * Goes up each time a sync or restore finishes, so pages that read the data
+   * Goes up each time a sync finishes, so pages that read the data
    * (the home page, the current user) read it again.
    */
   dataVersion: number

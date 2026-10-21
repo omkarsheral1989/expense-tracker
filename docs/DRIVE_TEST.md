@@ -1,6 +1,6 @@
 # Testing sync on real Google Drive
 
-_Last updated: 2026-10-21_. A manual check of backup, restore and group sync (PRD 5.8, ADR-044) against real Google Drive with two Google accounts. The automated tests only use a fake Drive, so this is the first run against Google itself. Tick each box, and write down anything that differs (the dialog's text, the browser console, the Network tab).
+_Last updated: 2026-10-21_. A manual check of backup, bringing a backup back, and group sync (PRD 5.8, ADR-044) against real Google Drive with two Google accounts. The automated tests only use a fake Drive, so this is the first run against Google itself. Tick each box, and write down anything that differs (the dialog's text, the browser console, the Network tab).
 
 You need:
 - **Account A** (the group's creator) and **account B** (a member), both `@gmail.com`.
@@ -29,8 +29,9 @@ A new client ID can take a few minutes to work; a sign-in error right after crea
 2. [ ] Create a group **Drive test** (GBP). Members: add **account B's email** with a name, and **Sam** with no email.
 3. [ ] Add an expense **Dinner, £30.00**, split equally, with **two receipt photos**.
 4. [ ] Press the **cloud Sync button** in the home header. Google's window opens again, asking for **Drive** access (the second consent, ADR-019): allow it.
-   - [ ] The dialog shows **Backup** "Saving your data…" → "Backing up photos… 0 of 2" → **Backed up**.
-   - [ ] Then **Drive test** "Getting changes…" → "Sending your changes…" → "Sending photos…" → **Shared with B's first name** (not Sam, who has no email).
+   - [ ] The **Backup** line is first: "Getting your backup…" (there is none yet), then "Waiting for your groups…".
+   - [ ] **Drive test** "Getting changes…" → "Sending your changes…" → "Sending photos…" → **Shared with B's first name** (not Sam, who has no email).
+   - [ ] Then the Backup line finishes: "Saving your data…" → "Backing up photos… 0 of 2" → **Backed up**.
    - [ ] The footer says **Last synced just now**, and so does the Sync button's tooltip.
 5. [ ] In https://drive.google.com as account A, check that these exist:
    - [ ] `OwnLedger/Backup/backup.json` and `OwnLedger/Backup/photos/` with two `<id>.jpg` (or `.png`) files.
@@ -59,13 +60,17 @@ A new client ID can take a few minutes to work; a sign-in error right after crea
 2. [ ] On B, **rename** the group to **Drive test 2** and Sync. Then on A, Sync.
    - [ ] A's group is now Drive test 2, and A's Drive folder is renamed to **Drive test 2** (only the creator's sync renames it).
 
-## 5. Restore on another device (profile A2, account A)
+## 5. Another device, and a cleared one (account A)
 
-1. [ ] In profile A2, sign in with account A. The home page is empty.
-2. [ ] Avatar menu → **Restore from Drive**. It runs without asking: "Restoring your data…" → "Downloading photos… N of N" → **Restored**, and "Backup restored." shows.
-   - [ ] The group, Dinner and its photos and history are there as of A's last **full** Sync (step 2.7). The band's button does not back up, so B's Taxi and the rename are not in the backup yet.
-3. [ ] Press Sync. The group sync brings in Taxi, B's edit and the name Drive test 2, with no duplicate groups, expenses or people (one account A, one B, one Sam).
-4. [ ] Restore again in A1, where everything is already present: nothing is duplicated or lost.
+There is no Restore button: Sync adds the backup in Drive to the device before writing it (PRD 5.8, phase 6).
+
+1. [ ] In profile A2, sign in with account A. The home page is empty, and the avatar menu has only the name, email and **Sign out**.
+2. [ ] Press **Sync**. The Backup line shows "Getting your backup…" → "Downloading photos… N of N" → "Waiting for your groups…", the groups sync, then **Backed up**.
+   - [ ] Drive test 2, with Dinner (and its photos and history), Taxi and B's edit, is on the home page, with no duplicate groups, expenses or people (one account A, one B, one Sam).
+   - [ ] In A's Drive, `backup.json` still holds everything (download it and look for Drive test 2): the empty device did not replace it with less.
+3. [ ] Press Sync again in A1, where everything is already present: nothing is duplicated or lost.
+4. [ ] **A cleared device.** In A1, DevTools → Application → **Clear site data**, reload, sign in with account A again and press Sync. Everything comes back as in step 2.
+5. [ ] **No backup at all.** Move `OwnLedger/Backup` to the bin in A's Drive, clear A2's site data as in step 4, sign in and Sync. Drive test 2 comes back as **New group: Drive test 2**, from its own folder, and a new `Backup` is made.
 
 ## 6. Failures
 

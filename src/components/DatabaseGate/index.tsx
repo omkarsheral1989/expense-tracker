@@ -156,7 +156,7 @@ function OpenData({ record, profile, header, children }: Opening & { record: Dev
 
 /** Finds (or adds, or links) the user's own person, then shows the pages as that user. */
 function WithUser({ db, record, profile, header, children }: Opening & { db: Database; record: DeviceRecord }) {
-  // Found again after a restore, which may give the user's person another id (ADR-044).
+  // Found again after a sync, whose merge of the backup may give the user's person another id (ADR-044).
   const dataVersion = useSyncStore((syncState) => syncState.dataVersion)
   const { state, retry } = useAsyncData(async () => {
     const user = await userService.resolve(db, record, profile)

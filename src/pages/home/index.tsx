@@ -21,7 +21,7 @@ export function HomePage() {
   const navigate = useNavigate()
 
   const userId = user?.personId ?? ''
-  // Read again after a sync or restore, which may bring in groups.
+  // Read again after a sync, which may bring in groups.
   const dataVersion = useSyncStore((syncState) => syncState.dataVersion)
   const { state, retry } = useAsyncData(async () => {
     const db = await getDb()

@@ -16,8 +16,9 @@ import {
   CONNECTION_MESSAGE,
   DRIVE_FULL_MESSAGE,
   EXPIRED_MESSAGE,
+  BACKUP_DETAILS,
+  BACKUP_FAILED_MESSAGE,
   GROUP_FAILED_MESSAGE,
-  GROUP_OUT_OF_SPACE_MESSAGE,
   GROUP_PHOTO_DETAILS,
   SHARED_FAILED_MESSAGE,
   GROUP_STEP_DETAILS,
@@ -37,9 +38,19 @@ const SHARED_STEP = 'shared'
  */
 class RunStopped extends Error {}
 
+/** What getting the backup in Drive left for the Backup line, once the groups have synced. */
+type MergedBackup = {
+  /** The user's person id after the merge. */
+  userId: string
+  /** False when merging failed: the backup in Drive is then left as it is, so nothing in it is lost. */
+  merged: boolean
+  /** Sentences about the backup's photos that could not be downloaded. */
+  problems: string[]
+}
+
 /**
- * Starts a sync, a single group's sync or a restore from Drive, showing its
- * progress in the sync dialog (ADR-044). Each must be called from a click,
+ * Starts a sync or a single group's sync, showing its progress in the sync
+ * dialog (ADR-044). Each must be called from a click,
  * since Drive access may need Google's window. Pressing again while one runs
  * only opens the dialog.
  */
@@ -96,23 +107,44 @@ export function useSync() {
     if (stoppingProblem(error)) throw new RunStopped()
   }
 
-  /** The backup line: the data, then the photos. Throws `RunStopped` to stop the run. */
-  async function backUp(db: Database, drive: DriveClient, userId: string, datasetId: string) {
+  /**
+   * The first part of the Backup line: merges the backup in Drive into the
+   * device (so writing it later loses nothing), then downloads its photos the
+   * device lacks. No backup, or one that cannot be read, means nothing to
+   * merge. Throws `RunStopped` to stop the run.
+   */
+  async function mergeBackup(db: Database, drive: DriveClient, userId: string, datasetId: string): Promise<MergedBackup> {
+    try {
+      const result = await syncService.restore(db, drive)
+      const me = result.ok ? followRename(userId, result.renamed) : userId
+      const photos = await syncService.restorePhotos(db, drive, photoService.open(datasetId), ({ done, total }) =>
+        updateStep(BACKUP_STEP, { detail: `${BACKUP_DETAILS.downloading} ${done} of ${total}` }),
+      )
+      const problems: string[] = []
+      if (photos.outOfSpace) problems.push(OUT_OF_SPACE_MESSAGE)
+      else if (photos.failures) problems.push(`${photoCount(photos.failures)} couldn't be downloaded. Press Sync to try again.`)
+      updateStep(BACKUP_STEP, { detail: BACKUP_DETAILS.waiting })
+      return { userId: me, merged: true, problems }
+    } catch (error) {
+      updateStep(BACKUP_STEP, { status: 'error', detail: failure(error, BACKUP_FAILED_MESSAGE) })
+      stopIfNeeded(error)
+      return { userId, merged: false, problems: [] }
+    }
+  }
+
+  /** The rest of the Backup line, after the groups: the data, then the photos. Throws `RunStopped` to stop the run. */
+  async function backUp(db: Database, drive: DriveClient, userId: string, datasetId: string, problems: string[]) {
+    updateStep(BACKUP_STEP, { detail: BACKUP_DETAILS.saving })
     try {
       await syncService.backUp(db, drive, userId)
       const { failures } = await syncService.backUpPhotos(db, drive, photoService.open(datasetId), ({ done, total }) =>
-        updateStep(BACKUP_STEP, { detail: `Backing up photos… ${done} of ${total}` }),
+        updateStep(BACKUP_STEP, { detail: `${BACKUP_DETAILS.uploading} ${done} of ${total}` }),
       )
-      if (failures) {
-        updateStep(BACKUP_STEP, {
-          status: 'error',
-          detail: `${photoCount(failures)} couldn't be backed up. Press Sync to try again.`,
-        })
-      } else {
-        updateStep(BACKUP_STEP, { status: 'done', detail: 'Backed up' })
-      }
+      const all = failures ? [...problems, `${photoCount(failures)} couldn't be backed up. Press Sync to try again.`] : problems
+      if (all.length) updateStep(BACKUP_STEP, { status: 'error', detail: all.join(' ') })
+      else updateStep(BACKUP_STEP, { status: 'done', detail: BACKUP_DETAILS.done })
     } catch (error) {
-      updateStep(BACKUP_STEP, { status: 'error', detail: failure(error, "Couldn't back up. Press Sync to try again.") })
+      updateStep(BACKUP_STEP, { status: 'error', detail: failure(error, BACKUP_FAILED_MESSAGE) })
       stopIfNeeded(error)
     }
   }
@@ -141,7 +173,7 @@ export function useSync() {
       // Problems first, each in a sentence of its own; otherwise what was done.
       const problems: string[] = []
       if (result.unreadable.length) problems.push(`${joinNames(result.unreadable.map((name) => `${name}'s`))} changes couldn't be read.`)
-      if (photos.outOfSpace) problems.push(GROUP_OUT_OF_SPACE_MESSAGE)
+      if (photos.outOfSpace) problems.push(OUT_OF_SPACE_MESSAGE)
       else if (photos.failures) problems.push(`${photoCount(photos.failures)} couldn't be synced. Press Sync to try again.`)
       if (problems.length) {
         updateStep(key, { status: 'error', detail: problems.join(' ') })
@@ -186,7 +218,11 @@ export function useSync() {
     return renamedTo
   }
 
-  /** Backs up, then syncs every group (in the home page's order), then brings in groups shared with the user. */
+  /**
+   * Merges the backup in Drive, syncs every group (in the home page's order),
+   * brings in groups the device does not have (shared with the user, or their
+   * own), and then writes the backup with all of it.
+   */
   async function sync() {
     const access = driveAccess()
     if (!access || !user) return
@@ -194,12 +230,16 @@ export function useSync() {
     if (!token) return
 
     currentRun.current = sync
-    start('Syncing', [{ key: BACKUP_STEP, label: 'Backup', status: 'running', detail: 'Saving your data…' }], { kind: 'all' })
+    start('Syncing', [{ key: BACKUP_STEP, label: 'Backup', status: 'running', detail: BACKUP_DETAILS.getting }], { kind: 'all' })
+    // True while the backup's data is merged but not written yet.
+    let backupPending = false
     try {
       const db = await getDb()
       const drive = driveService.client(token)
-      let userId = user.personId
-      await backUp(db, drive, userId, user.datasetId)
+      const backup = await mergeBackup(db, drive, user.personId, user.datasetId)
+      // A backup that could not be merged is not written over (its line already says why).
+      backupPending = backup.merged
+      let userId = backup.userId
       for (const group of await groupService.listGroups(db, userId)) {
         userId = await syncGroupLine(db, drive, userId, group.id, group.name)
       }
@@ -210,8 +250,13 @@ export function useSync() {
           userId = await syncGroupLine(db, drive, userId, group.groupId, `New group: ${group.name}`)
         }
       }
+      // From here the Backup line says what happened itself.
+      backupPending = false
+      if (backup.merged) await backUp(db, drive, userId, user.datasetId, backup.problems)
     } catch (error) {
       if (!(error instanceof RunStopped)) throw error
+      // A group stopped the run before the backup was written.
+      if (backupPending) updateStep(BACKUP_STEP, { status: 'error', detail: BACKUP_DETAILS.stopped })
     } finally {
       finish()
     }
@@ -235,54 +280,5 @@ export function useSync() {
     }
   }
 
-  async function restore() {
-    const access = driveAccess()
-    if (!access || !user) return
-    const token = await access
-    if (!token) return
-
-    currentRun.current = restore
-    start('Restoring', [{ key: BACKUP_STEP, label: 'Backup', status: 'running', detail: 'Restoring your data…' }], { kind: 'restore' })
-    try {
-      const db = await getDb()
-      const drive = driveService.client(token)
-      const result = await syncService.restore(db, drive)
-      if (result.ok) {
-        // The user's own person may now have the id it has in the backup.
-        const renamedTo = result.renamed.get(user.personId)
-        if (renamedTo) deviceService.setUserPersonId(renamedTo)
-        const photos = await syncService.restorePhotos(db, drive, photoService.open(user.datasetId), ({ done, total }) =>
-          updateStep(BACKUP_STEP, { detail: `Downloading photos… ${done} of ${total}` }),
-        )
-        if (photos.outOfSpace) {
-          updateStep(BACKUP_STEP, { status: 'error', detail: OUT_OF_SPACE_MESSAGE })
-        } else if (photos.failures) {
-          updateStep(BACKUP_STEP, {
-            status: 'error',
-            detail: `${photoCount(photos.failures)} couldn't be restored. Restore from Drive again to try again.`,
-          })
-        } else {
-          updateStep(BACKUP_STEP, { status: 'done', detail: 'Restored' })
-        }
-        message.success('Backup restored.')
-      } else {
-        updateStep(BACKUP_STEP, {
-          status: 'error',
-          detail:
-            result.reason === 'none'
-              ? 'No backup found in your Drive.'
-              : "The backup in your Drive couldn't be read.",
-        })
-      }
-    } catch (error) {
-      updateStep(BACKUP_STEP, {
-        status: 'error',
-        detail: failure(error, "Couldn't restore the backup. Please try again."),
-      })
-    } finally {
-      finish()
-    }
-  }
-
-  return { sync, syncGroup, restore, running }
+  return { sync, syncGroup, running }
 }

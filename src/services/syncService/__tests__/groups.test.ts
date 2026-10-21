@@ -355,7 +355,24 @@ describe('syncService.findSharedGroups', () => {
     expect(await b.select().from(groups)).toEqual([])
   })
 
-  it('does not bring in the user\'s own folders', async () => {
+  it('brings back the user\'s own groups from their folders onto a device that does not have them', async () => {
+    const { omkar, groupId } = await omkarsGroup()
+    await syncService.syncGroup(a, omkarDrive(), omkar, groupId)
+    // Omkar's other device, or this one after its data was cleared: a new person id for the same email.
+    const omkarAgain = await self(b, 'omkar@gmail.com', 'Omkar')
+
+    const { found, renamed } = await syncService.findSharedGroups(b, omkarDrive(), 'omkar@gmail.com')
+
+    expect(found).toEqual([{ groupId, name: 'Goa trip' }])
+    const me = renamed.get(omkarAgain) ?? omkarAgain
+    expect(me).toBe([omkar, omkarAgain].sort()[0])
+    expect(await descriptions(b, me, groupId)).toEqual(['Dinner'])
+    // Syncing it then adds no shortcut: the folder is already in the user's own OwnLedger/Groups.
+    expect((await syncService.syncGroup(b, omkarDrive(), me, groupId)).status).toBe('synced')
+    expect(filesOf('group-shortcut')).toEqual([])
+  })
+
+  it('does not bring in again the user\'s own group already on the device', async () => {
     const { omkar, groupId } = await omkarsGroup()
     await syncService.syncGroup(a, omkarDrive(), omkar, groupId)
 

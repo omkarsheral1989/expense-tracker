@@ -78,7 +78,11 @@ export const syncService = {
     })
   },
 
-  /** Merges the backup in Drive into the device's data; nothing on the device is removed. The photos follow with `restorePhotos`. */
+  /**
+   * Merges the backup in Drive into the device's data, nothing on the device
+   * removed: the start of every full Sync, so that writing the backup after it
+   * loses nothing (ADR-044). The photos follow with `restorePhotos`.
+   */
   async restore(db: Database, drive: DriveClient): Promise<RestoreResult> {
     const root = await drive.findOwn(DRIVE_ITEM_KINDS.root)
     const folder = root && (await drive.findOwn(DRIVE_ITEM_KINDS.backup, root.id))
