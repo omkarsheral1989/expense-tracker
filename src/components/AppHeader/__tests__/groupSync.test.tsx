@@ -11,11 +11,13 @@ import { ROUTES } from '../../../routes.ts'
 import { DriveError } from '../../../services/driveService'
 import { DriveAuthError } from '../../../services/driveService'
 import { groupService } from '../../../services/groupService'
+import { photoService } from '../../../services/photoService'
 import { syncService } from '../../../services/syncService'
 import { useAuthStore } from '../../../stores/useAuthStore'
 import { useSyncStore } from '../../../stores/useSyncStore'
 import { setUpTestDatabase } from '../../../testing/database.ts'
 import { createFakeDriveWorld } from '../../../testing/fakeDrive.ts'
+import { addTestExpense } from '../../../testing/expenses.ts'
 import { createTestGroup } from '../../../testing/groups.ts'
 import { personIdForEmail } from '../../../testing/ids.ts'
 import { renderPage } from '../../../testing/render.tsx'
@@ -214,5 +216,101 @@ describe('groups in a full Sync', () => {
 
     expect(await syncAll()).toEqual(['BackupBacked up', 'Goa tripSign-in to Drive expired. Press Sync to continue.'])
     expect(useAuthStore.getState().driveToken).toBeNull()
+  })
+})
+
+describe('a group\'s photos', () => {
+  /** The user's photo store: `renderPage` gives the signed-in user the account id as dataset. */
+  const store = () => photoService.open(profile.id)
+
+  /** Goa trip with one expense with a receipt photo on the device; returns the group and photo ids. */
+  async function goaWithPhoto() {
+    const groupId = await omkarsGroup('Goa trip')
+    const photoId = crypto.randomUUID()
+    await store().savePhoto(photoId, new Blob(['photo'], { type: 'image/jpeg' }), new Blob(['thumb']))
+    await addTestExpense(testDb.db, profile.email, groupId, { receipts: [{ id: photoId, mimeType: 'image/jpeg', sizeBytes: 5 }] })
+    return { groupId, photoId }
+  }
+
+  /** The group's line, as text. */
+  const goaLine = () => screen.getAllByRole('listitem').find((item) => item.textContent?.startsWith('Goa trip'))?.textContent
+
+  it('sends them after the data, counting, then says Synced', async () => {
+    const { photoId } = await goaWithPhoto()
+    const createFile = omkarClient.current!.createFile
+    let release = () => {}
+    vi.spyOn(omkarClient.current!, 'createFile').mockImplementation(async (...args) => {
+      if (args[1] === 'group-photo') await new Promise<void>((resolve) => (release = resolve))
+      return createFile(...args)
+    })
+    renderHeader()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Sync' }))
+    await waitFor(() => expect(goaLine()).toBe('Goa tripSending photos… 0 of 1'))
+    release()
+
+    await waitFor(() => expect(goaLine()).toBe('Goa tripSynced'))
+    expect([...fake.world!.files.values()].some((file) => file.properties?.ownledgerPhotoId === photoId && file.properties?.ownledger === 'group-photo')).toBe(true)
+  })
+
+  it('gets the ones the device lacks', async () => {
+    const { photoId } = await goaWithPhoto()
+    renderHeader()
+    await syncAll()
+    await store().deletePhoto(photoId)
+    useSyncStore.setState({ dataVersion: 0 })
+
+    expect(await syncAll()).toContain('Goa tripSynced')
+    expect(await store().getPhoto(photoId)).not.toBeNull()
+  })
+
+  it('counts the photos that could not be synced', async () => {
+    await goaWithPhoto()
+    const createFile = omkarClient.current!.createFile
+    vi.spyOn(omkarClient.current!, 'createFile').mockImplementation(async (...args) => {
+      if (args[1] === 'group-photo') throw new Error('upload failed')
+      return createFile(...args)
+    })
+    renderHeader()
+
+    expect(await syncAll()).toContain("Goa trip1 photo couldn't be synced. Press Sync to try again.")
+  })
+
+  it('says when the device is out of space', async () => {
+    const { photoId } = await goaWithPhoto()
+    renderHeader()
+    await syncAll()
+    await store().deletePhoto(photoId)
+    vi.spyOn(IDBObjectStore.prototype, 'put').mockImplementation(() => {
+      throw new DOMException('The quota has been exceeded.', 'QuotaExceededError')
+    })
+    useSyncStore.setState({ dataVersion: 0 })
+
+    expect(await syncAll()).toContain('Goa tripThis device is out of space. Free some space, then sync again.')
+  })
+
+  it('puts every problem of the line in one place: an unreadable file and failed photos', async () => {
+    const { groupId } = await goaWithPhoto()
+    renderHeader()
+    await syncAll()
+    // A file by a writer this device does not know (the group is not shared with anyone, so it is written as the user).
+    const folder = [...fake.world!.files.values()].find((file) => file.properties?.ownledger === 'group')!
+    await omkarClient.current!.createJson('bad.json', 'member-file', folder.id, 'nonsense', {
+      ownledgerGroupId: groupId,
+      ownledgerPersonId: crypto.randomUUID(),
+    })
+    const photoId = crypto.randomUUID()
+    await store().savePhoto(photoId, new Blob(['new'], { type: 'image/jpeg' }), new Blob(['thumb']))
+    await addTestExpense(testDb.db, profile.email, groupId, { description: 'Taxi', receipts: [{ id: photoId, mimeType: 'image/jpeg', sizeBytes: 3 }] })
+    const createFile = omkarClient.current!.createFile
+    vi.spyOn(omkarClient.current!, 'createFile').mockImplementation(async (...args) => {
+      if (args[1] === 'group-photo') throw new Error('upload failed')
+      return createFile(...args)
+    })
+    useSyncStore.setState({ dataVersion: 0 })
+
+    expect(await syncAll()).toContain(
+      "Goa tripA member's changes couldn't be read. 1 photo couldn't be synced. Press Sync to try again.",
+    )
   })
 })

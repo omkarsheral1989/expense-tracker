@@ -17,6 +17,9 @@ export type RestoreResult =
   /** The backup file is not valid OwnLedger data, so nothing was imported. */
   | { ok: false; reason: 'invalid' }
 
+/** Which way a group's photos are going: up to its folder, or down to the device. */
+export type PhotoDirection = 'sending' | 'receiving'
+
 /** Where a group's sync has got to: reading the members' files, or writing the user's own. */
 export type GroupSyncStep = 'receiving' | 'sending'
 

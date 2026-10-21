@@ -14,6 +14,8 @@ import {
   DRIVE_TOKEN_MESSAGES,
   EXPIRED_MESSAGE,
   GROUP_FAILED_MESSAGE,
+  GROUP_OUT_OF_SPACE_MESSAGE,
+  GROUP_PHOTO_DETAILS,
   SHARED_FAILED_MESSAGE,
   GROUP_STEP_DETAILS,
   OFFLINE_MESSAGE,
@@ -110,14 +112,23 @@ export function useSync() {
         updateStep(key, { status: 'waiting', detail: `Waiting for ${result.creatorName} to sync this group first.` })
         return userId
       }
-      if (result.unreadable.length) {
-        const owners = joinNames(result.unreadable.map((name) => `${name}'s`))
-        updateStep(key, { status: 'error', detail: `${owners} changes couldn't be read.` })
+      const me = followRename(userId, result.renamed)
+      const photos = await syncService.syncGroupPhotos(db, drive, me, groupId, photoService.open(user!.datasetId), (direction, { done, total }) =>
+        updateStep(key, { detail: `${GROUP_PHOTO_DETAILS[direction]} ${done} of ${total}` }),
+      )
+
+      // Problems first, each in a sentence of its own; otherwise what was done.
+      const problems: string[] = []
+      if (result.unreadable.length) problems.push(`${joinNames(result.unreadable.map((name) => `${name}'s`))} changes couldn't be read.`)
+      if (photos.outOfSpace) problems.push(GROUP_OUT_OF_SPACE_MESSAGE)
+      else if (photos.failures) problems.push(`${photoCount(photos.failures)} couldn't be synced. Press Sync to try again.`)
+      if (problems.length) {
+        updateStep(key, { status: 'error', detail: problems.join(' ') })
       } else {
         const detail = result.sharedWith.length ? `Shared with ${joinNames(result.sharedWith)}` : GROUP_STEP_DETAILS.synced
         updateStep(key, { status: 'done', detail })
       }
-      return followRename(userId, result.renamed)
+      return me
     } catch (error) {
       updateStep(key, { status: 'error', detail: failure(error, `${GROUP_FAILED_MESSAGE} ${reasonOf(error)}`) })
       if (error instanceof DriveAuthError) throw new AccessExpired()

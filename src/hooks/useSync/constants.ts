@@ -1,3 +1,4 @@
+import type { PhotoDirection } from '../../services/syncService/types.ts'
 import type { DriveTokenProblem } from '../useDriveToken/types.ts'
 
 /** What to tell the user when Drive access could not be had. */
@@ -25,4 +26,12 @@ export const GROUP_STEP_DETAILS = {
 } as const
 
 export const GROUP_FAILED_MESSAGE = "Couldn't sync this group. Press Sync to try again."
+
+/** What a group's line says while its photos move, followed by "2 of 5". */
+export const GROUP_PHOTO_DETAILS: Record<PhotoDirection, string> = {
+  sending: 'Sending photos…',
+  receiving: 'Getting photos…',
+}
+
+export const GROUP_OUT_OF_SPACE_MESSAGE = 'This device is out of space. Free some space, then sync again.'
 export const SHARED_FAILED_MESSAGE = "Couldn't look for groups shared with you. Press Sync to try again."

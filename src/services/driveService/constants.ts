@@ -17,6 +17,8 @@ export const DRIVE_ITEM_KINDS = {
   group: 'group',
   memberFile: 'member-file',
   groupShortcut: 'group-shortcut',
+  groupPhotos: 'group-photos',
+  groupPhoto: 'group-photo',
 } as const
 
 /** The Drive properties that hold a photo's, group's and person's id on the app's files. */
@@ -30,6 +32,7 @@ export const BACKUP_FOLDER_NAME = 'Backup'
 export const BACKUP_FILE_NAME = 'backup.json'
 export const BACKUP_PHOTOS_FOLDER_NAME = 'photos'
 export const GROUPS_FOLDER_NAME = 'Groups'
+export const GROUP_PHOTOS_FOLDER_NAME = 'photos'
 
 /** Full Drive access (ADR-009), asked for on the first Sync, with the basic scopes to check whose Drive it is. */
 export const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive'

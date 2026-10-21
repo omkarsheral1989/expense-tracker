@@ -1,18 +1,21 @@
 import { and, eq, isNotNull, isNull } from 'drizzle-orm'
 import type { Database } from '../../db/client.ts'
-import { groupMembers, groups, people, syncStatus } from '../../db/schema.ts'
+import { expensePhotos, expenses, groupMembers, groups, people, syncStatus } from '../../db/schema.ts'
 import { backupService } from '../backupService'
 import type { GroupFile } from '../backupService/types.ts'
 import {
   DRIVE_ITEM_KINDS,
   GROUP_ID_PROPERTY,
+  GROUP_PHOTOS_FOLDER_NAME,
   GROUPS_FOLDER_NAME,
   PERSON_ID_PROPERTY,
   ROOT_FOLDER_NAME,
 } from '../driveService/constants.ts'
 import type { DriveClient, DriveFile, DriveItemKind } from '../driveService/types.ts'
 import { groupService } from '../groupService'
-import type { FoundGroup, GroupSyncResult, GroupSyncStep } from './types.ts'
+import type { PhotoStore } from '../photoService/types.ts'
+import { downloadPhotos, photosIn, uploadPhotos } from './photos.ts'
+import type { FoundGroup, GroupSyncResult, GroupSyncStep, PhotoDirection, PhotoProgress, PhotosResult } from './types.ts'
 
 async function findOrCreateFolder(drive: DriveClient, kind: DriveItemKind, name: string, parentId?: string) {
   return (await drive.findOwn(kind, parentId)) ?? drive.createFolder(name, kind, parentId)
@@ -194,6 +197,57 @@ export const groupSync = {
       if (group) found.push({ groupId, name: group.name })
     }
     return { found, renamed }
+  },
+
+  /**
+   * Moves the group's photos (removed ones and those of deleted expenses
+   * included) through `photos/` in its folder, after `syncGroup`: uploads what
+   * Drive lacks, then downloads what the device lacks. Only the creator makes
+   * that folder; until it exists nothing moves. Failures are counted, and a
+   * full device stops the downloads.
+   */
+  async syncGroupPhotos(
+    db: Database,
+    drive: DriveClient,
+    userId: string,
+    groupId: string,
+    store: PhotoStore,
+    onProgress: (direction: PhotoDirection, progress: PhotoProgress) => void = () => {},
+  ): Promise<PhotosResult> {
+    const nothing: PhotosResult = { failures: 0, outOfSpace: false }
+    const folder = await groupFolder(drive, groupId)
+    if (!folder) return nothing
+
+    let photosFolder: DriveFile | null =
+      (await drive.findAll(DRIVE_ITEM_KINDS.groupPhotos, 'any', { [GROUP_ID_PROPERTY]: groupId }))[0] ?? null
+    if (!photosFolder) {
+      const [group] = await db.select({ createdBy: groups.createdBy }).from(groups).where(eq(groups.id, groupId))
+      if (group?.createdBy !== userId) return nothing
+      photosFolder = await drive.createFolder(GROUP_PHOTOS_FOLDER_NAME, DRIVE_ITEM_KINDS.groupPhotos, folder.id, {
+        [GROUP_ID_PROPERTY]: groupId,
+      })
+    }
+
+    const photos = await db
+      .select({ id: expensePhotos.id, mimeType: expensePhotos.mimeType })
+      .from(expensePhotos)
+      .innerJoin(expenses, eq(expenses.id, expensePhotos.expenseId))
+      .where(eq(expenses.groupId, groupId))
+    const inDrive = await photosIn(drive, photosFolder.id)
+    const sent = await uploadPhotos(drive, store, {
+      folderId: photosFolder.id,
+      kind: DRIVE_ITEM_KINDS.groupPhoto,
+      photos,
+      inDrive,
+      properties: { [GROUP_ID_PROPERTY]: groupId },
+      onProgress: (progress) => onProgress('sending', progress),
+    })
+    const received = await downloadPhotos(drive, store, {
+      photos,
+      inDrive,
+      onProgress: (progress) => onProgress('receiving', progress),
+    })
+    return { failures: sent.failures + received.failures, outOfSpace: received.outOfSpace }
   },
 
   /** When this group last finished syncing on this device, or null. */
