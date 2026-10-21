@@ -80,6 +80,43 @@ describe('driveService.client', () => {
     expect(String(fetchMock.mock.calls[0][0])).toContain('/files/f3?alt=media')
   })
 
+  it('lists every file in a folder, following Drive\'s pages', async () => {
+    const client = drive()
+    respond({ files: [{ id: 'p1', name: 'a.jpg' }], nextPageToken: 'page-2' })
+    respond({ files: [{ id: 'p2', name: 'b.jpg' }] })
+
+    expect((await client.listChildren('folder-1')).map((file) => file.id)).toEqual(['p1', 'p2'])
+
+    const first = new URL(String(fetchMock.mock.calls[0][0])).searchParams
+    expect(first.get('q')).toBe("'folder-1' in parents and trashed = false")
+    expect(first.get('fields')).toContain('properties')
+    expect(first.has('pageToken')).toBe(false)
+    expect(new URL(String(fetchMock.mock.calls[1][0])).searchParams.get('pageToken')).toBe('page-2')
+  })
+
+  it('uploads a picture with its type, its tag and further properties, and its bytes', async () => {
+    const client = drive()
+    respond({ id: 'p1', name: 'abc.jpg' })
+
+    await client.createFile('abc.jpg', 'backup-photo', 'folder-1', new Blob(['JPEG BYTES'], { type: 'image/jpeg' }), {
+      ownledgerPhotoId: 'abc',
+    })
+
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(String(url)).toContain('/upload/drive/v3/files?uploadType=multipart')
+    const body = await new Response(init?.body as Blob).text()
+    expect(body).toContain('"properties":{"ownledgerPhotoId":"abc","ownledger":"backup-photo"}')
+    expect(body).toContain('"parents":["folder-1"]')
+    expect(body).toContain('Content-Type: image/jpeg\r\n\r\nJPEG BYTES\r\n--')
+  })
+
+  it('downloads a picture as a Blob', async () => {
+    const client = drive()
+    respond('JPEG BYTES')
+    expect(await (await client.downloadBlob('p1')).text()).toBe('JPEG BYTES')
+    expect(String(fetchMock.mock.calls[0][0])).toContain('/files/p1?alt=media')
+  })
+
   it('reports expired access, other refusals and a failed network apart', async () => {
     const client = drive()
     respond('expired', 401)

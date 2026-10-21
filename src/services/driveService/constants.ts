@@ -10,12 +10,18 @@ export const DRIVE_ITEM_KINDS = {
   root: 'root',
   backup: 'backup',
   backupFile: 'backup-file',
+  backupPhotos: 'backup-photos',
+  backupPhoto: 'backup-photo',
 } as const
+
+/** The Drive property that holds a photo's id on its file. */
+export const PHOTO_ID_PROPERTY = 'ownledgerPhotoId'
 
 /** The folder names people see in their Drive. The app never finds anything by name. */
 export const ROOT_FOLDER_NAME = 'OwnLedger'
 export const BACKUP_FOLDER_NAME = 'Backup'
 export const BACKUP_FILE_NAME = 'backup.json'
+export const BACKUP_PHOTOS_FOLDER_NAME = 'photos'
 
 /** Full Drive access (ADR-009), asked for on the first Sync, with the basic scopes to check whose Drive it is. */
 export const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive'

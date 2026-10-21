@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import 'fake-indexeddb/auto'
 import { cleanup, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -10,7 +11,9 @@ import { useAuthStore } from '../../../stores/useAuthStore'
 import { useSyncStore } from '../../../stores/useSyncStore'
 import { setUpTestDatabase } from '../../../testing/database.ts'
 import { createFakeDrive } from '../../../testing/fakeDrive.ts'
+import { addTestExpense } from '../../../testing/expenses.ts'
 import { createTestGroup } from '../../../testing/groups.ts'
+import { photoService } from '../../../services/photoService'
 import { renderPage } from '../../../testing/render.tsx'
 import { SyncDialog } from '../../SyncDialog'
 import { AppHeader } from '../index.tsx'
@@ -75,6 +78,19 @@ function renderHeader() {
 }
 
 const syncButton = () => screen.getByRole('button', { name: 'Sync' })
+
+/** The user's photo store: `renderPage` gives the signed-in user the account id as dataset. */
+const store = () => photoService.open(profile.id)
+
+/** An expense with `count` receipt photos kept on the device; returns their ids. */
+async function expenseWithPhotos(count: number) {
+  const group = await createTestGroup(testDb.db, profile, { name: `Trip ${crypto.randomUUID()}`.slice(0, 40), type: 'trip', defaultCurrency: 'GBP' })
+  if (!group.ok) throw new Error('group not created')
+  const receipts = Array.from({ length: count }, () => ({ id: crypto.randomUUID(), mimeType: 'image/jpeg', sizeBytes: 5 }))
+  for (const receipt of receipts) await store().savePhoto(receipt.id, new Blob(['photo'], { type: 'image/jpeg' }), new Blob(['thumb']))
+  await addTestExpense(testDb.db, profile.email, group.groupId, { receipts })
+  return receipts.map((receipt) => receipt.id)
+}
 
 /** Closes the progress dialog with its Close button (the footer's, not the x). */
 async function closeDialog() {
@@ -204,6 +220,89 @@ describe('the Sync button, signed in', () => {
     await userEvent.click(syncButton())
 
     await waitFor(async () => expect(await progress()).toBe("BackupCouldn't back up. Press Sync to try again."))
+  })
+})
+
+describe('photos in the backup', () => {
+  it('shows how many photos are backed up as it goes, then Backed up', async () => {
+    stubGoogle()
+    const [photoId] = await expenseWithPhotos(1)
+    const createFile = fake.drive!.client.createFile
+    let release = () => {}
+    vi.spyOn(fake.drive!.client, 'createFile').mockImplementation(async (...args) => {
+      await new Promise<void>((resolve) => (release = resolve))
+      return createFile(...args)
+    })
+    renderHeader()
+
+    await userEvent.click(syncButton())
+
+    await waitFor(async () => expect(await progress()).toBe('BackupBacking up photos… 0 of 1'))
+    release()
+    await waitFor(async () => expect(await progress()).toBe('BackupBacked up'))
+    expect(fake.drive!.named(`${photoId}.jpg`)).toBeDefined()
+  })
+
+  it('says how many photos could not be backed up, one or several', async () => {
+    stubGoogle()
+    await expenseWithPhotos(2)
+    vi.spyOn(fake.drive!.client, 'createFile').mockRejectedValue(new Error('upload failed'))
+    renderHeader()
+
+    await userEvent.click(syncButton())
+    await waitFor(async () => expect(await progress()).toBe("Backup2 photos couldn't be backed up. Press Sync to try again."))
+
+    // One of them went the next time.
+    const createFile = vi.mocked(fake.drive!.client.createFile)
+    createFile.mockRejectedValueOnce(new Error('upload failed'))
+    createFile.mockResolvedValueOnce({ id: 'x', name: 'x.jpg' })
+    await userEvent.click(syncButton())
+    await waitFor(async () => expect(await progress()).toBe("Backup1 photo couldn't be backed up. Press Sync to try again."))
+  })
+
+  it('downloads the photos the device lacks when restoring', async () => {
+    stubGoogle()
+    const ids = await expenseWithPhotos(2)
+    renderHeader()
+    await userEvent.click(syncButton())
+    await waitFor(async () => expect(await progress()).toBe('BackupBacked up'))
+    for (const id of ids) await store().deletePhoto(id)
+    await closeDialog()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Account menu' }))
+    await userEvent.click(await screen.findByText('Restore from Drive'))
+
+    await waitFor(async () => expect(await progress()).toBe('BackupRestored'))
+    for (const id of ids) expect(await store().getPhoto(id)).not.toBeNull()
+  })
+
+  it('says how many photos could not be restored, and when the device is full', async () => {
+    stubGoogle()
+    const ids = await expenseWithPhotos(2)
+    renderHeader()
+    await userEvent.click(syncButton())
+    await waitFor(async () => expect(await progress()).toBe('BackupBacked up'))
+    for (const id of ids) await store().deletePhoto(id)
+    await closeDialog()
+    const downloads = vi.spyOn(fake.drive!.client, 'downloadBlob').mockRejectedValue(new Error('download failed'))
+
+    await userEvent.click(screen.getByRole('button', { name: 'Account menu' }))
+    await userEvent.click(await screen.findByText('Restore from Drive'))
+    await waitFor(async () =>
+      expect(await progress()).toBe("Backup2 photos couldn't be restored. Restore from Drive again to try again."),
+    )
+    expect(await screen.findByText('Backup restored.')).toBeInTheDocument()
+
+    downloads.mockResolvedValue(new Blob(['photo'], { type: 'image/jpeg' }))
+    vi.spyOn(IDBObjectStore.prototype, 'put').mockImplementation(() => {
+      throw new DOMException('The quota has been exceeded.', 'QuotaExceededError')
+    })
+    await closeDialog()
+    await userEvent.click(screen.getByRole('button', { name: 'Account menu' }))
+    await userEvent.click(await screen.findByText('Restore from Drive'))
+    await waitFor(async () =>
+      expect(await progress()).toBe('BackupThis device is out of space. Free some space, then restore again.'),
+    )
   })
 })
 

@@ -277,7 +277,7 @@ Route `/groups/<id>/settle`, opened by the "Settle up" pill on the group page (5
 - **A payment's details page** (5.6) is titled "You paid Priya" (also the tab's title), shows the amount, "Settlement · Mon, 5 Oct 2026", who added it, and its notes and receipts, with no split section.
 
 ### 5.8 Sync and backup
-Built in phases (listed at the end), each with tests, a browser check and a UX review by the user. Phase 1 (backup and restore of the data) is built (October 2026); its real-Drive check waits for the Google OAuth client (open questions). Exact copy, icons and the dialog's look are settled with each phase.
+Built in phases (listed at the end), each with tests, a browser check and a UX review by the user. Phases 1 and 2 (backup and restore of the data and of the photos) are built (October 2026); its real-Drive check waits for the Google OAuth client (open questions). Exact copy, icons and the dialog's look are settled with each phase.
 - **Drive layout** in the user's My Drive:
   - `OwnLedger/` (private), created on the first Sync.
   - `OwnLedger/Backup/` (private, never shared): the backup of everything on the device and `photos/` with every receipt photo.
@@ -293,11 +293,14 @@ Built in phases (listed at the end), each with tests, a browser check and a UX r
 - **Members without an email:** they are synced as people (name, shares, balances), so every member sees them; the folder is not shared with them.
 - **Merging:** for each item (group, person, membership, expense, share, photo), the version changed last wins, with the person's id as tie-breaker; every event of an expense (5.6) is kept from every member. Two people with the same email are one person.
 - **Backup kept:** only the latest; each backup replaces the one before.
+- **Photos in the backup:** every receipt photo on the device, including photos taken off an expense and photos of deleted expenses (the app keeps them so earlier versions and restored expenses still show them). Originals only: a restore makes the thumbnail again. Each photo is one file in `Backup/photos/`, named by its id ("3f2a…c91.jpg"); a backup uploads only the photos Drive does not have yet, and never removes one. A photo that is not on this device is skipped.
+- **Photo progress:** the Backup line goes "Saving your data…", then "Backing up photos… 12 of 40", then "Backed up". Restoring goes "Restoring your data…", then "Downloading photos… 3 of 10", then "Restored". There is no warning before a large download.
+- **A photo that fails:** the others carry on, and the line ends in red with "2 photos couldn't be backed up. Press Sync to try again." ("1 photo couldn't…"), or "2 photos couldn't be restored. Restore from Drive again to try again." The data is saved or restored either way. "Last synced" is when the data was last backed up; photos that failed show on the line, and the next Sync tries them again. If the device runs out of space while restoring photos, downloading stops and the line says "This device is out of space. Free some space, then restore again."; the data stays restored.
 - **Restore from Drive** (avatar menu, signed in only): runs at once without asking, since it never removes anything, and shows its progress. It downloads the backup, adds it to what is on the device (the newer version of each item wins, nothing is wiped), then downloads the photos the device does not have (phase 2), and shows "Backup restored.". Without a backup the line says "No backup found in your Drive."; a backup that is not valid OwnLedger data changes nothing and says "The backup in your Drive couldn't be read."; any other failure, "Couldn't restore the backup. Please try again." If the backup knows the user under another id (for example from another device), the two are one person afterwards (see Merging).
 - **Failures:** each step can be repeated safely, so pressing Sync again carries on where it stopped. When Drive access runs out during a sync: "Sign-in to Drive expired. Press Sync to continue." A file in Drive that is not valid OwnLedger data is skipped and reported, never imported.
 - **Phases:**
   1. Drive access, the OwnLedger folders, backup of the data, Restore from Drive (data), the header Sync button, the progress dialog with its Backup line, and the guest prompt. Built.
-  2. Backup and restore of photos.
+  2. Backup and restore of photos (decisions above). Built.
   3. Group sync of data: creating and sharing the folder, each member's file, merging, getting shared groups, shortcuts, the band button.
   4. Group photos, with a warning before a large first download.
   5. Failures: Drive access running out, storage full, offline, a failing group, "Last synced".

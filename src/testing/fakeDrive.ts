@@ -2,8 +2,8 @@ import { DriveAuthError } from '../services/driveService'
 import { OWNLEDGER_PROPERTY } from '../services/driveService/constants.ts'
 import type { DriveClient, DriveFile } from '../services/driveService/types.ts'
 
-/** A file or folder in the fake Drive, with its parent and (for a file) its content as text. */
-export type FakeDriveFile = DriveFile & { parentId?: string; content?: string; folder: boolean }
+/** A file or folder in the fake Drive, with its parent and its content: text for JSON, a Blob for a picture. */
+export type FakeDriveFile = DriveFile & { parentId?: string; content?: string; blob?: Blob; folder: boolean }
 
 /**
  * An in-memory Google Drive for one user, with the same calls as the real
@@ -53,6 +53,22 @@ export function createFakeDrive() {
       const content = files.get(fileId)?.content
       if (content === undefined) throw new Error(`No file ${fileId}`)
       return content
+    },
+    async listChildren(parentId) {
+      check()
+      return [...files.values()]
+        .filter((file) => file.parentId === parentId)
+        .map(({ id, name, properties }) => ({ id, name, properties }))
+    },
+    async createFile(name, kind, parentId, content, properties = {}) {
+      check()
+      return add({ name, parentId, folder: false, blob: content, properties: { ...properties, [OWNLEDGER_PROPERTY]: kind } })
+    },
+    async downloadBlob(fileId) {
+      check()
+      const blob = files.get(fileId)?.blob
+      if (!blob) throw new Error(`No file ${fileId}`)
+      return blob
     },
   }
 

@@ -10,3 +10,10 @@ export const DRIVE_TOKEN_MESSAGES: Record<DriveTokenProblem, string> = {
 
 export const OFFLINE_MESSAGE = 'Sync needs an internet connection.'
 export const EXPIRED_MESSAGE = 'Sign-in to Drive expired. Press Sync to continue.'
+
+export const OUT_OF_SPACE_MESSAGE = 'This device is out of space. Free some space, then restore again.'
+
+/** "1 photo" or "N photos". */
+export function photoCount(count: number) {
+  return count === 1 ? '1 photo' : `${count} photos`
+}

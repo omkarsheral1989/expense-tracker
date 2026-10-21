@@ -2,11 +2,12 @@ import { App } from 'antd'
 import { getDb } from '../../db/client.ts'
 import { deviceService } from '../../services/deviceService'
 import { DriveAuthError, driveService } from '../../services/driveService'
+import { photoService } from '../../services/photoService'
 import { syncService } from '../../services/syncService'
 import { useSyncStore } from '../../stores/useSyncStore'
 import { useCurrentUser } from '../useCurrentUser'
 import { DriveTokenError, useDriveToken } from '../useDriveToken'
-import { DRIVE_TOKEN_MESSAGES, EXPIRED_MESSAGE, OFFLINE_MESSAGE } from './constants.ts'
+import { DRIVE_TOKEN_MESSAGES, EXPIRED_MESSAGE, OFFLINE_MESSAGE, OUT_OF_SPACE_MESSAGE, photoCount } from './constants.ts'
 
 const BACKUP_STEP = 'backup'
 
@@ -57,8 +58,20 @@ export function useSync() {
 
     start('Syncing', [{ key: BACKUP_STEP, label: 'Backup', status: 'running', detail: 'Saving your data…' }])
     try {
-      await syncService.backUp(await getDb(), driveService.client(token), user.personId)
-      updateStep(BACKUP_STEP, { status: 'done', detail: 'Backed up' })
+      const db = await getDb()
+      const drive = driveService.client(token)
+      await syncService.backUp(db, drive, user.personId)
+      const { failures } = await syncService.backUpPhotos(db, drive, photoService.open(user.datasetId), ({ done, total }) =>
+        updateStep(BACKUP_STEP, { detail: `Backing up photos… ${done} of ${total}` }),
+      )
+      if (failures) {
+        updateStep(BACKUP_STEP, {
+          status: 'error',
+          detail: `${photoCount(failures)} couldn't be backed up. Press Sync to try again.`,
+        })
+      } else {
+        updateStep(BACKUP_STEP, { status: 'done', detail: 'Backed up' })
+      }
     } catch (error) {
       updateStep(BACKUP_STEP, {
         status: 'error',
@@ -77,12 +90,26 @@ export function useSync() {
 
     start('Restoring', [{ key: BACKUP_STEP, label: 'Backup', status: 'running', detail: 'Restoring your data…' }])
     try {
-      const result = await syncService.restore(await getDb(), driveService.client(token))
+      const db = await getDb()
+      const drive = driveService.client(token)
+      const result = await syncService.restore(db, drive)
       if (result.ok) {
         // The user's own person may now have the id it has in the backup.
         const renamedTo = result.renamed.get(user.personId)
         if (renamedTo) deviceService.setUserPersonId(renamedTo)
-        updateStep(BACKUP_STEP, { status: 'done', detail: 'Restored' })
+        const photos = await syncService.restorePhotos(db, drive, photoService.open(user.datasetId), ({ done, total }) =>
+          updateStep(BACKUP_STEP, { detail: `Downloading photos… ${done} of ${total}` }),
+        )
+        if (photos.outOfSpace) {
+          updateStep(BACKUP_STEP, { status: 'error', detail: OUT_OF_SPACE_MESSAGE })
+        } else if (photos.failures) {
+          updateStep(BACKUP_STEP, {
+            status: 'error',
+            detail: `${photoCount(photos.failures)} couldn't be restored. Restore from Drive again to try again.`,
+          })
+        } else {
+          updateStep(BACKUP_STEP, { status: 'done', detail: 'Restored' })
+        }
         message.success('Backup restored.')
       } else {
         updateStep(BACKUP_STEP, {

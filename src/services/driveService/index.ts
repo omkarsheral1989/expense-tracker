@@ -48,6 +48,23 @@ function multipartBody(metadata: object, content: unknown) {
   return { body, contentType: `multipart/related; boundary=${boundary}` }
 }
 
+// The same for a file of any type, such as a photo: its bytes go between the two text parts.
+function multipartBlobBody(metadata: object, content: Blob) {
+  const boundary = `ownledger-${crypto.randomUUID()}`
+  const head = [
+    `--${boundary}`,
+    'Content-Type: application/json; charset=UTF-8',
+    '',
+    JSON.stringify(metadata),
+    `--${boundary}`,
+    `Content-Type: ${content.type || 'application/octet-stream'}`,
+    '',
+    '',
+  ].join('\r\n')
+  const body = new Blob([head, content, `\r\n--${boundary}--\r\n`])
+  return { body, contentType: `multipart/related; boundary=${boundary}` }
+}
+
 /**
  * Google Drive's REST API (v3) through `fetch`, for one access token. Every
  * file and folder the app makes is tagged with a Drive property
@@ -133,6 +150,45 @@ function client(accessToken: string): DriveClient {
 
     async download(fileId) {
       return (await request(`${DRIVE_API}/${encodeURIComponent(fileId)}?alt=media`)).text()
+    },
+
+    async listChildren(parentId) {
+      const files: DriveFile[] = []
+      let pageToken: string | undefined
+      do {
+        const params = new URLSearchParams({
+          q: `${quote(parentId)} in parents and trashed = false`,
+          fields: `nextPageToken,files(${FILE_FIELDS})`,
+          spaces: 'drive',
+          pageSize: '1000',
+        })
+        if (pageToken) params.set('pageToken', pageToken)
+        const page = await json<{ files: DriveFile[]; nextPageToken?: string }>(`${DRIVE_API}?${params}`)
+        files.push(...page.files)
+        pageToken = page.nextPageToken
+      } while (pageToken)
+      return files
+    },
+
+    createFile(name, kind, parentId, content, properties = {}) {
+      const { body, contentType } = multipartBlobBody(
+        {
+          name,
+          mimeType: content.type || undefined,
+          parents: [parentId],
+          properties: { ...properties, [OWNLEDGER_PROPERTY]: kind },
+        },
+        content,
+      )
+      return json<DriveFile>(`${DRIVE_UPLOAD_API}?uploadType=multipart&fields=${FILE_FIELDS}`, {
+        method: 'POST',
+        headers: { 'Content-Type': contentType },
+        body,
+      })
+    },
+
+    async downloadBlob(fileId) {
+      return (await request(`${DRIVE_API}/${encodeURIComponent(fileId)}?alt=media`)).blob()
     },
   }
 }

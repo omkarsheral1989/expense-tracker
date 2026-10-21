@@ -23,4 +23,16 @@ export type DriveClient = {
   updateJson(fileId: string, content: unknown): Promise<DriveFile>
   /** A file's content as text. */
   download(fileId: string): Promise<string>
+  /** Every file in a folder (not trashed), with its properties, across as many pages as Drive needs. */
+  listChildren(parentId: string): Promise<DriveFile[]>
+  /** A new file with this content (such as a photo), tagged with its kind and any further properties. */
+  createFile(
+    name: string,
+    kind: DriveItemKind,
+    parentId: string,
+    content: Blob,
+    properties?: Record<string, string>,
+  ): Promise<DriveFile>
+  /** A file's content as a Blob. */
+  downloadBlob(fileId: string): Promise<Blob>
 }
