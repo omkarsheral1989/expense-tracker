@@ -61,7 +61,7 @@ describe('driveService.client', () => {
     respond({ id: 'f3', name: 'backup.json' })
 
     await client.createJson('backup.json', 'backup-file', 'folder-1', { a: 1 })
-    await client.updateJson('f3', { a: 2 })
+    await client.updateJson('f3', { a: 2 }, { ownledgerPersonId: 'p2' })
 
     const [createUrl, create] = fetchMock.mock.calls[0]
     expect(String(createUrl)).toContain('/upload/drive/v3/files?uploadType=multipart')
@@ -71,6 +71,7 @@ describe('driveService.client', () => {
     expect(String(updateUrl)).toContain('/upload/drive/v3/files/f3?uploadType=multipart')
     expect(update?.method).toBe('PATCH')
     expect(String(update?.body)).toContain('{"a":2}')
+    expect(String(update?.body)).toContain('"properties":{"ownledgerPersonId":"p2"}')
   })
 
   it('downloads a file\'s content as text', async () => {

@@ -18,7 +18,7 @@ import { useSyncStore } from '../../../stores/useSyncStore'
 import { setUpTestDatabase } from '../../../testing/database.ts'
 import { createFakeDriveWorld } from '../../../testing/fakeDrive.ts'
 import { addTestExpense } from '../../../testing/expenses.ts'
-import { createTestGroup } from '../../../testing/groups.ts'
+import { createTestGroup, ensurePersonId } from '../../../testing/groups.ts'
 import { personIdForEmail } from '../../../testing/ids.ts'
 import { renderPage } from '../../../testing/render.tsx'
 import { SyncDialog } from '../../SyncDialog'
@@ -160,6 +160,8 @@ describe('groups in a full Sync', () => {
     const lisbon = await groupService.createGroup(priyaDb, priya, { name: 'Lisbon', type: 'other', defaultCurrency: 'EUR', memberIds: [omkarOnB] })
     if (!lisbon.ok) throw new Error('group not created')
     await syncService.syncGroup(priyaDb, fake.world!.clientFor('priya@gmail.com'), priya, lisbon.groupId)
+    // Omkar's own person, as the app saves it when his data opens.
+    await ensurePersonId(testDb.db, profile.email, profile.name)
     renderHeader()
 
     expect(await syncAll()).toEqual(['BackupBacked up', 'New group: LisbonSynced'])
@@ -191,7 +193,7 @@ describe('groups in a full Sync', () => {
     const folder = [...fake.world!.files.values()].find((file) => file.properties?.ownledger === 'group')!
     await fake.world!.clientFor('priya@gmail.com').createJson('bad.json', 'member-file', folder.id, 'nonsense', {
       ownledgerGroupId: groupId,
-      ownledgerPersonId: personIdForEmail('priya@gmail.com'),
+      ownledgerEmail: 'priya@gmail.com',
     })
     useSyncStore.setState({ dataVersion: 0 })
 
@@ -327,7 +329,7 @@ describe('a group\'s photos', () => {
     const folder = [...fake.world!.files.values()].find((file) => file.properties?.ownledger === 'group')!
     await omkarClient.current!.createJson('bad.json', 'member-file', folder.id, 'nonsense', {
       ownledgerGroupId: groupId,
-      ownledgerPersonId: crypto.randomUUID(),
+      ownledgerEmail: 'stranger@gmail.com',
     })
     const photoId = crypto.randomUUID()
     await store().savePhoto(photoId, new Blob(['new'], { type: 'image/jpeg' }), new Blob(['thumb']))

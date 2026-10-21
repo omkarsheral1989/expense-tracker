@@ -94,10 +94,11 @@ export function createFakeDriveWorld() {
           properties: { ...properties, [OWNLEDGER_PROPERTY]: kind },
         })
       },
-      async updateJson(fileId, content) {
+      async updateJson(fileId, content, properties) {
         check()
         const file = fileFor(email, fileId)
         file.content = JSON.stringify(content)
+        if (properties) file.properties = { ...file.properties, ...properties }
         return summary(file)
       },
       async download(fileId) {

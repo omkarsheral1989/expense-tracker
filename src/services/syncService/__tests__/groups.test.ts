@@ -101,7 +101,11 @@ describe('syncService.syncGroup, by the creator', () => {
     expect(world.files.get(folder.parentId!)).toMatchObject({ name: 'Groups', properties: { ownledger: 'groups' } })
     expect(world.files.get(world.files.get(folder.parentId!)!.parentId!)?.name).toBe('OwnLedger')
     const [file] = filesOf('member-file')
-    expect(file).toMatchObject({ name: `${omkar}.json`, parentId: folder.id, properties: { ownledgerGroupId: groupId, ownledgerPersonId: omkar } })
+    expect(file).toMatchObject({
+      name: 'omkar@gmail.com.json',
+      parentId: folder.id,
+      properties: { ownledgerGroupId: groupId, ownledgerEmail: 'omkar@gmail.com', ownledgerPersonId: omkar },
+    })
   })
 
   it('writes the whole group and the people it names, and nobody else known on the device', async () => {
@@ -267,10 +271,31 @@ describe('two devices', () => {
     await syncService.syncGroup(a, omkarDrive(), omkar, groupId)
     await priyaDrive().createJson('x.json', 'member-file', filesOf('group')[0].id, 'not a group', {
       ownledgerGroupId: groupId,
-      ownledgerPersonId: crypto.randomUUID(),
+      ownledgerEmail: 'stranger@gmail.com',
     })
 
     expect(await syncService.syncGroup(a, omkarDrive(), omkar, groupId)).toMatchObject({ unreadable: ['A member'] })
+  })
+
+  it('keeps one file per member, named by their email, when their id changes', async () => {
+    // Omkar syncs from one device, then from a cleared one, where he gets a new id: here the smaller, so it is kept.
+    const oldId = 'ffffffff-ffff-4fff-bfff-ffffffffffff'
+    const newId = '00000000-0000-4000-8000-000000000001'
+    await self(a, 'omkar@gmail.com', 'Omkar', oldId)
+    const group = await groupService.createGroup(a, oldId, { name: 'Goa trip', type: 'trip', defaultCurrency: 'GBP', memberIds: [] })
+    if (!group.ok) throw new Error('group not created')
+    await syncService.syncGroup(a, omkarDrive(), oldId, group.groupId)
+    await self(b, 'omkar@gmail.com', 'Omkar', newId)
+
+    const { renamed } = await syncService.findSharedGroups(b, omkarDrive(), 'omkar@gmail.com')
+    const me = renamed.get(newId) ?? newId
+    expect(me).toBe(newId)
+    await syncService.syncGroup(b, omkarDrive(), me, group.groupId)
+
+    const files = filesOf('member-file')
+    expect(files).toHaveLength(1)
+    expect(files[0]).toMatchObject({ name: 'omkar@gmail.com.json', properties: { ownledgerEmail: 'omkar@gmail.com', ownledgerPersonId: newId } })
+    expect(JSON.parse(files[0].content!).writtenBy).toBe(newId)
   })
 
   it('takes nothing from a member\'s file but the rows of its own group', async () => {

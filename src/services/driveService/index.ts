@@ -226,8 +226,8 @@ function client(accessToken: string, { wait = waitFor }: ClientOptions = {}): Dr
       })
     },
 
-    updateJson(fileId, content) {
-      const { body, contentType } = multipartBody({ mimeType: 'application/json' }, content)
+    updateJson(fileId, content, properties) {
+      const { body, contentType } = multipartBody({ mimeType: 'application/json', properties }, content)
       return json<DriveFile>(
         `${DRIVE_UPLOAD_API}/${encodeURIComponent(fileId)}?uploadType=multipart&fields=${FILE_FIELDS}`,
         { method: 'PATCH', headers: { 'Content-Type': contentType }, body },

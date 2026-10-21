@@ -35,7 +35,7 @@ A new client ID can take a few minutes to work; a sign-in error right after crea
    - [ ] The footer says **Last synced just now**, and so does the Sync button's tooltip.
 5. [ ] In https://drive.google.com as account A, check that these exist:
    - [ ] `OwnLedger/Backup/backup.json` and `OwnLedger/Backup/photos/` with two `<id>.jpg` (or `.png`) files.
-   - [ ] `OwnLedger/Groups/Drive test/<person id>.json` and `OwnLedger/Groups/Drive test/photos/` with the two photos.
+   - [ ] `OwnLedger/Groups/Drive test/<account A's email>.json` and `OwnLedger/Groups/Drive test/photos/` with the two photos.
    - [ ] **Share** on `Drive test` lists account B as an **Editor**.
 6. [ ] Account B's Gmail has Drive's "shared a folder with you" email.
 7. [ ] Press Sync again. Every line ends Synced (or Backed up), and Drive gets **no duplicate** files or folders.

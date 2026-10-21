@@ -39,8 +39,8 @@ export type DriveClient = {
     content: unknown,
     properties?: Record<string, string>,
   ): Promise<DriveFile>
-  /** Replaces a file's content with JSON. */
-  updateJson(fileId: string, content: unknown): Promise<DriveFile>
+  /** Replaces a file's content with JSON, and sets any properties given (others are kept). */
+  updateJson(fileId: string, content: unknown, properties?: Record<string, string>): Promise<DriveFile>
   /** A file's content as text. */
   download(fileId: string): Promise<string>
   /** Every file in a folder (not trashed), with its properties, across as many pages as Drive needs. */

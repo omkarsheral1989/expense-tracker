@@ -21,10 +21,11 @@ export const DRIVE_ITEM_KINDS = {
   groupPhoto: 'group-photo',
 } as const
 
-/** The Drive properties that hold a photo's, group's and person's id on the app's files. */
+/** The Drive properties that hold a photo's, group's and person's id on the app's files, and a member file's writer's email. */
 export const PHOTO_ID_PROPERTY = 'ownledgerPhotoId'
 export const GROUP_ID_PROPERTY = 'ownledgerGroupId'
 export const PERSON_ID_PROPERTY = 'ownledgerPersonId'
+export const EMAIL_PROPERTY = 'ownledgerEmail'
 /** On a member's shortcut: the folder it points at, so a shortcut to a lost folder is not taken for the new one's. */
 export const FOLDER_ID_PROPERTY = 'ownledgerFolderId'
 

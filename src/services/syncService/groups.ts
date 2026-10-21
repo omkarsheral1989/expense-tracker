@@ -5,6 +5,7 @@ import { backupService } from '../backupService'
 import type { GroupFile } from '../backupService/types.ts'
 import {
   DRIVE_ITEM_KINDS,
+  EMAIL_PROPERTY,
   FOLDER_ID_PROPERTY,
   GROUP_ID_PROPERTY,
   GROUP_PHOTOS_FOLDER_NAME,
@@ -48,13 +49,19 @@ async function recordStatus(db: Database, scope: string, at: Date) {
 }
 
 /** A person's first name for a message, or "A member" for one the device does not know. */
-async function firstName(db: Database, personId: string | undefined): Promise<string> {
-  if (!personId) return 'A member'
+async function firstName(db: Database, personId: string): Promise<string> {
   const [person] = await db.select().from(people).where(eq(people.id, personId))
   return person ? groupService.shortName(person) : 'A member'
 }
 
-/** The members' files in a group's folder: the valid ones, and who wrote those that are not. */
+/** The first name of the person with this email, or "A member" when nobody saved on the device has it. */
+async function firstNameByEmail(db: Database, email: string | undefined): Promise<string> {
+  if (!email) return 'A member'
+  const [person] = await db.select().from(people).where(eq(people.email, email.toLowerCase()))
+  return person ? groupService.shortName(person) : 'A member'
+}
+
+/** The members' files in a group's folder: the valid ones, and the emails of those who wrote the ones that are not. */
 async function readMemberFiles(drive: DriveClient, folderId: string, groupId: string) {
   const files = (await drive.listChildren(folderId)).filter(
     (file) => file.properties?.ownledger === DRIVE_ITEM_KINDS.memberFile,
@@ -64,7 +71,7 @@ async function readMemberFiles(drive: DriveClient, folderId: string, groupId: st
   for (const file of files) {
     const parsed = backupService.parseGroupFile(await drive.download(file.id), groupId)
     if (parsed) valid.push(parsed)
-    else unreadable.push(file.properties?.[PERSON_ID_PROPERTY])
+    else unreadable.push(file.properties?.[EMAIL_PROPERTY])
   }
   return { valid, unreadable }
 }
@@ -127,14 +134,13 @@ export const groupSync = {
 
     onStep('sending')
     const content = await backupService.exportGroup(db, groupId, me)
-    const mine = await drive.findOwn(DRIVE_ITEM_KINDS.memberFile, folder.id, { [PERSON_ID_PROPERTY]: me })
-    if (mine) await drive.updateJson(mine.id, content)
-    else {
-      await drive.createJson(`${me}.json`, DRIVE_ITEM_KINDS.memberFile, folder.id, content, {
-        [GROUP_ID_PROPERTY]: groupId,
-        [PERSON_ID_PROPERTY]: me,
-      })
-    }
+    // Found by owner, not by id: the user's id can change in a merge (ADR-044), their file stays the same.
+    const [self] = await db.select({ email: people.email }).from(people).where(eq(people.id, me))
+    if (!self?.email) throw new Error('Only a person with an email can sync a group.')
+    const tags = { [GROUP_ID_PROPERTY]: groupId, [EMAIL_PROPERTY]: self.email, [PERSON_ID_PROPERTY]: me }
+    const mine = await drive.findOwn(DRIVE_ITEM_KINDS.memberFile, folder.id)
+    if (mine) await drive.updateJson(mine.id, content, tags)
+    else await drive.createJson(`${self.email}.json`, DRIVE_ITEM_KINDS.memberFile, folder.id, content, tags)
 
     const already = new Set(await drive.sharedWith(folder.id))
     const sharedWith: string[] = []
@@ -159,7 +165,7 @@ export const groupSync = {
     return {
       status: 'synced',
       sharedWith,
-      unreadable: await Promise.all(unreadable.map((personId) => firstName(db, personId))),
+      unreadable: await Promise.all(unreadable.map((email) => firstNameByEmail(db, email))),
       renamed,
     }
   },
