@@ -1,7 +1,7 @@
 import type { ImportResult } from '../backupService/types.ts'
 
-/** How far the photos of a backup or restore have got: `done` of `total`. */
-export type PhotoProgress = { done: number; total: number }
+/** How far the photos of a backup or restore have got: photo `current` of `total` is being moved (never 0, never past `total`). */
+export type PhotoProgress = { current: number; total: number }
 
 export type PhotosResult = {
   /** Photos that could not be moved; the next backup or restore tries them again. */

@@ -278,7 +278,7 @@ describe('a group\'s photos', () => {
     renderHeader()
 
     await userEvent.click(screen.getByRole('button', { name: 'Sync' }))
-    await waitFor(() => expect(goaLine()).toBe('Goa tripSending photos… 0 of 1'))
+    await waitFor(() => expect(goaLine()).toBe('Goa tripSending photos… 1 of 1'))
     release()
 
     await waitFor(() => expect(goaLine()).toBe('Goa tripSynced'))

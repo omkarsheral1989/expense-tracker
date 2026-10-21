@@ -13,6 +13,15 @@ export type PhotoRow = { id: string; mimeType: string }
 /** Thrown inside a photo pool to stop it when the device is full. */
 class OutOfSpace extends Error {}
 
+/**
+ * Reports the photo being worked on: the photos finished plus one, never more
+ * than the total, so a line reads "1 of 1" while its only photo moves. Nothing
+ * is reported when there is nothing to move, or once the last photo is done.
+ */
+function reportProgress(onProgress: (progress: PhotoProgress) => void, done: number, total: number) {
+  if (done < total) onProgress({ current: done + 1, total })
+}
+
 /** The photos in a Drive folder, by photo id: photo id → file id. */
 export async function photosIn(drive: DriveClient, folderId: string): Promise<Map<string, string>> {
   const files = await drive.listChildren(folderId)
@@ -42,7 +51,7 @@ export async function uploadPhotos(
   const toUpload = photos.filter((photo) => !inDrive.has(photo.id))
   let done = 0
   let failures = 0
-  onProgress({ done, total: toUpload.length })
+  reportProgress(onProgress, done, toUpload.length)
   await runPool(toUpload, PHOTO_TRANSFERS_AT_ONCE, async (photo) => {
     try {
       const picture = await store.getPhoto(photo.id)
@@ -60,7 +69,7 @@ export async function uploadPhotos(
       if (stoppingProblem(error)) throw error
       failures++
     }
-    onProgress({ done: ++done, total: toUpload.length })
+    reportProgress(onProgress, ++done, toUpload.length)
   })
   return { failures, outOfSpace: false }
 }
@@ -90,7 +99,7 @@ export async function downloadPhotos(
   let done = 0
   let failures = 0
   let outOfSpace = false
-  onProgress({ done, total: toDownload.length })
+  reportProgress(onProgress, done, toDownload.length)
   try {
     await runPool(toDownload, PHOTO_TRANSFERS_AT_ONCE, async (photo) => {
       try {
@@ -101,7 +110,7 @@ export async function downloadPhotos(
         if (isOutOfSpace(error)) throw new OutOfSpace()
         failures++
       }
-      onProgress({ done: ++done, total: toDownload.length })
+      reportProgress(onProgress, ++done, toDownload.length)
     })
   } catch (error) {
     if (!(error instanceof OutOfSpace)) throw error

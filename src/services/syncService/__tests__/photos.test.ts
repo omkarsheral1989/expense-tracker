@@ -95,7 +95,30 @@ describe('syncService.backUpPhotos', () => {
     await syncService.backUpPhotos(testDb.db, drive.client, store, (step) => progress.push(step))
 
     expect(photoFiles(drive).size).toBe(3)
-    expect(progress).toEqual([{ done: 0, total: 1 }, { done: 1, total: 1 }])
+    expect(progress).toEqual([{ current: 1, total: 1 }])
+  })
+
+  it('counts the photo being worked on, from 1 up to the total, never 0', async () => {
+    await expenseWithPhotos(4)
+    const drive = createFakeDrive()
+    const progress: PhotoProgress[] = []
+
+    await syncService.backUpPhotos(testDb.db, drive.client, store, (step) => progress.push(step))
+
+    // Three go at once, so the count is a place in the list rather than the photos in flight.
+    expect(progress).toEqual([1, 2, 3, 4].map((current) => ({ current, total: 4 })))
+  })
+
+  it('reports nothing when there is nothing to upload or download', async () => {
+    await expenseWithPhotos(2)
+    const drive = createFakeDrive()
+    await syncService.backUpPhotos(testDb.db, drive.client, store)
+    const progress: PhotoProgress[] = []
+
+    await syncService.backUpPhotos(testDb.db, drive.client, store, (step) => progress.push(step))
+    await syncService.restorePhotos(testDb.db, drive.client, store, (step) => progress.push(step))
+
+    expect(progress).toEqual([])
   })
 
   it('skips a photo that is not on this device, without counting it as failed', async () => {
@@ -182,8 +205,7 @@ describe('syncService.restorePhotos', () => {
     expect(await (await store.getPhoto(ids[0]))!.text()).toBe('photo 0')
     expect((await store.getPhoto(ids[0]))!.type).toBe('image/jpeg')
     expect(await (await store.getThumbnail(ids[2]))!.text()).toBe('small photo 2')
-    expect(progress[0]).toEqual({ done: 0, total: 2 })
-    expect(progress.at(-1)).toEqual({ done: 2, total: 2 })
+    expect(progress).toEqual([{ current: 1, total: 2 }, { current: 2, total: 2 }])
   })
 
   it('does nothing when there is no photos folder in the Drive', async () => {

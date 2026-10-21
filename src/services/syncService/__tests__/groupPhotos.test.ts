@@ -185,10 +185,8 @@ describe('syncService.syncGroupPhotos', () => {
     await syncService.syncGroupPhotos(a, omkarDrive(), omkar, groupId, storeA, (direction, step) => progress.push([direction, step]))
 
     expect(progress).toEqual([
-      ['sending', { done: 0, total: 1 }],
-      ['sending', { done: 1, total: 1 }],
-      ['receiving', { done: 0, total: 1 }],
-      ['receiving', { done: 1, total: 1 }],
+      ['sending', { current: 1, total: 1 }],
+      ['receiving', { current: 1, total: 1 }],
     ])
     expect(await (await storeA.getPhoto(ids[0]))!.text()).toBe('one')
     expect(photoFiles()).toHaveLength(3)

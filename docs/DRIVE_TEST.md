@@ -31,7 +31,7 @@ A new client ID can take a few minutes to work; a sign-in error right after crea
 4. [ ] Press the **cloud Sync button** in the home header. Google's window opens again, asking for **Drive** access (the second consent, ADR-019): allow it.
    - [ ] The **Backup** line is first: "Getting your backup…" (there is none yet), then "Waiting for your groups…".
    - [ ] **Drive test** "Getting changes…" → "Sending your changes…" → "Sending photos…" → **Shared with B's first name** (not Sam, who has no email).
-   - [ ] Then the Backup line finishes: "Saving your data…" → "Backing up photos… 0 of 2" → **Backed up**.
+   - [ ] Then the Backup line finishes: "Saving your data…" → "Backing up photos… 1 of 2" → "2 of 2" → **Backed up**.
    - [ ] The footer says **Last synced just now**, and so does the Sync button's tooltip.
 5. [ ] In https://drive.google.com as account A, check that these exist:
    - [ ] `OwnLedger/Backup/backup.json` and `OwnLedger/Backup/photos/` with two `<id>.jpg` (or `.png`) files.
@@ -75,7 +75,7 @@ A new client ID can take a few minutes to work; a sign-in error right after crea
 There is no Restore button: Sync adds the backup in Drive to the device before writing it (PRD 5.8, phase 6).
 
 1. [ ] In profile A2, sign in with account A. The home page is empty, and the avatar menu has only the name, email and **Sign out**.
-2. [ ] Press **Sync**. The Backup line shows "Getting your backup…" → "Downloading photos… N of N" → "Waiting for your groups…", the groups sync, then **Backed up**.
+2. [ ] Press **Sync**. The Backup line shows "Getting your backup…" → "Downloading photos… 1 of N" … "N of N" (never "0 of …") → "Waiting for your groups…", the groups sync, then **Backed up**.
    - [ ] Drive test 2, with Dinner (and its photos and history), Taxi and B's edit, is on the home page, with no duplicate groups, expenses or people (one account A, one B, one Sam).
    - [ ] In A's Drive, `backup.json` still holds everything (download it and look for Drive test 2): the empty device did not replace it with less.
 3. [ ] Press Sync again in A1, where everything is already present: nothing is duplicated or lost.

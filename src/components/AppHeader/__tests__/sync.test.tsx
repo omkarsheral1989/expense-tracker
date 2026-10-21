@@ -237,21 +237,25 @@ describe('photos in the backup', () => {
 
   it('shows how many photos are backed up as it goes, then Backed up', async () => {
     stubGoogle()
-    const [photoId] = await expenseWithPhotos(1)
+    const photoIds = await expenseWithPhotos(2)
     const createFile = fake.drive!.client.createFile
-    let release = () => {}
+    // Each upload waits until it is let go, one at a time.
+    const releases: (() => void)[] = []
     backupUploads(async (...args) => {
-      await new Promise<void>((resolve) => (release = resolve))
+      await new Promise<void>((resolve) => releases.push(resolve))
       return createFile(...args)
     })
     renderHeader()
 
     await userEvent.click(syncButton())
 
-    await waitFor(async () => expect(await progress()).toBe('BackupBacking up photos… 0 of 1'))
-    release()
+    await waitFor(async () => expect(await progress()).toBe('BackupBacking up photos… 1 of 2'))
+    await waitFor(() => expect(releases).toHaveLength(2))
+    releases[0]()
+    await waitFor(async () => expect(await progress()).toBe('BackupBacking up photos… 2 of 2'))
+    releases[1]()
     await waitFor(async () => expect(await progress()).toBe('BackupBacked up'))
-    expect(fake.drive!.named(`${photoId}.jpg`)).toBeDefined()
+    for (const photoId of photoIds) expect(fake.drive!.named(`${photoId}.jpg`)).toBeDefined()
   })
 
   it('says how many photos could not be backed up, one or several', async () => {
@@ -299,7 +303,7 @@ describe('photos in the backup', () => {
 
     await userEvent.click(syncButton())
 
-    await waitFor(async () => expect(await progress()).toBe('BackupDownloading photos… 0 of 2'))
+    await waitFor(async () => expect(await progress()).toBe('BackupDownloading photos… 1 of 2'))
     release()
     await waitFor(async () => expect(await progress()).toBe('BackupBacked up'))
     for (const id of ids) expect(await store().getPhoto(id)).not.toBeNull()

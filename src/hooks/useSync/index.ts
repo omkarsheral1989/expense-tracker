@@ -117,8 +117,8 @@ export function useSync() {
     try {
       const result = await syncService.restore(db, drive)
       const me = result.ok ? followRename(userId, result.renamed) : userId
-      const photos = await syncService.restorePhotos(db, drive, photoService.open(datasetId), ({ done, total }) =>
-        updateStep(BACKUP_STEP, { detail: `${BACKUP_DETAILS.downloading} ${done} of ${total}` }),
+      const photos = await syncService.restorePhotos(db, drive, photoService.open(datasetId), ({ current, total }) =>
+        updateStep(BACKUP_STEP, { detail: `${BACKUP_DETAILS.downloading} ${current} of ${total}` }),
       )
       const problems: string[] = []
       if (photos.outOfSpace) problems.push(OUT_OF_SPACE_MESSAGE)
@@ -137,8 +137,8 @@ export function useSync() {
     updateStep(BACKUP_STEP, { detail: BACKUP_DETAILS.saving })
     try {
       await syncService.backUp(db, drive, userId)
-      const { failures } = await syncService.backUpPhotos(db, drive, photoService.open(datasetId), ({ done, total }) =>
-        updateStep(BACKUP_STEP, { detail: `${BACKUP_DETAILS.uploading} ${done} of ${total}` }),
+      const { failures } = await syncService.backUpPhotos(db, drive, photoService.open(datasetId), ({ current, total }) =>
+        updateStep(BACKUP_STEP, { detail: `${BACKUP_DETAILS.uploading} ${current} of ${total}` }),
       )
       const all = failures ? [...problems, `${photoCount(failures)} couldn't be backed up. Press Sync to try again.`] : problems
       if (all.length) updateStep(BACKUP_STEP, { status: 'error', detail: all.join(' ') })
@@ -166,8 +166,8 @@ export function useSync() {
         return userId
       }
       const me = followRename(userId, result.renamed)
-      const photos = await syncService.syncGroupPhotos(db, drive, me, groupId, photoService.open(user!.datasetId), (direction, { done, total }) =>
-        updateStep(key, { detail: `${GROUP_PHOTO_DETAILS[direction]} ${done} of ${total}` }),
+      const photos = await syncService.syncGroupPhotos(db, drive, me, groupId, photoService.open(user!.datasetId), (direction, { current, total }) =>
+        updateStep(key, { detail: `${GROUP_PHOTO_DETAILS[direction]} ${current} of ${total}` }),
       )
 
       // Problems first, each in a sentence of its own; otherwise what was done.
