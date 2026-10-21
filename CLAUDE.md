@@ -42,6 +42,7 @@ Details: @docs/PRD.md (features, pages, open questions) and @docs/ADR.md (archit
 - **Rows:** every synced row has `updated_at` and `updated_by`. Delete by setting `deleted_at` (soft delete), never hard delete synced rows.
 - **Database:** create and access PGlite only through `getDb()` (single module). Never put photos or large blobs in PGlite.
 - **Photos:** access only through the `PhotoStore` interface (`savePhoto`, `getPhoto`, `getThumbnail`, `deletePhoto`) from `photoService.open(accountId)` in `src/services/photoService`, backed by IndexedDB (one database per account).
+- **Backup:** a new table or column must reach the backup and group files (`exportAll`, `exportGroup`, `backupService/schemas.ts`, the merge) or be listed in `NOT_BACKED_UP` with its reason; `backupService/__tests__/completeness.test.ts` fails until it does, and needs test data for it (ADR-044).
 - **Sync:** one JSON file per member per group in the group's Drive folder; each file has a single writer. Merge by newest `updated_at` per row (user id as tie-breaker), keep edit history. Validate all downloaded JSON with zod; treat it as untrusted.
 - **Storage:** one database per signed-in Google account on a device. Only one tab may open the database.
 - **Offline:** the app must render and work offline. Network failures (sign-in, Drive, sync) must degrade gracefully.
