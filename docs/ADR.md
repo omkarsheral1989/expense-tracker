@@ -40,7 +40,8 @@ _Last updated: 2026-10-24_. Each entry: context, decision, alternatives rejected
 - **Decision:** The database and photo store names include the Google account id.
 - **Consequences:** Two people sharing a device do not see each other's data. (Replaced: one set of data per device, owned by one account, ADR-035.)
 
-## ADR-008: Personal backup with `pgDump` to Google Drive
+## ADR-008: Personal backup with `pgDump` to Google Drive (superseded by ADR-044)
+- **Status:** replaced before it was built: the backup is a JSON copy of every row that a restore merges in (ADR-044). Kept for history.
 - **Decision:** A button runs `pgDump` (`@electric-sql/pglite-tools`) and uploads the SQL to the user's Drive. `dumpDataDir()` may be offered as a quick snapshot.
 - **Consequences:** Portable, restorable into real Postgres. Backup is manual, because browser tokens expire after about an hour and there is no refresh token.
 
@@ -48,12 +49,13 @@ _Last updated: 2026-10-24_. Each entry: context, decision, alternatives rejected
 - **Context:** `drive.file` cannot see files created by other users unless picked through the Google Picker, which does not fit a one-click sync.
 - **Decision:** Use the full `drive` scope, with the OAuth app in Testing mode (up to 100 named test users, "unverified app" warning). Each group has a Drive folder shared with members through the Drive permissions API.
 - **Rejected:** `drive.file` + Picker (extra picking steps), a real backend such as Firebase or Supabase (not client-only).
-- **Consequences:** Not publishable publicly without Google's security assessment. Fine for personal and small-circle use. The folder owner (the creator) holds the folder.
+- **Consequences:** Not publishable publicly without Google's security assessment. Fine for personal and small-circle use. The folder owner (the creator) holds the folder. The folder layout, who creates and shares it, and how members find it are in ADR-044.
 
 ## ADR-010: One JSON file per member per group
 - **Decision:** Each member writes only their own file (for example `group1/user1.json`) holding the row versions they wrote, including edits to other members' expenses. Sync reads all other members' files, merges, then uploads their own.
 - **Merge:** newest `updated_at` wins per row, user id as tie-breaker; edit history is kept; deletes are soft. UUID keys avoid collisions.
 - **Consequences:** No upload conflicts. If two members edit the same expense between syncs, the later edit wins (the older one stays in history). It relies on reasonably accurate device clocks. Synced JSON is untrusted, so validate with zod.
+- **Refined by ADR-044:** the file's format, merging by natural key for memberships and shares, expense events kept from every file, and one person per email across devices.
 
 ## ADR-011: Any group member can edit group data and expenses
 - **Decision:** Any member can edit or delete any group expense and can add members.
@@ -65,7 +67,7 @@ _Last updated: 2026-10-24_. Each entry: context, decision, alternatives rejected
 
 ## ADR-013: Sync downloads all photos
 - **Decision:** Sync downloads all missing photos before finishing and is resumable. Data is merged and committed before photos start.
-- **Consequences:** A large first sync can be slow and heavy on storage and mobile data; warn the user first and stop cleanly on quota errors.
+- **Consequences:** A large first sync can be slow and heavy on storage and mobile data; warn the user first and stop cleanly on quota errors. The private backup holds every photo too (ADR-044), so a restore can bring back photos of groups that cannot be shared.
 
 ## ADR-014: Installable PWA, install gate firm on iOS
 - **Decision:** `vite-plugin-pwa` for the manifest and service worker. The welcome page shows install instructions. On iPhone/iPad the login button appears only in the installed app (with a "continue in browser" link); on Android and desktop, installing is optional.
@@ -245,6 +247,24 @@ _Last updated: 2026-10-24_. Each entry: context, decision, alternatives rejected
 - **Not asked:** restoring needs no dialog, since the version it replaces is itself in the history. The button is missing, with a line saying why, on the current version and on a deleted expense (it must be restored first, ADR-042); on a payment there is none.
 - **Rejected:** saving a version-restore as an ordinary `edited` event (nothing in the history would say it was a restore), restoring a version and un-deleting in one step (two different actions), working the shares out again from the entered values (a version is what was true then, and the rounding or the members may differ now), asking before restoring, and opening only the adding and the edits (every event holds a snapshot, so every entry can be shown).
 - **Consequences:** a small schema change (asked and approved). Going back never loses anything: the version it replaced stays in the history, so the same page can put it back. The photos a version names must still be on the device to show; a removed photo's picture is kept for this reason (ADR-039).
+
+## ADR-044: Backup and group sync through Google Drive
+- **Context:** ADR-008, ADR-009, ADR-010 and ADR-013 sketched backup and sync; nothing was built. The product decisions are in PRD 5.8; this records how. Not built yet; parts marked "proposed" are confirmed when their phase starts.
+- **Decision:**
+  - **Drive layout:** one `OwnLedger/` folder in each user's My Drive, with `Backup/` (never shared) and `Groups/<group name>/` (shared with the group's members). Groups created by others are Drive shortcuts in `Groups/`. Rejected: group folders loose in the Drive root (clutter, and no single place to find or delete everything the app made). Every folder and file the app creates carries Drive `properties` (`ownledger` = `root`, `backup`, `groups`, `group`, `member-file` or `photo`; `ownledgerGroupId`, `ownledgerPersonId`, `ownledgerPhotoId`), and the app finds them by those, never by name. `properties` (not `appProperties`) because other members' apps must read them.
+  - **Drive access:** the `drive` scope (ADR-009) is asked for on the first Sync press (incremental consent, ADR-019), through `useGoogleLogin` inside the click so popups are not blocked, and the token is held in memory as now (ADR-024). There is no refresh token, so sync is only started by a press: no automatic sync (decided; may come later while a token is still valid).
+  - **Backup:** a JSON file in `Backup/` with every row of every table on the device (in the same zod-checked row format as the sync files), replaced on each backup, and every photo in `Backup/photos/`, uploading only the ones missing. Rejected: `pgDump` (ADR-008), because restoring it replaces the whole database and ties the file to one schema version, while a JSON copy can be merged into data already on the device and read by later versions of the app. All photos go in the backup, also those already in a group folder (the user chose a complete backup over saving Drive space).
+  - **Restore:** only from the avatar menu ("Restore from Drive", decided), never offered by itself. It merges with the rules below, then downloads missing photos.
+  - **Group file (ADR-010, proposed):** `Groups/<g>/<personId>.json`, `{ format: 1, groupId, writtenBy, writtenAt, rows: { people, groups, groupMembers, expenses, expenseShares, expensePhotos, expenseEvents } }`: the group's rows this user wrote last, and only people of that group (nobody else known on the device leaks to the group). Each file has one writer. Validated with zod; a file that fails is skipped and reported.
+  - **Merge (proposed):** per row, newest `updated_at` wins, `updated_by` breaks a tie. `expense_events` are insert-only, so they are unioned by id. `group_members` (group + person) and `expense_shares` (expense + person) also merge by that natural key, so two devices that made a row for the same pair end with one. A pure function, unit-tested.
+  - **One person per email (proposed):** each device makes its own person ids, so the same email can arrive under two ids. On import they are merged into the smaller UUID, so every device picks the same one, with `userService.mergePeople` (ADR-035); the device record's person id follows when it was the user's. People without an email are never merged. The local rule that names are unique (ADR-034) is not applied to people who arrive by sync.
+  - **Who creates the folder (proposed):** only the group's creator, on their first sync of it, so two members never create two folders at once. Other members' Sync of the group waits ("Waiting for Omkar to sync this group first."). Any member shares the folder (Drive `writer`, with Drive's notification email, decided) with members who have an email and are not shared yet. Members without an email are synced as people but not shared the folder (decided).
+  - **Finding shared groups:** Drive cannot notify a client-only app (its push notifications need a server, ADR-001). A full Sync lists folders shared with the user that have `ownledger = group`, imports every one whose group is not on the device, and adds the shortcut. The progress dialog lists them; there is no other hint (decided).
+  - **Order and resuming (ADR-013):** download and merge others' data (committed), upload the user's own file, then photos (upload missing, download missing). Each step is idempotent, so a second press carries on. Running out of Drive access stops the run cleanly.
+  - **Local-only state (proposed, a schema change to ask about):** a table of Drive ids the device has found (folders, its own files) and the time of the last sync per group and of the backup. It is not synced, so it has no `updated_by`.
+  - **Code (proposed):** `src/services/driveService` (a `fetch` wrapper over Drive REST v3), `src/services/syncService` (export, import and merge, `db` first), `src/hooks/useDriveToken`, `src/components/SyncButton` and `src/components/SyncDialog`. Tests use an in-memory fake Drive (`src/testing/fakeDrive.ts`) with several users, so two devices (two in-memory databases) can sync the same group and be checked to agree.
+- **Rejected:** a sync button per group only (the backup would fall behind), automatic sync (needs a token without a press), sharing without Drive's email (members would not know to press Sync), refusing to sync groups with members who have no email.
+- **Consequences:** a member's own file and photos are owned by them and count against their Drive storage; the group folder is owned by its creator, and if they delete it the group's shared copy goes (the ownership open question in the PRD). Merging relies on device clocks (ADR-010). A full sync with many photos can be slow; the photo warning comes with phase 4. Real Drive tests need the OAuth client ID, which does not exist yet (PRD open questions).
 
 ## ADR-026: Opening the database, migrations and tab lock
 - **Decision:** the database is opened for one account at a time as `idb://ownledger-<google account id>` through `src/db/client.ts` (`openDatabase`, `getDb`, `closeDatabase`). Migrations are SQL files generated by `drizzle-kit` (`src/db/migrations`), bundled with `import.meta.glob` and applied at open time by our own small runner (`src/db/migrate.ts`), which records applied files in an `ownledger_migrations` table and runs each file in a transaction. Drizzle's own migrator reads the file system, so it cannot run in a browser. A Web Lock keeps a second tab from opening the same database and shows a clear message instead. Vite excludes `@electric-sql/pglite` from dependency pre-bundling, and the service worker's precache limit is raised to hold PGlite's WASM and data files.
