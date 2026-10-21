@@ -206,7 +206,7 @@ describe('the Sync button, signed in', () => {
 
     await userEvent.click(syncButton())
 
-    await waitFor(async () => expect(await progress()).toBe('BackupSign-in to Drive expired. Press Sync to continue.'))
+    await waitFor(async () => expect(await progress()).toBe('BackupSign-in to Drive expired. Press Continue to carry on.'))
     expect(useAuthStore.getState().driveToken).toBeNull()
     fake.drive!.state.expired = false
     await userEvent.click(syncButton())

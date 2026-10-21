@@ -1,11 +1,14 @@
 import {
   DRIVE_API,
+  DRIVE_FULL_REASON,
   DRIVE_UPLOAD_API,
   FOLDER_MIME_TYPE,
   OWNLEDGER_PROPERTY,
+  RATE_LIMIT_REASONS,
+  RETRY_DELAYS_MS,
   SHORTCUT_MIME_TYPE,
 } from './constants.ts'
-import type { DriveClient, DriveFile, DriveItemKind, DriveOwner } from './types.ts'
+import type { ClientOptions, DriveClient, DriveFile, DriveItemKind, DriveOwner, StoppingProblem } from './types.ts'
 
 const FILE_FIELDS = 'id,name,modifiedTime,properties'
 
@@ -25,24 +28,54 @@ export class DriveAuthError extends Error {
 export class DriveError extends Error {
   readonly status: number
   readonly reason: string
+  /** Google's own reason codes for the refusal, such as 'storageQuotaExceeded'. */
+  readonly codes: string[]
   constructor(status: number, detail: string) {
     super(`Drive request failed (${status}): ${detail}`)
     this.name = 'DriveError'
     this.status = status
-    this.reason = `${status}: ${googleMessage(detail)}`
+    const google = googleError(detail)
+    this.reason = `${status}: ${google.message ?? (detail || 'No reason given.')}`
+    this.codes = google.codes
+  }
+
+  /** The request never got an answer: the connection dropped. */
+  get connectionLost(): boolean {
+    return this.status === 0
+  }
+
+  /** The user's Drive has no room left. */
+  get driveFull(): boolean {
+    return this.codes.includes(DRIVE_FULL_REASON)
+  }
+
+  /** Drive refused for a moment (too many requests, or a server error): worth trying again. */
+  get retryable(): boolean {
+    return this.status === 429 || this.status >= 500 || (this.status === 403 && this.codes.some((code) => RATE_LIMIT_REASONS.includes(code)))
   }
 }
 
-// Google's errors are JSON with the message at error.message; anything else is shown as it came.
-function googleMessage(detail: string): string {
+// Google's errors are JSON with the message at error.message and the reasons at error.errors[].reason.
+function googleError(detail: string): { message?: string; codes: string[] } {
   try {
-    const message = (JSON.parse(detail) as { error?: { message?: unknown } }).error?.message
-    if (typeof message === 'string' && message) return message
+    const error = (JSON.parse(detail) as { error?: { message?: unknown; errors?: { reason?: unknown }[] } }).error
+    const codes = (error?.errors ?? []).flatMap((each) => (typeof each.reason === 'string' ? [each.reason] : []))
+    const message = typeof error?.message === 'string' && error.message ? error.message : undefined
+    return { message, codes }
   } catch {
-    // not JSON
+    return { codes: [] } // not JSON
   }
-  return detail || 'No reason given.'
 }
+
+/** Whether a failure stops the whole sync run, and which one it is; null for one a run carries on after. */
+export function stoppingProblem(error: unknown): StoppingProblem | null {
+  if (error instanceof DriveAuthError) return 'expired'
+  if (error instanceof DriveError && error.connectionLost) return 'connection'
+  if (error instanceof DriveError && error.driveFull) return 'driveFull'
+  return null
+}
+
+const waitFor = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms))
 
 // Drive's query language quotes with single quotes; ids and kinds never hold one, but stay safe.
 function quote(value: string) {
@@ -87,9 +120,11 @@ function multipartBlobBody(metadata: object, content: Blob) {
  * Google Drive's REST API (v3) through `fetch`, for one access token. Every
  * file and folder the app makes is tagged with a Drive property
  * (`ownledger = <kind>`), and found again by it, never by name (ADR-044).
+ * A request Drive refuses for a moment is tried again up to 3 times, after
+ * 1, 2 and 4 seconds; a dropped connection is not.
  */
-function client(accessToken: string): DriveClient {
-  async function request(url: string, init: RequestInit = {}): Promise<Response> {
+function client(accessToken: string, { wait = waitFor }: ClientOptions = {}): DriveClient {
+  async function attempt(url: string, init: RequestInit): Promise<Response> {
     let response: Response
     try {
       response = await fetch(url, {
@@ -102,6 +137,17 @@ function client(accessToken: string): DriveClient {
     if (response.status === 401) throw new DriveAuthError()
     if (!response.ok) throw new DriveError(response.status, await response.text().catch(() => ''))
     return response
+  }
+
+  async function request(url: string, init: RequestInit = {}): Promise<Response> {
+    for (let retry = 0; ; retry++) {
+      try {
+        return await attempt(url, init)
+      } catch (error) {
+        if (!(error instanceof DriveError) || !error.retryable || retry >= RETRY_DELAYS_MS.length) throw error
+        await wait(RETRY_DELAYS_MS[retry])
+      }
+    }
   }
 
   async function json<T>(url: string, init?: RequestInit): Promise<T> {

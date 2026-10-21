@@ -1,7 +1,8 @@
 import { App } from 'antd'
+import { useRef } from 'react'
 import { getDb } from '../../db/client.ts'
 import { deviceService } from '../../services/deviceService'
-import { DriveAuthError, DriveError, driveService } from '../../services/driveService'
+import { DriveError, driveService, stoppingProblem } from '../../services/driveService'
 import type { DriveClient } from '../../services/driveService/types.ts'
 import { groupService } from '../../services/groupService'
 import { photoService } from '../../services/photoService'
@@ -12,6 +13,8 @@ import { DriveTokenError, useDriveToken } from '../useDriveToken'
 import type { Database } from '../../db/client.ts'
 import {
   DRIVE_TOKEN_MESSAGES,
+  CONNECTION_MESSAGE,
+  DRIVE_FULL_MESSAGE,
   EXPIRED_MESSAGE,
   GROUP_FAILED_MESSAGE,
   GROUP_OUT_OF_SPACE_MESSAGE,
@@ -27,8 +30,12 @@ import { joinNames } from './utils.ts'
 const BACKUP_STEP = 'backup'
 const SHARED_STEP = 'shared'
 
-/** Stops a run once Drive access has run out: the line that met it says so, and nothing more starts. */
-class AccessExpired extends Error {}
+/**
+ * Stops a run after a failure that would fail everything after it (Drive
+ * access ran out, the connection dropped, the Drive is full): the line that
+ * met it says so, and nothing more starts.
+ */
+class RunStopped extends Error {}
 
 /**
  * Starts a sync, a single group's sync or a restore from Drive, showing its
@@ -41,7 +48,9 @@ export function useSync() {
   const { message } = App.useApp()
   const { getDriveToken, forgetDriveToken } = useDriveToken()
   const running = useSyncStore((state) => state.running)
-  const { start, updateStep, addStep, finish, openDialog } = useSyncStore.getState()
+  const { start, updateStep, addStep, finish, openDialog, setResume } = useSyncStore.getState()
+  // The run going on, offered again as Continue when Drive access runs out.
+  const currentRun = useRef<(() => void) | null>(null)
 
   /** Drive access, or null after telling the user why there is none. Call in the click. */
   function driveAccess(): Promise<string | null> | null {
@@ -66,16 +75,28 @@ export function useSync() {
     return error instanceof Error ? error.message : String(error)
   }
 
-  /** What a failed step says: Drive access ran out, or the given failure. */
+  /** What a failed step says: one of the failures that stop a run, or the given failure. */
   function failure(error: unknown, otherwise: string) {
-    if (error instanceof DriveAuthError) {
-      forgetDriveToken()
-      return EXPIRED_MESSAGE
+    switch (stoppingProblem(error)) {
+      case 'expired':
+        forgetDriveToken()
+        setResume(currentRun.current)
+        return EXPIRED_MESSAGE
+      case 'connection':
+        return CONNECTION_MESSAGE
+      case 'driveFull':
+        return DRIVE_FULL_MESSAGE
+      default:
+        return otherwise
     }
-    return otherwise
   }
 
-  /** The backup line: the data, then the photos. Throws `AccessExpired` to stop the run. */
+  /** Throws `RunStopped` after a failure that stops the run. */
+  function stopIfNeeded(error: unknown) {
+    if (stoppingProblem(error)) throw new RunStopped()
+  }
+
+  /** The backup line: the data, then the photos. Throws `RunStopped` to stop the run. */
   async function backUp(db: Database, drive: DriveClient, userId: string, datasetId: string) {
     try {
       await syncService.backUp(db, drive, userId)
@@ -92,13 +113,13 @@ export function useSync() {
       }
     } catch (error) {
       updateStep(BACKUP_STEP, { status: 'error', detail: failure(error, "Couldn't back up. Press Sync to try again.") })
-      if (error instanceof DriveAuthError) throw new AccessExpired()
+      stopIfNeeded(error)
     }
   }
 
   /**
    * One group's line, from "Getting changes…" to its outcome. Returns the
-   * user's person id, which a merge may have changed; throws `AccessExpired`
+   * user's person id, which a merge may have changed; throws `RunStopped`
    * to stop the run.
    */
   async function syncGroupLine(db: Database, drive: DriveClient, userId: string, groupId: string, label: string) {
@@ -131,7 +152,7 @@ export function useSync() {
       return me
     } catch (error) {
       updateStep(key, { status: 'error', detail: failure(error, `${GROUP_FAILED_MESSAGE} ${reasonOf(error)}`) })
-      if (error instanceof DriveAuthError) throw new AccessExpired()
+      stopIfNeeded(error)
       return userId
     }
   }
@@ -139,7 +160,7 @@ export function useSync() {
   /**
    * The groups shared with the user that the device did not have, now merged
    * in, and the user's person id after that merge. A failure gets a line of its
-   * own; throws `AccessExpired` to stop the run.
+   * own; throws `RunStopped` to stop the run.
    */
   async function findSharedGroups(db: Database, drive: DriveClient, userId: string, email: string) {
     try {
@@ -152,7 +173,7 @@ export function useSync() {
         status: 'error',
         detail: failure(error, `${SHARED_FAILED_MESSAGE} ${reasonOf(error)}`),
       })
-      if (error instanceof DriveAuthError) throw new AccessExpired()
+      stopIfNeeded(error)
       return { found: [], userId }
     }
   }
@@ -172,7 +193,8 @@ export function useSync() {
     const token = await access
     if (!token) return
 
-    start('Syncing', [{ key: BACKUP_STEP, label: 'Backup', status: 'running', detail: 'Saving your data…' }])
+    currentRun.current = sync
+    start('Syncing', [{ key: BACKUP_STEP, label: 'Backup', status: 'running', detail: 'Saving your data…' }], { kind: 'all' })
     try {
       const db = await getDb()
       const drive = driveService.client(token)
@@ -189,7 +211,7 @@ export function useSync() {
         }
       }
     } catch (error) {
-      if (!(error instanceof AccessExpired)) throw error
+      if (!(error instanceof RunStopped)) throw error
     } finally {
       finish()
     }
@@ -202,11 +224,12 @@ export function useSync() {
     const token = await access
     if (!token) return
 
-    start('Syncing', [])
+    currentRun.current = () => syncGroup(groupId, name)
+    start('Syncing', [], { kind: 'group', groupId })
     try {
       await syncGroupLine(await getDb(), driveService.client(token), user.personId, groupId, name)
     } catch (error) {
-      if (!(error instanceof AccessExpired)) throw error
+      if (!(error instanceof RunStopped)) throw error
     } finally {
       finish()
     }
@@ -218,7 +241,8 @@ export function useSync() {
     const token = await access
     if (!token) return
 
-    start('Restoring', [{ key: BACKUP_STEP, label: 'Backup', status: 'running', detail: 'Restoring your data…' }])
+    currentRun.current = restore
+    start('Restoring', [{ key: BACKUP_STEP, label: 'Backup', status: 'running', detail: 'Restoring your data…' }], { kind: 'restore' })
     try {
       const db = await getDb()
       const drive = driveService.client(token)

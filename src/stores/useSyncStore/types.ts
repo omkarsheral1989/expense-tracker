@@ -10,6 +10,9 @@ export type SyncStep = {
   detail: string
 }
 
+/** What a run synced, so the dialog can say when it last finished: everything, one group, or nothing (a restore). */
+export type SyncScope = { kind: 'all' } | { kind: 'group'; groupId: string } | { kind: 'restore' }
+
 export type SyncState = {
   /** A sync or restore is running. */
   running: boolean
@@ -17,13 +20,21 @@ export type SyncState = {
   /** The dialog's title: "Syncing" or "Restoring". */
   title: string
   steps: SyncStep[]
+  scope: SyncScope
+  /**
+   * Runs the stopped run again: set when Drive access ran out, so the dialog
+   * offers Continue (which must be pressed, since Google asks again from a
+   * click). Null otherwise.
+   */
+  resume: (() => void) | null
   /**
    * Goes up each time a sync or restore finishes, so pages that read the data
    * (the home page, the current user) read it again.
    */
   dataVersion: number
   /** Starts a run: opens the dialog with these lines. */
-  start: (title: string, steps: SyncStep[]) => void
+  start: (title: string, steps: SyncStep[], scope: SyncScope) => void
+  setResume: (resume: (() => void) | null) => void
   updateStep: (key: string, change: Partial<Omit<SyncStep, 'key'>>) => void
   /** Adds a line at the end, as a run reaches the next group. */
   addStep: (step: SyncStep) => void

@@ -31,11 +31,11 @@ function googleAccounts(): GoogleAccounts | undefined {
  */
 export function useDriveToken() {
   const profile = useAuthStore((state) => state.profile)
-  const driveToken = useAuthStore((state) => state.driveToken)
   const setDriveToken = useAuthStore((state) => state.setDriveToken)
 
   function getDriveToken(): Promise<string> {
-    const valid = validToken(driveToken)
+    // Read now, not from the last render: Continue runs a function made before the token was forgotten.
+    const valid = validToken(useAuthStore.getState().driveToken)
     if (valid) return Promise.resolve(valid)
 
     const accounts = googleAccounts()

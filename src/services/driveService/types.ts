@@ -11,6 +11,12 @@ export type DriveFile = {
   properties?: Record<string, string>
 }
 
+/** A failure that stops a whole sync run (ADR-044): Drive access ran out, the connection dropped, or the user's Drive is full. */
+export type StoppingProblem = 'expired' | 'connection' | 'driveFull'
+
+/** How the client waits before a retry; tests pass one that does not wait. */
+export type ClientOptions = { wait?: (ms: number) => Promise<void> }
+
 /** Whose files a search covers: the user's own, others' shared with the user, or both. */
 export type DriveOwner = 'me' | 'others' | 'any'
 

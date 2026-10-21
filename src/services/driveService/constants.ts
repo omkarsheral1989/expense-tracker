@@ -25,6 +25,8 @@ export const DRIVE_ITEM_KINDS = {
 export const PHOTO_ID_PROPERTY = 'ownledgerPhotoId'
 export const GROUP_ID_PROPERTY = 'ownledgerGroupId'
 export const PERSON_ID_PROPERTY = 'ownledgerPersonId'
+/** On a member's shortcut: the folder it points at, so a shortcut to a lost folder is not taken for the new one's. */
+export const FOLDER_ID_PROPERTY = 'ownledgerFolderId'
 
 /** The folder names people see in their Drive. The app never finds anything by name. */
 export const ROOT_FOLDER_NAME = 'OwnLedger'
@@ -33,6 +35,13 @@ export const BACKUP_FILE_NAME = 'backup.json'
 export const BACKUP_PHOTOS_FOLDER_NAME = 'photos'
 export const GROUPS_FOLDER_NAME = 'Groups'
 export const GROUP_PHOTOS_FOLDER_NAME = 'photos'
+
+/** How long to wait before each retry of a request Drive refused for a moment (ADR-044): 3 retries. */
+export const RETRY_DELAYS_MS = [1000, 2000, 4000]
+
+/** Google's reasons for a refusal that is worth retrying, and the one for a full Drive. */
+export const RATE_LIMIT_REASONS = ['rateLimitExceeded', 'userRateLimitExceeded']
+export const DRIVE_FULL_REASON = 'storageQuotaExceeded'
 
 /** Full Drive access (ADR-009), asked for on the first Sync, with the basic scopes to check whose Drive it is. */
 export const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive'

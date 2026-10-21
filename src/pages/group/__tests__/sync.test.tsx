@@ -7,6 +7,7 @@ import { eq } from 'drizzle-orm'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SyncDialog } from '../../../components/SyncDialog'
 import { createDatabase, type Database } from '../../../db/client.ts'
+import { DriveAuthError } from '../../../services/driveService'
 import { people } from '../../../db/schema.ts'
 import { ROUTES } from '../../../routes.ts'
 import { expenseService } from '../../../services/expenseService'
@@ -188,6 +189,34 @@ describe('the band\'s Sync button', () => {
 
     await waitFor(() => expect(within(sheet()).queryByText('Pending')).not.toBeInTheDocument())
     expect(within(sheet()).getByText('You')).toBeInTheDocument()
+  })
+
+  it('says in the dialog\'s footer when this group last synced', async () => {
+    const groupId = await goaTrip()
+    renderGroup(groupId)
+
+    await syncThisGroup()
+
+    // Only the group synced (no backup), so the footer can only be the group's time.
+    const footer = screen.getAllByRole('button', { name: 'Close' }).at(-1)!.closest('.ant-drawer-footer, .ant-modal-footer')
+    await waitFor(() => expect(footer).toHaveTextContent('Last synced just now'))
+  })
+
+  it('offers Continue after Drive access ran out, which syncs this group again and nothing else', async () => {
+    const groupId = await goaTrip()
+    vi.spyOn(fake.omkar!, 'listChildren').mockRejectedValueOnce(new DriveAuthError())
+    renderGroup(groupId)
+    // The first run makes the folder, then Drive access runs out as it reads the members' files.
+    await syncThisGroup()
+    const lines = () => within(screen.getByRole('list', { name: 'Progress' })).getAllByRole('listitem').map((line) => line.textContent)
+    expect(lines()).toEqual(['Goa tripSign-in to Drive expired. Press Continue to carry on.'])
+    const runs = useSyncStore.getState().dataVersion
+
+    await userEvent.click(screen.getByRole('button', { name: 'Continue' }))
+
+    await waitFor(() => expect(useSyncStore.getState().dataVersion).toBe(runs + 1))
+    expect(lines()).toEqual(['Goa tripShared with Priya'])
+    expect(world.named('backup.json')).toBeUndefined()
   })
 
   it('asks a guest to sign in first', async () => {

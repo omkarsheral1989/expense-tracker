@@ -5,6 +5,7 @@ import { backupService } from '../backupService'
 import type { GroupFile } from '../backupService/types.ts'
 import {
   DRIVE_ITEM_KINDS,
+  FOLDER_ID_PROPERTY,
   GROUP_ID_PROPERTY,
   GROUP_PHOTOS_FOLDER_NAME,
   GROUPS_FOLDER_NAME,
@@ -148,12 +149,10 @@ export const groupSync = {
       if (folder.name !== now.name) await drive.rename(folder.id, now.name)
     } else {
       const parent = await groupsFolder(drive)
-      const shortcut = await drive.findOwn(DRIVE_ITEM_KINDS.groupShortcut, parent.id, { [GROUP_ID_PROPERTY]: groupId })
-      if (!shortcut) {
-        await drive.createShortcut(now.name, DRIVE_ITEM_KINDS.groupShortcut, parent.id, folder.id, {
-          [GROUP_ID_PROPERTY]: groupId,
-        })
-      }
+      // Tagged with the folder too: after a lost folder was made again, the old shortcut points nowhere.
+      const tags = { [GROUP_ID_PROPERTY]: groupId, [FOLDER_ID_PROPERTY]: folder.id }
+      const shortcut = await drive.findOwn(DRIVE_ITEM_KINDS.groupShortcut, parent.id, tags)
+      if (!shortcut) await drive.createShortcut(now.name, DRIVE_ITEM_KINDS.groupShortcut, parent.id, folder.id, tags)
     }
 
     await recordStatus(db, `group:${groupId}`, new Date())

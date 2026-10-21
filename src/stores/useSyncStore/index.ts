@@ -11,8 +11,11 @@ export const useSyncStore = create<SyncState>()((set) => ({
   dialogOpen: false,
   title: '',
   steps: [],
+  scope: { kind: 'all' },
+  resume: null,
   dataVersion: 0,
-  start: (title, steps) => set({ running: true, dialogOpen: true, title, steps }),
+  start: (title, steps, scope) => set({ running: true, dialogOpen: true, title, steps, scope, resume: null }),
+  setResume: (resume) => set({ resume }),
   updateStep: (key, change) =>
     set((state) => ({
       steps: state.steps.map((step) => (step.key === key ? { ...step, ...change } : step)),

@@ -277,7 +277,7 @@ Route `/groups/<id>/settle`, opened by the "Settle up" pill on the group page (5
 - **A payment's details page** (5.6) is titled "You paid Priya" (also the tab's title), shows the amount, "Settlement · Mon, 5 Oct 2026", who added it, and its notes and receipts, with no split section.
 
 ### 5.8 Sync and backup
-Built in phases (listed at the end), each with tests, a browser check and a UX review by the user. Phases 1 to 4 (backup and restore of the data and of the photos, group sync of the data and of the photos) are built (October 2026); its real-Drive check waits for the Google OAuth client (open questions). Exact copy, icons and the dialog's look are settled with each phase.
+Built in phases (listed at the end), each with tests, a browser check and a UX review by the user. All five phases are built (October 2026); its real-Drive check waits for the Google OAuth client (open questions). Exact copy, icons and the dialog's look are settled with each phase.
 - **Drive layout** in the user's My Drive:
   - `OwnLedger/` (private), created on the first Sync.
   - `OwnLedger/Backup/` (private, never shared): the backup of everything on the device and `photos/` with every receipt photo.
@@ -302,13 +302,20 @@ Built in phases (listed at the end), each with tests, a browser check and a UX r
 - **Photo progress:** the Backup line goes "Saving your data…", then "Backing up photos… 12 of 40", then "Backed up". Restoring goes "Restoring your data…", then "Downloading photos… 3 of 10", then "Restored". There is no warning before a large download.
 - **A photo that fails:** the others carry on, and the line ends in red with "2 photos couldn't be backed up. Press Sync to try again." ("1 photo couldn't…"), or "2 photos couldn't be restored. Restore from Drive again to try again." The data is saved or restored either way. "Last synced" is when the data was last backed up; photos that failed show on the line, and the next Sync tries them again. If the device runs out of space while restoring photos, downloading stops and the line says "This device is out of space. Free some space, then restore again."; the data stays restored.
 - **Restore from Drive** (avatar menu, signed in only): runs at once without asking, since it never removes anything, and shows its progress. It downloads the backup, adds it to what is on the device (the newer version of each item wins, nothing is wiped), then downloads the photos the device does not have (phase 2), and shows "Backup restored.". Without a backup the line says "No backup found in your Drive."; a backup that is not valid OwnLedger data changes nothing and says "The backup in your Drive couldn't be read."; any other failure, "Couldn't restore the backup. Please try again." If the backup knows the user under another id (for example from another device), the two are one person afterwards (see Merging).
-- **Failures:** each step can be repeated safely, so pressing Sync again carries on where it stopped. When Drive access runs out during a sync: "Sign-in to Drive expired. Press Sync to continue." A file in Drive that is not valid OwnLedger data is skipped and reported, never imported.
+- **Failures:** each step can be repeated safely, so pressing Sync again carries on where it stopped. A file in Drive that is not valid OwnLedger data is skipped and reported, never imported. Three failures stop the whole run, with one message on the line where they happened, and nothing more starts (decided):
+  - **Drive access ran out:** "Sign-in to Drive expired. Press Continue to carry on." The dialog's footer then has a **Continue** button left of Close: it asks Google again (Google needs the click) and runs the same sync (or restore) again, which carries on where it stopped.
+  - **The connection dropped:** "Lost the connection. Press Sync to try again."
+  - **The user's Google Drive is full:** "Your Google Drive is full. Free some space in Drive, then sync again."
+- **Retries (decided):** a request Drive refuses for a moment (too many requests, or a server error) is tried again by itself up to 3 times, after about 1, 2 and 4 seconds; the user sees nothing unless every try fails.
+- **Leaving while it runs (decided):** closing or reloading the tab during a sync or restore shows the browser's own "Leave site?" warning.
+- **A deleted group folder (decided):** if a group's folder is gone from Drive (deleted or in the bin), the creator's next sync makes it again and shares it again with every member (Drive emails them again); the data comes back from each device's copy. Members' shortcuts point at the new folder once they sync.
+- **Last synced in the dialog (decided):** once a run has ended, the footer says when the last sync finished, at its left ("Last synced 5 min ago"): of everything for a full Sync, of the group for the band's button; not for a restore, and nothing before the first sync.
 - **Phases:**
   1. Drive access, the OwnLedger folders, backup of the data, Restore from Drive (data), the header Sync button, the progress dialog with its Backup line, and the guest prompt. Built.
   2. Backup and restore of photos (decisions above). Built.
   3. Group sync of data: creating and sharing the folder, each member's file, merging, getting shared groups, shortcuts, the band button. Built.
   4. Group photos (decisions above; no warning before a large download, decided). Built.
-  5. Failures: Drive access running out, storage full, offline, a failing group, "Last synced".
+  5. Failures: Drive access running out (Continue), a dropped connection, a full Drive, retries, the leave warning, a deleted group folder, "Last synced" in the dialog (decisions above). Built.
 
 ## 6. Open questions
 - Google Cloud setup: the OAuth client ID is not created yet (Drive API, consent screen in Testing mode, authorized origins, test users).

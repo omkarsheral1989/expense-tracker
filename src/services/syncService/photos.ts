@@ -1,4 +1,4 @@
-import { DriveAuthError } from '../driveService'
+import { stoppingProblem } from '../driveService'
 import { PHOTO_ID_PROPERTY } from '../driveService/constants.ts'
 import type { DriveClient, DriveItemKind } from '../driveService/types.ts'
 import { photoService } from '../photoService'
@@ -25,7 +25,7 @@ export async function photosIn(drive: DriveClient, folderId: string): Promise<Ma
  * Uploads to a Drive folder the photos it does not have (`inDrive`), named by
  * id and tagged with `kind`, the photo's id and `properties`, a few at a time.
  * A photo that is not on this device is skipped; one that fails is counted and
- * the others carry on; running out of Drive access stops it.
+ * the others carry on; a failure that stops a run (`stoppingProblem`) is thrown.
  */
 export async function uploadPhotos(
   drive: DriveClient,
@@ -56,7 +56,8 @@ export async function uploadPhotos(
         )
       }
     } catch (error) {
-      if (error instanceof DriveAuthError) throw error
+      // Access running out, a dropped connection or a full Drive would fail every photo the same way.
+      if (stoppingProblem(error)) throw error
       failures++
     }
     onProgress({ done: ++done, total: toUpload.length })
@@ -68,7 +69,7 @@ export async function uploadPhotos(
  * Downloads the photos in `inDrive` that the device does not have, giving each
  * its type from the data (Drive's download carries none) and a new thumbnail,
  * a few at a time. A photo that fails is counted; the device running out of
- * space stops the downloads; running out of Drive access stops it too (thrown).
+ * space stops the downloads; a failure that stops a run (`stoppingProblem`) is thrown.
  */
 export async function downloadPhotos(
   drive: DriveClient,
@@ -96,7 +97,7 @@ export async function downloadPhotos(
         const picture = new Blob([await drive.downloadBlob(photo.fileId)], { type: photo.mimeType })
         await store.savePhoto(photo.id, picture, await photoService.makeThumbnail(picture))
       } catch (error) {
-        if (error instanceof DriveAuthError) throw error
+        if (stoppingProblem(error)) throw error
         if (isOutOfSpace(error)) throw new OutOfSpace()
         failures++
       }

@@ -6,7 +6,7 @@ import { setUpTestDatabase } from '../../../testing/database.ts'
 import { addTestExpense, personIdOf } from '../../../testing/expenses.ts'
 import { createFakeDrive } from '../../../testing/fakeDrive.ts'
 import { createTestGroup } from '../../../testing/groups.ts'
-import { DriveAuthError } from '../../driveService'
+import { DriveAuthError, DriveError } from '../../driveService'
 import { expenseService } from '../../expenseService'
 import { photoService } from '../../photoService'
 import type { PhotoStore } from '../../photoService/types.ts'
@@ -129,6 +129,29 @@ describe('syncService.backUpPhotos', () => {
     await expect(syncService.backUpPhotos(testDb.db, drive.client, store)).rejects.toBeInstanceOf(DriveAuthError)
     // No more than the photos already on their way were tried.
     expect(vi.mocked(drive.client.createFile).mock.calls.length).toBeLessThanOrEqual(3)
+  })
+})
+
+describe('photo transfers and failures that stop a run', () => {
+  it('stops at a dropped connection or a full Drive instead of counting every photo as failed', async () => {
+    await expenseWithPhotos(3)
+    const full = new DriveError(403, JSON.stringify({ error: { errors: [{ reason: 'storageQuotaExceeded' }] } }))
+    for (const failure of [new DriveError(0, 'Failed to fetch'), full]) {
+      const drive = createFakeDrive()
+      vi.spyOn(drive.client, 'createFile').mockRejectedValue(failure)
+
+      await expect(syncService.backUpPhotos(testDb.db, drive.client, store)).rejects.toBe(failure)
+    }
+  })
+
+  it('stops downloading at a dropped connection', async () => {
+    const { ids } = await expenseWithPhotos(2)
+    const drive = createFakeDrive()
+    await syncService.backUpPhotos(testDb.db, drive.client, store)
+    for (const id of ids) await store.deletePhoto(id)
+    vi.spyOn(drive.client, 'downloadBlob').mockRejectedValue(new DriveError(0, 'Failed to fetch'))
+
+    await expect(syncService.restorePhotos(testDb.db, drive.client, store)).rejects.toBeInstanceOf(DriveError)
   })
 })
 

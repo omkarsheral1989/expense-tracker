@@ -50,6 +50,8 @@ vi.mock('../../../services/googleProfileService', () => ({
 }))
 
 const profile = { id: '1', email: 'omkar@gmail.com', name: 'Omkar Sheral' }
+/** How many times Google's window was asked for a Drive token. */
+const google = { asked: 0 }
 const testDb = setUpTestDatabase()
 
 // Priya's device, for groups she makes and syncs.
@@ -63,13 +65,17 @@ afterAll(() => priyaPg.close())
 
 beforeEach(async () => {
   await priyaPg.exec('truncate expense_photos, expense_shares, expenses, group_members, groups, people, sync_status cascade')
+  google.asked = 0
   fake.world = createFakeDriveWorld()
   omkarClient.current = fake.world.clientFor('omkar@gmail.com')
   vi.stubGlobal('google', {
     accounts: {
       oauth2: {
         initTokenClient: (config: { callback: (response: unknown) => void }) => ({
-          requestAccessToken: () => config.callback({ access_token: 'drive-token', expires_in: 3600 }),
+          requestAccessToken: () => {
+            google.asked++
+            config.callback({ access_token: 'drive-token', expires_in: 3600 })
+          },
         }),
         hasGrantedAllScopes: () => true,
       },
@@ -214,7 +220,7 @@ describe('groups in a full Sync', () => {
     })
     renderHeader()
 
-    expect(await syncAll()).toEqual(['BackupBacked up', 'Goa tripSign-in to Drive expired. Press Sync to continue.'])
+    expect(await syncAll()).toEqual(['BackupBacked up', 'Goa tripSign-in to Drive expired. Press Continue to carry on.'])
     expect(useAuthStore.getState().driveToken).toBeNull()
   })
 })
@@ -312,5 +318,137 @@ describe('a group\'s photos', () => {
     expect(await syncAll()).toContain(
       "Goa tripA member's changes couldn't be read. 1 photo couldn't be synced. Press Sync to try again.",
     )
+  })
+})
+
+describe('failures that stop the run', () => {
+  /** Two groups, Goa trip synced first (the more recent), then Lisbon. */
+  async function twoGroups() {
+    const goa = await omkarsGroup('Goa trip')
+    const lisbon = await omkarsGroup('Lisbon')
+    await changedAt(goa, '2026-10-10T10:00:00Z')
+    await changedAt(lisbon, '2026-10-01T10:00:00Z')
+    return { goa, lisbon }
+  }
+
+  const footer = () => {
+    const button = screen.getAllByRole('button', { name: 'Close' }).at(-1)!
+    return button.closest('.ant-drawer-footer, .ant-modal-footer') as HTMLElement
+  }
+
+  it('offers Continue when Drive access ran out, which asks Google again and finishes the sync', async () => {
+    const { goa } = await twoGroups()
+    const listChildren = omkarClient.current!.listChildren
+    let expire = true
+    vi.spyOn(omkarClient.current!, 'listChildren').mockImplementation(async (folderId) => {
+      const folder = fake.world!.files.get(folderId)
+      if (expire && folder?.properties?.ownledgerGroupId === goa && folder.properties.ownledger === 'group') {
+        expire = false
+        throw new DriveAuthError()
+      }
+      return listChildren(folderId)
+    })
+    renderHeader()
+
+    expect(await syncAll()).toEqual(['BackupBacked up', 'Goa tripSign-in to Drive expired. Press Continue to carry on.'])
+    expect(google.asked).toBe(1)
+    const runs = useSyncStore.getState().dataVersion
+
+    await userEvent.click(within(footer()).getByRole('button', { name: 'Continue' }))
+
+    await waitFor(() => expect(useSyncStore.getState().dataVersion).toBe(runs + 1))
+    expect(google.asked).toBe(2)
+    const lines = within(screen.getByRole('list', { name: 'Progress' })).getAllByRole('listitem').map((line) => line.textContent)
+    expect(lines).toEqual(['BackupBacked up', 'Goa tripSynced', 'LisbonSynced'])
+    expect(within(footer()).queryByRole('button', { name: 'Continue' })).not.toBeInTheDocument()
+  })
+
+  it('stops at a dropped connection, with no Continue', async () => {
+    const { goa } = await twoGroups()
+    const listChildren = omkarClient.current!.listChildren
+    vi.spyOn(omkarClient.current!, 'listChildren').mockImplementation(async (folderId) => {
+      if (fake.world!.files.get(folderId)?.properties?.ownledgerGroupId === goa) throw new DriveError(0, 'Failed to fetch')
+      return listChildren(folderId)
+    })
+    renderHeader()
+
+    expect(await syncAll()).toEqual(['BackupBacked up', 'Goa tripLost the connection. Press Sync to try again.'])
+    expect(within(footer()).queryByRole('button', { name: 'Continue' })).not.toBeInTheDocument()
+  })
+
+  it('stops when the Drive is full', async () => {
+    await twoGroups()
+    vi.spyOn(omkarClient.current!, 'createJson').mockRejectedValue(
+      new DriveError(403, JSON.stringify({ error: { message: 'Quota', errors: [{ reason: 'storageQuotaExceeded' }] } })),
+    )
+    renderHeader()
+
+    expect(await syncAll()).toEqual(['BackupYour Google Drive is full. Free some space in Drive, then sync again.'])
+  })
+
+  it('carries on after a group that failed for any other reason, with no Continue', async () => {
+    const { goa } = await twoGroups()
+    const listChildren = omkarClient.current!.listChildren
+    vi.spyOn(omkarClient.current!, 'listChildren').mockImplementation(async (folderId) => {
+      if (fake.world!.files.get(folderId)?.properties?.ownledgerGroupId === goa) throw new DriveError(404, 'Not found')
+      return listChildren(folderId)
+    })
+    renderHeader()
+
+    expect((await syncAll()).at(-1)).toBe('LisbonSynced')
+    expect(within(footer()).queryByRole('button', { name: 'Continue' })).not.toBeInTheDocument()
+  })
+})
+
+describe('the sync dialog', () => {
+  const leaving = () => {
+    const event = new Event('beforeunload', { cancelable: true })
+    window.dispatchEvent(event)
+    return event.defaultPrevented
+  }
+
+  it('asks before the tab is closed while a sync runs, and not after', async () => {
+    await omkarsGroup('Goa trip')
+    // The first upload (the backup) waits until released.
+    const createJson = omkarClient.current!.createJson
+    let release = () => {}
+    const held = new Promise<void>((resolve) => (release = resolve))
+    vi.spyOn(omkarClient.current!, 'createJson').mockImplementationOnce(async (...args) => {
+      await held
+      return createJson(...args)
+    })
+    renderHeader()
+    expect(leaving()).toBe(false)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Sync' }))
+    await waitFor(() => expect(useSyncStore.getState().running).toBe(true))
+    expect(leaving()).toBe(true)
+    release()
+
+    await waitFor(() => expect(useSyncStore.getState().running).toBe(false))
+    expect(leaving()).toBe(false)
+  })
+
+  /** The dialog's footer. */
+  const dialogFooter = () =>
+    screen.getAllByRole('button', { name: 'Close' }).at(-1)!.closest('.ant-drawer-footer, .ant-modal-footer') as HTMLElement
+
+  it('says in its footer when the last sync finished, once the run has ended', async () => {
+    renderHeader()
+
+    await syncAll()
+
+    await waitFor(() => expect(dialogFooter()).toHaveTextContent('Last synced just now'))
+  })
+
+  it('says nothing of the last sync after a restore', async () => {
+    renderHeader()
+    await syncAll()
+    await waitFor(() => expect(dialogFooter()).toHaveTextContent('Last synced just now'))
+    await userEvent.click(screen.getByRole('button', { name: 'Account menu' }))
+    await userEvent.click(await screen.findByText('Restore from Drive'))
+    await waitFor(() => expect(useSyncStore.getState().dataVersion).toBe(2))
+
+    expect(within(dialogFooter()).queryByText(/^Last synced/)).not.toBeInTheDocument()
   })
 })

@@ -290,6 +290,52 @@ describe('two devices', () => {
   })
 })
 
+describe('a group folder that is gone from Drive', () => {
+  /** Puts the group's folder, and everything in it, in the bin. */
+  function binFolder() {
+    const folder = filesOf('group')[0]
+    for (const [id, file] of world.files) if (id === folder.id || file.parentId === folder.id) world.files.delete(id)
+    return folder.id
+  }
+
+  it('is made again by the creator\'s next sync and shared again with every member', async () => {
+    const { omkar, groupId } = await omkarsGroup()
+    await syncService.syncGroup(a, omkarDrive(), omkar, groupId)
+    const lost = binFolder()
+
+    const result = await syncService.syncGroup(a, omkarDrive(), omkar, groupId)
+
+    const [folder] = filesOf('group')
+    expect(folder.id).not.toBe(lost)
+    expect(folder.properties?.ownledgerGroupId).toBe(groupId)
+    expect(result).toMatchObject({ status: 'synced', sharedWith: ['Priya'] })
+    expect(world.shares.map((share) => share.email)).toEqual(['priya@gmail.com', 'priya@gmail.com'])
+    expect(filesOf('member-file').map((file) => file.parentId)).toEqual([folder.id])
+  })
+
+  it('brings members back to it: a new shortcut to the new folder, and their data still there', async () => {
+    const setup = await omkarsGroup()
+    await syncService.syncGroup(a, omkarDrive(), setup.omkar, setup.groupId)
+    let priya = await self(b, 'priya@gmail.com', 'Priya Shah')
+    priya = (await syncService.findSharedGroups(b, priyaDrive(), 'priya@gmail.com')).renamed.get(priya) ?? priya
+    await syncService.syncGroup(b, priyaDrive(), priya, setup.groupId)
+    binFolder()
+    await syncService.syncGroup(a, omkarDrive(), setup.omkar, setup.groupId)
+
+    await syncService.syncGroup(b, priyaDrive(), priya, setup.groupId)
+
+    const [folder] = filesOf('group')
+    const shortcuts = filesOf('group-shortcut')
+    expect(shortcuts.at(-1)).toMatchObject({ shortcutTo: folder.id, properties: { ownledgerFolderId: folder.id } })
+    expect(shortcuts).toHaveLength(2)
+    expect(filesOf('member-file').filter((file) => file.parentId === folder.id).map((file) => file.owner).sort()).toEqual([
+      'omkar@gmail.com',
+      'priya@gmail.com',
+    ])
+    expect(await descriptions(b, priya, setup.groupId)).toEqual(['Dinner'])
+  })
+})
+
 describe('syncService.findSharedGroups', () => {
   it('finds nothing before the creator has synced', async () => {
     await omkarsGroup()
