@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { dateService } from '../index.ts'
 
-const { formatDate, formatDateTime, formatDay, formatMonth, fromDay, toDay } = dateService
+const { formatDate, formatDateTime, formatDay, formatMonth, formatTimeAgo, fromDay, toDay } = dateService
 
 describe('toDay', () => {
   it('writes a local date as YYYY-MM-DD', () => {
@@ -58,5 +58,30 @@ describe('formatDate', () => {
   it('writes a day plainly, with no weekday and no "Today"', () => {
     expect(formatDate('2026-10-05')).toBe('5 Oct 2026')
     expect(formatDate('2026-01-31')).toBe('31 Jan 2026')
+  })
+})
+
+describe('formatTimeAgo', () => {
+  const now = new Date(2026, 9, 21, 15, 45)
+  const ago = (minutes: number) => formatTimeAgo(new Date(now.getTime() - minutes * 60_000), now, 'en-GB')
+
+  it('says "just now" under a minute', () => {
+    expect(ago(0)).toBe('just now')
+    expect(ago(0.9)).toBe('just now')
+  })
+
+  it('counts minutes under an hour', () => {
+    expect(ago(1)).toBe('1 min ago')
+    expect(ago(59)).toBe('59 min ago')
+  })
+
+  it('counts hours under a day', () => {
+    expect(ago(60)).toBe('1 hour ago')
+    expect(ago(150)).toBe('2 hours ago')
+    expect(ago(24 * 60 - 1)).toBe('23 hours ago')
+  })
+
+  it('writes the moment itself after a day', () => {
+    expect(ago(24 * 60)).toBe('20 Oct 2026, 15:45')
   })
 })

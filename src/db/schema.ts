@@ -290,3 +290,13 @@ export const expenseEvents = pgTable(
     index('expense_events_group_idx').on(table.groupId, table.occurredAt),
   ],
 )
+
+/**
+ * When this device last finished a backup or a group's sync (ADR-044). Local
+ * to the device: it is never synced or backed up, so it has none of the sync
+ * columns. `scope` is 'backup', or 'group:<group id>' for a group's sync.
+ */
+export const syncStatus = pgTable('sync_status', {
+  scope: text('scope').primaryKey(),
+  lastSyncedAt: timestamp('last_synced_at', { withTimezone: true }).notNull(),
+})

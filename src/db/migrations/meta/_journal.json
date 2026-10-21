@@ -64,6 +64,13 @@
       "when": 1792564596264,
       "tag": "0008_expense_event_reverted",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792576137709,
+      "tag": "0009_sync_status",
+      "breakpoints": true
     }
   ]
 }

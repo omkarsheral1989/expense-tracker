@@ -2,7 +2,7 @@ import { PGlite } from '@electric-sql/pglite'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createDatabase, type Database } from '../../../db/client.ts'
-import { expenseShares, expenses, groupMembers, groups, people } from '../../../db/schema.ts'
+import { expenseEvents, expenseShares, expenses, groupMembers, groups, people } from '../../../db/schema.ts'
 import type { Profile } from '../../googleProfileService/types.ts'
 import { userService } from '../index.ts'
 
@@ -218,6 +218,26 @@ describe('userService.resolve', () => {
       expect(expense).toMatchObject({ createdBy: memberId, updatedBy: memberId })
       const everyone = await db.select().from(people)
       expect(everyone.some((person) => person.updatedBy === guestId)).toBe(false)
+    })
+
+    it('points the history at the member: who acted, who changed it, and the people inside its snapshots', async () => {
+      const { guestId, memberId, shared, both } = await guestAndMember()
+      const snapshot = {
+        description: 'Dinner', category: 'general', amountMinor: 1000, currency: 'GBP', date: '2026-10-01',
+        notes: null, method: 'equal' as const, photos: [],
+        shares: [{ personId: guestId, paidMinor: 1000, owedMinor: 500, inputValue: 1 }],
+      }
+      await db.insert(expenseEvents).values({
+        groupId: shared.id, expenseId: both.id, kind: 'edited', actedBy: guestId, occurredAt: new Date(),
+        snapshot, changes: [{ field: 'paidBy', from: memberId, to: guestId }], updatedBy: guestId,
+      })
+
+      await userService.resolve(db, { userPersonId: guestId }, omkar)
+
+      const [event] = await db.select().from(expenseEvents)
+      expect(event).toMatchObject({ actedBy: memberId, updatedBy: memberId })
+      expect(event.snapshot.shares[0].personId).toBe(memberId)
+      expect(event.changes).toEqual([{ field: 'paidBy', from: memberId, to: memberId }])
     })
 
     it('can be repeated without changing anything', async () => {

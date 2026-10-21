@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -8,6 +8,7 @@ import { groups } from '../../../db/schema.ts'
 import { ABOVE_FLOATING_BUTTON } from '../../../components/FloatingPillButton/constants.ts'
 import { ROUTES } from '../../../routes.ts'
 import { useAuthStore } from '../../../stores/useAuthStore'
+import { useSyncStore } from '../../../stores/useSyncStore'
 import { setUpTestDatabase } from '../../../testing/database.ts'
 import { addTestExpense } from '../../../testing/expenses.ts'
 import { renderPage } from '../../../testing/render.tsx'
@@ -240,6 +241,19 @@ describe('HomePage', () => {
       await userEvent.click(button)
       expect(page.currentPath()).toBe(ROUTES.newGroup)
     })
+  })
+
+  it('reads the groups again after a sync or restore, keeping the list on screen meanwhile', async () => {
+    await createGroup(me, { name: 'Goa trip' })
+    renderHome()
+    expect(await screen.findByText('Goa trip')).toBeInTheDocument()
+    // A restore brought in another group.
+    await createGroup(me, { name: 'Lisbon' })
+
+    act(() => useSyncStore.getState().finish())
+
+    expect(screen.getByText('Goa trip')).toBeInTheDocument()
+    expect(await screen.findByText('Lisbon')).toBeInTheDocument()
   })
 
   describe('when the groups cannot be loaded', () => {

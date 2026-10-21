@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useCurrentUser } from '../../../hooks/useCurrentUser'
@@ -8,6 +8,7 @@ import type { DatabaseSessionState } from '../../../hooks/useDatabaseSession/typ
 import { deviceService } from '../../../services/deviceService'
 import { userService } from '../../../services/userService'
 import { useAuthStore } from '../../../stores/useAuthStore'
+import { useSyncStore } from '../../../stores/useSyncStore'
 import { renderPage } from '../../../testing/render.tsx'
 import { DatabaseGate } from '../index.tsx'
 
@@ -107,6 +108,17 @@ describe('DatabaseGate', () => {
       await screen.findByText(/person-1/)
 
       expect(deviceService.read()?.userPersonId).toBe('person-1')
+    })
+
+    it('finds their person again after a sync or restore, which may have given it another id', async () => {
+      renderGate()
+      await screen.findByText(/person-1/)
+      vi.mocked(userService.resolve).mockResolvedValue({ personId: 'person-2', name: 'Omkar Sheral', email: 'omkar@gmail.com' })
+
+      act(() => useSyncStore.getState().finish())
+
+      expect(await screen.findByText(/person-2/)).toBeInTheDocument()
+      expect(deviceService.read()?.userPersonId).toBe('person-2')
     })
 
     it('makes the account the owner of a guest\'s data', async () => {

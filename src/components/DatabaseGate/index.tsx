@@ -8,6 +8,7 @@ import type { DeviceRecord } from '../../services/deviceService/types.ts'
 import type { Profile } from '../../services/googleProfileService/types.ts'
 import { userService } from '../../services/userService'
 import { useAuthStore } from '../../stores/useAuthStore'
+import { useSyncStore } from '../../stores/useSyncStore'
 import type { Database } from '../../db/client.ts'
 import { CenteredMessage } from '../CenteredMessage'
 
@@ -155,11 +156,13 @@ function OpenData({ record, profile, header, children }: Opening & { record: Dev
 
 /** Finds (or adds, or links) the user's own person, then shows the pages as that user. */
 function WithUser({ db, record, profile, header, children }: Opening & { db: Database; record: DeviceRecord }) {
+  // Found again after a restore, which may give the user's person another id (ADR-044).
+  const dataVersion = useSyncStore((syncState) => syncState.dataVersion)
   const { state, retry } = useAsyncData(async () => {
     const user = await userService.resolve(db, record, profile)
     if (user.personId !== record.userPersonId) deviceService.setUserPersonId(user.personId)
     return user
-  }, `${record.datasetId}:${profile?.id ?? 'guest'}`, { keepPrevious: true })
+  }, `${record.datasetId}:${profile?.id ?? 'guest'}:${dataVersion}`, { keepPrevious: true })
   const signOut = useAuthStore((authState) => authState.signOut)
 
   const value = useMemo(

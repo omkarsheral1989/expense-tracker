@@ -1,25 +1,32 @@
-import { LogoutOutlined } from '@ant-design/icons'
+import { CloudDownloadOutlined, LogoutOutlined } from '@ant-design/icons'
 import { Button, Dropdown, Flex, Typography, theme } from 'antd'
+import type { MenuProps } from 'antd'
 import { Link } from 'react-router'
+import { useCurrentUser } from '../../hooks/useCurrentUser'
+import { useSync } from '../../hooks/useSync'
 import { ROUTES } from '../../routes.ts'
 import type { Profile } from '../../services/googleProfileService/types.ts'
 import { useAuthStore } from '../../stores/useAuthStore'
 import { BrandLogo } from '../BrandLogo'
 import { ProfileAvatar } from '../ProfileAvatar'
+import { SyncButton } from '../SyncButton'
 import { GuestMenu } from './GuestMenu'
 
 const { Text } = Typography
 
 /**
  * The bar at the top of every page of the app: the logo and name on the left,
- * which lead back to the home page, and the user's avatar on the right, which
- * opens a menu with their name, email and Sign out (or, for a guest, "Guest",
- * Sign in with Google and Exit guest mode).
+ * which lead back to the home page, and on the right the Sync button and the
+ * user's avatar, which opens a menu with their name, email, Restore from Drive
+ * and Sign out (or, for a guest, "Guest", Sign in with Google and Exit guest
+ * mode). Sync and Restore appear once the data is open.
  */
 export function AppHeader() {
   const profile = useAuthStore((state) => state.profile)
   const guest = useAuthStore((state) => state.guest)
   const signOut = useAuthStore((state) => state.signOut)
+  const user = useCurrentUser()
+  const { restore } = useSync()
   const { token } = theme.useToken()
 
   // Visitors who are not in the app are sent away by `RequireAuth` before this matters.
@@ -37,6 +44,12 @@ export function AppHeader() {
         </Text>
       </Link>
     )
+  }
+
+  // Restoring needs the open data, which the header's loading screens lack.
+  function restoreItems(): NonNullable<MenuProps['items']> {
+    if (!user) return []
+    return [{ key: 'restore', icon: <CloudDownloadOutlined />, label: 'Restore from Drive', onClick: restore }]
   }
 
   function renderAccountMenu(profile: Profile) {
@@ -60,6 +73,7 @@ export function AppHeader() {
               style: { cursor: 'default' },
             },
             { type: 'divider' },
+            ...restoreItems(),
             {
               key: 'sign-out',
               icon: <LogoutOutlined />,
@@ -95,7 +109,10 @@ export function AppHeader() {
         style={{ maxWidth: 960, margin: '0 auto' }}
       >
         {renderBrand()}
-        {profile ? renderAccountMenu(profile) : <GuestMenu />}
+        <Flex align="center" gap={12}>
+          <SyncButton />
+          {profile ? renderAccountMenu(profile) : <GuestMenu />}
+        </Flex>
       </Flex>
     </header>
   )

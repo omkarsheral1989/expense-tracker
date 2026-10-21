@@ -15,7 +15,7 @@ export function useSyncSessionAcrossTabs() {
       if (event.key !== null && event.key !== SESSION_KEY) return
 
       if (event.newValue === null) {
-        useAuthStore.setState({ profile: null, guest: false, token: null })
+        useAuthStore.setState({ profile: null, guest: false, token: null, driveToken: null })
         return
       }
 
@@ -24,7 +24,7 @@ export function useSyncSessionAcrossTabs() {
       // own.
       void Promise.resolve(useAuthStore.persist.rehydrate()).then(() => {
         if (!useAuthStore.getState().profile) {
-          useAuthStore.setState({ token: null })
+          useAuthStore.setState({ token: null, driveToken: null })
         }
       })
     }

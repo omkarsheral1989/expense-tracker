@@ -53,6 +53,20 @@ function formatDateTime(moment: Date, locale: string): string {
   return `${day}, ${time}`
 }
 
+/**
+ * How long ago a moment was: "just now" under a minute, "5 min ago" under an
+ * hour, "1 hour ago" or "3 hours ago" under a day, and after that the moment
+ * itself as `formatDateTime` writes it.
+ */
+function formatTimeAgo(moment: Date, now: Date, locale: string): string {
+  const minutes = Math.floor((now.getTime() - moment.getTime()) / 60_000)
+  if (minutes < 1) return 'just now'
+  if (minutes < 60) return `${minutes} min ago`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return hours === 1 ? '1 hour ago' : `${hours} hours ago`
+  return formatDateTime(moment, locale)
+}
+
 /** Days ('YYYY-MM-DD', without a time) as the app writes and reads them. */
 export const dateService = {
   toDay,
@@ -61,4 +75,5 @@ export const dateService = {
   formatMonth,
   formatDate,
   formatDateTime,
+  formatTimeAgo,
 }

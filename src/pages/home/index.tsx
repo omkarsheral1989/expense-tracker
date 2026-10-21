@@ -9,6 +9,7 @@ import { useCurrentUser } from '../../hooks/useCurrentUser'
 import { ROUTES } from '../../routes.ts'
 import { expenseService } from '../../services/expenseService'
 import { groupService } from '../../services/groupService'
+import { useSyncStore } from '../../stores/useSyncStore'
 import { EmptyGroups } from './components/EmptyGroups'
 import { GroupList } from './components/GroupList'
 
@@ -20,13 +21,15 @@ export function HomePage() {
   const navigate = useNavigate()
 
   const userId = user?.personId ?? ''
+  // Read again after a sync or restore, which may bring in groups.
+  const dataVersion = useSyncStore((syncState) => syncState.dataVersion)
   const { state, retry } = useAsyncData(async () => {
     const db = await getDb()
     return {
       groups: await groupService.listGroups(db, userId),
       balances: await expenseService.balancesByGroup(db, userId),
     }
-  }, userId)
+  }, `${userId}:${dataVersion}`, { keepPrevious: true })
 
   // Visitors who are not in the app are sent away by `RequireAuth` before this matters.
   if (!user) return null

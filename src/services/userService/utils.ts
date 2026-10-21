@@ -1,12 +1,22 @@
 import { eq, sql } from 'drizzle-orm'
-import { expensePhotos, expenseShares, expenses, groupMembers, groups, people } from '../../db/schema.ts'
+import {
+  expenseEvents,
+  expensePhotos,
+  expenseRevisions,
+  expenseShares,
+  expenses,
+  groupMembers,
+  groups,
+  people,
+} from '../../db/schema.ts'
 import type { Transaction } from '../groupService/types.ts'
 
 /**
  * Folds one person into another: everything that pointed at `fromId` points at
  * `intoId`, then `fromId` is removed. Where both are in the same group or
  * the same expense, the two rows become one (shares are added together).
- * Used when a guest signs in with an email that a member already has.
+ * Used when a guest signs in with an email that a member already has, and
+ * when a restore brings the same email under another id (ADR-044).
  */
 export async function mergePeople(tx: Transaction, fromId: string, intoId: string) {
   // A group both belong to: keep one membership, live if either was live.
@@ -39,9 +49,34 @@ export async function mergePeople(tx: Transaction, fromId: string, intoId: strin
   // Who made or changed anything.
   await tx.update(groups).set({ createdBy: intoId }).where(eq(groups.createdBy, fromId))
   await tx.update(expenses).set({ createdBy: intoId }).where(eq(expenses.createdBy, fromId))
-  for (const table of [people, groups, groupMembers, expenses, expenseShares, expensePhotos]) {
+  await tx.update(expenseEvents).set({ actedBy: intoId }).where(eq(expenseEvents.actedBy, fromId))
+  await tx.update(expenseRevisions).set({ editedBy: intoId }).where(eq(expenseRevisions.editedBy, fromId))
+  for (const table of [
+    people,
+    groups,
+    groupMembers,
+    expenses,
+    expenseShares,
+    expensePhotos,
+    expenseEvents,
+    expenseRevisions,
+  ]) {
     await tx.update(table).set({ updatedBy: intoId }).where(eq(table.updatedBy, fromId))
   }
+
+  // The history's snapshots and changes name people by id inside their JSON.
+  // A UUID never occurs by chance, so replacing it in the text is safe.
+  const pattern = `%${fromId}%`
+  await tx.execute(sql`
+    update expense_events
+    set snapshot = replace(snapshot::text, ${fromId}, ${intoId})::jsonb,
+        changes = replace(changes::text, ${fromId}, ${intoId})::jsonb
+    where snapshot::text like ${pattern} or changes::text like ${pattern}`)
+  await tx.execute(sql`
+    update expense_revisions
+    set before = replace(before::text, ${fromId}, ${intoId})::jsonb,
+        changes = replace(changes::text, ${fromId}, ${intoId})::jsonb
+    where before::text like ${pattern} or changes::text like ${pattern}`)
 
   await tx.delete(people).where(eq(people.id, fromId))
 }

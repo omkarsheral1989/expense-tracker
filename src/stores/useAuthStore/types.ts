@@ -12,6 +12,12 @@ export type AuthState = {
   /** Using the app without an account, on this device (ADR-035). Never true together with a profile. */
   guest: boolean
   token: AccessToken | null
+  /**
+   * A token that may also use Google Drive, asked for on the first Sync press
+   * (ADR-044). In memory only, like `token`; null until then.
+   */
+  driveToken: AccessToken | null
+  setDriveToken: (token: AccessToken | null) => void
   signIn: (profile: Profile, token: AccessToken) => void
   /** Continue as a guest. */
   startGuest: () => void
