@@ -156,6 +156,9 @@ describe('adding a member from the members sheet', () => {
       const sheet = await screen.findByRole('dialog', { name: 'Members (2)' })
 
       expect(sheet.querySelector('.ant-drawer-body')?.getAttribute('style')).toContain('env(safe-area-inset-bottom)')
+      // The sheet is 420 px of content above the inset, so the inset does not take the room the list needs.
+      const wrapper = sheet.closest('.ant-drawer-content-wrapper') ?? sheet.querySelector('.ant-drawer-content-wrapper') ?? sheet.parentElement
+      expect(wrapper?.getAttribute('style')).toContain('calc(420px + env(safe-area-inset-bottom))')
     })
 
     it('shows the button to a guest, who can add people too', async () => {

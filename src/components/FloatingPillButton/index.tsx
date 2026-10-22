@@ -3,6 +3,7 @@ import { Button } from 'antd'
 import type { ReactNode } from 'react'
 import { PILL_RADIUS } from '../../theme/radius.ts'
 import { FLOATING_BUTTON_BOTTOM, FLOATING_BUTTON_HEIGHT } from './constants.ts'
+import { aboveScreenEdge } from '../../theme/safeArea.ts'
 
 type Props = {
   /** The label, such as "Add expense". */
@@ -23,7 +24,7 @@ export function FloatingPillButton({ children, onClick }: Props) {
     <div
       style={{
         position: 'fixed',
-        bottom: FLOATING_BUTTON_BOTTOM,
+        bottom: aboveScreenEdge(FLOATING_BUTTON_BOTTOM),
         right: 'max(16px, calc((100vw - 720px) / 2 + 16px))',
         zIndex: 10,
       }}

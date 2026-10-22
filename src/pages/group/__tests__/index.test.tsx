@@ -388,7 +388,8 @@ describe('GroupPage', () => {
       const wrapper = (await screen.findByText('No expenses yet')).closest('.ant-flex-align-center') as HTMLElement
       // Ant Design's Flex centers through these classes; `flex: 1` makes the box fill the rest.
       expect(wrapper).toHaveClass('ant-flex-align-center', 'ant-flex-justify-center')
-      expect(wrapper).toHaveStyle({ flex: '1', marginBottom: `${ABOVE_FLOATING_BUTTON}px` })
+      expect(wrapper).toHaveStyle({ flex: '1' })
+      expect(wrapper.getAttribute('style')).toContain(`margin-bottom: calc(${ABOVE_FLOATING_BUTTON}px + env(safe-area-inset-bottom))`)
       expect(wrapper).not.toContainElement(screen.getByRole('button', { name: named('Settle up') }))
     })
 

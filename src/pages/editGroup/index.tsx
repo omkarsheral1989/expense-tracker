@@ -9,7 +9,7 @@ import { getDb } from '../../db/client.ts'
 import { useAsyncData } from '../../hooks/useAsyncData'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
 import { groupService } from '../../services/groupService'
-import { belowStatusBar } from '../../theme/safeArea.ts'
+import { aboveScreenEdge, belowStatusBar } from '../../theme/safeArea.ts'
 import { EditGroupForm } from './components/EditGroupForm'
 
 /** Where any member of a group changes its name, type and default currency. */
@@ -62,7 +62,7 @@ export function EditGroupPage() {
 
   function wrap(content: ReactNode) {
     return (
-      <Flex justify="center" style={{ padding: `${belowStatusBar(32)} 16px 32px` }}>
+      <Flex justify="center" style={{ padding: `${belowStatusBar(32)} 16px ${aboveScreenEdge(32)}` }}>
         <div style={{ width: '100%', maxWidth: 560 }}>{content}</div>
       </Flex>
     )

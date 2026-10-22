@@ -1,6 +1,6 @@
 import { Flex } from 'antd'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
-import { belowStatusBar } from '../../theme/safeArea.ts'
+import { aboveScreenEdge, belowStatusBar } from '../../theme/safeArea.ts'
 import { CreateGroupForm } from './components/CreateGroupForm'
 
 /** Where a signed-in user starts a new group. */
@@ -11,7 +11,7 @@ export function CreateGroupPage() {
   if (!user) return null
 
   return (
-    <Flex justify="center" style={{ padding: `${belowStatusBar(32)} 16px 32px` }}>
+    <Flex justify="center" style={{ padding: `${belowStatusBar(32)} 16px ${aboveScreenEdge(32)}` }}>
       <title>Create a group · OwnLedger</title>
       <div style={{ width: '100%', maxWidth: 560 }}>
         <CreateGroupForm creatorId={user.personId} />

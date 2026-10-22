@@ -15,3 +15,10 @@ body {
   -webkit-font-smoothing: antialiased;
   -webkit-text-size-adjust: 100%;
 }
+
+/* A notification at the bottom of the screen (the update prompt) stays above the home indicator and the rounded corners. */
+.ant-notification-bottom,
+.ant-notification-bottomLeft,
+.ant-notification-bottomRight {
+  margin-bottom: env(safe-area-inset-bottom);
+}

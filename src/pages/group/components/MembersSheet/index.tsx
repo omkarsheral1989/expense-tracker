@@ -31,7 +31,8 @@ export function MembersSheet({ open, onClose, members, syncedIds, groupId, userI
       onClose={onClose}
       title={`Members (${members.length})`}
       placement={screens.md ? 'right' : 'bottom'}
-      size={screens.md ? 'default' : 420}
+      // On a phone the sheet is 420 px of content above the screen's bottom inset, so the inset does not eat the list.
+      size={screens.md ? 'default' : aboveScreenEdge(420)}
       styles={{ body: { paddingBottom: aboveScreenEdge(24) } }}
     >
       <MemberList members={members} syncedIds={syncedIds} />

@@ -21,14 +21,14 @@ import { CenteredMessage } from '../../components/CenteredMessage'
 import { LoadError } from '../../components/LoadError'
 import { ROUTES } from '../../routes.ts'
 import { FLOATING_BUTTON_ROOM } from '../../components/FloatingPillButton/constants.ts'
-import { belowStatusBar } from '../../theme/safeArea.ts'
+import { aboveScreenEdge, belowStatusBar } from '../../theme/safeArea.ts'
 
 /** A column about 720 px wide, centered, which holds everything below the band. */
 const COLUMN_STYLE = {
   width: '100%',
   maxWidth: 720,
   margin: '0 auto',
-  padding: `${belowStatusBar(16)} 16px ${FLOATING_BUTTON_ROOM}px`,
+  padding: `${belowStatusBar(16)} 16px ${aboveScreenEdge(FLOATING_BUTTON_ROOM)}`,
 } as const
 
 /** One group: a colored band with its name and chips, the balance, actions and expenses. */

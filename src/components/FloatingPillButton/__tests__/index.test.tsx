@@ -27,7 +27,9 @@ describe('FloatingPillButton', () => {
   it('floats at the bottom right of the screen and is a 48 px high pill, taller than other buttons', () => {
     const button = renderButton()
 
-    expect(button.parentElement).toHaveStyle({ position: 'fixed', bottom: `${FLOATING_BUTTON_BOTTOM}px` })
+    expect(button.parentElement).toHaveStyle({ position: 'fixed' })
+    // Its distance from the bottom, plus the space the device keeps free there (jsdom keeps env() as written).
+    expect(button.parentElement?.getAttribute('style')).toContain(`bottom: calc(${FLOATING_BUTTON_BOTTOM}px + env(safe-area-inset-bottom))`)
     expect(button).toHaveStyle({ height: `${FLOATING_BUTTON_HEIGHT}px` })
     expect(FLOATING_BUTTON_HEIGHT).toBe(48)
     expect(button).toHaveStyle({ borderRadius: '999px' })

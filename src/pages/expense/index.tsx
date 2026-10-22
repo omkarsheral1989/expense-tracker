@@ -8,11 +8,11 @@ import { getDb } from '../../db/client.ts'
 import { useAsyncData } from '../../hooks/useAsyncData'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
 import { expenseService } from '../../services/expenseService'
-import { belowStatusBar } from '../../theme/safeArea.ts'
+import { aboveScreenEdge, belowStatusBar } from '../../theme/safeArea.ts'
 import { ExpenseDetails } from './components/ExpenseDetails'
 
 /** A column about 560 px wide, centered, like the add-expense page. */
-const COLUMN_STYLE = { width: '100%', maxWidth: 560, margin: '0 auto', padding: `${belowStatusBar(24)} 16px 24px` } as const
+const COLUMN_STYLE = { width: '100%', maxWidth: 560, margin: '0 auto', padding: `${belowStatusBar(24)} 16px ${aboveScreenEdge(24)}` } as const
 
 /**
  * The details of one expense of a group, with its history of changes, and the

@@ -12,7 +12,7 @@ import { useSyncStore } from '../../stores/useSyncStore'
 import { ROUTES } from '../../routes.ts'
 import { personService } from '../../services/personService'
 import type { ManagedPerson } from '../../services/personService/types.ts'
-import { belowStatusBar } from '../../theme/safeArea.ts'
+import { aboveScreenEdge, belowStatusBar } from '../../theme/safeArea.ts'
 import { HEADER_TITLE_STYLE } from '../../theme/headerTitle.ts'
 import { EditMemberDialog } from './components/EditMemberDialog'
 import { MemberItem } from './components/MemberItem'
@@ -113,7 +113,7 @@ export function MembersPage() {
   }
 
   return (
-    <Flex justify="center" style={{ padding: `${belowStatusBar(32)} 16px 32px` }}>
+    <Flex justify="center" style={{ padding: `${belowStatusBar(32)} 16px ${aboveScreenEdge(32)}` }}>
       <title>Group members · OwnLedger</title>
       <div style={{ width: '100%', maxWidth: 720 }}>
         {renderHeader()}

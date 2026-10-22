@@ -4,6 +4,7 @@ import { ABOVE_FLOATING_BUTTON, FLOATING_BUTTON_ROOM } from '../../../../compone
 import { dateService } from '../../../../services/dateService'
 import { ExpenseRow } from './ExpenseRow'
 import { groupByMonth, type MonthOfExpenses } from './utils.ts'
+import { aboveScreenEdge } from '../../../../theme/safeArea.ts'
 
 const { Text } = Typography
 
@@ -43,7 +44,7 @@ export function ExpenseList({ expenses, groupId }: Props) {
 
   if (expenses.length === 0) {
     return (
-      <Flex align="center" justify="center" style={{ flex: 1, marginBottom: ABOVE_FLOATING_BUTTON }}>
+      <Flex align="center" justify="center" style={{ flex: 1, marginBottom: aboveScreenEdge(ABOVE_FLOATING_BUTTON) }}>
         <Empty
           description={
             <>
@@ -63,7 +64,7 @@ export function ExpenseList({ expenses, groupId }: Props) {
       gap={8}
       role="region"
       aria-label="Expenses"
-      style={{ marginTop: 16, paddingBottom: FLOATING_BUTTON_ROOM }}
+      style={{ marginTop: 16, paddingBottom: aboveScreenEdge(FLOATING_BUTTON_ROOM) }}
     >
       {groupByMonth(expenses).map(renderMonth)}
     </Flex>

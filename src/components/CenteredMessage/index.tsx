@@ -1,5 +1,6 @@
 import { Flex } from 'antd'
 import type { ReactNode } from 'react'
+import { aboveScreenEdge } from '../../theme/safeArea.ts'
 
 type Props = {
   children: ReactNode
@@ -29,7 +30,7 @@ export function CenteredMessage({ children, roomBelow = 0 }: Props) {
         width: '100%',
         maxWidth: 720,
         margin: '0 auto',
-        padding: `0 16px ${roomBelow}px`,
+        padding: `0 16px ${aboveScreenEdge(roomBelow)}`,
       }}
     >
       {children}

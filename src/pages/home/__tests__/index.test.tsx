@@ -70,7 +70,9 @@ function createGroupButton() {
   const buttons = screen.getAllByRole('button', { name: /create group/i })
   expect(buttons).toHaveLength(1)
   const floating = buttons[0].parentElement as HTMLElement
-  expect(floating).toHaveStyle({ position: 'fixed', bottom: '24px' })
+  expect(floating).toHaveStyle({ position: 'fixed' })
+  // 24 px from the bottom, plus the space the device keeps free there (jsdom keeps env() as written).
+  expect(floating.getAttribute('style')).toContain('bottom: calc(24px + env(safe-area-inset-bottom))')
   return buttons[0]
 }
 
@@ -121,7 +123,8 @@ describe('HomePage', () => {
       const wrapper = (await screen.findByText(/no groups yet/i)).closest('.ant-flex-align-center') as HTMLElement
       // Ant Design's Flex centers through these classes; `flex: 1` makes the box fill the rest.
       expect(wrapper).toHaveClass('ant-flex-align-center', 'ant-flex-justify-center')
-      expect(wrapper).toHaveStyle({ flex: '1', marginBottom: `${ABOVE_FLOATING_BUTTON}px` })
+      expect(wrapper).toHaveStyle({ flex: '1' })
+      expect(wrapper.getAttribute('style')).toContain(`margin-bottom: calc(${ABOVE_FLOATING_BUTTON}px + env(safe-area-inset-bottom))`)
       // The heading stays above it, outside the centering box.
       expect(wrapper).not.toContainElement(screen.getByRole('heading', { name: 'Your groups' }))
     })

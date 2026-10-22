@@ -12,6 +12,7 @@ import { groupService } from '../../services/groupService'
 import { useSyncStore } from '../../stores/useSyncStore'
 import { EmptyGroups } from './components/EmptyGroups'
 import { GroupList } from './components/GroupList'
+import { aboveScreenEdge } from '../../theme/safeArea.ts'
 
 const { Title } = Typography
 
@@ -83,7 +84,7 @@ export function HomePage() {
         return state.data.groups.length === 0 ? (
           <EmptyGroups />
         ) : (
-          <div style={{ paddingBottom: FLOATING_BUTTON_ROOM }}>
+          <div style={{ paddingBottom: aboveScreenEdge(FLOATING_BUTTON_ROOM) }}>
             <GroupList groups={state.data.groups} balances={state.data.balances} />
           </div>
         )

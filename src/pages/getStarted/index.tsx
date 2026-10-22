@@ -5,7 +5,7 @@ import { BrandLogo } from '../../components/BrandLogo'
 import { useInstallGate } from '../../hooks/useInstallGate'
 import { ROUTES } from '../../routes.ts'
 import { useAuthStore } from '../../stores/useAuthStore'
-import { belowStatusBar } from '../../theme/safeArea.ts'
+import { aboveScreenEdge, belowStatusBar } from '../../theme/safeArea.ts'
 import { GuestButton } from './components/GuestButton'
 import { SignInButton } from './components/SignInButton'
 import { GET_STARTED_TITLE, SIGN_IN_NOTE } from './content.ts'
@@ -29,7 +29,7 @@ export function GetStartedPage() {
       vertical
       align="center"
       gap={16}
-      style={{ minHeight: '100dvh', padding: `${belowStatusBar(32)} 16px 32px`, textAlign: 'center' }}
+      style={{ minHeight: '100dvh', padding: `${belowStatusBar(32)} 16px ${aboveScreenEdge(32)}`, textAlign: 'center' }}
     >
       <title>Open OwnLedger</title>
       <Flex style={{ width: '100%', maxWidth: 400 }}>

@@ -9,11 +9,11 @@ import { useAsyncData } from '../../hooks/useAsyncData'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
 import { expenseService } from '../../services/expenseService'
 import { groupService } from '../../services/groupService'
-import { belowStatusBar } from '../../theme/safeArea.ts'
+import { aboveScreenEdge, belowStatusBar } from '../../theme/safeArea.ts'
 import { EditExpenseForm } from './components/EditExpenseForm'
 
 /** A column about 560 px wide, centered, like the add-expense page. */
-const COLUMN_STYLE = { width: '100%', maxWidth: 560, margin: '0 auto', padding: `${belowStatusBar(24)} 16px 24px` } as const
+const COLUMN_STYLE = { width: '100%', maxWidth: 560, margin: '0 auto', padding: `${belowStatusBar(24)} 16px ${aboveScreenEdge(24)}` } as const
 
 /** Where any member of a group edits one of its expenses. */
 export function EditExpensePage() {

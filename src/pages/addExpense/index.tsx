@@ -9,12 +9,12 @@ import { useAsyncData } from '../../hooks/useAsyncData'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
 import { expenseService } from '../../services/expenseService'
 import { groupService } from '../../services/groupService'
-import { belowStatusBar } from '../../theme/safeArea.ts'
+import { aboveScreenEdge, belowStatusBar } from '../../theme/safeArea.ts'
 import { AddExpenseForm } from './components/AddExpenseForm'
 import type { AddExpenseLocationState } from './components/AddExpenseForm/types.ts'
 
 /** A column about 560 px wide, centered, like the create-group page. */
-const COLUMN_STYLE = { width: '100%', maxWidth: 560, margin: '0 auto', padding: `${belowStatusBar(24)} 16px 24px` } as const
+const COLUMN_STYLE = { width: '100%', maxWidth: 560, margin: '0 auto', padding: `${belowStatusBar(24)} 16px ${aboveScreenEdge(24)}` } as const
 
 /** Where a signed-in user adds an expense to one of their groups. */
 export function AddExpensePage() {
