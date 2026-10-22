@@ -30,6 +30,11 @@ type Props = {
   before?: ReactNode
   /** Lines after who paid ("Edited by …", "Deleted by …"). */
   after?: ReactNode
+  /**
+   * True when the page shows the summary itself (the expense page draws it on its colored band);
+   * only the split, notes and receipts are then drawn. False (the default) draws the summary too.
+   */
+  withoutSummary?: boolean
 }
 
 /**
@@ -52,6 +57,7 @@ export function ExpenseBody({
   datasetId,
   before,
   after,
+  withoutSummary = false,
 }: Props) {
   const categoryOf = expenseService.categoryOf(category)
   // A settlement is worded by who paid whom ("You paid Priya"), and has no split to show.
@@ -104,7 +110,7 @@ export function ExpenseBody({
     if (isSettlement) return null
     return (
       <>
-        <Divider style={{ margin: '16px 0' }} />
+        {withoutSummary ? null : <Divider style={{ margin: '16px 0' }} />}
         <Text strong>{SPLIT_METHOD_LABELS[method]}</Text>
         <Flex vertical gap={12} role="list" aria-label="Who owes" style={{ marginTop: 12 }}>
           {shares.filter((share) => share.owedMinor > 0).map(renderShare)}
@@ -139,7 +145,7 @@ export function ExpenseBody({
 
   return (
     <>
-      {renderSummary()}
+      {withoutSummary ? null : renderSummary()}
       {renderSplit()}
       {renderNotes()}
       {renderReceipts()}

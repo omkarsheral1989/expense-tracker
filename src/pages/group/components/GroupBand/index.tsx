@@ -16,8 +16,9 @@ import { HEADER_TITLE_STYLE } from '../../../../theme/headerTitle.ts'
 import { GROUP_TYPE_COLORS } from '../../../../theme/groupTypeColors.ts'
 import { belowStatusBar } from '../../../../theme/safeArea.ts'
 import { BandChip } from './BandChip'
-import { BandIconButton } from './BandIconButton'
-import { bandBackground, CURRENCY_SYMBOL_FONT_SIZE } from './style.ts'
+import { BandIconButton } from '../../../../components/BandIconButton'
+import { bandBackground } from '../../../../theme/bandBackground.ts'
+import { CURRENCY_SYMBOL_FONT_SIZE } from './style.ts'
 
 const { Title } = Typography
 

@@ -280,6 +280,91 @@ describe('ExpensePage', () => {
     expect(await screen.findByRole('heading', { name: 'Payment', level: 3 })).toHaveStyle({ fontSize: '20px', fontWeight: '300' })
   })
 
+  describe('the colored band', () => {
+    function band() {
+      return (screen.getByRole('heading', { name: 'Expense', level: 3 }).closest('div[style*="gradient"]')) as HTMLElement
+    }
+
+    it('is in the color of the expense\'s category group, edge to edge, with Back, the title and the buttons on it', async () => {
+      const id = await createGroup()
+      const dinner = await addExpense(id)
+      const general = await addExpense(id, { description: 'Misc', category: 'general' })
+
+      renderExpense(id, dinner)
+      await screen.findByRole('heading', { name: 'Expense', level: 3 })
+      // Food and drink is orange.
+      expect(band().style.background).toContain('rgb(232, 89, 12)')
+      expect(band()).toContainElement(screen.getByRole('button', { name: 'Back' }))
+      expect(band()).toContainElement(screen.getByRole('button', { name: 'Edit' }))
+      expect(band()).toContainElement(screen.getByRole('button', { name: 'Delete' }))
+      cleanup()
+
+      renderExpense(id, general)
+      await screen.findByRole('heading', { name: 'Expense', level: 3 })
+      expect(band().style.background).toContain('rgb(134, 142, 150)')
+    })
+
+    it('has round white buttons for Back, Edit and Delete', async () => {
+      const id = await createGroup()
+      renderExpense(id, await addExpense(id))
+
+      for (const name of ['Back', 'Edit', 'Delete']) {
+        const button = await screen.findByRole('button', { name })
+        expect(button).toHaveClass('ant-btn-circle', 'ant-btn-icon-only')
+        expect(button).toHaveStyle({ background: '#fff' })
+      }
+    })
+
+    it('shows the amount above the description, a 40 px line like the icon beside it, all in white', async () => {
+      const id = await createGroup()
+      renderExpense(id, await addExpense(id))
+
+      const description = await screen.findByRole('heading', { name: 'Beach shack dinner' })
+      const amount = screen.getByText('£9.00')
+      expect(amount).toHaveStyle({ fontSize: '28px', fontWeight: '600', lineHeight: '40px', color: '#fff' })
+      expect(description).toHaveStyle({ color: '#fff' })
+      // The amount comes first in the band's text column.
+      expect(amount.compareDocumentPosition(description) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      // The category's icon stands alone, 40 px and white, with no tile.
+      const icon = screen.getByRole('img', { name: 'Dining out' })
+      expect(icon).toHaveStyle({ fontSize: '40px', color: '#fff' })
+      expect(icon.style.background).toBe('')
+    })
+
+    it('writes the category and day, who added it and who paid in a softer white', async () => {
+      const id = await createGroup()
+      renderExpense(id, await addExpense(id))
+
+      for (const text of ['Dining out · Mon, 5 Oct 2026', 'Added by you', 'You paid £9.00']) {
+        expect(await screen.findByText(text)).toHaveStyle({ color: 'rgba(255, 255, 255, 0.82)' })
+      }
+    })
+
+    it('keeps the split, notes and receipts below the band, in the column', async () => {
+      const id = await createGroup()
+      const expenseId = await addExpense(id, { notes: 'Table by the sea' })
+      renderExpense(id, expenseId)
+
+      await screen.findByRole('heading', { name: 'Expense', level: 3 })
+      expect(band()).not.toContainElement(screen.getByText('Split equally'))
+      expect(band()).not.toContainElement(screen.getByText('Table by the sea'))
+      // The summary appears once, on the band, not again below it.
+      expect(screen.getAllByText('Beach shack dinner')).toHaveLength(1)
+    })
+
+    it('has a round white Restore button in place of Edit and Delete on a deleted expense', async () => {
+      const id = await createGroup()
+      const expenseId = await addExpense(id)
+      await expenseService.deleteExpense(testDb.db, await personIdOf(testDb.db, me.email), id, expenseId)
+      renderExpense(id, expenseId)
+
+      const restore = await screen.findByRole('button', { name: 'Restore' })
+      expect(restore).toHaveClass('ant-btn-circle')
+      expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
+    })
+  })
+
   it('opens the edit page of this expense from Edit', async () => {
     const id = await createGroup()
     const expenseId = await addExpense(id)

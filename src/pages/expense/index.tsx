@@ -72,6 +72,16 @@ export function ExpensePage() {
     )
   }
 
+  // The details have a colored band across the full width, so they bring their own column.
+  if (state.status === 'ready') {
+    return (
+      <>
+        {renderTitle()}
+        {renderContent()}
+      </>
+    )
+  }
+
   return (
     <Flex vertical style={COLUMN_STYLE}>
       {renderTitle()}

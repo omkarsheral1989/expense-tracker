@@ -1,8 +1,8 @@
 import { DeleteOutlined, EditOutlined, UndoOutlined } from '@ant-design/icons'
-import { App, Button, Flex, Typography } from 'antd'
+import { App, Flex, Typography } from 'antd'
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
-import { ComingSoon } from '../../../../components/ComingSoon'
+import { BandIconButton } from '../../../../components/BandIconButton'
 import { ExpenseBody } from '../../../../components/ExpenseBody'
 import { displayName } from '../../../../components/ExpenseWording'
 import { getDb } from '../../../../db/client.ts'
@@ -10,12 +10,12 @@ import { ROUTES } from '../../../../routes.ts'
 import { dateService } from '../../../../services/dateService'
 import { expenseService } from '../../../../services/expenseService'
 import type { ExpenseDetails } from '../../../../services/expenseService/types.ts'
+import { aboveScreenEdge } from '../../../../theme/safeArea.ts'
+import { ExpenseBand } from './ExpenseBand'
+import { SOFT_WHITE } from './ExpenseBand/style.ts'
 import { History } from './History'
-import { HEADER_TITLE_STYLE } from '../../../../theme/headerTitle.ts'
-import { BackButton } from '../../../../components/BackButton'
-import { PILL_RADIUS } from '../../../../theme/radius.ts'
 
-const { Text, Title } = Typography
+const { Text } = Typography
 
 type Props = {
   expense: ExpenseDetails
@@ -88,58 +88,31 @@ export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props)
   // A deleted expense has Restore where a live one has Edit and Delete.
   function renderActions() {
     if (expense.deleted) {
-      return (
-        <Button icon={<UndoOutlined />} style={{ borderRadius: PILL_RADIUS }} loading={restoring} onClick={handleRestore}>
-          Restore
-        </Button>
-      )
+      return <BandIconButton icon={<UndoOutlined />} label="Restore" loading={restoring} onClick={handleRestore} />
     }
     return (
-      <Flex gap={8}>
-        {renderEditButton()}
-        <Button shape="circle" icon={<DeleteOutlined />} aria-label="Delete" onClick={confirmDelete} />
-      </Flex>
+      <>
+        {/* A payment between members has no edit form yet, so its button is switched off. */}
+        <BandIconButton
+          icon={<EditOutlined />}
+          label="Edit"
+          onClick={isSettlement ? undefined : () => navigate(ROUTES.editExpense(expense.groupId, expense.id))}
+        />
+        <BandIconButton icon={<DeleteOutlined />} label="Delete" onClick={confirmDelete} />
+      </>
     )
   }
 
-  // A payment between members has no edit form yet.
-  function renderEditButton() {
-    if (isSettlement) {
-      return (
-        <ComingSoon>
-          <Button icon={<EditOutlined />} style={{ borderRadius: PILL_RADIUS }} disabled>
-            Edit
-          </Button>
-        </ComingSoon>
-      )
-    }
-    return (
-      <Button icon={<EditOutlined />} style={{ borderRadius: PILL_RADIUS }} onClick={() => navigate(ROUTES.editExpense(expense.groupId, expense.id))}>
-        Edit
-      </Button>
-    )
-  }
-
-  function renderHeader() {
-    return (
-      <Flex align="center" justify="space-between" style={{ marginBottom: 16 }}>
-        <Flex align="center" gap={8} style={{ minWidth: 0 }}>
-          <BackButton onClick={() => navigate(ROUTES.group(expense.groupId))} />
-          {/* Still a heading, but quieter than the expense's own title below it. */}
-          <Title level={3} style={HEADER_TITLE_STYLE}>
-            {expense.deleted ? `Deleted ${noun}` : noun === 'payment' ? 'Payment' : 'Expense'}
-          </Title>
-        </Flex>
-        {renderActions()}
-      </Flex>
-    )
+  function renderTitle() {
+    if (expense.deleted) return `Deleted ${noun}`
+    return noun === 'payment' ? 'Payment' : 'Expense'
   }
 
   function renderLastEdit() {
     if (!expense.lastEdit) return null
     const { by, at } = expense.lastEdit
     return (
-      <Text type="secondary">
+      <Text style={{ color: SOFT_WHITE }}>
         Edited by {by.isYou ? 'you' : displayName(by)}, {dateService.formatDateTime(at, navigator.language)}
       </Text>
     )
@@ -149,7 +122,7 @@ export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props)
     if (!expense.deleted) return null
     const { by, at } = expense.deleted
     return (
-      <Text type="secondary">
+      <Text style={{ color: SOFT_WHITE }}>
         Deleted by {by.isYou ? 'you' : displayName(by)}, {dateService.formatDateTime(at, navigator.language)}
       </Text>
     )
@@ -157,19 +130,11 @@ export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props)
 
   return (
     <>
-      {renderHeader()}
-      <ExpenseBody
-        description={expense.description}
-        category={expense.category}
-        amountMinor={expense.amountMinor}
-        currency={expense.currency}
-        date={expense.date}
-        notes={expense.notes}
-        method={expense.method}
-        shares={expense.shares}
-        receipts={expense.receipts}
-        datasetId={datasetId}
-        before={<Text type="secondary">Added by {expense.createdBy.isYou ? 'you' : displayName(expense.createdBy)}</Text>}
+      <ExpenseBand
+        expense={expense}
+        title={renderTitle()}
+        actions={renderActions()}
+        before={<Text style={{ color: SOFT_WHITE }}>Added by {expense.createdBy.isYou ? 'you' : displayName(expense.createdBy)}</Text>}
         after={
           <>
             {renderLastEdit()}
@@ -177,7 +142,23 @@ export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props)
           </>
         }
       />
-      <History expense={expense} />
+      {/* Below the band, in a column about 560 px wide. */}
+      <Flex vertical style={{ width: '100%', maxWidth: 560, margin: '0 auto', padding: `24px 16px ${aboveScreenEdge(24)}` }}>
+        <ExpenseBody
+          withoutSummary
+          description={expense.description}
+          category={expense.category}
+          amountMinor={expense.amountMinor}
+          currency={expense.currency}
+          date={expense.date}
+          notes={expense.notes}
+          method={expense.method}
+          shares={expense.shares}
+          receipts={expense.receipts}
+          datasetId={datasetId}
+        />
+        <History expense={expense} />
+      </Flex>
     </>
   )
 }

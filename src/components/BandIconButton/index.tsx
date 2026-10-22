@@ -1,6 +1,6 @@
 import { Button } from 'antd'
 import type { ReactNode } from 'react'
-import { ComingSoon } from '../../../../../components/ComingSoon'
+import { ComingSoon } from '../ComingSoon'
 
 type Props = {
   icon: ReactNode
@@ -8,16 +8,19 @@ type Props = {
   label: string
   /** Leave out for a button whose feature is not built yet: it is switched off. */
   onClick?: () => void
+  /** Shows the button busy while what it does is running. */
+  loading?: boolean
 }
 
-/** A round white button with an icon, sitting on the colored band. */
-export function BandIconButton({ icon, label, onClick }: Props) {
+/** A round white button with an icon, sitting on a colored band (a group's page, an expense's page). */
+export function BandIconButton({ icon, label, onClick, loading }: Props) {
   const button = (
     <Button
       shape="circle"
       icon={icon}
       aria-label={label}
       disabled={!onClick}
+      loading={loading}
       onClick={onClick}
       style={{ background: '#fff', color: '#262626', border: 'none' }}
     />
