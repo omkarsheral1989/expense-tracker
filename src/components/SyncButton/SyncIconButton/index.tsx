@@ -1,4 +1,4 @@
-import { CloudSyncOutlined } from '@ant-design/icons'
+import { SyncOutlined } from '@ant-design/icons'
 import { Button, Tooltip } from 'antd'
 
 type Props = {
@@ -11,14 +11,14 @@ type Props = {
   onClick: () => void
 }
 
-/** The round Sync button: a cloud with arrows (ADR-044). */
+/** The round Sync button: two circling arrows, which spin while a sync runs (ADR-044). */
 export function SyncIconButton({ tip, spinning = false, onBand = false, onClick }: Props) {
   return (
     <Tooltip title={tip}>
       <Button
         shape="circle"
         aria-label="Sync"
-        icon={<CloudSyncOutlined spin={spinning} />}
+        icon={<SyncOutlined spin={spinning} />}
         onClick={onClick}
         style={onBand ? { background: '#fff', color: '#262626', border: 'none' } : undefined}
       />
