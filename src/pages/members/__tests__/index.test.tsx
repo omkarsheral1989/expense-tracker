@@ -28,7 +28,7 @@ describe('the Group members page', () => {
     const page = renderMembers()
 
     const heading = await screen.findByRole('heading', { name: 'Group members' })
-    expect(heading).toHaveStyle({ fontSize: '20px', fontWeight: '300' })
+    expect(heading).toHaveStyle({ fontSize: '32px', fontWeight: '100', lineHeight: '40px', textTransform: 'uppercase' })
     await waitFor(() => expect(document.title).toBe('Group members · OwnLedger'))
 
     await userEvent.click(screen.getByRole('button', { name: 'Back' }))

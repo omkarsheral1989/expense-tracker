@@ -261,14 +261,14 @@ describe('ExpensePage', () => {
     expect(await screen.findByText('Added by Priya Shah')).toBeInTheDocument()
   })
 
-  it('has a quiet header title beside Back: "Expense", or "Payment" for a payment, a level 3 heading of 20 px and light weight, and an outlined Back button', async () => {
+  it('has a quiet header title beside Back: "Expense", or "Payment" for a payment, a level 3 heading of 32 px, thin and in capitals, and an outlined Back button', async () => {
     const id = await createGroup()
     const expenseId = await addExpense(id)
     const payment = await addTestSettlement(testDb.db, me.email, 'priya@gmail.com', id)
 
     renderExpense(id, expenseId)
     const title = await screen.findByRole('heading', { name: 'Expense', level: 3 })
-    expect(title).toHaveStyle({ fontSize: '20px', fontWeight: '300' })
+    expect(title).toHaveStyle({ fontSize: '32px', fontWeight: '100', lineHeight: '40px', textTransform: 'uppercase' })
     expect(title.parentElement).toContainElement(screen.getByRole('button', { name: 'Back' }))
     // Back is an outlined circle like the Delete button, not a bare icon.
     expect(screen.getByRole('button', { name: 'Back' })).toHaveClass('ant-btn-variant-outlined')
@@ -277,7 +277,7 @@ describe('ExpensePage', () => {
     cleanup()
 
     renderExpense(id, payment)
-    expect(await screen.findByRole('heading', { name: 'Payment', level: 3 })).toHaveStyle({ fontSize: '20px', fontWeight: '300' })
+    expect(await screen.findByRole('heading', { name: 'Payment', level: 3 })).toHaveStyle({ fontSize: '32px', fontWeight: '100', lineHeight: '40px', textTransform: 'uppercase' })
   })
 
   describe('the colored band', () => {

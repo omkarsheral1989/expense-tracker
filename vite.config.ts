@@ -38,7 +38,7 @@ export default defineConfig({
         // Not the web manifest: the plugin adds it to the precache itself, and
         // listing it twice (with two revisions) makes the service worker's
         // install fail, so nothing is cached and the app cannot open offline.
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,wasm,data}'],
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,wasm,data,woff2}'],
         maximumFileSizeToCacheInBytes: 20 * 1024 * 1024,
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,

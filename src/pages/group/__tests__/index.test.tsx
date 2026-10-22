@@ -238,7 +238,7 @@ describe('GroupPage', () => {
 
       await screen.findByRole('heading', { name: 'Goa trip' })
       const title = screen.getByRole('heading', { name: 'Group', level: 3 })
-      expect(title).toHaveStyle({ fontSize: '20px', fontWeight: '300' })
+      expect(title).toHaveStyle({ fontSize: '32px', fontWeight: '100', lineHeight: '40px', textTransform: 'uppercase' })
       expect(title.parentElement).toContainElement(screen.getByRole('button', { name: 'Back' }))
     })
 
