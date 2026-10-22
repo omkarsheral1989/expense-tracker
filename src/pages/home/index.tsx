@@ -1,7 +1,8 @@
-import { Button, Card, Flex, Result, Skeleton, Typography } from 'antd'
+import { Button, Card, Flex, Result, Skeleton, Typography, theme } from 'antd'
 import { useNavigate } from 'react-router'
 import { getDb } from '../../db/client.ts'
 import { CenteredMessage } from '../../components/CenteredMessage'
+import { TintedPageBackground } from '../../components/TintedPageBackground'
 import { FloatingPillButton } from '../../components/FloatingPillButton'
 import { ABOVE_FLOATING_BUTTON, FLOATING_BUTTON_ROOM } from '../../components/FloatingPillButton/constants.ts'
 import { useAsyncData } from '../../hooks/useAsyncData'
@@ -20,6 +21,7 @@ const { Title } = Typography
 export function HomePage() {
   const user = useCurrentUser()
   const navigate = useNavigate()
+  const { token } = theme.useToken()
 
   const userId = user?.personId ?? ''
   // Read again after a sync, which may bring in groups.
@@ -38,7 +40,7 @@ export function HomePage() {
 
   function renderHeading() {
     return (
-      <Title level={3} style={{ margin: '0 0 16px' }}>
+      <Title level={3} style={{ margin: '0 0 16px', fontSize: 22, color: token.colorTextSecondary }}>
         Your groups
       </Title>
     )
@@ -94,6 +96,7 @@ export function HomePage() {
   return (
     <Flex justify="center" style={{ flex: 1, padding: '24px 16px 0' }}>
       <title>Your groups · OwnLedger</title>
+      <TintedPageBackground color={token.colorPrimary} />
       <Flex vertical style={{ width: '100%', maxWidth: 720 }}>
         {renderHeading()}
         {renderGroups()}

@@ -30,6 +30,15 @@ describe('AppHeader', () => {
     expect(page.currentPath()).toBe(ROUTES.home)
   })
 
+  it('is an 80 px bar in the theme\'s green, with a 24 px white name and a 56 px logo', () => {
+    const { container } = renderHeader()
+
+    const header = container.querySelector('header') as HTMLElement
+    expect(header).toHaveStyle({ height: '80px', background: 'rgb(13, 148, 136)' })
+    expect(screen.getByText('OwnLedger')).toHaveStyle({ fontSize: '24px', color: '#fff' })
+    expect(header.querySelector('[aria-hidden="true"]')).toHaveStyle({ width: '56px', height: '56px' })
+  })
+
   it('shows the user\'s initial when they have no picture', () => {
     renderHeader()
     const button = screen.getByRole('button', { name: 'Account menu' })

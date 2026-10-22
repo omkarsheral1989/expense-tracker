@@ -124,6 +124,26 @@ describe('CreateGroupPage', () => {
       expect(screen.getByRole('button', { name: 'Back' })).toHaveClass('ant-btn-variant-outlined')
     })
 
+    it('washes the page with a faint color of the chosen type, and changes it with the type', async () => {
+      renderForm()
+      const wash = () =>
+        (document.querySelector('div[aria-hidden="true"][style*="fixed"]') as HTMLElement).style.backgroundColor
+      await screen.findByRole('heading', { name: 'Create a group' })
+      expect(wash()).toContain('rgb(14, 165, 233)')
+
+      await user.click(screen.getByText('Home'))
+      expect(wash()).toContain('rgb(212, 107, 8)')
+    })
+
+    it('has 40 px type tiles on a transparent strip, and a gap between them', async () => {
+      renderForm()
+
+      const tile = (await screen.findAllByRole('img', { name: 'Trip' }))[0]
+      expect(tile).toHaveStyle({ width: '40px', height: '40px' })
+      const strip = document.querySelector('.group-type-selector') as HTMLElement
+      expect(strip).toHaveStyle({ background: 'transparent' })
+    })
+
     it('has Trip selected, the region\'s currency chosen, and no name or members', async () => {
       renderForm()
 

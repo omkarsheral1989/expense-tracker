@@ -2,6 +2,7 @@ import { App, Button, Flex, Form, Input, Typography } from 'antd'
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { CurrencySelect } from '../../../../components/CurrencySelect'
+import { GroupTypeBackground } from '../../../../components/GroupTypeBackground'
 import { GroupTypeSelector } from '../../../../components/GroupTypeSelector'
 import { getDb } from '../../../../db/client.ts'
 import { useLeaveWarning } from '../../../../hooks/useLeaveWarning'
@@ -34,6 +35,7 @@ export function EditGroupForm({ userId, group }: Props) {
   }))
 
   const changed = hasChanges(Form.useWatch([], form), initialValues)
+  const type = Form.useWatch('type', form)
   useLeaveWarning(changed)
 
   const backToGroup = () => navigate(ROUTES.group(group.id))
@@ -133,6 +135,7 @@ export function EditGroupForm({ userId, group }: Props) {
 
   return (
     <>
+      <GroupTypeBackground type={type} />
       {renderHeader()}
       <Form
         form={form}

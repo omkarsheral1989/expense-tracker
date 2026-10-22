@@ -96,6 +96,18 @@ describe('EditGroupPage', () => {
       expect(screen.queryByText('Members')).not.toBeInTheDocument()
     })
 
+    it('washes the page with a faint color of the group\'s type, and changes it with the type', async () => {
+      const id = await createGroup(me, { name: 'Flat', type: 'couple' })
+      renderEdit(id)
+      const wash = () =>
+        (document.querySelector('div[aria-hidden="true"][style*="fixed"]') as HTMLElement).style.backgroundColor
+      await screen.findByRole('heading', { name: 'Edit group' })
+      expect(wash()).toContain('rgb(196, 29, 127)')
+
+      await user.click(screen.getByText('Home'))
+      expect(wash()).toContain('rgb(212, 107, 8)')
+    })
+
     it('says in its tab title that the group is being edited', async () => {
       const id = await createGroup(me, { name: 'Goa trip' })
       renderEdit(id)

@@ -4,7 +4,6 @@ import { Link, useNavigate } from 'react-router'
 import { ROUTES } from '../../routes.ts'
 import type { Profile } from '../../services/googleProfileService/types.ts'
 import { useAuthStore } from '../../stores/useAuthStore'
-import { CONTROL_HEIGHT } from '../../theme/controlHeight.ts'
 import { BrandLogo } from '../BrandLogo'
 import { ProfileAvatar } from '../ProfileAvatar'
 import { SyncButton } from '../SyncButton'
@@ -35,8 +34,8 @@ export function AppHeader() {
         to={ROUTES.home}
         style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'inherit' }}
       >
-        <BrandLogo size={CONTROL_HEIGHT} />
-        <Text strong style={{ fontSize: 18 }}>
+        <BrandLogo size={56} onPrimary />
+        <Text strong style={{ fontSize: 24, color: '#fff' }}>
           OwnLedger
         </Text>
       </Link>
@@ -94,15 +93,18 @@ export function AppHeader() {
   return (
     <header
       style={{
-        padding: '10px 16px',
-        background: token.colorBgContainer,
-        borderBottom: `1px solid ${token.colorBorderSecondary}`,
+        boxSizing: 'border-box',
+        height: 80,
+        display: 'flex',
+        alignItems: 'center',
+        padding: '0 16px',
+        background: token.colorPrimary,
       }}
     >
       <Flex
         justify="space-between"
         align="center"
-        style={{ maxWidth: 960, margin: '0 auto' }}
+        style={{ width: '100%', maxWidth: 960, margin: '0 auto' }}
       >
         {renderBrand()}
         <Flex align="center" gap={12}>

@@ -55,7 +55,7 @@ async function addExpense(email: string, groupId: string, amountMinor: number, c
 /** The balance text at the end of a group's row. */
 function balanceOf(groupName: string) {
   const row = screen.getByText(groupName).closest('.ant-card') as HTMLElement
-  return row.querySelector('.ant-card-body > .ant-flex > :last-child')?.textContent
+  return row.querySelector('.ant-card-body > .ant-flex > :last-child > :last-child')?.textContent
 }
 
 function renderHome() {
@@ -86,6 +86,21 @@ describe('HomePage', () => {
   })
 
   describe('while the groups load', () => {
+    it('has a quiet heading, 22 px and a softer black', async () => {
+      renderHome()
+
+      const heading = await screen.findByRole('heading', { name: 'Your groups' })
+      expect(heading).toHaveStyle({ fontSize: '22px', color: 'rgba(0, 0, 0, 0.65)' })
+    })
+
+    it('washes the page with a faint green, from the header\'s color', async () => {
+      const { container } = renderHome()
+
+      await screen.findByRole('heading', { name: 'Your groups' })
+      const wash = container.ownerDocument.querySelector('div[aria-hidden="true"][style*="fixed"]') as HTMLElement
+      expect(wash.style.backgroundColor).toContain('rgb(13, 148, 136) 10%')
+    })
+
     it('shows grey placeholder rows under the heading', async () => {
       vi.mocked(getDb).mockImplementationOnce(() => new Promise(() => {}))
       renderHome()
@@ -195,6 +210,29 @@ describe('HomePage', () => {
       expect(within(screen.getByRole('link', { name: /flat/i })).getByRole('img', { name: 'Home' })).toBeInTheDocument()
       expect(within(screen.getByRole('link', { name: /us/i })).getByRole('img', { name: 'Couple' })).toBeInTheDocument()
       expect(within(screen.getByRole('link', { name: /misc/i })).getByRole('img', { name: 'Other' })).toBeInTheDocument()
+    })
+
+    it('fills the left edge of each row with a colored block holding the type\'s icon', async () => {
+      await createGroup(me, { name: 'Goa', type: 'trip' })
+      renderHome()
+
+      const icon = (await screen.findByRole('link', { name: /goa/i })).querySelector('[role="img"]') as HTMLElement
+      // A 76 px block in the type's color, with the icon at 32 px, from the card's top to its bottom edge.
+      expect(icon).toHaveStyle({ width: '76px', fontSize: '32px', color: '#fff', background: 'rgb(8, 145, 178)' })
+      const card = icon.closest('.ant-card') as HTMLElement
+      expect(card.querySelector('.ant-card-body')).toHaveStyle({ padding: '0px' })
+      expect(card).toHaveStyle({ overflow: 'hidden' })
+      // Its row stretches it to the card's full height (not centered like the text beside it).
+      expect(icon.parentElement).not.toHaveClass('ant-flex-align-center')
+    })
+
+    it('has no card border in light mode', async () => {
+      await createGroup(me, { name: 'Goa' })
+      renderHome()
+
+      const card = (await screen.findByRole('link', { name: /goa/i })).querySelector('.ant-card') as HTMLElement
+      // Written on the card itself: Ant Design's own border CSS is not loaded in tests.
+      expect(card.style.borderWidth).toBe('0px')
     })
 
     it('lists the most recently changed group first', async () => {

@@ -14,6 +14,8 @@ export function GroupTypeSelector({ value, onChange }: Props) {
   return (
     <Segmented<GroupType>
       block
+      className="group-type-selector"
+      style={{ background: 'transparent' }}
       value={value}
       onChange={onChange}
       options={GROUP_TYPES.map((type) => ({

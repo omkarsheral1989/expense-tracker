@@ -9,6 +9,7 @@ import { currencyService } from '../../../../services/currencyService'
 import { groupService } from '../../../../services/groupService'
 import { DEFAULT_GROUP_TYPE } from './constants.ts'
 import { CurrencySelect } from '../../../../components/CurrencySelect'
+import { GroupTypeBackground } from '../../../../components/GroupTypeBackground'
 import { GroupTypeSelector } from '../../../../components/GroupTypeSelector'
 import { MemberSelect } from '../../../../components/MemberSelect'
 import type { FormValues } from './types.ts'
@@ -42,6 +43,7 @@ export function CreateGroupForm({ creatorId }: Props) {
   }))
 
   const hasInput = hasUnsavedInput(Form.useWatch([], form), initialValues)
+  const type = Form.useWatch('type', form)
   useLeaveWarning(hasInput)
 
   function handleLeave() {
@@ -142,6 +144,7 @@ export function CreateGroupForm({ creatorId }: Props) {
 
   return (
     <>
+      <GroupTypeBackground type={type} />
       {renderHeader()}
       <Form
         form={form}

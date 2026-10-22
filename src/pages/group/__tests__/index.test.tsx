@@ -189,11 +189,34 @@ describe('GroupPage', () => {
       expect(await screen.findByRole('button', { name: 'SEK' })).toBeInTheDocument()
     })
 
+    it('draws a currency symbol larger than a currency code on the chip', async () => {
+      const id = await createGroup(me, { name: 'Goa trip', defaultCurrency: 'GBP' })
+      renderGroup(id)
+      expect(await screen.findByRole('button', { name: '£' })).toHaveStyle({ fontSize: '20px' })
+      cleanup()
+
+      const stockholm = await createGroup(me, { name: 'Stockholm', defaultCurrency: 'SEK' })
+      renderGroup(stockholm)
+      expect(await screen.findByRole('button', { name: 'SEK' })).not.toHaveStyle({ fontSize: '20px' })
+    })
+
+    it('puts the currency chip first, then the people, then the trip dates', async () => {
+      const id = await createGroup(me, { name: 'Goa trip', defaultCurrency: 'GBP' })
+      renderGroup(id)
+
+      const chips = (await screen.findByRole('button', { name: '£' })).parentElement as HTMLElement
+      expect([...chips.querySelectorAll('button')].map((chip) => chip.textContent)).toEqual([
+        '£',
+        expect.stringMatching(/1 person$/),
+        expect.stringMatching(/Add trip dates$/),
+      ])
+    })
+
     it.each([
-      ['trip', 'Trip', 'rgb(13, 148, 136)'],
+      ['trip', 'Trip', 'rgb(8, 145, 178)'],
       ['home', 'Home', 'rgb(212, 107, 8)'],
       ['couple', 'Couple', 'rgb(196, 29, 127)'],
-      ['other', 'Other', 'rgb(59, 91, 219)'],
+      ['other', 'Other', 'rgb(54, 79, 199)'],
     ] as const)('shows the %s icon, bare and white on the band in its color, for a %s group', async (type, label, color) => {
       const id = await createGroup(me, { name: 'A group', type })
       renderGroup(id)

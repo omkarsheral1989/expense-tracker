@@ -17,7 +17,7 @@ import { GROUP_TYPE_COLORS } from '../../../../theme/groupTypeColors.ts'
 import { belowStatusBar } from '../../../../theme/safeArea.ts'
 import { BandChip } from './BandChip'
 import { BandIconButton } from './BandIconButton'
-import { bandBackground } from './style.ts'
+import { bandBackground, CURRENCY_SYMBOL_FONT_SIZE } from './style.ts'
 
 const { Title } = Typography
 
@@ -93,20 +93,23 @@ export function GroupBand({ group, onOpenMembers }: Props) {
   }
 
   function renderChips() {
+    const currencySymbol = currencyService.symbol(group.defaultCurrency, navigator.language)
+
     return (
       <Flex wrap gap={8}>
-        <BandChip icon={<CalendarOutlined />} comingSoon>
-          Add trip dates
+        <BandChip
+          tip={currencyService.label(group.defaultCurrency, navigator.language)}
+          onClick={() => navigate(ROUTES.editGroup(group.id))}
+          // A one-character symbol ("£") is drawn larger than the 3-letter code.
+          fontSize={currencySymbol ? CURRENCY_SYMBOL_FONT_SIZE : undefined}
+        >
+          {currencySymbol ?? group.defaultCurrency}
         </BandChip>
         <BandChip icon={<TeamOutlined />} onClick={onOpenMembers}>
           {peopleCount} {peopleCount === 1 ? 'person' : 'people'}
         </BandChip>
-        <BandChip
-          tip={currencyService.label(group.defaultCurrency, navigator.language)}
-          onClick={() => navigate(ROUTES.editGroup(group.id))}
-        >
-          {currencyService.symbol(group.defaultCurrency, navigator.language) ??
-            group.defaultCurrency}
+        <BandChip icon={<CalendarOutlined />} comingSoon>
+          Add trip dates
         </BandChip>
       </Flex>
     )

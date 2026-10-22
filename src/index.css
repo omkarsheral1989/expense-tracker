@@ -35,3 +35,27 @@ body .ant-input-prefix .anticon,
 body .ant-dropdown-menu .ant-dropdown-menu-item .ant-dropdown-menu-item-icon {
   font-size: 18px;
 }
+
+/* The group type options that are not chosen sit on a faint white tile; the chosen one is Ant Design's own white card. */
+.group-type-selector .ant-segmented-group {
+  gap: 12px;
+}
+body .group-type-selector .ant-segmented-item:not(.ant-segmented-item-selected) {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+@media (prefers-color-scheme: dark) {
+  body .group-type-selector .ant-segmented-item:not(.ant-segmented-item-selected) {
+    background: rgba(255, 255, 255, 0.06);
+  }
+  body .group-type-selector .ant-segmented-item-selected {
+    background: rgba(255, 255, 255, 0.2);
+  }
+}
+
+/* Ant Design hides a hoverable card's border on hover; in dark mode the home page's group cards keep it, since the card is barely lighter than the page. */
+@media (prefers-color-scheme: dark) {
+  body .group-row-card.ant-card-hoverable:hover {
+    border-color: var(--ant-color-border-secondary);
+  }
+}

@@ -16,10 +16,12 @@ type Props = {
   comingSoon?: boolean
   /** A tip shown when the pointer rests on the chip, for a chip whose text is short for something longer. */
   tip?: string
+  /** The text's size in pixels; leave out for the button's own. */
+  fontSize?: number
 }
 
 /** A translucent dark pill on the colored band, holding a short fact or an action. */
-export function BandChip({ icon, children, onClick, comingSoon, tip }: Props) {
+export function BandChip({ icon, children, onClick, comingSoon, tip, fontSize }: Props) {
   const chip = (
     <Button
       type="text"
@@ -32,6 +34,7 @@ export function BandChip({ icon, children, onClick, comingSoon, tip }: Props) {
         padding: '0 14px',
         // A one-character chip (a currency symbol) is a circle, not a narrower pill.
         minWidth: CONTROL_HEIGHT,
+        fontSize,
         borderRadius: PILL_RADIUS,
         color: '#fff',
         background: 'rgba(0, 0, 0, 0.28)',

@@ -12,4 +12,15 @@ describe('GroupTypeIcon', () => {
     const tile = screen.getByRole('img', { name: 'Home' })
     expect(tile).toHaveStyle({ width: '48px', height: '48px' })
   })
+
+  it.each([
+    ['trip', 'car'],
+    ['home', 'home'],
+    ['couple', 'heart'],
+    ['other', 'appstore'],
+  ] as const)('shows the %s type with the %s icon', (type, icon) => {
+    const { container } = render(<GroupTypeIcon type={type} />)
+
+    expect(container.querySelector(`[data-icon="${icon}"]`)).not.toBeNull()
+  })
 })
