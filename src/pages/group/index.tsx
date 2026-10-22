@@ -1,4 +1,4 @@
-import { Button, Card, Flex, Result, Skeleton } from 'antd'
+import { Card, Flex, Skeleton } from 'antd'
 import { useState } from 'react'
 import { useParams } from 'react-router'
 import { getDb } from '../../db/client.ts'
@@ -18,6 +18,8 @@ import { GroupBand } from './components/GroupBand'
 import { GroupNotFound } from '../../components/GroupNotFound'
 import { MembersSheet } from './components/MembersSheet'
 import { CenteredMessage } from '../../components/CenteredMessage'
+import { LoadError } from '../../components/LoadError'
+import { ROUTES } from '../../routes.ts'
 import { FLOATING_BUTTON_ROOM } from '../../components/FloatingPillButton/constants.ts'
 import { belowStatusBar } from '../../theme/safeArea.ts'
 
@@ -71,16 +73,7 @@ export function GroupPage() {
   function renderError() {
     return (
       <CenteredMessage>
-        <Result
-          status="error"
-          title="Couldn't load this group"
-          subTitle="Nothing was lost. Try again."
-          extra={
-            <Button type="primary" onClick={retry}>
-              Try again
-            </Button>
-          }
-        />
+        <LoadError title="Couldn't load this group" onRetry={retry} error={state.status === 'error' ? state.error : undefined} backTo={ROUTES.home} />
       </CenteredMessage>
     )
   }

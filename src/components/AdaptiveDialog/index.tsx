@@ -1,5 +1,6 @@
 import { Drawer, Grid, Modal } from 'antd'
 import type { ReactNode } from 'react'
+import { aboveScreenEdge } from '../../theme/safeArea.ts'
 
 type Props = {
   open: boolean
@@ -49,7 +50,12 @@ export function AdaptiveDialog({ open, onClose, title, children, tall = false, f
       size={tall ? '85vh' : 'auto'}
       destroyOnHidden
       footer={footer}
-      styles={{ wrapper: { maxHeight: '85vh' } }}
+      // The sheet ends at the screen's edge: keep its last row and buttons clear of the rounded corners.
+      styles={{
+        wrapper: { maxHeight: '85vh' },
+        body: footer ? undefined : { paddingBottom: aboveScreenEdge(24) },
+        footer: { paddingBottom: aboveScreenEdge(16) },
+      }}
     >
       {children}
     </Drawer>

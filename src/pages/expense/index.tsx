@@ -1,6 +1,8 @@
-import { Button, Card, Flex, Result, Skeleton } from 'antd'
+import { Card, Flex, Skeleton } from 'antd'
 import { useParams } from 'react-router'
 import { CenteredMessage } from '../../components/CenteredMessage'
+import { LoadError } from '../../components/LoadError'
+import { ROUTES } from '../../routes.ts'
 import { ExpenseNotFound } from '../../components/ExpenseNotFound'
 import { getDb } from '../../db/client.ts'
 import { useAsyncData } from '../../hooks/useAsyncData'
@@ -42,16 +44,7 @@ export function ExpensePage() {
         )
       case 'error':
         return (
-          <Result
-            status="error"
-            title="Couldn't load this expense"
-            subTitle="Nothing was lost. Try again."
-            extra={
-              <Button type="primary" onClick={retry}>
-                Try again
-              </Button>
-            }
-          />
+          <LoadError title="Couldn't load this expense" onRetry={retry} error={state.status === 'error' ? state.error : undefined} backTo={ROUTES.group(id)} />
         )
       case 'ready':
         return state.data ? (

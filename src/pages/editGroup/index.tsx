@@ -1,7 +1,9 @@
-import { Button, Flex, Result, Skeleton } from 'antd'
+import { Flex, Skeleton } from 'antd'
 import type { ReactNode } from 'react'
 import { useParams } from 'react-router'
 import { CenteredMessage } from '../../components/CenteredMessage'
+import { LoadError } from '../../components/LoadError'
+import { ROUTES } from '../../routes.ts'
 import { GroupNotFound } from '../../components/GroupNotFound'
 import { getDb } from '../../db/client.ts'
 import { useAsyncData } from '../../hooks/useAsyncData'
@@ -35,16 +37,7 @@ export function EditGroupPage() {
   function renderError() {
     return (
       <CenteredMessage>
-        <Result
-          status="error"
-          title="Couldn't load this group"
-          subTitle="Nothing was lost. Try again."
-          extra={
-            <Button type="primary" onClick={retry}>
-              Try again
-            </Button>
-          }
-        />
+        <LoadError title="Couldn't load this group" onRetry={retry} error={state.status === 'error' ? state.error : undefined} backTo={ROUTES.group(id)} />
       </CenteredMessage>
     )
   }

@@ -1,5 +1,6 @@
 import { Drawer, Grid } from 'antd'
 import type { GroupMember } from '../../../../services/groupService/types.ts'
+import { aboveScreenEdge } from '../../../../theme/safeArea.ts'
 import { AddMemberRow } from './AddMemberRow'
 import { MemberList } from './MemberList'
 
@@ -31,6 +32,7 @@ export function MembersSheet({ open, onClose, members, syncedIds, groupId, userI
       title={`Members (${members.length})`}
       placement={screens.md ? 'right' : 'bottom'}
       size={screens.md ? 'default' : 420}
+      styles={{ body: { paddingBottom: aboveScreenEdge(24) } }}
     >
       <MemberList members={members} syncedIds={syncedIds} />
       <AddMemberRow

@@ -148,6 +148,16 @@ describe('adding a member from the members sheet', () => {
       expect(screen.queryByRole('dialog', { name: 'Add a member' })).not.toBeInTheDocument()
     })
 
+    it('keeps its last row clear of the screen\'s rounded corners and home indicator', async () => {
+      const id = await createGroup(['priya@gmail.com'])
+      renderGroup(id)
+
+      await user.click(await screen.findByRole('button', { name: named('2 people') }))
+      const sheet = await screen.findByRole('dialog', { name: 'Members (2)' })
+
+      expect(sheet.querySelector('.ant-drawer-body')?.getAttribute('style')).toContain('env(safe-area-inset-bottom)')
+    })
+
     it('shows the button to a guest, who can add people too', async () => {
       useAuthStore.setState({ profile: null, guest: true, token: null })
       const result = await createTestGroup(testDb.db, { email: 'guest', name: 'Guest' }, {

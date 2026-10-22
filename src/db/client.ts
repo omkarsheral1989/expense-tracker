@@ -63,3 +63,13 @@ export async function closeDatabase() {
   await closing.database.catch(() => undefined)
   await closing.pg.close()
 }
+
+// Development only. A hot update of this module, or of the schema or migrations it
+// imports, loads a second copy of it with nothing open, next to the first copy that
+// holds the open database, and every page that asks the new copy for the database
+// would fail with "The database is not open". A second copy therefore reloads the page.
+if (import.meta.hot) {
+  const page = globalThis as { ownledgerDatabaseModuleLoaded?: boolean }
+  if (page.ownledgerDatabaseModuleLoaded) location.reload()
+  page.ownledgerDatabaseModuleLoaded = true
+}
