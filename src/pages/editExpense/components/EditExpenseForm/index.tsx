@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ExpenseForm, type SaveOutcome } from '../../../../components/ExpenseForm'
 import type { FormValues } from '../../../../components/ExpenseForm/types.ts'
-import { GroupLabel } from '../../../../components/GroupLabel'
+import { GroupSwitcher } from '../../../../components/GroupSwitcher'
 import { getDb } from '../../../../db/client.ts'
 import { ROUTES } from '../../../../routes.ts'
 import { expenseService } from '../../../../services/expenseService'
@@ -58,7 +58,7 @@ export function EditExpenseForm({ group, expense, datasetId, userId, recentCurre
       recentCurrencies={recentCurrencies}
       heading="Edit expense"
       initialValues={initialValues}
-      renderGroupPicker={() => <GroupLabel group={group} />}
+      renderGroupPicker={() => <GroupSwitcher group={group} disabled />}
       discardPrompt={{ title: 'Discard your changes?', content: 'What you changed will be lost.' }}
       leaveTo={expensePage}
       failureMessage="Couldn't save the changes. Please try again."

@@ -118,13 +118,17 @@ describe('EditExpensePage', () => {
       expect(within(dialog).getByRole('textbox', { name: 'Percentage for sam@gmail.com' })).toHaveValue('20')
     })
 
-    it('shows the group as a plain label even when the user has other groups', async () => {
+    it('shows the group in the same full-width dropdown as add expense, switched off, even when the user has other groups', async () => {
       const id = await createGroup()
       await createGroup({ name: 'Flat bills' })
       const expenseId = await addExpense(id)
       await open(id, expenseId)
 
-      expect(screen.getByText('Goa trip')).toBeInTheDocument()
+      const group = screen.getByRole('button', { name: 'Group: Goa trip' })
+      expect(group).toBeDisabled()
+      expect(group).toHaveClass('ant-btn-block')
+      expect(group.querySelector('[data-icon="down"]')).not.toBeNull()
+      // An expense cannot move to another group, so there is no menu.
       expect(screen.queryByRole('button', { name: /Choose another group/ })).not.toBeInTheDocument()
     })
   })
