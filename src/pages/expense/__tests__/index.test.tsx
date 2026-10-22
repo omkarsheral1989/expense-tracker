@@ -158,6 +158,19 @@ describe('ExpensePage', () => {
     ])
   })
 
+  it('shows a person\'s Google picture beside what they owe, and the letter for someone without one', async () => {
+    const id = await createGroup()
+    await testDb.db.update(people).set({ picture: 'https://example.com/priya.png' }).where(eq(people.email, 'priya@gmail.com'))
+    const expenseId = await addExpense(id)
+    renderExpense(id, expenseId)
+
+    const list = await screen.findByRole('list', { name: 'Who owes' })
+    const rows = within(list).getAllByRole('listitem')
+    const priya = rows.find((row) => /Priya Shah/.test(row.textContent ?? ''))!
+    expect(priya.querySelector('img')).toHaveAttribute('src', 'https://example.com/priya.png')
+    expect(rows.filter((row) => row.querySelector('img'))).toHaveLength(1)
+  })
+
   it('leaves a payer who owes nothing out of the list', async () => {
     const id = await createGroup()
     const [meId, priyaId, samId] = await Promise.all(

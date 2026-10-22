@@ -20,4 +20,35 @@ export type KnownPerson = {
   /** Null for a person added by name only. */
   email: string | null
   name: string | null
+  /** The address of their Google picture, once known (ADR-046). */
+  picture?: string | null
 }
+
+/** A person on the members page, with what the edit dialog needs. */
+export type ManagedPerson = {
+  id: string
+  email: string | null
+  /** The name shared with every member (what the person is called elsewhere). */
+  sharedName: string | null
+  /** What this device calls them instead (ADR-045), or null. */
+  localName: string | null
+  /** The address of their Google picture, once known (ADR-046). */
+  picture: string | null
+  /** Nobody has seen them sign in and sync in any group, so their email can still be set. */
+  pending: boolean
+}
+
+/** What the edit dialog sends: the name this device uses for the person (required), and, while they are pending, their email. */
+export type UpdatePersonInput = {
+  localName: string
+  email?: string
+}
+
+export type UpdatePersonField = keyof UpdatePersonInput
+
+export type UpdatePersonErrors = Partial<Record<UpdatePersonField, string>>
+
+export type UpdatePersonResult =
+  | { ok: true }
+  | { ok: false; errors: UpdatePersonErrors }
+  | { ok: false; notFound: true }

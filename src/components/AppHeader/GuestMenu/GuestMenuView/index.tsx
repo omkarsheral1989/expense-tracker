@@ -1,5 +1,7 @@
-import { LogoutOutlined } from '@ant-design/icons'
+import { LogoutOutlined, TeamOutlined } from '@ant-design/icons'
 import { Button, Dropdown, Flex, Typography } from 'antd'
+import { useNavigate } from 'react-router'
+import { ROUTES } from '../../../../routes.ts'
 import { userService } from '../../../../services/userService'
 import { useAuthStore } from '../../../../stores/useAuthStore'
 import { GoogleLogo } from '../../../GoogleLogo'
@@ -21,6 +23,7 @@ type Props = {
  */
 export function GuestMenuView({ onSignIn, loading }: Props) {
   const exitGuestMode = useAuthStore((state) => state.signOut)
+  const navigate = useNavigate()
 
   return (
     <Dropdown
@@ -40,6 +43,12 @@ export function GuestMenuView({ onSignIn, loading }: Props) {
             style: { cursor: 'default' },
           },
           { type: 'divider' },
+          {
+            key: 'members',
+            icon: <TeamOutlined />,
+            label: 'Group members',
+            onClick: () => navigate(ROUTES.members),
+          },
           {
             key: 'sign-in',
             // Wrapped like an Ant Design icon, so the menu spaces it from the text.

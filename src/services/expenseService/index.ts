@@ -12,6 +12,7 @@ import {
   groups,
   people,
 } from '../../db/schema.ts'
+import { shownName } from '../../db/shownName.ts'
 import type { ExpenseChange, ExpenseEventKind, ExpenseSnapshot } from '../../db/types.ts'
 import {
   CATEGORY_GROUPS,
@@ -270,7 +271,7 @@ export const expenseService = {
         deletedAt: expenses.deletedAt,
         deleterId: deleter.id,
         deleterEmail: deleter.email,
-        deleterName: deleter.name,
+        deleterName: shownName(deleter),
       })
       .from(expenses)
       .leftJoin(deleter, eq(deleter.id, expenses.updatedBy))
@@ -285,7 +286,7 @@ export const expenseService = {
         paidMinor: expenseShares.paidMinor,
         owedMinor: expenseShares.owedMinor,
         email: people.email,
-        name: people.name,
+        name: shownName(people),
       })
       .from(expenseShares)
       .innerJoin(people, eq(people.id, expenseShares.personId))
@@ -387,12 +388,12 @@ export const expenseService = {
         method: expenses.method,
         createdById: expenses.createdBy,
         createdByEmail: people.email,
-        createdByName: people.name,
+        createdByName: shownName(people),
         createdAt: expenses.createdAt,
         deletedAt: expenses.deletedAt,
         deleterId: deleter.id,
         deleterEmail: deleter.email,
-        deleterName: deleter.name,
+        deleterName: shownName(deleter),
       })
       .from(expenses)
       .innerJoin(people, eq(people.id, expenses.createdBy))
@@ -404,7 +405,8 @@ export const expenseService = {
       .select({
         personId: expenseShares.personId,
         email: people.email,
-        name: people.name,
+        name: shownName(people),
+        picture: people.picture,
         paidMinor: expenseShares.paidMinor,
         owedMinor: expenseShares.owedMinor,
       })
@@ -431,7 +433,7 @@ export const expenseService = {
         occurredAt: expenseEvents.occurredAt,
         actorId: expenseEvents.actedBy,
         actorEmail: people.email,
-        actorName: people.name,
+        actorName: shownName(people),
         changes: expenseEvents.changes,
         snapshot: expenseEvents.snapshot,
         restoredFrom: expenseEvents.restoredFrom,
@@ -773,7 +775,7 @@ export const expenseService = {
         occurredAt: expenseEvents.occurredAt,
         actorId: expenseEvents.actedBy,
         actorEmail: people.email,
-        actorName: people.name,
+        actorName: shownName(people),
         changes: expenseEvents.changes,
         snapshot: expenseEvents.snapshot,
         restoredFrom: expenseEvents.restoredFrom,
@@ -786,7 +788,7 @@ export const expenseService = {
 
     const snapshot = event.snapshot
     const named = await db
-      .select({ id: people.id, email: people.email, name: people.name })
+      .select({ id: people.id, email: people.email, name: shownName(people) })
       .from(people)
       .where(inArray(people.id, snapshot.shares.length > 0 ? snapshot.shares.map((share) => share.personId) : [event.actorId]))
     const label = (share: { name: string | null; email: string | null }) => displayName(share).toLowerCase()
@@ -992,7 +994,7 @@ export const expenseService = {
     if (balances.length === 0) return []
 
     const named = await db
-      .select({ id: people.id, email: people.email, name: people.name })
+      .select({ id: people.id, email: people.email, name: shownName(people) })
       .from(people)
       .where(inArray(people.id, [...new Set(balances.map((balance) => balance.personId))]))
     const label = (person: { name: string | null; email: string | null }) =>
@@ -1211,7 +1213,7 @@ async function peopleReferredBy(db: Reader, userId: string, changeLists: Expense
   }
   if (referred.size === 0) return {}
   const found = await db
-    .select({ id: people.id, email: people.email, name: people.name })
+    .select({ id: people.id, email: people.email, name: shownName(people) })
     .from(people)
     .where(inArray(people.id, [...referred]))
   return Object.fromEntries(found.map((person) => [person.id, { email: person.email, name: person.name, isYou: person.id === userId }]))

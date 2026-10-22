@@ -59,6 +59,8 @@ export type GroupMember = {
   /** Null for a member added by name only. */
   email: string | null
   name: string | null
+  /** The address of their Google picture, once known (ADR-046). */
+  picture?: string | null
   /** Whether this member is the user looking at the group. */
   isYou: boolean
 }

@@ -50,7 +50,15 @@ const changeSchema = z.object({
 
 export const backupRowsSchema = z.object({
   people: z.array(
-    z.object({ ...syncColumns, email: z.string().nullable(), name: z.string().nullable() }),
+    z.object({
+      ...syncColumns,
+      email: z.string().nullable(),
+      name: z.string().nullable(),
+      /** Only in the backup: a member's file leaves it out, so a merge keeps the device's own (ADR-045). */
+      localName: z.string().nullable().optional(),
+      /** A Google picture address; files written before it existed leave it out. */
+      picture: z.string().nullable().optional(),
+    }),
   ),
   groups: z.array(
     z.object({

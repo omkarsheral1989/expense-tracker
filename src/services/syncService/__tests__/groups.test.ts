@@ -199,6 +199,29 @@ describe('two devices', () => {
     }
   })
 
+  it('shows a member\'s Google picture to the others once she has synced, and never shares anyone\'s local name', async () => {
+    const setup = await omkarsGroup()
+    await syncService.syncGroup(a, omkarDrive(), setup.omkar, setup.groupId)
+    await a.update(people).set({ localName: 'Sis' }).where(eq(people.email, 'priya@gmail.com'))
+    let priyaOnB = (
+      await userService.resolve(b, { userPersonId: null }, {
+        id: 'g-priya', email: 'priya@gmail.com', name: 'Priya Samuel', picture: 'https://example.com/priya.png',
+      })
+    ).personId
+    priyaOnB = (await syncService.findSharedGroups(b, priyaDrive(), 'priya@gmail.com')).renamed.get(priyaOnB) ?? priyaOnB
+    await syncService.syncGroup(b, priyaDrive(), priyaOnB, setup.groupId)
+
+    await syncService.syncGroup(a, omkarDrive(), setup.omkar, setup.groupId)
+
+    const [onA] = await a.select().from(people).where(eq(people.email, 'priya@gmail.com'))
+    expect(onA).toMatchObject({ picture: 'https://example.com/priya.png', localName: 'Sis' })
+    const [onB] = await b.select().from(people).where(eq(people.email, 'priya@gmail.com'))
+    expect(onB.localName).toBeNull()
+    for (const file of world.files.values()) {
+      if (typeof file.content === 'string') expect(file.content).not.toContain('Sis')
+    }
+  })
+
   it('brings a shared group onto the member\'s device, with its expenses', async () => {
     const { groupId, found, priyaOnB } = await shared()
 

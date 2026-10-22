@@ -2,6 +2,7 @@ import { and, asc, desc, eq, inArray, isNull, ne, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import type { Database } from '../../db/client.ts'
 import { expenses, groupMembers, groups, people } from '../../db/schema.ts'
+import { shownName } from '../../db/shownName.ts'
 import type { KnownPerson } from '../personService/types.ts'
 import { createGroupSchema, toFieldErrors, updateGroupSchema } from './schemas.ts'
 import { displayName, shortName } from './utils.ts'
@@ -195,7 +196,7 @@ export const groupService = {
       if (!mine) return { ok: false, notFound: true }
 
       const [person] = await tx
-        .select({ id: people.id, email: people.email, name: people.name })
+        .select({ id: people.id, email: people.email, name: shownName(people) })
         .from(people)
         .where(and(eq(people.id, personId), isNull(people.deletedAt)))
       if (!person) return { ok: false, message: 'Choose someone from the list.' }
@@ -230,7 +231,7 @@ export const groupService = {
    */
   async listKnownPeople(db: Database, userId: string): Promise<KnownPerson[]> {
     const rows = await db
-      .select({ id: people.id, email: people.email, name: people.name })
+      .select({ id: people.id, email: people.email, name: shownName(people), picture: people.picture })
       .from(people)
       .where(
         and(
@@ -306,7 +307,7 @@ export const groupService = {
     if (!group) return null
 
     const rows = await db
-      .select({ personId: people.id, email: people.email, name: people.name })
+      .select({ personId: people.id, email: people.email, name: shownName(people), picture: people.picture })
       .from(groupMembers)
       .innerJoin(people, and(eq(people.id, groupMembers.personId), isNull(people.deletedAt)))
       .where(and(eq(groupMembers.groupId, groupId), isNull(groupMembers.deletedAt)))

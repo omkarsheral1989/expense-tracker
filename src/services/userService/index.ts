@@ -18,6 +18,7 @@ export const userService = {
    * - signing in with Google gives that person the account's email, and the
    *   account's name unless someone typed a name for them (a typed name always
    *   wins a sync, so a name from Google is saved at `GOOGLE_NAME_TIME`);
+   * - the account's picture address is saved on the person (ADR-046);
    * - if another person already has that email (someone added them as a
    *   member), the guest's person is merged into it, so there is one person;
    * - with no person id on record (data made before guests existed), the person
@@ -42,7 +43,8 @@ export const userService = {
         const id = record.userPersonId ?? crypto.randomUUID()
         const name = profile?.name ?? GUEST_NAME
         const email = profile?.email ?? null
-        await tx.insert(people).values({ id, name, email, updatedAt: GOOGLE_NAME_TIME, updatedBy: id })
+        const picture = profile?.picture ?? null
+        await tx.insert(people).values({ id, name, email, picture, updatedAt: GOOGLE_NAME_TIME, updatedBy: id })
         return { personId: id, name, email }
       }
 
@@ -69,6 +71,13 @@ export const userService = {
           .set({ name: profile.name, updatedAt: GOOGLE_NAME_TIME, updatedBy: person.id })
           .where(eq(people.id, person.id))
         person = { ...person, name: profile.name }
+      }
+
+      // The Google picture's address follows the account. It is saved without
+      // touching the row's time, so it cannot win a sync over a typed name
+      // (ADR-046); other devices get it the first time they see this person.
+      if (profile?.picture && person.picture !== profile.picture) {
+        await tx.update(people).set({ picture: profile.picture }).where(eq(people.id, person.id))
       }
 
       return { personId: person.id, name: person.name ?? GUEST_NAME, email: person.email }

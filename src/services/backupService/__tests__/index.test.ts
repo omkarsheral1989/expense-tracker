@@ -282,3 +282,96 @@ describe('backupService.parseGroupFile and exportGroup', () => {
     expect(file.rows.expenseEvents.every((event) => event.groupId === groupId)).toBe(true)
   })
 })
+
+describe('what belongs to a person on this device only (ADR-045, ADR-046)', () => {
+  const priyaOn = async (db: Database) => (await db.select().from(people).where(eq(people.email, 'priya@gmail.com')))[0]
+
+  it('carries a local name and a picture in the backup, to an empty device', async () => {
+    await sourceData()
+    await source.update(people).set({ localName: 'Sis', picture: 'https://example.com/p.png' }).where(eq(people.email, 'priya@gmail.com'))
+
+    await backupService.importAll(target, await backupOfSource())
+
+    expect(await priyaOn(target)).toMatchObject({ localName: 'Sis', picture: 'https://example.com/p.png' })
+  })
+
+  it('keeps the device\'s local name and picture when a newer version of the person arrives without them', async () => {
+    await sourceData()
+    const file = await backupOfSource()
+    await backupService.importAll(target, file)
+    await target.update(people).set({ localName: 'Sis', picture: 'https://example.com/p.png' }).where(eq(people.email, 'priya@gmail.com'))
+
+    const newer = structuredClone(file)
+    const incoming = newer.rows.people.find((person) => person.email === 'priya@gmail.com')!
+    Object.assign(incoming, { name: 'Priya Shah', localName: null, picture: null, updatedAt: new Date(Date.now() + 60_000) })
+    await backupService.importAll(target, newer)
+
+    expect(await priyaOn(target)).toMatchObject({ name: 'Priya Shah', localName: 'Sis', picture: 'https://example.com/p.png' })
+  })
+
+  it('fills a missing picture from an older version, but never replaces one the device has', async () => {
+    await sourceData()
+    const file = await backupOfSource()
+    await backupService.importAll(target, file)
+
+    const withPicture = structuredClone(file)
+    withPicture.rows.people.find((person) => person.email === 'priya@gmail.com')!.picture = 'https://example.com/first.png'
+    await backupService.importAll(target, withPicture)
+    expect((await priyaOn(target)).picture).toBe('https://example.com/first.png')
+
+    const another = structuredClone(file)
+    another.rows.people.find((person) => person.email === 'priya@gmail.com')!.picture = 'https://example.com/second.png'
+    await backupService.importAll(target, another)
+    expect((await priyaOn(target)).picture).toBe('https://example.com/first.png')
+  })
+
+  it('keeps them for a person the device already had under another id (the smaller id wins)', async () => {
+    await sourceData()
+    const file = await backupOfSource()
+    const priya = file.rows.people.find((person) => person.email === 'priya@gmail.com')!
+    // The device knows Priya under a larger id, with her own details.
+    const localId = '00000000-0000-4000-8000-00000000000a'.replace(/^0/, 'f')
+    await target.insert(people).values({
+      id: localId, email: 'priya@gmail.com', name: 'Priya', localName: 'Sis', picture: 'https://example.com/p.png', updatedBy: localId,
+    })
+    expect(localId > priya.id).toBe(true)
+
+    await backupService.importAll(target, file)
+
+    const merged = await priyaOn(target)
+    expect(merged.id).toBe(priya.id)
+    expect(merged).toMatchObject({ localName: 'Sis', picture: 'https://example.com/p.png' })
+  })
+
+  it('keeps the picture but never the local name in a member\'s group file', async () => {
+    const { groupId, userId } = await sourceData()
+    await source.update(people).set({ localName: 'Sis', picture: 'https://example.com/p.png' }).where(eq(people.email, 'priya@gmail.com'))
+
+    const text = JSON.stringify(await backupService.exportGroup(source, groupId, userId))
+
+    expect(text).not.toContain('Sis')
+    const file = backupService.parseGroupFile(text, groupId)!
+    expect(file.rows.people.find((person) => person.email === 'priya@gmail.com')?.picture).toBe('https://example.com/p.png')
+  })
+
+  it('does not take away the device\'s local name when a member\'s file brings a newer version of the person', async () => {
+    const { groupId, userId } = await sourceData()
+    const text = JSON.stringify(await backupService.exportGroup(source, groupId, userId))
+    const file = backupService.parseGroupFile(text, groupId)!
+    await backupService.importGroup(target, file)
+    await target.update(people).set({ localName: 'Sis' }).where(eq(people.email, 'priya@gmail.com'))
+
+    file.rows.people.find((person) => person.email === 'priya@gmail.com')!.updatedAt = new Date(Date.now() + 60_000)
+    await backupService.importGroup(target, file)
+
+    expect((await priyaOn(target)).localName).toBe('Sis')
+  })
+
+  it('reads a group file written before pictures existed (no picture field)', async () => {
+    const { groupId, userId } = await sourceData()
+    const written = JSON.parse(JSON.stringify(await backupService.exportGroup(source, groupId, userId)))
+    for (const person of written.rows.people) delete person.picture
+
+    expect(backupService.parseGroupFile(JSON.stringify(written), groupId)).not.toBeNull()
+  })
+})

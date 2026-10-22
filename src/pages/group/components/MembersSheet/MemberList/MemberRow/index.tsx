@@ -1,4 +1,5 @@
-import { Avatar, Flex, Tag, theme, Typography } from 'antd'
+import { Flex, Tag, Typography } from 'antd'
+import { PersonAvatar } from '../../../../../../components/PersonAvatar'
 import { groupService } from '../../../../../../services/groupService'
 import type { GroupMember } from '../../../../../../services/groupService/types.ts'
 
@@ -21,7 +22,6 @@ type Props = {
  * have signed in and synced, and has no tag after that.
  */
 export function MemberRow({ member, synced }: Props) {
-  const { token } = theme.useToken()
   const label = groupService.displayName(member)
 
   function renderTag() {
@@ -42,9 +42,7 @@ export function MemberRow({ member, synced }: Props) {
 
   return (
     <Flex align="center" gap={12}>
-      <Avatar style={{ background: token.colorPrimaryBg, color: token.colorPrimary }}>
-        {label.charAt(0).toUpperCase()}
-      </Avatar>
+      <PersonAvatar name={label} picture={member.picture} />
       <Flex vertical flex={1} style={{ minWidth: 0 }}>
         <Text strong ellipsis>
           {label}

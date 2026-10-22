@@ -448,8 +448,8 @@ describe('getGroup', () => {
     const group = await groupService.getGroup(db, personIdForEmail('omkar@gmail.com'), id)
 
     expect(group?.members).toEqual([
-      { personId: await personId('omkar@gmail.com'), email: 'omkar@gmail.com', name: 'Omkar', isYou: true },
-      { personId: await personId('priya@gmail.com'), email: 'priya@gmail.com', name: null, isYou: false },
+      { personId: await personId('omkar@gmail.com'), email: 'omkar@gmail.com', name: 'Omkar', picture: null, isYou: true },
+      { personId: await personId('priya@gmail.com'), email: 'priya@gmail.com', name: null, picture: null, isYou: false },
     ])
   })
 

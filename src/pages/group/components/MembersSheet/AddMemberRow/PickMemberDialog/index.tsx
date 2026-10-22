@@ -1,7 +1,8 @@
 import { CheckOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons'
-import { Avatar, Button, Divider, Flex, Input, theme, Typography } from 'antd'
+import { Button, Divider, Flex, Input, theme, Typography } from 'antd'
 import { useState } from 'react'
 import { AdaptiveDialog } from '../../../../../../components/AdaptiveDialog'
+import { PersonAvatar } from '../../../../../../components/PersonAvatar'
 import { AddMemberDialog } from '../../../../../../components/MemberSelect/AddMemberDialog'
 import { groupService } from '../../../../../../services/groupService'
 import type { KnownPerson } from '../../../../../../services/personService/types.ts'
@@ -75,9 +76,7 @@ export function PickMemberDialog({ open, onClose, people, loading, onAdd, adding
         style={{ height: 'auto', padding: '8px 4px', justifyContent: 'flex-start' }}
       >
         <Flex align="center" gap={12} style={{ minWidth: 0 }}>
-          <Avatar style={{ flex: 'none', background: token.colorPrimaryBg, color: token.colorPrimary }}>
-            {label.charAt(0).toUpperCase()}
-          </Avatar>
+          <PersonAvatar name={label} picture={person.picture} style={{ flex: 'none' }} />
           <Flex vertical align="flex-start" style={{ minWidth: 0 }}>
             <Text strong ellipsis>
               {label}

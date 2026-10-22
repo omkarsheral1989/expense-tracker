@@ -13,7 +13,7 @@ vi.mock('../../../config.ts', () => ({ GOOGLE_CLIENT_ID: '', REQUIRE_INSTALL: tr
 const profile = { id: '1', email: 'omkar@gmail.com', name: 'Omkar Sheral' }
 
 function renderHeader(path: string = ROUTES.newGroup) {
-  return renderPage(<AppHeader />, { path, routes: [ROUTES.home] })
+  return renderPage(<AppHeader />, { path, routes: [ROUTES.home, ROUTES.members] })
 }
 
 describe('AppHeader', () => {
@@ -57,6 +57,21 @@ describe('AppHeader', () => {
     expect(screen.getByText('Sign out')).toBeInTheDocument()
   })
 
+  it('lists Group members above Sign out and opens the members page', async () => {
+    const page = renderHeader()
+    await userEvent.click(screen.getByRole('button', { name: 'Account menu' }))
+
+    const menu = await screen.findByRole('menu')
+    expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent)).toEqual([
+      'Omkar Sheral' + 'omkar@gmail.com',
+      expect.stringMatching(/Group members$/),
+      expect.stringMatching(/Sign out$/),
+    ])
+
+    await userEvent.click(within(menu).getByText('Group members'))
+    expect(page.currentPath()).toBe(ROUTES.members)
+  })
+
   it('signs the user out from the menu', async () => {
     renderHeader()
     await userEvent.click(screen.getByRole('button', { name: 'Account menu' }))
@@ -92,10 +107,20 @@ describe('AppHeader', () => {
       expect(within(menu).getByText('Your data is only on this device')).toBeInTheDocument()
       expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent)).toEqual([
         'Guest' + 'Your data is only on this device',
+        expect.stringMatching(/Group members$/),
         expect.stringMatching(/Sign in with Google$/),
         expect.stringMatching(/Exit guest mode$/),
       ])
       expect(within(menu).queryByText('Sign out')).not.toBeInTheDocument()
+    })
+
+    it('opens the members page from the menu', async () => {
+      const page = renderHeader()
+      await userEvent.click(screen.getByRole('button', { name: 'Account menu' }))
+
+      await userEvent.click(await screen.findByText('Group members'))
+
+      expect(page.currentPath()).toBe(ROUTES.members)
     })
 
     it('starts the Google sign-in from the menu (here it explains that it is not set up)', async () => {

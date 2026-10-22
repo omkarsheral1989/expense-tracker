@@ -163,6 +163,26 @@ describe('adding a member from the members sheet', () => {
     })
   })
 
+  describe('pictures', () => {
+    it('shows a person\'s Google picture in the members sheet and in the list of people to add, the letter for the others', async () => {
+      const id = await createGroup(['priya@gmail.com'])
+      await testDb.db.update(people).set({ picture: 'https://example.com/priya.png' }).where(eq(people.email, 'priya@gmail.com'))
+      const sam = await addTestPerson(testDb.db, me, { name: 'Sam Lee' })
+      await testDb.db.update(people).set({ picture: 'https://example.com/sam.png' }).where(eq(people.id, sam))
+      await addTestPerson(testDb.db, me, { name: 'Ana Ruiz' })
+      renderGroup(id)
+
+      const picker = await openPicker(2)
+      expect(personButton(picker, 'Sam Lee').querySelector('img')).toHaveAttribute('src', 'https://example.com/sam.png')
+      expect(personButton(picker, 'Ana Ruiz').querySelector('img')).toBeNull()
+      expect(within(personButton(picker, 'Ana Ruiz')).getByText('A')).toBeInTheDocument()
+
+      const sheet = await findSheet('Members (2)')
+      const sources = [...sheet.querySelectorAll('img')].map((image) => image.getAttribute('src'))
+      expect(sources).toEqual(['https://example.com/priya.png'])
+    })
+  })
+
   describe('the "Add a member" sheet', () => {
     it('lists the people saved on the device who are not in the group, with Cancel and Add (switched off)', async () => {
       const id = await createGroup(['priya@gmail.com'])

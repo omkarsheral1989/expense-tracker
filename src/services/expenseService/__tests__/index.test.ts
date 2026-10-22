@@ -637,9 +637,9 @@ describe('getExpense', () => {
       createdBy: { email: 'omkar@gmail.com', name: 'Omkar', isYou: true },
       // Ana neither paid nor owes, so she is left out.
       shares: [
-        { personId: me, email: 'omkar@gmail.com', name: 'Omkar', isYou: true, paidMinor: 0, owedMinor: 300 },
-        { personId: priyaId, email: 'priya@gmail.com', name: null, isYou: false, paidMinor: 0, owedMinor: 600 },
-        { personId: samId, email: 'sam@gmail.com', name: null, isYou: false, paidMinor: 900, owedMinor: 0 },
+        { personId: me, email: 'omkar@gmail.com', name: 'Omkar', picture: null, isYou: true, paidMinor: 0, owedMinor: 300 },
+        { personId: priyaId, email: 'priya@gmail.com', name: null, picture: null, isYou: false, paidMinor: 0, owedMinor: 600 },
+        { personId: samId, email: 'sam@gmail.com', name: null, picture: null, isYou: false, paidMinor: 900, owedMinor: 0 },
       ],
       receipts: [],
       lastEdit: null,

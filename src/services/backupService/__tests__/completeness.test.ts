@@ -90,6 +90,10 @@ async function everything() {
   const groupId = trip.groupId
   const userId = await personIdOf(source, omkar.email)
   await source.update(people).set({ name: 'Priya Shah' }).where(eq(people.email, 'priya@gmail.com'))
+  // A name only this device uses (ADR-045): in the backup, never in a group's file.
+  await source.update(people).set({ localName: 'Dev (flat)' }).where(eq(people.email, 'dev@gmail.com'))
+  // A Google picture's address (ADR-046): in the backup and in group files.
+  await source.update(people).set({ picture: 'https://lh3.googleusercontent.com/a/dev' }).where(eq(people.email, 'dev@gmail.com'))
 
   // A person with no email in the group, a person in no group, and a deleted person.
   const sam = await addTestPerson(source, omkar, { name: 'Sam' })
@@ -219,7 +223,12 @@ describe('a member\'s group file holds the whole group', () => {
       const sourceRows = new Map((await rowsOf(sourcePg, table)).map((row) => [row.id, row]))
       const targetRows = await rowsOf(targetPg, table)
       expect(targetRows.map((row) => row.id).sort(), table).toEqual(inFile.map((row) => row.id).sort())
-      for (const row of targetRows) expect(row, table).toEqual(sourceRows.get(row.id))
+      for (const row of targetRows) {
+        // A local name is private to a device (ADR-045): a group file never carries it.
+        const expected = table === 'people' ? { ...sourceRows.get(row.id), local_name: null } : sourceRows.get(row.id)
+        expect(row, table).toEqual(expected)
+      }
     }
+    expect(JSON.stringify(written)).not.toContain('Dev (flat)')
   })
 })

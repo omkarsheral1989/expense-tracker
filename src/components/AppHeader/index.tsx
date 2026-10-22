@@ -1,6 +1,6 @@
-import { LogoutOutlined } from '@ant-design/icons'
+import { LogoutOutlined, TeamOutlined } from '@ant-design/icons'
 import { Button, Dropdown, Flex, Typography, theme } from 'antd'
-import { Link } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { ROUTES } from '../../routes.ts'
 import type { Profile } from '../../services/googleProfileService/types.ts'
 import { useAuthStore } from '../../stores/useAuthStore'
@@ -23,6 +23,7 @@ export function AppHeader() {
   const guest = useAuthStore((state) => state.guest)
   const signOut = useAuthStore((state) => state.signOut)
   const { token } = theme.useToken()
+  const navigate = useNavigate()
 
   // Visitors who are not in the app are sent away by `RequireAuth` before this matters.
   if (!profile && !guest) return null
@@ -62,6 +63,12 @@ export function AppHeader() {
               style: { cursor: 'default' },
             },
             { type: 'divider' },
+            {
+              key: 'members',
+              icon: <TeamOutlined />,
+              label: 'Group members',
+              onClick: () => navigate(ROUTES.members),
+            },
             {
               key: 'sign-out',
               icon: <LogoutOutlined />,

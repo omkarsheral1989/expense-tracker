@@ -296,6 +296,56 @@ describe('userService.resolve', () => {
     })
   })
 
+  describe('the Google picture (ADR-046)', () => {
+    const withPicture: Profile = { ...omkar, picture: 'https://example.com/omkar.png' }
+
+    it('is saved on a new person', async () => {
+      const id = crypto.randomUUID()
+      await userService.resolve(db, { userPersonId: id }, withPicture)
+      expect((await db.select().from(people))[0].picture).toBe('https://example.com/omkar.png')
+    })
+
+    it('is saved on a guest who signs in', async () => {
+      const id = crypto.randomUUID()
+      await userService.resolve(db, { userPersonId: id }, null)
+
+      await userService.resolve(db, { userPersonId: id }, withPicture)
+
+      expect((await db.select().from(people))[0].picture).toBe('https://example.com/omkar.png')
+    })
+
+    it('follows a changed picture, without touching the row\'s time (a typed name must still win a sync)', async () => {
+      const id = crypto.randomUUID()
+      await userService.resolve(db, { userPersonId: id }, withPicture)
+      await db.update(people).set({ name: 'Om', updatedAt: new Date('2026-10-01T10:00:00Z') }).where(eq(people.id, id))
+
+      await userService.resolve(db, { userPersonId: id }, { ...omkar, picture: 'https://example.com/new.png' })
+
+      const [row] = await db.select().from(people)
+      expect(row).toMatchObject({ name: 'Om', picture: 'https://example.com/new.png' })
+      expect(row.updatedAt).toEqual(new Date('2026-10-01T10:00:00Z'))
+    })
+
+    it('is saved on the member a guest is merged into', async () => {
+      const guestId = crypto.randomUUID()
+      await userService.resolve(db, { userPersonId: guestId }, null)
+      const memberId = await addMember('omkar@gmail.com', 'Om', guestId)
+
+      await userService.resolve(db, { userPersonId: guestId }, withPicture)
+
+      expect((await db.select().from(people).where(eq(people.id, memberId)))[0].picture).toBe('https://example.com/omkar.png')
+    })
+
+    it('leaves the saved picture alone when the account has none', async () => {
+      const id = crypto.randomUUID()
+      await userService.resolve(db, { userPersonId: id }, withPicture)
+
+      await userService.resolve(db, { userPersonId: id }, omkar)
+
+      expect((await db.select().from(people))[0].picture).toBe('https://example.com/omkar.png')
+    })
+  })
+
   it('names a guest\'s person with the shared guest name', () => {
     expect(userService.guestName).toBe('Guest')
   })

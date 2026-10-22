@@ -4,6 +4,8 @@ export const ROUTES = {
   /** Where the welcome page's Open OwnLedger button leads: sign in with Google, or continue as a guest. */
   getStarted: '/get-started',
   home: '/home',
+  /** Everyone saved on this device, where they are added and renamed. */
+  members: '/members',
   newGroup: '/groups/new',
   /** The page of one group. */
   group: (id: string) => `/groups/${id}`,

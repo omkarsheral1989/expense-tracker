@@ -86,6 +86,8 @@ async function joinPeopleByEmail(tx: Transaction, incoming: BackupRows['people']
       .set({
         email: match.email,
         name: match.name,
+        localName: match.localName,
+        picture: match.picture,
         updatedAt: match.updatedAt,
         updatedBy: match.updatedBy === match.id ? person.id : match.updatedBy,
         deletedAt: match.deletedAt,
@@ -94,6 +96,29 @@ async function joinPeopleByEmail(tx: Transaction, incoming: BackupRows['people']
     renamed.set(match.id, person.id)
   }
   return renamed
+}
+
+/**
+ * A newer person row replaces the whole row, but two of its details are not
+ * one version's to take away: the name this device uses for the person (private
+ * to it) and their picture (which a version written by someone who has not
+ * seen it leaves empty). After the merge each is filled from what the device had
+ * before or what came in, whichever exists (ADR-045, ADR-046).
+ */
+async function keepOwnDetails(
+  tx: Transaction,
+  before: Map<string, typeof people.$inferSelect>,
+  incoming: BackupRows['people'],
+) {
+  const after = new Map((await tx.select().from(people)).map((person) => [person.id, person]))
+  for (const person of incoming) {
+    const now = after.get(person.id)
+    if (!now) continue
+    const localName = now.localName ?? before.get(person.id)?.localName ?? person.localName ?? null
+    const picture = now.picture ?? before.get(person.id)?.picture ?? person.picture ?? null
+    if (localName === now.localName && picture === now.picture) continue
+    await tx.update(people).set({ localName, picture }).where(eq(people.id, person.id))
+  }
 }
 
 /**
@@ -107,6 +132,8 @@ export async function mergeBackupRows(tx: Transaction, rows: BackupRows): Promis
   const renamed = await joinPeopleByEmail(tx, rows.people)
   const incoming = renamed.size ? backupRowsSchema.parse(renameIds(rows, renamed)) : rows
 
+  const peopleBefore = new Map((await tx.select().from(people)).map((person) => [person.id, person]))
+
   // A person can be changed by someone further down the list, so new people
   // are inserted as changed by themselves and then given who changed them.
   const newPeople = await mergeRows(tx, people, incoming.people, undefined, (person) => ({
@@ -117,6 +144,8 @@ export async function mergeBackupRows(tx: Transaction, rows: BackupRows): Promis
     if (person.updatedBy === person.id) continue
     await tx.update(people).set({ updatedBy: person.updatedBy }).where(eq(people.id, person.id))
   }
+
+  await keepOwnDetails(tx, peopleBefore, incoming.people)
 
   await mergeRows(tx, groups, incoming.groups)
   await mergeRows(tx, groupMembers, incoming.groupMembers, (row) => `${row.groupId}:${row.personId}`)

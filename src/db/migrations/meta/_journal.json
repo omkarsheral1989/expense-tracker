@@ -71,6 +71,20 @@
       "when": 1792576137709,
       "tag": "0009_sync_status",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792668578433,
+      "tag": "0010_people_local_name",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792674595246,
+      "tag": "0011_people_picture",
+      "breakpoints": true
     }
   ]
 }

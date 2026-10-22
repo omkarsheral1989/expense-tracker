@@ -1,6 +1,7 @@
 import { and, eq, isNotNull, isNull } from 'drizzle-orm'
 import type { Database } from '../../db/client.ts'
 import { expensePhotos, expenses, groupMembers, groups, people, syncStatus } from '../../db/schema.ts'
+import { shownName } from '../../db/shownName.ts'
 import { backupService } from '../backupService'
 import type { GroupFile } from '../backupService/types.ts'
 import {
@@ -95,7 +96,7 @@ async function importFiles(db: Database, groupId: string, files: GroupFile[]) {
 /** The group's live members who have an email, with their names. */
 function membersWithEmail(db: Database, groupId: string) {
   return db
-    .select({ email: people.email, name: people.name })
+    .select({ email: people.email, name: shownName(people) })
     .from(groupMembers)
     .innerJoin(people, eq(people.id, groupMembers.personId))
     .where(and(eq(groupMembers.groupId, groupId), isNull(groupMembers.deletedAt), isNotNull(people.email)))

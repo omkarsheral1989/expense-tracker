@@ -12,6 +12,7 @@ import { ExpenseVersionPage } from './pages/expenseVersion'
 import { GetStartedPage } from './pages/getStarted'
 import { GroupPage } from './pages/group'
 import { HomePage } from './pages/home'
+import { MembersPage } from './pages/members'
 import { SettleUpPage } from './pages/settleUp'
 import { WelcomePage } from './pages/welcome'
 import { ROUTES } from './routes.ts'
@@ -34,6 +35,7 @@ function App() {
           }
         >
           <Route path={ROUTES.home} element={<HomePage />} />
+          <Route path={ROUTES.members} element={<MembersPage />} />
           <Route path={ROUTES.newGroup} element={<CreateGroupPage />} />
           <Route path={ROUTES.groupPattern} element={<GroupPage />} />
           <Route path={ROUTES.editGroupPattern} element={<EditGroupPage />} />

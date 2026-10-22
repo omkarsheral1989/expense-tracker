@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { MEMBER_EMAIL_DOMAIN, PERSON_NAME_MAX_LENGTH } from './constants.ts'
-import type { AddPersonErrors, AddPersonField } from './types.ts'
+import type { AddPersonErrors, AddPersonField, UpdatePersonErrors, UpdatePersonField } from './types.ts'
 
 const GMAIL_ADDRESS = new RegExp(`^[a-z0-9._+-]+@${MEMBER_EMAIL_DOMAIN.replace('.', '\\.')}$`)
 
@@ -38,6 +38,30 @@ export function toFieldErrors(error: z.ZodError): AddPersonErrors {
     const field = issue.path[0]
     if (typeof field === 'string' && FIELDS.includes(field)) {
       errors[field as AddPersonField] ??= issue.message
+    }
+  }
+  return errors
+}
+
+/**
+ * The rules for editing a person: the name this device uses for them is
+ * required (same rules as a new member's name), and an empty email means
+ * "leave it as it is" (an email is never cleared).
+ */
+export const updatePersonSchema = z.object({
+  localName: addPersonSchema.shape.name,
+  email: addPersonSchema.shape.email,
+})
+
+const UPDATE_FIELDS: readonly string[] = Object.keys(updatePersonSchema.shape)
+
+/** The first problem of each field of the edit dialog. */
+export function toUpdateFieldErrors(error: z.ZodError): UpdatePersonErrors {
+  const errors: UpdatePersonErrors = {}
+  for (const issue of error.issues) {
+    const field = issue.path[0]
+    if (typeof field === 'string' && UPDATE_FIELDS.includes(field)) {
+      errors[field as UpdatePersonField] ??= issue.message
     }
   }
   return errors

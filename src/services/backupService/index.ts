@@ -90,7 +90,8 @@ export const backupService = {
         groupId,
         writtenAt: new Date(),
         writtenBy,
-        rows: { people: namedPeople, ...rows },
+        // A local name is private to the device (ADR-045): it never goes into a group's file.
+        rows: { people: namedPeople.map((person) => ({ ...person, localName: undefined })), ...rows },
       }
     })
   },

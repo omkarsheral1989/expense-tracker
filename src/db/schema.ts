@@ -55,6 +55,17 @@ export const people = pgTable(
     /** Lower-case and unique when there is one; null for a person added without an email. */
     email: text('email').unique(),
     name: text('name'),
+    /**
+     * What this device calls the person instead of `name`. Private to the device:
+     * kept in the backup, never written to a group's files (ADR-045).
+     */
+    localName: text('local_name'),
+    /**
+     * The address of the person's Google profile picture, set by their own
+     * device when they sign in and carried to the other members by sync
+     * (ADR-046). Null when nobody has seen them signed in.
+     */
+    picture: text('picture'),
   },
   (table) => [
     check('people_email_lowercase', sql`${table.email} = lower(${table.email})`),

@@ -321,10 +321,27 @@ Built in phases (listed at the end), each with tests, a browser check and a UX r
   5. Failures: Drive access running out (Continue), a dropped connection, a full Drive, retries, the leave warning, a deleted group folder, "Last synced" in the dialog (decisions above). Built.
   6. A cleared device, and no Restore: Restore from Drive leaves the avatar menu, with its code and copy; a full Sync adds the backup in Drive to the device (data and photos) before writing it, writes it after the groups, and finds the user's own group folders as well as those shared with them (decisions above). Built.
 
+### 5.9 Group members
+Route `/members`, opened by a "Group members" entry in the avatar menu (above Sign out). It lists the people saved on this device and is where they are added and renamed. Guests have it too.
+- **Layout:** like the other pages with a Back button (to the home page): Back, the heading "Group members", then the people A to Z (by the name shown), then one **Add member** button (plus icon) after a thin line. Placeholders while loading, "Couldn't load your members" with Try again, and "No members yet." when nobody is saved. The tab title is "Group members · OwnLedger".
+- **Who is listed:** everyone saved on this device except the user (the same people as the pickers), including people in no group.
+- **Row:** a card with the person's avatar (their Google picture, 5.10, or the initial), the name shown with the email under it ("No email" without one) and a "Pending" tag until they have signed in and synced (5.4). The whole card opens the edit dialog; there is no pencil button.
+- **Add member:** the name-and-email dialog of Create group (5.3, same rules and messages). The person is saved on this device at once, in no group, and appears in the list.
+- **Edit dialog** (a dialog on desktop, a bottom sheet on phones), with Cancel and Save:
+  - **Name:** required. A name that only this device uses (a local name, 1 to 60 characters, unique among the names shown on this device, ignoring case and extra spaces); "Enter a name." when empty. A name equal to the person's shared name is stored as no local name, so they keep following the shared one. It is shown instead of the shared name everywhere on this device (members sheets, pickers, expense rows and details, balances, splits, history lines), is never sent to other members and does not change what they see. Saving it is not activity: no group moves on the home list.
+  - **Email:** shown only for a person who is Pending in every group this device knows them in (nobody has been seen signing in and syncing, 5.4), with or without an email. It is the person's real, shared email (`@gmail.com`), so it travels with sync: the next sync shares their groups' folders with it. For everyone else it is not shown.
+  - **Email already used:** if it belongs to someone else on this device, "Priya Shah is already in your list with this email." and nothing changes. Merging two people is not part of this.
+  - Problems are shown beside their field when Save is pressed; Save with nothing changed just closes.
+
+### 5.10 People's pictures
+- **Google picture:** wherever a person has an avatar (the Group members page, the members sheet, the add-a-member list, the split dialog and an expense's split), it shows their Google profile picture, or the initial in the app's teal when there is none or it cannot be loaded.
+- **Where it comes from:** a person's own device saves the address of their Google picture when they sign in; it is carried to the other members by sync, so a member sees it once they have synced (when they are no longer Pending). A person nobody has seen signed in has only the initial. A changed Google picture reaches other members the next time they first see a picture for that person; an address they already have is kept.
+- **Offline:** the first time the device is online with a picture's address, it keeps its own copy of the image, so it shows offline. Without a copy it loads from Google, and falls back to the initial if it cannot.
+
 ## 6. Open questions
 - Google Cloud setup: the OAuth client ID is not created yet (Drive API, consent screen in Testing mode, authorized origins, test users).
 - Member removal: what happens to a removed member's access and local data (a person who left can already be added back, 5.4).
-- Adding or changing a person's email later (so a member added without one can be invited), and renaming a person.
+- A changed Google picture reaching members who already have the old one (5.10). Merging two people who are one person in real life (5.9 refuses an email that is already used). Changing the email of a person who has already signed in.
 - Automatic sync (for now only the Sync buttons start it, 5.8).
 - Group page: what the search button opens, how trip dates work (which group types, start and end), and what else the pill row holds (balances, totals, charts).
 - Tags on expenses.

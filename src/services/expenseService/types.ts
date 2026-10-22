@@ -148,6 +148,8 @@ export type ExpenseShareDetails = {
   personId: string
   email: string | null
   name: string | null
+  /** The address of their Google picture, once known (ADR-046). */
+  picture?: string | null
   isYou: boolean
   paidMinor: number
   owedMinor: number

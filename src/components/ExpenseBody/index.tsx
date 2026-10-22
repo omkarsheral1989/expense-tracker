@@ -1,4 +1,4 @@
-import { Avatar, Divider, Flex, theme, Typography } from 'antd'
+import { Divider, Flex, Typography } from 'antd'
 import type { ReactNode } from 'react'
 import type { SplitMethod } from '../../db/types.ts'
 import { dateService } from '../../services/dateService'
@@ -6,6 +6,7 @@ import { expenseService } from '../../services/expenseService'
 import type { ExpenseShareDetails } from '../../services/expenseService/types.ts'
 import { moneyService } from '../../services/moneyService'
 import { CategoryIcon } from '../CategoryIcon'
+import { PersonAvatar } from '../PersonAvatar'
 import { displayName, owedSentence, paidSentence, SPLIT_METHOD_LABELS } from '../ExpenseWording'
 import { ReceiptGallery } from '../ReceiptGallery'
 
@@ -52,7 +53,6 @@ export function ExpenseBody({
   before,
   after,
 }: Props) {
-  const { token } = theme.useToken()
   const categoryOf = expenseService.categoryOf(category)
   // A settlement is worded by who paid whom ("You paid Priya"), and has no split to show.
   const isSettlement = category === expenseService.settlementCategory
@@ -94,9 +94,7 @@ export function ExpenseBody({
     const name = displayName(share)
     return (
       <Flex key={share.personId} align="center" gap={12} role="listitem">
-        <Avatar style={{ flex: 'none', background: token.colorPrimaryBg, color: token.colorPrimary }}>
-          {name.charAt(0).toUpperCase()}
-        </Avatar>
+        <PersonAvatar name={name} picture={share.picture} style={{ flex: 'none' }} />
         <Text style={{ overflowWrap: 'anywhere' }}>{owedSentence(share, currency)}</Text>
       </Flex>
     )
