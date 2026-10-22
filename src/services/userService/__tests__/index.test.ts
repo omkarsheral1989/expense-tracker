@@ -4,6 +4,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createDatabase, type Database } from '../../../db/client.ts'
 import { expenseEvents, expenseShares, expenses, groupMembers, groups, people } from '../../../db/schema.ts'
 import type { Profile } from '../../googleProfileService/types.ts'
+import { GOOGLE_NAME_TIME } from '../constants.ts'
 import { userService } from '../index.ts'
 
 let pg: PGlite
@@ -106,6 +107,49 @@ describe('userService.resolve', () => {
       expect(user.name).toBe('Omkar S.')
       const [updated] = await db.select().from(people)
       expect(updated.name).toBe('Omkar S.')
+    })
+
+    it('saves a name from Google as the oldest version, so a name someone typed wins a sync', async () => {
+      const guestId = crypto.randomUUID()
+      const { personId } = await userService.resolve(db, { userPersonId: null }, omkar)
+      await userService.resolve(db, { userPersonId: guestId }, null)
+
+      const rows = await db.select().from(people)
+
+      expect(rows.map((row) => row.updatedAt)).toEqual([GOOGLE_NAME_TIME, GOOGLE_NAME_TIME])
+      expect(rows.find((row) => row.id === personId)?.name).toBe('Omkar Sheral')
+    })
+
+    it('gives a signed-in guest the account\'s name as a name from Google', async () => {
+      const guestId = crypto.randomUUID()
+      await userService.resolve(db, { userPersonId: guestId }, null)
+
+      await userService.resolve(db, { userPersonId: guestId }, omkar)
+
+      const [row] = await db.select().from(people)
+      expect(row).toMatchObject({ name: 'Omkar Sheral', email: 'omkar@gmail.com', updatedAt: GOOGLE_NAME_TIME })
+    })
+
+    it('keeps a name someone typed for the user, whatever their Google name', async () => {
+      const id = crypto.randomUUID()
+      // Someone added the user as "Om", and that version reached this device by sync.
+      await db.insert(people).values({ id, email: 'omkar@gmail.com', name: 'Om', updatedBy: id })
+      const [before] = await db.select().from(people)
+
+      const user = await userService.resolve(db, { userPersonId: id }, omkar)
+
+      expect(user.name).toBe('Om')
+      expect(await db.select().from(people)).toEqual([before])
+    })
+
+    it('keeps the name a member was given when a guest signs in and is merged into them', async () => {
+      const guestId = crypto.randomUUID()
+      await userService.resolve(db, { userPersonId: guestId }, null)
+      const memberId = await addMember('omkar@gmail.com', 'Om', guestId)
+
+      const user = await userService.resolve(db, { userPersonId: guestId }, omkar)
+
+      expect(user).toEqual({ personId: memberId, name: 'Om', email: 'omkar@gmail.com' })
     })
 
     it('does nothing the second time, when the person already has the account\'s email and name', async () => {

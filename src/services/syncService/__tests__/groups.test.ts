@@ -7,6 +7,7 @@ import { createFakeDriveWorld } from '../../../testing/fakeDrive.ts'
 import { expenseService } from '../../expenseService'
 import { groupService } from '../../groupService'
 import { personService } from '../../personService'
+import { userService } from '../../userService'
 import { syncService } from '../index.ts'
 
 // Two devices: Omkar's (`a`) and Priya's (`b`), each with its own data and its own Drive client.
@@ -176,6 +177,27 @@ describe('two devices', () => {
     if (result.status !== 'synced') throw new Error('not synced')
     return { ...setup, found, priyaOnB: result.renamed.get(priyaOnB) ?? priyaOnB }
   }
+
+  it('keeps the name a member typed for someone, on both devices, over that person\'s Google name', async () => {
+    const setup = await omkarsGroup()
+    await syncService.syncGroup(a, omkarDrive(), setup.omkar, setup.groupId)
+    // Priya signs in on her own device, where the app names her after her Google account.
+    let priyaOnB = (await userService.resolve(b, { userPersonId: null }, { id: 'g-priya', email: 'priya@gmail.com', name: 'Priya Samuel' })).personId
+    priyaOnB = (await syncService.findSharedGroups(b, priyaDrive(), 'priya@gmail.com')).renamed.get(priyaOnB) ?? priyaOnB
+    const result = await syncService.syncGroup(b, priyaDrive(), priyaOnB, setup.groupId)
+    if (result.status !== 'synced') throw new Error('not synced')
+    priyaOnB = result.renamed.get(priyaOnB) ?? priyaOnB
+    // Her next sign-in on that device leaves the typed name alone.
+    await userService.resolve(b, { userPersonId: priyaOnB }, { id: 'g-priya', email: 'priya@gmail.com', name: 'Priya Samuel' })
+    await syncService.syncGroup(b, priyaDrive(), priyaOnB, setup.groupId)
+
+    await syncService.syncGroup(a, omkarDrive(), setup.omkar, setup.groupId)
+
+    for (const db of [a, b]) {
+      const [priya] = await db.select().from(people).where(eq(people.email, 'priya@gmail.com'))
+      expect(priya.name).toBe('Priya Shah')
+    }
+  })
 
   it('brings a shared group onto the member\'s device, with its expenses', async () => {
     const { groupId, found, priyaOnB } = await shared()

@@ -3,7 +3,7 @@ import type { Database } from '../../db/client.ts'
 import { people } from '../../db/schema.ts'
 import type { DeviceRecord } from '../deviceService/types.ts'
 import type { Profile } from '../googleProfileService/types.ts'
-import { GUEST_NAME } from './constants.ts'
+import { GOOGLE_NAME_TIME, GUEST_NAME } from './constants.ts'
 import type { ResolvedUser } from './types.ts'
 import { mergePeople } from './utils.ts'
 
@@ -15,7 +15,9 @@ export const userService = {
    * Finds the user's own person in the data, adding or updating it as needed,
    * when the data is opened (ADR-035):
    * - a guest gets a person named "Guest" with no email;
-   * - signing in with Google gives that person the account's email and name;
+   * - signing in with Google gives that person the account's email, and the
+   *   account's name unless someone typed a name for them (a typed name always
+   *   wins a sync, so a name from Google is saved at `GOOGLE_NAME_TIME`);
    * - if another person already has that email (someone added them as a
    *   member), the guest's person is merged into it, so there is one person;
    * - with no person id on record (data made before guests existed), the person
@@ -40,7 +42,7 @@ export const userService = {
         const id = record.userPersonId ?? crypto.randomUUID()
         const name = profile?.name ?? GUEST_NAME
         const email = profile?.email ?? null
-        await tx.insert(people).values({ id, name, email, updatedBy: id })
+        await tx.insert(people).values({ id, name, email, updatedAt: GOOGLE_NAME_TIME, updatedBy: id })
         return { personId: id, name, email }
       }
 
@@ -52,18 +54,19 @@ export const userService = {
         } else {
           const [linked] = await tx
             .update(people)
-            .set({ email: profile.email, updatedAt: new Date(), updatedBy: person.id })
+            .set({ email: profile.email, updatedAt: GOOGLE_NAME_TIME, updatedBy: person.id })
             .where(eq(people.id, person.id))
             .returning()
           person = linked
         }
       }
 
-      // Keep a person's own name up to date when they sign in.
-      if (profile && person.name !== profile.name) {
+      // A name from Google follows the account; a name someone typed is kept.
+      const nameFromGoogle = person.name === null || person.updatedAt.getTime() === GOOGLE_NAME_TIME.getTime()
+      if (profile && nameFromGoogle && person.name !== profile.name) {
         await tx
           .update(people)
-          .set({ name: profile.name, updatedAt: new Date(), updatedBy: person.id })
+          .set({ name: profile.name, updatedAt: GOOGLE_NAME_TIME, updatedBy: person.id })
           .where(eq(people.id, person.id))
         person = { ...person, name: profile.name }
       }
