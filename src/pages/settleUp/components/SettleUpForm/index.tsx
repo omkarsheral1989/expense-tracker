@@ -150,6 +150,7 @@ export function SettleUpForm({ group, datasetId, userId, recentCurrencies }: Pro
         </Flex>
         <Button
           type="primary"
+          shape="circle"
           htmlType="submit"
           icon={<CheckOutlined />}
           aria-label="Save"

@@ -4,6 +4,7 @@ import { GroupLabel } from '../../../../../components/GroupLabel'
 import { GROUP_TYPE_CONTENT } from '../../../../../components/GroupTypeIcon/content.tsx'
 import type { GroupSummary } from '../../../../../services/groupService/types.ts'
 import { PILL_RADIUS } from '../../../../../theme/radius.ts'
+import { ICON_ONLY_SIZE } from '../../../../../theme/controlHeight.ts'
 
 type Props = {
   /** The group the expense is being added to. */
@@ -50,7 +51,7 @@ export function GroupSwitcher({ group, groups, onSwitch }: Props) {
         style={{ borderRadius: PILL_RADIUS, justifyContent: 'space-between' }}
       >
         <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-          {icon}
+          <span style={{ display: 'flex', fontSize: ICON_ONLY_SIZE }}>{icon}</span>
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{group.name}</span>
         </span>
         <DownOutlined aria-hidden style={{ fontSize: 12 }} />

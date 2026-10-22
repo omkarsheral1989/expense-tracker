@@ -13,6 +13,7 @@ import type { ExpenseDetails } from '../../../../services/expenseService/types.t
 import { History } from './History'
 import { HEADER_TITLE_STYLE } from '../../../../theme/headerTitle.ts'
 import { BackButton } from '../../../../components/BackButton'
+import { PILL_RADIUS } from '../../../../theme/radius.ts'
 
 const { Text, Title } = Typography
 
@@ -88,7 +89,7 @@ export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props)
   function renderActions() {
     if (expense.deleted) {
       return (
-        <Button icon={<UndoOutlined />} loading={restoring} onClick={handleRestore}>
+        <Button icon={<UndoOutlined />} style={{ borderRadius: PILL_RADIUS }} loading={restoring} onClick={handleRestore}>
           Restore
         </Button>
       )
@@ -96,7 +97,7 @@ export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props)
     return (
       <Flex gap={8}>
         {renderEditButton()}
-        <Button icon={<DeleteOutlined />} aria-label="Delete" onClick={confirmDelete} />
+        <Button shape="circle" icon={<DeleteOutlined />} aria-label="Delete" onClick={confirmDelete} />
       </Flex>
     )
   }
@@ -106,14 +107,14 @@ export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props)
     if (isSettlement) {
       return (
         <ComingSoon>
-          <Button icon={<EditOutlined />} disabled>
+          <Button icon={<EditOutlined />} style={{ borderRadius: PILL_RADIUS }} disabled>
             Edit
           </Button>
         </ComingSoon>
       )
     }
     return (
-      <Button icon={<EditOutlined />} onClick={() => navigate(ROUTES.editExpense(expense.groupId, expense.id))}>
+      <Button icon={<EditOutlined />} style={{ borderRadius: PILL_RADIUS }} onClick={() => navigate(ROUTES.editExpense(expense.groupId, expense.id))}>
         Edit
       </Button>
     )

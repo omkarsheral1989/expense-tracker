@@ -194,25 +194,37 @@ describe('GroupPage', () => {
       ['home', 'Home', 'rgb(212, 107, 8)'],
       ['couple', 'Couple', 'rgb(196, 29, 127)'],
       ['other', 'Other', 'rgb(59, 91, 219)'],
-    ] as const)('shows the %s icon, in its color, for a %s group', async (type, label, color) => {
+    ] as const)('shows the %s icon, bare and white on the band in its color, for a %s group', async (type, label, color) => {
       const id = await createGroup(me, { name: 'A group', type })
       renderGroup(id)
 
       await screen.findByRole('heading', { name: 'A group' })
       const icon = screen.getByRole('img', { name: label })
-      expect(icon).toHaveStyle({ background: color })
+      // No tile behind it: just the 40 px icon in white.
+      expect(icon).toHaveStyle({ fontSize: '40px', color: '#fff' })
+      expect(icon.style.background).toBe('')
       // The band behind it is in the same color.
       const band = icon.closest('div[style*="gradient"]') as HTMLElement
       expect(band).not.toBeNull()
       expect(band.style.background).toContain(color)
     })
 
-    it('lifts the icon tile off the band with a shadow, so it does not blend into its own color', async () => {
+    it('titles the band "Group" beside Back, in the header title style', async () => {
       const id = await createGroup(me, { name: 'Goa trip' })
       renderGroup(id)
 
       await screen.findByRole('heading', { name: 'Goa trip' })
-      expect(screen.getByRole('img', { name: 'Trip' }).style.boxShadow).not.toBe('')
+      const title = screen.getByRole('heading', { name: 'Group', level: 3 })
+      expect(title).toHaveStyle({ fontSize: '20px', fontWeight: '300' })
+      expect(title.parentElement).toContainElement(screen.getByRole('button', { name: 'Back' }))
+    })
+
+    it('gives the bare icon a soft shadow, so it stands out from the band', async () => {
+      const id = await createGroup(me, { name: 'Goa trip' })
+      renderGroup(id)
+
+      await screen.findByRole('heading', { name: 'Goa trip' })
+      expect(screen.getByRole('img', { name: 'Trip' }).style.filter).toContain('drop-shadow')
     })
 
     it('lets a long name wrap onto more lines instead of cutting it off or running off the screen', async () => {
@@ -234,10 +246,10 @@ describe('GroupPage', () => {
       const heading = await screen.findByRole('heading', { name: 'Goa trip' })
       const row = heading.parentElement as HTMLElement
       expect(row).toContainElement(screen.getByRole('img', { name: 'Trip' }))
-      // The row is top-aligned; the name's 38 px line sits 5 px down, so it is
-      // centered on the 48 px icon: (48 - 38) / 2.
+      // The row is top-aligned; the name's 38 px line sits 1 px down, so it is
+      // centered on the 40 px icon: (40 - 38) / 2.
       expect(row).toHaveClass('ant-flex-align-flex-start')
-      expect(heading).toHaveStyle({ lineHeight: '38px', marginTop: '5px' })
+      expect(heading).toHaveStyle({ lineHeight: '38px', marginTop: '1px' })
     })
 
     it('goes back to the home page with the Back button', async () => {

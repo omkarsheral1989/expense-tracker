@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router'
 import { ROUTES } from '../../routes.ts'
 import type { Profile } from '../../services/googleProfileService/types.ts'
 import { useAuthStore } from '../../stores/useAuthStore'
+import { CONTROL_HEIGHT } from '../../theme/controlHeight.ts'
 import { BrandLogo } from '../BrandLogo'
 import { ProfileAvatar } from '../ProfileAvatar'
 import { SyncButton } from '../SyncButton'
@@ -34,7 +35,7 @@ export function AppHeader() {
         to={ROUTES.home}
         style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'inherit' }}
       >
-        <BrandLogo size={32} />
+        <BrandLogo size={CONTROL_HEIGHT} />
         <Text strong style={{ fontSize: 18 }}>
           OwnLedger
         </Text>

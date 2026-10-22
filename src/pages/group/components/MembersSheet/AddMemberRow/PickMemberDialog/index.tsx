@@ -6,6 +6,7 @@ import { PersonAvatar } from '../../../../../../components/PersonAvatar'
 import { AddMemberDialog } from '../../../../../../components/MemberSelect/AddMemberDialog'
 import { groupService } from '../../../../../../services/groupService'
 import type { KnownPerson } from '../../../../../../services/personService/types.ts'
+import { ICON_ONLY_SIZE } from '../../../../../../theme/controlHeight.ts'
 
 const { Text } = Typography
 
@@ -88,7 +89,7 @@ export function PickMemberDialog({ open, onClose, people, loading, onAdd, adding
             )}
           </Flex>
         </Flex>
-        {isTicked && <CheckOutlined style={{ marginInlineStart: 'auto', color: token.colorPrimary }} />}
+        {isTicked && <CheckOutlined style={{ marginInlineStart: 'auto', color: token.colorPrimary, fontSize: ICON_ONLY_SIZE }} />}
       </Button>
     )
   }

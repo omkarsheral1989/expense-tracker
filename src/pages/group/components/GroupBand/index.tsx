@@ -7,11 +7,12 @@ import {
 } from '@ant-design/icons'
 import { Flex, Typography } from 'antd'
 import { useNavigate } from 'react-router'
-import { GroupTypeIcon } from '../../../../components/GroupTypeIcon'
+import { GROUP_TYPE_CONTENT } from '../../../../components/GroupTypeIcon/content.tsx'
 import { SyncButton } from '../../../../components/SyncButton'
 import { ROUTES } from '../../../../routes.ts'
 import { currencyService } from '../../../../services/currencyService'
 import type { GroupDetails } from '../../../../services/groupService/types.ts'
+import { HEADER_TITLE_STYLE } from '../../../../theme/headerTitle.ts'
 import { GROUP_TYPE_COLORS } from '../../../../theme/groupTypeColors.ts'
 import { belowStatusBar } from '../../../../theme/safeArea.ts'
 import { BandChip } from './BandChip'
@@ -38,11 +39,16 @@ export function GroupBand({ group, onOpenMembers }: Props) {
   function renderButtons() {
     return (
       <Flex justify="space-between">
-        <BandIconButton
-          icon={<ArrowLeftOutlined />}
-          label="Back"
-          onClick={() => navigate(ROUTES.home)}
-        />
+        <Flex align="center" gap={8}>
+          <BandIconButton
+            icon={<ArrowLeftOutlined />}
+            label="Back"
+            onClick={() => navigate(ROUTES.home)}
+          />
+          <Title level={3} style={{ ...HEADER_TITLE_STYLE, color: '#fff' }}>
+            Group
+          </Title>
+        </Flex>
         <Flex gap={12}>
           <BandIconButton icon={<SearchOutlined />} label="Search" />
           <SyncButton group={{ id: group.id, name: group.name }} onBand />
@@ -59,13 +65,20 @@ export function GroupBand({ group, onOpenMembers }: Props) {
   function renderTitle() {
     return (
       <Flex align="flex-start" gap={16}>
-        <GroupTypeIcon type={group.type} size={48} raised />
+        <span
+          role="img"
+          aria-label={GROUP_TYPE_CONTENT[group.type].label}
+          // The type's icon alone, 40 px and white on the band, beside the name.
+          style={{ display: 'flex', flex: 'none', fontSize: 40, lineHeight: '40px', margin: 0, color: '#fff', filter: 'drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35))' }}
+        >
+          {GROUP_TYPE_CONTENT[group.type].icon}
+        </span>
         <Title
           level={2}
           style={{
-            // A one-line name is centered on the 48 px tile: (48 - 38) / 2 above its 38 px line.
+            // A one-line name is centered on the 40 px icon: (40 - 38) / 2 above its 38 px line.
             // A longer name wraps downwards from there.
-            margin: '5px 0 0',
+            margin: '1px 0 0',
             lineHeight: '38px',
             minWidth: 0,
             color: '#fff',

@@ -1,5 +1,6 @@
 import { Tag } from 'antd'
 import type { GroupSummary } from '../../services/groupService/types.ts'
+import { ICON_ONLY_SIZE } from '../../theme/controlHeight.ts'
 import { PILL_RADIUS } from '../../theme/radius.ts'
 import { GROUP_TYPE_CONTENT } from '../GroupTypeIcon/content.tsx'
 
@@ -11,7 +12,7 @@ type Props = {
 export function GroupLabel({ group }: Props) {
   return (
     <Tag
-      icon={GROUP_TYPE_CONTENT[group.type].icon}
+      icon={<span style={{ display: 'flex', fontSize: ICON_ONLY_SIZE }}>{GROUP_TYPE_CONTENT[group.type].icon}</span>}
       style={{ borderRadius: PILL_RADIUS, paddingInline: 10, fontSize: 14, lineHeight: '26px', margin: 0 }}
     >
       {group.name}

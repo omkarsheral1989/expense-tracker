@@ -12,6 +12,7 @@ import { expenseService } from '../../../../services/expenseService'
 import type { ExpenseVersion } from '../../../../services/expenseService/types.ts'
 import { HEADER_TITLE_STYLE } from '../../../../theme/headerTitle.ts'
 import { BackButton } from '../../../../components/BackButton'
+import { PILL_RADIUS } from '../../../../theme/radius.ts'
 
 const { Text, Title } = Typography
 
@@ -68,7 +69,7 @@ export function VersionDetails({ data, datasetId, userId, onChanged }: Props) {
   function renderAction() {
     if (data.isPayment || data.isCurrent || data.expenseDeleted) return null
     return (
-      <Button icon={<UndoOutlined />} loading={restoring} onClick={handleRestore}>
+      <Button icon={<UndoOutlined />} style={{ borderRadius: PILL_RADIUS }} loading={restoring} onClick={handleRestore}>
         Restore this version
       </Button>
     )

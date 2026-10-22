@@ -7,10 +7,10 @@ type Props = {
 }
 
 /**
- * The Back button at the start of a page's header: a 40 px outlined square with
+ * The Back button at the start of a page's header: a 40 px outlined circle with
  * an arrow, the same look as the Edit and Delete buttons at the other end, so
  * the header's controls read as one family.
  */
 export function BackButton({ onClick }: Props) {
-  return <Button icon={<ArrowLeftOutlined />} aria-label="Back" onClick={onClick} />
+  return <Button shape="circle" icon={<ArrowLeftOutlined />} aria-label="Back" onClick={onClick} />
 }

@@ -7,3 +7,10 @@
  * receipt photo).
  */
 export const CONTROL_HEIGHT = 40
+
+/**
+ * The size of the icon inside a button, in px: icon-only buttons (Back, Delete, Sync, the band's round
+ * buttons) through the theme, and buttons with text beside the icon (Edit, Restore, Add member) through
+ * `index.css`, which repeats this number. The button stays `CONTROL_HEIGHT`.
+ */
+export const ICON_ONLY_SIZE = 18

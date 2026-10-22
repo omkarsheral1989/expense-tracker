@@ -184,6 +184,7 @@ export function ExpenseForm({
         </Flex>
         <Button
           type="primary"
+          shape="circle"
           htmlType="submit"
           icon={<CheckOutlined />}
           aria-label="Save"

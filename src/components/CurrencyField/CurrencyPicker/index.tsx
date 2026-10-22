@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { AdaptiveDialog } from '../../AdaptiveDialog'
 import { currencyService } from '../../../services/currencyService'
 import type { CurrencyOption } from '../../../services/currencyService/types.ts'
+import { ICON_ONLY_SIZE } from '../../../theme/controlHeight.ts'
 
 const { Text } = Typography
 
@@ -49,7 +50,7 @@ export function CurrencyPicker({ open, onClose, value, recentCodes, onPick }: Pr
         style={{ justifyContent: 'space-between', height: 'auto', padding: '8px 12px' }}
       >
         <span style={{ whiteSpace: 'normal', textAlign: 'start' }}>{option.label}</span>
-        {selected && <CheckOutlined aria-hidden />}
+        {selected && <CheckOutlined aria-hidden style={{ fontSize: ICON_ONLY_SIZE }} />}
       </Button>
     )
   }

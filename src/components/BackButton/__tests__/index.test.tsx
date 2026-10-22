@@ -18,11 +18,12 @@ describe('BackButton', () => {
     expect(onClick).toHaveBeenCalledTimes(1)
   })
 
-  it('looks like the Edit and Delete buttons: an outlined square, not a bare icon', () => {
+  it('is an outlined circle like the Delete button, not a bare icon', () => {
     render(<BackButton onClick={() => undefined} />)
 
     const button = screen.getByRole('button', { name: 'Back' })
     expect(button).toHaveClass('ant-btn-default', 'ant-btn-variant-outlined', 'ant-btn-icon-only')
     expect(button).not.toHaveClass('ant-btn-text')
+    expect(button).toHaveClass('ant-btn-circle')
   })
 })

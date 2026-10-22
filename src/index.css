@@ -22,3 +22,16 @@ body {
 .ant-notification-bottomRight {
   margin-bottom: env(safe-area-inset-bottom);
 }
+
+/* The icon of a button with text beside it is the same size as the icon of an icon-only one (ICON_ONLY_SIZE in src/theme/controlHeight.ts). */
+.ant-btn > .ant-btn-icon {
+  font-size: 18px;
+}
+
+/* The close x of a sheet or dialog, the icon at the start of a text field and the icon of a menu item match the other icons (ICON_ONLY_SIZE in src/theme/controlHeight.ts). */
+body .ant-drawer-close .anticon,
+body .ant-modal-close .anticon,
+body .ant-input-prefix .anticon,
+body .ant-dropdown-menu .ant-dropdown-menu-item .ant-dropdown-menu-item-icon {
+  font-size: 18px;
+}

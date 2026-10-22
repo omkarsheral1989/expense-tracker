@@ -1,5 +1,6 @@
 import { Segmented } from 'antd'
 import { GroupTypeIcon } from '../GroupTypeIcon'
+import { CONTROL_HEIGHT } from '../../theme/controlHeight.ts'
 import { GROUP_TYPES } from '../../db/constants.ts'
 import type { GroupType } from '../../db/types.ts'
 
@@ -19,7 +20,7 @@ export function GroupTypeSelector({ value, onChange }: Props) {
         value: type,
         label: (
           <div style={{ padding: '8px 0' }}>
-            <GroupTypeIcon type={type} size={36} withLabel />
+            <GroupTypeIcon type={type} size={CONTROL_HEIGHT} withLabel />
           </div>
         ),
       }))}

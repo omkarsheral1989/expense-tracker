@@ -4,6 +4,7 @@ import { AdaptiveDialog } from '../../../AdaptiveDialog'
 import type { SplitValue } from '../../types.ts'
 import type { QuickChoice } from '../types.ts'
 import { sameSplit } from '../utils.ts'
+import { ICON_ONLY_SIZE } from '../../../../theme/controlHeight.ts'
 
 type Props = {
   open: boolean
@@ -30,7 +31,7 @@ export function QuickChoiceDialog({ open, onClose, choices, value, onPick, onMor
         style={{ justifyContent: 'space-between', height: 'auto', padding: '10px 12px' }}
       >
         <span style={{ whiteSpace: 'normal', textAlign: 'start' }}>{choice.label}</span>
-        {selected && <CheckOutlined aria-hidden />}
+        {selected && <CheckOutlined aria-hidden style={{ fontSize: ICON_ONLY_SIZE }} />}
       </Button>
     )
   }

@@ -115,12 +115,12 @@ describe('CreateGroupPage', () => {
   })
 
   describe('when it opens', () => {
-    it('has a quiet header title beside Back: a level 3 heading of 16 px and medium weight, and an outlined Back button', async () => {
+    it('has a quiet header title beside Back: a level 3 heading of 20 px and light weight, and an outlined Back button', async () => {
       renderForm()
       const title = await screen.findByRole('heading', { name: 'Create a group', level: 3 })
-      expect(title).toHaveStyle({ fontSize: '16px', fontWeight: '500' })
+      expect(title).toHaveStyle({ fontSize: '20px', fontWeight: '300' })
       expect(title.parentElement).toContainElement(screen.getByRole('button', { name: 'Back' }))
-      // Back is an outlined square like the Edit and Delete buttons, not a bare icon.
+      // Back is an outlined circle like the Delete button, not a bare icon.
       expect(screen.getByRole('button', { name: 'Back' })).toHaveClass('ant-btn-variant-outlined')
     })
 

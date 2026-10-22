@@ -1,7 +1,7 @@
 import { useEffect, type ReactNode } from 'react'
 import { App as AntApp, ConfigProvider, theme } from 'antd'
 import { useColorScheme } from '../../hooks/useColorScheme'
-import { CONTROL_HEIGHT } from '../../theme/controlHeight.ts'
+import { CONTROL_HEIGHT, ICON_ONLY_SIZE } from '../../theme/controlHeight.ts'
 import '../../theme/dropdown.css'
 import { RADIUS } from '../../theme/radius.ts'
 
@@ -45,7 +45,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         // "Large" controls would otherwise pick up the outer radius and turn
         // into pills, so keep them on the inner tier.
         components: {
-          Button: { borderRadiusLG: RADIUS.inner },
+          Button: {
+            borderRadiusLG: RADIUS.inner,
+            // The icon of an icon-only button (Back, Edit, Delete, Sync, the band's round buttons)
+            // is a little larger than the 14 px text size it inherited; the button stays 40 px.
+            onlyIconSize: ICON_ONLY_SIZE,
+            onlyIconSizeSM: ICON_ONLY_SIZE,
+            onlyIconSizeLG: ICON_ONLY_SIZE,
+          },
           Input: { borderRadiusLG: RADIUS.inner },
           InputNumber: { borderRadiusLG: RADIUS.inner },
           Select: { borderRadiusLG: RADIUS.inner },
