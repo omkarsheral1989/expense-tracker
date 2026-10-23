@@ -1,7 +1,8 @@
-import { Button, Card, Flex, Result, Skeleton, Typography, theme } from 'antd'
+import { Button, Flex, Result, Typography, theme } from 'antd'
 import { useNavigate } from 'react-router'
 import { getDb } from '../../db/client.ts'
 import { CenteredMessage } from '../../components/CenteredMessage'
+import { LoadingMessage } from '../../components/LoadingMessage'
 import { TintedPageBackground } from '../../components/TintedPageBackground'
 import { FloatingPillButton } from '../../components/FloatingPillButton'
 import { ABOVE_FLOATING_BUTTON, FLOATING_BUTTON_ROOM } from '../../components/FloatingPillButton/constants.ts'
@@ -47,15 +48,7 @@ export function HomePage() {
   }
 
   function renderLoading() {
-    return (
-      <Flex vertical gap={12} role="status" aria-label="Loading your groups">
-        {[0, 1, 2].map((row) => (
-          <Card key={row}>
-            <Skeleton active avatar paragraph={{ rows: 1 }} />
-          </Card>
-        ))}
-      </Flex>
-    )
+    return <LoadingMessage label="Loading your groups" roomBelow={ABOVE_FLOATING_BUTTON} />
   }
 
   function renderError() {

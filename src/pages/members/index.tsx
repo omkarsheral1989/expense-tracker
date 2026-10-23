@@ -1,9 +1,10 @@
 import { PlusOutlined } from '@ant-design/icons'
-import { Button, Flex, Result, Skeleton, Typography } from 'antd'
+import { Button, Flex, Result, Typography } from 'antd'
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { BackButton } from '../../components/BackButton'
 import { CenteredMessage } from '../../components/CenteredMessage'
+import { LoadingMessage } from '../../components/LoadingMessage'
 import { AddMemberDialog } from '../../components/MemberSelect/AddMemberDialog'
 import { getDb } from '../../db/client.ts'
 import { useAsyncData } from '../../hooks/useAsyncData'
@@ -60,12 +61,7 @@ export function MembersPage() {
   }
 
   function renderLoading() {
-    return (
-      <Flex vertical role="status" aria-label="Loading your members">
-        <Skeleton active avatar paragraph={{ rows: 1 }} />
-        <Skeleton active avatar paragraph={{ rows: 1 }} />
-      </Flex>
-    )
+    return <LoadingMessage label="Loading your members" />
   }
 
   function renderList(people: ManagedPerson[]) {

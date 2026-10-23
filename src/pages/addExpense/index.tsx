@@ -1,6 +1,7 @@
-import { Card, Flex, Skeleton } from 'antd'
+import { Flex } from 'antd'
 import { useLocation, useParams } from 'react-router'
 import { CenteredMessage } from '../../components/CenteredMessage'
+import { LoadingMessage } from '../../components/LoadingMessage'
 import { LoadError } from '../../components/LoadError'
 import { ROUTES } from '../../routes.ts'
 import { GroupNotFound } from '../../components/GroupNotFound'
@@ -44,11 +45,7 @@ export function AddExpensePage() {
   function renderContent() {
     switch (state.status) {
       case 'loading':
-        return (
-          <Card role="status" aria-label="Loading the group">
-            <Skeleton active paragraph={{ rows: 6 }} />
-          </Card>
-        )
+        return null
       case 'error':
         return (
           <LoadError title="Couldn't load this group" onRetry={retry} error={state.status === 'error' ? state.error : undefined} backTo={ROUTES.group(id)} />
@@ -76,6 +73,8 @@ export function AddExpensePage() {
         )
     }
   }
+
+  if (state.status === 'loading') return <LoadingMessage label="Loading the group" />
 
   // A message (couldn't load, group not found) is centered on the screen; the
   // form and its loading placeholder sit in the column.

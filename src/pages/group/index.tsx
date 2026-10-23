@@ -1,4 +1,4 @@
-import { Card, Flex, Skeleton } from 'antd'
+import { Flex } from 'antd'
 import { useState } from 'react'
 import { useParams } from 'react-router'
 import { getDb } from '../../db/client.ts'
@@ -18,6 +18,7 @@ import { GroupBand } from './components/GroupBand'
 import { GroupNotFound } from '../../components/GroupNotFound'
 import { MembersSheet } from './components/MembersSheet'
 import { CenteredMessage } from '../../components/CenteredMessage'
+import { LoadingMessage } from '../../components/LoadingMessage'
 import { LoadError } from '../../components/LoadError'
 import { ROUTES } from '../../routes.ts'
 import { FLOATING_BUTTON_ROOM } from '../../components/FloatingPillButton/constants.ts'
@@ -58,16 +59,7 @@ export function GroupPage() {
   if (!user) return null
 
   function renderLoading() {
-    return (
-      <div style={COLUMN_STYLE}>
-        <Flex vertical gap={16} role="status" aria-label="Loading the group">
-          <Skeleton active avatar paragraph={{ rows: 1 }} />
-          <Card>
-            <Skeleton active paragraph={{ rows: 3 }} />
-          </Card>
-        </Flex>
-      </div>
-    )
+    return <LoadingMessage label="Loading the group" />
   }
 
   function renderError() {

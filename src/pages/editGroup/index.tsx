@@ -1,7 +1,8 @@
-import { Flex, Skeleton } from 'antd'
+import { Flex } from 'antd'
 import type { ReactNode } from 'react'
 import { useParams } from 'react-router'
 import { CenteredMessage } from '../../components/CenteredMessage'
+import { LoadingMessage } from '../../components/LoadingMessage'
 import { LoadError } from '../../components/LoadError'
 import { ROUTES } from '../../routes.ts'
 import { GroupNotFound } from '../../components/GroupNotFound'
@@ -27,11 +28,7 @@ export function EditGroupPage() {
   if (!user) return null
 
   function renderLoading() {
-    return (
-      <Flex vertical role="status" aria-label="Loading the group">
-        <Skeleton active paragraph={{ rows: 4 }} />
-      </Flex>
-    )
+    return <LoadingMessage label="Loading the group" />
   }
 
   function renderError() {

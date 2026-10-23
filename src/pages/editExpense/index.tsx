@@ -1,6 +1,7 @@
-import { Card, Flex, Skeleton } from 'antd'
+import { Flex } from 'antd'
 import { useParams } from 'react-router'
 import { CenteredMessage } from '../../components/CenteredMessage'
+import { LoadingMessage } from '../../components/LoadingMessage'
 import { LoadError } from '../../components/LoadError'
 import { ROUTES } from '../../routes.ts'
 import { ExpenseNotFound } from '../../components/ExpenseNotFound'
@@ -35,8 +36,10 @@ export function EditExpensePage() {
   // Visitors who are not in the app are sent away by `RequireAuth` before this matters.
   if (!user) return null
 
+  if (state.status === 'loading') return <LoadingMessage label="Loading the expense" />
+
   // A message (couldn't load, expense not found) is centered on the screen; the
-  // form and its loading placeholder sit in the column.
+  // form sits in the column.
   if (state.status === 'error') {
     return (
       <CenteredMessage>
@@ -65,11 +68,7 @@ export function EditExpensePage() {
           userId={userId}
           recentCurrencies={state.data.recentCurrencies}
         />
-      ) : (
-        <Card role="status" aria-label="Loading the expense">
-          <Skeleton active paragraph={{ rows: 6 }} />
-        </Card>
-      )}
+      ) : null}
     </Flex>
   )
 }

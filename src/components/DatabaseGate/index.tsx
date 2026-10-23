@@ -1,5 +1,5 @@
 import { useMemo, type ReactNode } from 'react'
-import { Button, Flex, Result, Spin, Typography } from 'antd'
+import { Button, Result, Typography } from 'antd'
 import { CurrentUserContext } from '../../hooks/useCurrentUser/context.ts'
 import { useAsyncData } from '../../hooks/useAsyncData'
 import { useDatabaseSession } from '../../hooks/useDatabaseSession'
@@ -11,6 +11,7 @@ import { useAuthStore } from '../../stores/useAuthStore'
 import { useSyncStore } from '../../stores/useSyncStore'
 import type { Database } from '../../db/client.ts'
 import { CenteredMessage } from '../CenteredMessage'
+import { LoadingMessage } from '../LoadingMessage'
 
 const { Text } = Typography
 
@@ -82,12 +83,7 @@ function OpenData({ record, profile, header, children }: Opening & { record: Dev
 
   function renderLoading() {
     return (
-      <CenteredMessage>
-        <Flex vertical align="center" gap={16}>
-          <Spin size="large" />
-          <Text type="secondary">Opening your data…</Text>
-        </Flex>
-      </CenteredMessage>
+      <LoadingMessage label="Opening your data" />
     )
   }
 
@@ -195,12 +191,7 @@ function WithUser({ db, record, profile, header, children }: Opening & { db: Dat
     return (
       <>
         {header}
-        <CenteredMessage>
-          <Flex vertical align="center" gap={16}>
-            <Spin size="large" />
-            <Text type="secondary">Opening your data…</Text>
-          </Flex>
-        </CenteredMessage>
+        <LoadingMessage label="Opening your data" />
       </>
     )
   }

@@ -1,6 +1,7 @@
-import { Card, Flex, Skeleton } from 'antd'
+import { Flex } from 'antd'
 import { useParams } from 'react-router'
 import { CenteredMessage } from '../../components/CenteredMessage'
+import { LoadingMessage } from '../../components/LoadingMessage'
 import { LoadError } from '../../components/LoadError'
 import { ROUTES } from '../../routes.ts'
 import { ExpenseNotFound } from '../../components/ExpenseNotFound'
@@ -37,11 +38,7 @@ export function ExpensePage() {
   function renderContent() {
     switch (state.status) {
       case 'loading':
-        return (
-          <Card role="status" aria-label="Loading the expense">
-            <Skeleton active avatar paragraph={{ rows: 4 }} />
-          </Card>
-        )
+        return null
       case 'error':
         return (
           <LoadError title="Couldn't load this expense" onRetry={retry} error={state.status === 'error' ? state.error : undefined} backTo={ROUTES.group(id)} />
@@ -60,6 +57,8 @@ export function ExpensePage() {
     // React only accepts one string inside <title>, so the text is joined first.
     return <title>{`${state.data ? expenseService.titleOf(state.data) : 'Expense not found'} · OwnLedger`}</title>
   }
+
+  if (state.status === 'loading') return <LoadingMessage label="Loading the expense" />
 
   // A message (couldn't load, expense not found) is centered on the screen; the
   // details and their loading placeholder sit in the column.

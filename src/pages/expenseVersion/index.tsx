@@ -1,6 +1,7 @@
-import { Card, Flex, Skeleton } from 'antd'
+import { Flex } from 'antd'
 import { useParams } from 'react-router'
 import { CenteredMessage } from '../../components/CenteredMessage'
+import { LoadingMessage } from '../../components/LoadingMessage'
 import { LoadError } from '../../components/LoadError'
 import { ROUTES } from '../../routes.ts'
 import { getDb } from '../../db/client.ts'
@@ -61,11 +62,5 @@ export function ExpenseVersionPage() {
     )
   }
 
-  return (
-    <Flex vertical style={COLUMN_STYLE}>
-      <Card role="status" aria-label="Loading the version">
-        <Skeleton active avatar paragraph={{ rows: 4 }} />
-      </Card>
-    </Flex>
-  )
+  return <LoadingMessage label="Loading the version" />
 }
