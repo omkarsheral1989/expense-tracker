@@ -1,9 +1,11 @@
 import { Flex } from 'antd'
-import { useParams } from 'react-router'
+import { useLocation, useParams } from 'react-router'
 import { CenteredMessage } from '../../components/CenteredMessage'
 import { LoadingMessage } from '../../components/LoadingMessage'
 import { LoadError } from '../../components/LoadError'
 import { ROUTES } from '../../routes.ts'
+import { KnownExpensePage } from './components/KnownExpense'
+import { knownExpenseFrom } from './utils.ts'
 import { ExpenseNotFound } from '../../components/ExpenseNotFound'
 import { getDb } from '../../db/client.ts'
 import { useCachedData } from '../../hooks/useCachedData'
@@ -22,6 +24,8 @@ const COLUMN_STYLE = { width: '100%', maxWidth: 560, margin: '0 auto', padding: 
 export function ExpensePage() {
   const user = useCurrentUser()
   const { id = '', expenseId = '' } = useParams()
+  // What the group's list knew about this expense when its row was opened, if it was (ADR-053).
+  const known = knownExpenseFrom(useLocation().state, id, expenseId)
 
   const userId = user?.personId ?? ''
   const datasetId = user?.datasetId ?? ''
@@ -58,7 +62,15 @@ export function ExpensePage() {
     return <title>{`${state.data ? expenseService.titleOf(state.data) : 'Expense not found'} · OwnLedger`}</title>
   }
 
-  if (state.status === 'loading') return <LoadingMessage label="Loading the expense" />
+  if (state.status === 'loading') {
+    if (!known) return <LoadingMessage label="Loading the expense" />
+    return (
+      <>
+        <title>{`${known.description} · OwnLedger`}</title>
+        <KnownExpensePage expense={known} />
+      </>
+    )
+  }
 
   // A message (couldn't load, expense not found) is centered on the screen; the
   // details and their loading placeholder sit in the column.

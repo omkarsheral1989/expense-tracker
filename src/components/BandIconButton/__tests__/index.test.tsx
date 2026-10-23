@@ -29,4 +29,16 @@ describe('BandIconButton', () => {
 
     expect(screen.getByRole('button', { name: 'Restore' })).toHaveClass('ant-btn-loading')
   })
+
+  it('can be switched off for now with no tip, and does not act when pressed', async () => {
+    const onClick = vi.fn()
+    render(<BandIconButton icon={<span>i</span>} label="Edit" onClick={onClick} disabled />)
+
+    const button = screen.getByRole('button', { name: 'Edit' })
+    expect(button).toBeDisabled()
+    // A "Coming soon" tip wraps the button in a span; a switched-off button with no tip does not.
+    expect(button.parentElement?.tagName).toBe('DIV')
+    await userEvent.click(button)
+    expect(onClick).not.toHaveBeenCalled()
+  })
 })

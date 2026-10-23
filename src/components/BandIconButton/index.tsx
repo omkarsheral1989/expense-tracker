@@ -10,21 +10,23 @@ type Props = {
   onClick?: () => void
   /** Shows the button busy while what it does is running. */
   loading?: boolean
+  /** Switched off for now, with no tip, because what it needs is still loading. Takes `onClick` as given, so it is left out too. */
+  disabled?: boolean
 }
 
 /** A round white button with an icon, sitting on a colored band (a group's page, an expense's page). */
-export function BandIconButton({ icon, label, onClick, loading }: Props) {
+export function BandIconButton({ icon, label, onClick, loading, disabled }: Props) {
   const button = (
     <Button
       shape="circle"
       icon={icon}
       aria-label={label}
-      disabled={!onClick}
+      disabled={disabled || !onClick}
       loading={loading}
       onClick={onClick}
       style={{ background: '#fff', color: '#262626', border: 'none' }}
     />
   )
 
-  return onClick ? button : <ComingSoon>{button}</ComingSoon>
+  return onClick || disabled ? button : <ComingSoon>{button}</ComingSoon>
 }

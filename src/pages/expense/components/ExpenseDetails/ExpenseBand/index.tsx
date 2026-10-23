@@ -18,8 +18,15 @@ import { SOFT_WHITE, TEXT_SHADOW } from './style.ts'
 
 const { Text, Title } = Typography
 
+/**
+ * What the band needs of an expense. The shares (who paid) come with the full
+ * expense; an expense known from the list has none yet, and is never a payment.
+ */
+export type BandExpense = Pick<ExpenseDetails, 'groupId' | 'description' | 'category' | 'amountMinor' | 'currency' | 'date'> &
+  Partial<Pick<ExpenseDetails, 'shares'>>
+
 type Props = {
-  expense: ExpenseDetails
+  expense: BandExpense
   /** What the page is called in the header: "Expense", "Payment", "Deleted expense" … */
   title: string
   /** The buttons at the right of the header (Edit and Delete, or Restore). */
@@ -59,7 +66,7 @@ export function ExpenseBand({ expense, title, actions, before, after }: Props) {
 
   function renderPayers() {
     if (isSettlement) return null
-    return expense.shares
+    return (expense.shares ?? [])
       .filter((share) => share.paidMinor > 0)
       .map((share) => (
         <Text key={share.personId} style={{ color: SOFT_WHITE }}>
@@ -85,7 +92,7 @@ export function ExpenseBand({ expense, title, actions, before, after }: Props) {
             {moneyService.format(expense.amountMinor, expense.currency)}
           </Text>
           <Title level={3} style={{ margin: 0, color: '#fff', overflowWrap: 'anywhere', textShadow: TEXT_SHADOW }}>
-            {expenseService.titleOf(expense)}
+            {expense.shares ? expenseService.titleOf({ ...expense, shares: expense.shares }) : expense.description}
           </Title>
           <Text style={{ color: SOFT_WHITE }}>
             {category.label === 'Other' ? `${category.groupLabel}: Other` : category.label} ·{' '}

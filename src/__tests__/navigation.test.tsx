@@ -6,6 +6,7 @@ import { screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { act } from 'react'
 import { dataChanges } from '../db/changes.ts'
+import { expenseService } from '../services/expenseService'
 import { groupService } from '../services/groupService'
 import { ROUTES } from '../routes.ts'
 import { addExpense, continueAsGuest, createGroupWithFriend, OPENING, renderApp, setUpJourneyTests } from './helpers.tsx'
@@ -132,6 +133,33 @@ describe('moving between pages', () => {
     expect(await screen.findByText('Dinner', {}, OPENING)).toBeInTheDocument()
     expect(screen.queryByRole('status', { name: 'Loading the group' })).not.toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Goa trip', level: 2 })).toBeInTheDocument()
+    slow.mockRestore()
+  })
+
+  it('opens an expense from the group list with its band at once, then fills in the rest', async () => {
+    const { user } = device
+    renderApp(ROUTES.getStarted)
+    await continueAsGuest(user)
+    await createGroupWithFriend(user, 'Goa trip', { name: 'Priya Shah', email: 'priya@gmail.com' })
+    await addExpense(user, 'Dinner', '100')
+    await screen.findByText(/Priya owes you/)
+    // Something changes elsewhere, which drops what the expense page remembered; reading it is slow now.
+    act(() => dataChanges.announce())
+    const original = expenseService.getExpense
+    const slow = vi.spyOn(expenseService, 'getExpense').mockImplementation(async (...args) => {
+      await new Promise((resolve) => setTimeout(resolve, 400))
+      return original(...args)
+    })
+
+    await user.click(await screen.findByText('Dinner'))
+
+    expect(screen.getByRole('heading', { name: 'Dinner' })).toBeInTheDocument()
+    expect(screen.getByText('£100.00')).toBeInTheDocument()
+    expect(screen.getByRole('status', { name: 'Loading the expense' })).toBeInTheDocument()
+    expect(screen.queryByText(/Added by/)).not.toBeInTheDocument()
+
+    expect(await screen.findByText('Added by you', {}, OPENING)).toBeInTheDocument()
+    expect(screen.queryByRole('status', { name: 'Loading the expense' })).not.toBeInTheDocument()
     slow.mockRestore()
   })
 })

@@ -11,6 +11,7 @@ import type { ExpenseListItem } from '../../../../../services/expenseService/typ
 import { moneyService } from '../../../../../services/moneyService'
 import { OWED_TO_YOU_COLOR, YOU_OWE_COLOR } from '../../../../../theme/balanceColors.ts'
 import { CATEGORY_GROUP_COLORS } from '../../../../../theme/categoryColors.ts'
+import type { ExpensePageState } from '../../../../expense/types.ts'
 import { dateParts, expenseStatus } from './utils.ts'
 
 const { Text } = Typography
@@ -33,6 +34,11 @@ export function ExpenseRow({ expense, groupId }: Props) {
   const { token } = theme.useToken()
   const { month, day } = dateParts(expense.date)
   const status = expenseStatus(expense)
+  const { id, description, category, amountMinor, currency, date } = expense
+  const opened: ExpensePageState | undefined =
+    expense.deleted || expense.category === expenseService.settlementCategory
+      ? undefined
+      : { expense: { id, groupId, description, category, amountMinor, currency, date } }
 
   function renderDate() {
     return (
@@ -133,6 +139,8 @@ export function ExpenseRow({ expense, groupId }: Props) {
     <div role="listitem">
       <Link
         to={ROUTES.expense(groupId, expense.id)}
+        // The expense page opens with what this list knows of a live expense (ADR-053).
+        state={opened}
         style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', color: 'inherit' }}
       >
         {renderDate()}
