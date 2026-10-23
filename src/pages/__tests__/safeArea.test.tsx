@@ -30,7 +30,7 @@ const EVENT = '3f2a9c1e-0000-4000-8000-000000000003'
 
 const CASES: { name: string; page: ReactElement; path: string; pattern?: string; signedOut?: boolean; spinner?: string }[] = [
   { name: 'create group', page: <CreateGroupPage />, path: ROUTES.newGroup },
-  { name: 'edit group', page: <EditGroupPage />, path: ROUTES.editGroup(GROUP), pattern: ROUTES.editGroupPattern },
+  { name: 'edit group', spinner: 'Loading the group', page: <EditGroupPage />, path: ROUTES.editGroup(GROUP), pattern: ROUTES.editGroupPattern },
   { name: 'the members page', page: <MembersPage />, path: ROUTES.members },
   { name: 'settle up', spinner: 'Loading the group', page: <SettleUpPage />, path: ROUTES.settleUp(GROUP), pattern: ROUTES.settleUpPattern },
   { name: 'add expense', spinner: 'Loading the group', page: <AddExpensePage />, path: ROUTES.newExpense(GROUP), pattern: ROUTES.newExpensePattern },

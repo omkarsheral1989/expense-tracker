@@ -1,36 +1,67 @@
-import { DeleteOutlined, EditOutlined } from '@ant-design/icons'
-import { Flex } from 'antd'
+import { DeleteOutlined, EditOutlined, UndoOutlined } from '@ant-design/icons'
+import { Flex, Typography } from 'antd'
 import { BandIconButton } from '../../../../components/BandIconButton'
+import { displayName } from '../../../../components/ExpenseWording'
 import { LoadingMessage } from '../../../../components/LoadingMessage'
+import { dateService } from '../../../../services/dateService'
+import { expenseService } from '../../../../services/expenseService'
 import { aboveScreenEdge } from '../../../../theme/safeArea.ts'
 import type { KnownExpense } from '../../types.ts'
+import { knownTitle } from '../../utils.ts'
 import { ExpenseBand } from '../ExpenseDetails/ExpenseBand'
+import { SOFT_WHITE } from '../ExpenseDetails/ExpenseBand/style.ts'
+
+const { Text } = Typography
 
 type Props = {
   expense: KnownExpense
 }
 
 /**
- * An expense's page while the rest of it loads (ADR-053): the colored band with
- * its category, amount, description and day, which the group's list already
- * knew, and a spinner below it for the split, notes, receipts and history.
- * Edit and Delete are switched off until the expense is read, since whether it
- * was deleted meanwhile is not known; Back works.
+ * An expense's page while the rest of it loads (ADR-053, ADR-054): the colored
+ * band with what the group's list already knew, and a spinner below it for the
+ * rest. Its buttons are switched off until the expense is read, since it may
+ * have been deleted or restored meanwhile; Back works. A payment is worded by
+ * who paid whom, and a deleted expense says who deleted it and when, with
+ * Restore in place of Edit and Delete, as on the full page.
  */
 export function KnownExpensePage({ expense }: Props) {
+  const noun = expense.category === expenseService.settlementCategory ? 'payment' : 'expense'
+
+  function renderTitle() {
+    if (expense.deleted) return `Deleted ${noun}`
+    return noun === 'payment' ? 'Payment' : 'Expense'
+  }
+
+  function renderActions() {
+    if (expense.deleted) return <BandIconButton icon={<UndoOutlined />} label="Restore" disabled />
+    return (
+      <>
+        <BandIconButton icon={<EditOutlined />} label="Edit" disabled />
+        <BandIconButton icon={<DeleteOutlined />} label="Delete" disabled />
+      </>
+    )
+  }
+
+  function renderDeleted() {
+    if (!expense.deleted) return null
+    const { by, at } = expense.deleted
+    return (
+      <Text style={{ color: SOFT_WHITE }}>
+        Deleted by {by.isYou ? 'you' : displayName(by)}, {dateService.formatDateTime(at, navigator.language)}
+      </Text>
+    )
+  }
+
   return (
     <Flex vertical style={{ flex: 1 }}>
       <ExpenseBand
         expense={expense}
-        title="Expense"
-        actions={
-          <>
-            <BandIconButton icon={<EditOutlined />} label="Edit" disabled />
-            <BandIconButton icon={<DeleteOutlined />} label="Delete" disabled />
-          </>
-        }
+        title={renderTitle()}
+        headline={knownTitle(expense)}
+        actions={renderActions()}
         before={null}
-        after={null}
+        after={renderDeleted()}
       />
       <Flex vertical style={{ flex: 1, width: '100%', maxWidth: 560, margin: '0 auto', padding: `0 16px ${aboveScreenEdge(24)}` }}>
         <LoadingMessage label="Loading the expense" />

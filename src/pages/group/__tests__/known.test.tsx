@@ -3,6 +3,7 @@
 // the rest loads (ADR-052).
 import { cleanup, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { useLocation } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getDb } from '../../../db/client.ts'
 import { ROUTES } from '../../../routes.ts'
@@ -175,6 +176,38 @@ describe('the group page while it loads, opened from the home list', () => {
       expect(await screen.findByText("Couldn't load this group")).toBeInTheDocument()
       expect(within(document.body).getByRole('button', { name: 'Try again' })).toBeInTheDocument()
     })
+  })
+})
+
+describe('the pages the group page opens', () => {
+  function StateProbe() {
+    return <pre data-testid="state">{JSON.stringify(useLocation().state)}</pre>
+  }
+
+  /** Renders the loaded group page and opens a control; returns the state the next page was given. */
+  async function openFrom(control: () => HTMLElement, route: string) {
+    const id = await createGroup()
+    renderPage(<GroupPage />, { path: ROUTES.group(id), pattern: ROUTES.groupPattern, routes: [ROUTES.home], extra: [{ path: route, element: <StateProbe /> }] })
+    await screen.findByRole('heading', { name: 'Goa trip', level: 2 })
+    await user.click(control())
+    return { id, state: JSON.parse((await screen.findByTestId('state')).textContent ?? 'null') }
+  }
+
+  const known = (id: string) => ({ group: { id, name: 'Goa trip', type: 'home', defaultCurrency: 'GBP', memberCount: 2 } })
+
+  it('hands Add expense the group, so it opens with its header', async () => {
+    const { id, state } = await openFrom(() => screen.getByRole('button', { name: /Add expense/ }), ROUTES.newExpensePattern)
+    expect(state).toEqual(known(id))
+  })
+
+  it('hands Settle up the group', async () => {
+    const { id, state } = await openFrom(() => screen.getByRole('button', { name: 'Settle up' }), ROUTES.settleUpPattern)
+    expect(state).toEqual(known(id))
+  })
+
+  it('hands Edit group the group', async () => {
+    const { id, state } = await openFrom(() => screen.getByRole('button', { name: 'Edit group' }), ROUTES.editGroupPattern)
+    expect(state).toEqual(known(id))
   })
 })
 

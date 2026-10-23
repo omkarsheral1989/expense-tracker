@@ -73,10 +73,10 @@ export function GroupPage() {
       <Flex vertical style={{ flex: 1 }}>
         <GroupBand group={group} peopleCount={group.memberCount} />
         <Flex vertical style={{ ...COLUMN_STYLE, flex: 1, paddingBottom: 0 }}>
-          <ActionPills groupId={group.id} canSettle={false} loading />
+          <ActionPills groupId={group.id} group={group} canSettle={false} loading />
           <LoadingMessage label="Loading the group" roomBelow={ABOVE_FLOATING_BUTTON} />
         </Flex>
-        <AddExpenseButton groupId={group.id} />
+        <AddExpenseButton groupId={group.id} group={group} />
       </Flex>
     )
   }
@@ -95,6 +95,8 @@ export function GroupPage() {
     balances: PersonBalance[],
     syncedIds: ReadonlySet<string>,
   ) {
+    // What the pages opened from here can show while they load (ADR-054).
+    const known: KnownGroup = { id: group.id, name: group.name, type: group.type, defaultCurrency: group.defaultCurrency, memberCount: group.members.length }
     return (
       <Flex vertical style={{ flex: 1 }}>
         <GroupBand
@@ -107,11 +109,11 @@ export function GroupPage() {
         <Flex vertical style={{ ...COLUMN_STYLE, flex: 1, paddingBottom: 0 }}>
           <Flex vertical gap={16}>
             <BalanceLine balances={balances} />
-            <ActionPills groupId={group.id} canSettle={group.members.length > 1} />
+            <ActionPills groupId={group.id} group={known} canSettle={group.members.length > 1} />
           </Flex>
           <ExpenseList expenses={expenses} groupId={group.id} />
         </Flex>
-        <AddExpenseButton groupId={group.id} />
+        <AddExpenseButton groupId={group.id} group={known} />
         <MembersSheet
           open={membersOpen}
           onClose={() => setMembersOpen(false)}

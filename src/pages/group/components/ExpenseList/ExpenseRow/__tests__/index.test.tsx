@@ -50,13 +50,26 @@ describe('opening an expense from the list', () => {
     })
   })
 
-  it('hands over nothing for a payment, whose page is worded by who paid whom', async () => {
+  it('hands a payment over with who paid and who received', async () => {
     const payment: ExpenseListItem = { ...item, category: 'settlement', description: 'Payment', payer: you, recipient: priya }
-    expect(await openRow(payment)).toBeNull()
+    expect(await openRow(payment)).toEqual({
+      expense: {
+        id: EXPENSE,
+        groupId: GROUP,
+        description: 'Payment',
+        category: 'settlement',
+        amountMinor: 900,
+        currency: 'GBP',
+        date: '2026-10-05',
+        payer: { email: 'omkar@gmail.com', name: 'Omkar', isYou: true },
+        recipient: { email: 'priya@gmail.com', name: 'Priya Shah', isYou: false },
+      },
+    })
   })
 
-  it('hands over nothing for a deleted expense, which opens read-only', async () => {
+  it('hands a deleted expense over with who deleted it and when', async () => {
     const deleted: ExpenseListItem = { ...item, deleted: { by: priya, at: new Date('2026-10-06T10:00:00Z') } }
-    expect(await openRow(deleted)).toBeNull()
+    const state = await openRow(deleted)
+    expect(state.expense.deleted).toEqual({ by: { email: 'priya@gmail.com', name: 'Priya Shah', isYou: false }, at: '2026-10-06T10:00:00.000Z' })
   })
 })

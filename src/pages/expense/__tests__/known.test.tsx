@@ -156,11 +156,62 @@ describe('the expense page while it loads, opened from the group list', () => {
   })
 })
 
+const priyaPerson = { email: 'priya@gmail.com', name: 'Priya Shah', isYou: false }
+const youPerson = { email: 'omkar@gmail.com', name: 'Omkar Sheral', isYou: true }
+
+describe('a payment while it loads, opened from the group list', () => {
+  it('shows the band titled "Payment", worded by who paid whom, with Edit and Delete switched off', async () => {
+    const { groupId, expenseId } = await setUp()
+    renderHeld(groupId, expenseId, opened(groupId, expenseId, { category: 'settlement', description: 'Payment', payer: youPerson, recipient: priyaPerson }))
+
+    expect(screen.getByRole('heading', { name: 'Payment', level: 3 })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'You paid Priya' })).toBeInTheDocument()
+    expect(screen.getByText('£9.00')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled()
+    expect(screen.getByRole('status', { name: 'Loading the expense' })).toBeInTheDocument()
+  })
+
+  it('names the payer when someone else paid you', async () => {
+    const { groupId, expenseId } = await setUp()
+    renderHeld(groupId, expenseId, opened(groupId, expenseId, { category: 'settlement', description: 'Payment', payer: priyaPerson, recipient: youPerson }))
+    expect(screen.getByRole('heading', { name: 'Priya paid you' })).toBeInTheDocument()
+  })
+})
+
+describe('a deleted expense while it loads, opened from the group list', () => {
+  const deleted = { by: priyaPerson, at: new Date(2026, 9, 6, 15, 45) }
+
+  it('shows the band titled "Deleted expense", who deleted it and when, and Restore switched off', async () => {
+    const { groupId, expenseId } = await setUp()
+    renderHeld(groupId, expenseId, opened(groupId, expenseId, { deleted }))
+
+    expect(screen.getByRole('heading', { name: 'Deleted expense', level: 3 })).toBeInTheDocument()
+    expect(screen.getByText(/^Deleted by Priya Shah, 6 Oct 2026/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Restore' })).toBeDisabled()
+    // Switched off for loading, not "Coming soon": no tip wrapper.
+    expect(screen.getByRole('button', { name: 'Restore' }).parentElement?.tagName).toBe('DIV')
+    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
+  })
+
+  it('says "you" when the user deleted it, and "Deleted payment" for a payment', async () => {
+    const { groupId, expenseId } = await setUp()
+    renderHeld(
+      groupId,
+      expenseId,
+      opened(groupId, expenseId, { category: 'settlement', description: 'Payment', payer: youPerson, recipient: priyaPerson, deleted: { by: youPerson, at: deleted.at } }),
+    )
+    expect(screen.getByRole('heading', { name: 'Deleted payment', level: 3 })).toBeInTheDocument()
+    expect(screen.getByText(/^Deleted by you, /)).toBeInTheDocument()
+  })
+})
+
 describe('the expense page while it loads, opened any other way', () => {
   it.each([
     ['with no state (a direct link)', undefined],
     ['with the state of another expense', 'other'],
-    ['with a payment', 'payment'],
+    ['with a payment that does not say who paid whom', 'payment'],
     ['with a state that is not an expense', { something: 1 }],
   ])('shows only the loader %s', async (_name, kind) => {
     const { groupId, expenseId } = await setUp()

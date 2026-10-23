@@ -33,6 +33,8 @@ type Props = {
   actions: ReactNode
   /** Lines under the category and day, before who paid ("Added by you"). */
   before: ReactNode
+  /** What to call the expense instead of its description: a payment's "You paid Priya", for a payment known from the list (no shares yet). */
+  headline?: string
   /** Lines after who paid ("Edited by …", "Deleted by …"). */
   after: ReactNode
 }
@@ -43,7 +45,7 @@ type Props = {
  * description, the amount, the category and day, and who added and paid for it,
  * all in white.
  */
-export function ExpenseBand({ expense, title, actions, before, after }: Props) {
+export function ExpenseBand({ expense, title, actions, before, after, headline }: Props) {
   const navigate = useNavigate()
   const category = expenseService.categoryOf(expense.category)
   // A settlement is worded by who paid whom ("You paid Priya"), and has no payer line.
@@ -92,7 +94,7 @@ export function ExpenseBand({ expense, title, actions, before, after }: Props) {
             {moneyService.format(expense.amountMinor, expense.currency)}
           </Text>
           <Title level={3} style={{ margin: 0, color: '#fff', overflowWrap: 'anywhere', textShadow: TEXT_SHADOW }}>
-            {expense.shares ? expenseService.titleOf({ ...expense, shares: expense.shares }) : expense.description}
+            {headline ?? (expense.shares ? expenseService.titleOf({ ...expense, shares: expense.shares }) : expense.description)}
           </Title>
           <Text style={{ color: SOFT_WHITE }}>
             {category.label === 'Other' ? `${category.groupLabel}: Other` : category.label} ·{' '}

@@ -38,6 +38,8 @@ type Props = {
  */
 export function GroupBand({ group, peopleCount, onOpenMembers }: Props) {
   const navigate = useNavigate()
+  // What the edit page can show while it loads (ADR-054).
+  const editState = { group: { id: group.id, name: group.name, type: group.type, defaultCurrency: group.defaultCurrency, memberCount: peopleCount } }
 
   function renderButtons() {
     return (
@@ -58,7 +60,7 @@ export function GroupBand({ group, peopleCount, onOpenMembers }: Props) {
           <BandIconButton
             icon={<EditOutlined />}
             label="Edit group"
-            onClick={() => navigate(ROUTES.editGroup(group.id))}
+            onClick={() => navigate(ROUTES.editGroup(group.id), { state: editState })}
           />
         </Flex>
       </Flex>
@@ -102,7 +104,7 @@ export function GroupBand({ group, peopleCount, onOpenMembers }: Props) {
       <Flex wrap gap={8}>
         <BandChip
           tip={currencyService.label(group.defaultCurrency, navigator.language)}
-          onClick={() => navigate(ROUTES.editGroup(group.id))}
+          onClick={() => navigate(ROUTES.editGroup(group.id), { state: editState })}
           // A one-character symbol ("£") is drawn larger than the 3-letter code.
           fontSize={currencySymbol ? CURRENCY_SYMBOL_FONT_SIZE : undefined}
         >

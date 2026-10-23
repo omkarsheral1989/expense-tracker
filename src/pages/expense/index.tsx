@@ -5,7 +5,7 @@ import { LoadingMessage } from '../../components/LoadingMessage'
 import { LoadError } from '../../components/LoadError'
 import { ROUTES } from '../../routes.ts'
 import { KnownExpensePage } from './components/KnownExpense'
-import { knownExpenseFrom } from './utils.ts'
+import { knownExpenseFrom, knownTitle } from './utils.ts'
 import { ExpenseNotFound } from '../../components/ExpenseNotFound'
 import { getDb } from '../../db/client.ts'
 import { useCachedData } from '../../hooks/useCachedData'
@@ -66,7 +66,7 @@ export function ExpensePage() {
     if (!known) return <LoadingMessage label="Loading the expense" />
     return (
       <>
-        <title>{`${known.description} · OwnLedger`}</title>
+        <title>{`${knownTitle(known)} · OwnLedger`}</title>
         <KnownExpensePage expense={known} />
       </>
     )

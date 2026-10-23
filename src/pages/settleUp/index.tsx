@@ -1,6 +1,8 @@
 import { Flex } from 'antd'
-import { useParams } from 'react-router'
+import { useLocation, useParams } from 'react-router'
 import { CenteredMessage } from '../../components/CenteredMessage'
+import { FormLoadingShell } from '../../components/FormLoadingShell'
+import { knownGroupFrom } from '../group/utils.ts'
 import { LoadingMessage } from '../../components/LoadingMessage'
 import { LoadError } from '../../components/LoadError'
 import { ROUTES } from '../../routes.ts'
@@ -20,6 +22,8 @@ const COLUMN_STYLE = { width: '100%', maxWidth: 560, margin: '0 auto', padding: 
 export function SettleUpPage() {
   const user = useCurrentUser()
   const { id = '' } = useParams()
+  // What the group's page knew when it opened this one, if it did (ADR-054).
+  const known = knownGroupFrom(useLocation().state, id)
 
   const userId = user?.personId ?? ''
   const datasetId = user?.datasetId ?? ''
@@ -62,7 +66,15 @@ export function SettleUpPage() {
     }
   }
 
-  if (state.status === 'loading') return <LoadingMessage label="Loading the group" />
+  if (state.status === 'loading') {
+    if (!known) return <LoadingMessage label="Loading the group" />
+    return (
+      <>
+        <title>Settle up · OwnLedger</title>
+        <FormLoadingShell heading="Settle up" backTo={ROUTES.group(id)} label="Loading the group" group={known} />
+      </>
+    )
+  }
 
   // A message (couldn't load, group not found) is centered on the screen; the
   // form and its loading placeholder sit in the column.

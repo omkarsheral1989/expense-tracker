@@ -7,7 +7,7 @@ import { useColorScheme } from '../../../../../hooks/useColorScheme'
 import { ROUTES } from '../../../../../routes.ts'
 import { expenseService } from '../../../../../services/expenseService'
 import { groupService } from '../../../../../services/groupService'
-import type { ExpenseListItem } from '../../../../../services/expenseService/types.ts'
+import type { ExpenseListItem, ExpensePayer } from '../../../../../services/expenseService/types.ts'
 import { moneyService } from '../../../../../services/moneyService'
 import { OWED_TO_YOU_COLOR, YOU_OWE_COLOR } from '../../../../../theme/balanceColors.ts'
 import { CATEGORY_GROUP_COLORS } from '../../../../../theme/categoryColors.ts'
@@ -34,11 +34,21 @@ export function ExpenseRow({ expense, groupId }: Props) {
   const { token } = theme.useToken()
   const { month, day } = dateParts(expense.date)
   const status = expenseStatus(expense)
-  const { id, description, category, amountMinor, currency, date } = expense
-  const opened: ExpensePageState | undefined =
-    expense.deleted || expense.category === expenseService.settlementCategory
-      ? undefined
-      : { expense: { id, groupId, description, category, amountMinor, currency, date } }
+  const { id, description, category, amountMinor, currency, date, payer, recipient, deleted } = expense
+  const person = (who: ExpensePayer) => ({ email: who.email, name: who.name, isYou: who.isYou })
+  const opened: ExpensePageState = {
+    expense: {
+      id,
+      groupId,
+      description,
+      category,
+      amountMinor,
+      currency,
+      date,
+      ...(payer && recipient && category === expenseService.settlementCategory ? { payer: person(payer), recipient: person(recipient) } : {}),
+      ...(deleted ? { deleted: { by: person(deleted.by), at: deleted.at } } : {}),
+    },
+  }
 
   function renderDate() {
     return (
@@ -139,7 +149,7 @@ export function ExpenseRow({ expense, groupId }: Props) {
     <div role="listitem">
       <Link
         to={ROUTES.expense(groupId, expense.id)}
-        // The expense page opens with what this list knows of a live expense (ADR-053).
+        // The expense page opens with what this list knows of the row (ADR-053, ADR-054).
         state={opened}
         style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', color: 'inherit' }}
       >

@@ -23,6 +23,17 @@ const { testDb, setUpUser } = setUpMembersTests()
 beforeEach(setUpUser)
 afterEach(cleanup)
 
+describe('the Group members page while it loads', () => {
+  it('keeps its header and shows the spinner in a column that fills the page, so it is centered below the header', () => {
+    renderMembers()
+
+    expect(screen.getByRole('heading', { name: 'Group members' })).toBeInTheDocument()
+    const loader = screen.getByRole('status', { name: 'Loading your members' })
+    expect(loader.closest('[style*="flex-direction: column"]')).not.toBeNull()
+    expect(screen.getByRole('heading', { name: 'Group members' }).closest('[style*="flex: 1"]')).not.toBeNull()
+  })
+})
+
 describe('the Group members page', () => {
   it('has a Back button to the home page, the heading, and a tab title', async () => {
     const page = renderMembers()

@@ -109,9 +109,10 @@ export function MembersPage() {
   }
 
   return (
-    <Flex justify="center" style={{ padding: `${belowStatusBar(32)} 16px ${aboveScreenEdge(32)}` }}>
+    <Flex justify="center" style={{ flex: 1, padding: `${belowStatusBar(32)} 16px ${aboveScreenEdge(32)}` }}>
       <title>Group members · OwnLedger</title>
-      <div style={{ width: '100%', maxWidth: 720 }}>
+      {/* A column that fills the screen, so the loader is centered in what the header leaves. */}
+      <div style={{ width: '100%', maxWidth: 720, display: 'flex', flexDirection: 'column' }}>
         {renderHeader()}
         {renderContent()}
       </div>
