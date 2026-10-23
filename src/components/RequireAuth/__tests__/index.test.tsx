@@ -1,13 +1,13 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useAuthStore } from '../../../stores/useAuthStore'
 import { RequireAuth } from '../index.tsx'
 
 const profile = { id: '1', email: 'omkar@gmail.com', name: 'Omkar' }
 
-function renderGuarded() {
+function renderGuarded(onDenied?: () => void) {
   return render(
     <MemoryRouter initialEntries={['/home']}>
       <Routes>
@@ -15,7 +15,7 @@ function renderGuarded() {
         <Route
           path="/home"
           element={
-            <RequireAuth>
+            <RequireAuth onDenied={onDenied}>
               <div>Inside</div>
             </RequireAuth>
           }
@@ -45,5 +45,17 @@ describe('RequireAuth', () => {
     renderGuarded()
     expect(screen.getByText('Welcome')).toBeInTheDocument()
     expect(screen.queryByText('Inside')).not.toBeInTheDocument()
+  })
+
+  it('tells the caller when it turns a visitor away, and only then', () => {
+    const onDenied = vi.fn()
+    useAuthStore.setState({ profile })
+    renderGuarded(onDenied)
+    expect(onDenied).not.toHaveBeenCalled()
+
+    cleanup()
+    useAuthStore.setState({ profile: null })
+    renderGuarded(onDenied)
+    expect(onDenied).toHaveBeenCalledTimes(1)
   })
 })

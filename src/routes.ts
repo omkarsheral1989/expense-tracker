@@ -7,6 +7,10 @@ export const ROUTES = {
   /** Everyone saved on this device, where they are added and renamed. */
   members: '/members',
   newGroup: '/groups/new',
+  /** Where the service worker sends the user after a share from another app (PRD 5.11). */
+  share: '/share',
+  /** Development only: a form that posts a picture to the share address. */
+  shareTest: '/share-test',
   /** The page of one group. */
   group: (id: string) => `/groups/${id}`,
   /** The same address as a pattern for the router, with the id as a parameter. */

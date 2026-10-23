@@ -1,6 +1,6 @@
 # Product Requirements: OwnLedger
 
-_Last updated: 2026-10-24_
+_Last updated: 2026-10-25_
 
 ## 1. Overview
 **OwnLedger** is an installable, offline-capable web app (PWA) for tracking personal expenses and expenses shared in groups (trips, home, couples, others). Everything is stored locally on the user's device. Groups are shared between members through a Google Drive folder. There is no backend.
@@ -10,7 +10,7 @@ _Last updated: 2026-10-24_
 - Small groups (friends, family, partners) with Google accounts who share and split expenses.
 
 ## 3. Platforms
-- Android and iOS (installable PWA), plus desktop browsers.
+- Android and iOS (installable PWA), plus desktop browsers. Receiving photos from other apps' share sheet (5.11) works on Android and desktop Chrome or Edge only: iOS does not support it.
 - Hosted on GitHub Pages at https://omkarsheral1989.github.io/ownledger/ (ADR-032). Addresses inside the app, such as a group's page, also work when opened or reloaded directly.
 - Works offline after the first load. Sign-in, backup and sync need a network.
 
@@ -76,6 +76,7 @@ _Last updated: 2026-10-24_
 
 ### 4.9 PWA
 - Installable on Android and iOS, works offline, shows a prompt when a new version is available.
+- Appears in the share sheet of other apps for pictures and text on Android and desktop Chrome or Edge (5.11).
 
 ## 5. Pages
 
@@ -341,6 +342,16 @@ Route `/members`, opened by a "Group members" entry in the avatar menu (above Si
 - **Google picture:** wherever a person has an avatar (the Group members page, the members sheet, the add-a-member list, the split dialog and an expense's split), it shows their Google profile picture, or the initial in the app's teal when there is none or it cannot be loaded.
 - **Where it comes from:** a person's own device saves the address of their Google picture when they sign in; it is carried to the other members by sync, so a member sees it once they have synced (when they are no longer Pending). A person nobody has seen signed in has only the initial. A changed Google picture reaches other members the next time they first see a picture for that person; an address they already have is kept.
 - **Offline:** the first time the device is online with a picture's address, it keeps its own copy of the image, so it shows offline. Without a copy it loads from Google, and falls back to the initial if it cannot.
+
+### 5.11 Share a receipt to OwnLedger
+Android (installed app) and desktop Chrome or Edge only; iOS does not support it, so OwnLedger is not in the iPhone share sheet (the camera and photo-library button on Add expense still works there).
+- **Sharing:** in another app (gallery, camera, files, a browser) the user taps Share and chooses OwnLedger. It is offered for pictures and for plain text or a link.
+- **Where it lands:** the Add expense page (5.5) of the user's most recently active group (the top of the home list), with the group dropdown to switch to another group. The shared pictures are already in the Receipts row, up to 10 (more are dropped with "An expense can have up to 10 photos."), and shared text (the title, the text and the link, each once) is in Notes, cut at 1000 characters. The description stays empty. The page behaves as if the user had entered those fields: Back asks "Discard this expense?", and nothing is saved until the tick is pressed.
+- **Signed out:** a visitor who is neither signed in nor a guest gets the normal welcome page; the shared pictures are dropped and not kept.
+- **No groups:** the shared pictures are dropped and the home page shows "Create a group first to add a shared receipt."
+- **Nothing usable shared** (no picture and no text), or the address opened by hand: the home page opens.
+- **Offline and privacy:** it works offline. The pictures are held on the device only for the moment between the share and the page opening; they are removed as soon as the page has them (and a share older than an hour is ignored and removed). They are never sent anywhere.
+- **Development:** `SW_DEV=true bun run dev` runs the service worker in development, and a page at `/share-test` (development only, never in the build) posts a picture and text to the share address, to try this on a desktop.
 
 ## 6. Open questions
 - Google Cloud setup: the OAuth client ID is not created yet (Drive API, consent screen in Testing mode, authorized origins, test users).

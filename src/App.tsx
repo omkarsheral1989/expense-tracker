@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router'
 import { PwaUpdatePrompt } from './components/PwaUpdatePrompt'
 import { RequireAuth } from './components/RequireAuth'
 import { SignedInLayout } from './components/SignedInLayout'
+import { sharedFiles } from './pwa/sharedFiles.ts'
 import { useSyncSessionAcrossTabs } from './hooks/useSyncSessionAcrossTabs'
 import { AddExpensePage } from './pages/addExpense'
 import { CreateGroupPage } from './pages/createGroup'
@@ -13,9 +14,16 @@ import { GetStartedPage } from './pages/getStarted'
 import { GroupPage } from './pages/group'
 import { HomePage } from './pages/home'
 import { MembersPage } from './pages/members'
+import { SharePage } from './pages/share'
+import { ShareTestPage } from './pages/shareTest'
 import { SettleUpPage } from './pages/settleUp'
 import { WelcomePage } from './pages/welcome'
 import { ROUTES } from './routes.ts'
+
+/** A visitor turned away must not leave a shared picture behind (PRD 5.11). */
+function dropSharedFiles() {
+  void sharedFiles.clear().catch(() => {})
+}
 
 function App() {
   useSyncSessionAcrossTabs()
@@ -29,7 +37,7 @@ function App() {
         {/* Everything inside needs a signed-in user or a guest, the header and open data. */}
         <Route
           element={
-            <RequireAuth>
+            <RequireAuth onDenied={dropSharedFiles}>
               <SignedInLayout />
             </RequireAuth>
           }
@@ -37,6 +45,7 @@ function App() {
           <Route path={ROUTES.home} element={<HomePage />} />
           <Route path={ROUTES.members} element={<MembersPage />} />
           <Route path={ROUTES.newGroup} element={<CreateGroupPage />} />
+          <Route path={ROUTES.share} element={<SharePage />} />
           <Route path={ROUTES.groupPattern} element={<GroupPage />} />
           <Route path={ROUTES.editGroupPattern} element={<EditGroupPage />} />
           <Route path={ROUTES.settleUpPattern} element={<SettleUpPage />} />
@@ -45,6 +54,7 @@ function App() {
           <Route path={ROUTES.editExpensePattern} element={<EditExpensePage />} />
           <Route path={ROUTES.expenseVersionPattern} element={<ExpenseVersionPage />} />
         </Route>
+        {import.meta.env.DEV && <Route path={ROUTES.shareTest} element={<ShareTestPage />} />}
         <Route path="*" element={<Navigate to={ROUTES.welcome} replace />} />
       </Routes>
     </>

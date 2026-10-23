@@ -19,6 +19,12 @@ export default defineConfig({
     VitePWA({
       // Ask the user before swapping in a new version (see PwaUpdatePrompt).
       registerType: 'prompt',
+      // Our own worker (src/sw.ts) so it can answer the share sheet's POST (ADR-047).
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
+      // The worker is off in development; SW_DEV=true turns it on to try sharing.
+      devOptions: { enabled: process.env.SW_DEV === 'true', type: 'module' },
       pwaAssets: { config: true },
       manifest: {
         name: 'OwnLedger',
@@ -30,8 +36,20 @@ export default defineConfig({
         display: 'standalone',
         start_url: BASE,
         scope: BASE,
+        // OwnLedger in other apps' share sheets for pictures and text (PRD 5.11).
+        share_target: {
+          action: `${BASE}share-target`,
+          method: 'POST',
+          enctype: 'multipart/form-data',
+          params: {
+            title: 'title',
+            text: 'text',
+            url: 'url',
+            files: [{ name: 'receipts', accept: ['image/*'] }],
+          },
+        },
       },
-      workbox: {
+      injectManifest: {
         // PGlite's WebAssembly (about 10 MB) and data (about 6 MB) files must be
         // cached for the app to open its database offline, so the default 2 MB
         // limit per file is raised.
@@ -40,8 +58,6 @@ export default defineConfig({
         // install fail, so nothing is cached and the app cannot open offline.
         globPatterns: ['**/*.{js,css,html,svg,png,ico,wasm,data,woff2}'],
         maximumFileSizeToCacheInBytes: 20 * 1024 * 1024,
-        navigateFallback: 'index.html',
-        cleanupOutdatedCaches: true,
       },
     }),
   ],
