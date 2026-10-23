@@ -1,6 +1,6 @@
 import { Button, Flex, Result, Typography } from 'antd'
 import { useNavigate } from 'react-router'
-import { belowStatusBar } from '../../theme/safeArea.ts'
+import { belowStatusBar, HEADER_TOP_PADDING } from '../../theme/safeArea.ts'
 import { BackButton } from '../BackButton'
 
 type Props = {
@@ -27,7 +27,7 @@ export function LoadError({ title, onRetry, error, backTo }: Props) {
     <>
       <Flex
         justify="center"
-        style={{ position: 'fixed', top: 0, left: 0, right: 0, padding: `${belowStatusBar(32)} 16px 0`, pointerEvents: 'none' }}
+        style={{ position: 'fixed', top: 0, left: 0, right: 0, padding: `${belowStatusBar(HEADER_TOP_PADDING)} 16px 0`, pointerEvents: 'none' }}
       >
         <div style={{ width: '100%', maxWidth: 720, pointerEvents: 'auto' }}>
           <BackButton onClick={() => navigate(backTo)} />

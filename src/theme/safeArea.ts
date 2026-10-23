@@ -18,3 +18,10 @@ export function belowStatusBar(pixels: number): string {
 export function aboveScreenEdge(pixels: number): string {
   return `calc(${pixels}px + env(safe-area-inset-bottom))`
 }
+
+/**
+ * Space above the header row (Back button and title) of every page below the
+ * device's status bar, so the header sits at the same height on all pages. The
+ * colored bands of the group and expense pages use the same value.
+ */
+export const HEADER_TOP_PADDING = 16

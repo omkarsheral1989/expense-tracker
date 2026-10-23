@@ -88,6 +88,8 @@ _Last updated: 2026-10-26_
 
 **Browser tab titles:** each signed-in page sets the tab's title: "Your groups · OwnLedger" (home), the group's name followed by " · OwnLedger" (group page), "Create a group · OwnLedger", "Add expense · OwnLedger" and the expense's description followed by " · OwnLedger" (expense details; "Expense not found · OwnLedger" for a missing one).
 
+**Header position:** the header row of every page that has one (Back button and title; the colored bands of the group and expense pages, the form pages, the members page, the loading and load-error screens) starts the same distance below the device's status bar, 16 px (`HEADER_TOP_PADDING`), so it does not jump when moving between pages.
+
 **Header titles:** a page that has a Back button (the shared `BackButton`: a 40 px outlined circle with an arrow; the Edit, Delete and Save buttons at the other end are circles or pills too) titles its header with a quiet heading beside it, 32 px on a 40 px line (the height of the Back button), thin (Barlow Condensed Thin) and in capitals (`HEADER_TITLE_STYLE`; the stored text and the tab title keep their usual case), smaller than the content's own title below it: "Expense" or "Payment" on an expense's details (5.6; "Deleted expense" or "Deleted payment" once deleted), "Add expense", "Edit expense", "Version" (5.6c), "Settle up", "Create a group" and "Edit group".
 
 ### 5.1 Welcome (logged out)

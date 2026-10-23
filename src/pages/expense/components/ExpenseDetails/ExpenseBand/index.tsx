@@ -12,7 +12,7 @@ import { moneyService } from '../../../../../services/moneyService'
 import { bandBackground } from '../../../../../theme/bandBackground.ts'
 import { CATEGORY_GROUP_COLORS } from '../../../../../theme/categoryColors.ts'
 import { HEADER_TITLE_STYLE } from '../../../../../theme/headerTitle.ts'
-import { belowStatusBar } from '../../../../../theme/safeArea.ts'
+import { belowStatusBar, HEADER_TOP_PADDING } from '../../../../../theme/safeArea.ts'
 import { useNavigate } from 'react-router'
 import { SOFT_WHITE, TEXT_SHADOW } from './style.ts'
 
@@ -109,7 +109,7 @@ export function ExpenseBand({ expense, title, actions, before, after, headline }
   }
 
   return (
-    <div style={{ padding: `${belowStatusBar(16)} 16px 24px`, background: bandBackground(CATEGORY_GROUP_COLORS[category.group]) }}>
+    <div style={{ padding: `${belowStatusBar(HEADER_TOP_PADDING)} 16px 24px`, background: bandBackground(CATEGORY_GROUP_COLORS[category.group]) }}>
       <Flex vertical gap={20} style={{ maxWidth: 560, margin: '0 auto' }}>
         {renderHeader()}
         {renderSummary()}

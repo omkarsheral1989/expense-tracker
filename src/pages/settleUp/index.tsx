@@ -12,11 +12,11 @@ import { useAsyncData } from '../../hooks/useAsyncData'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
 import { expenseService } from '../../services/expenseService'
 import { groupService } from '../../services/groupService'
-import { aboveScreenEdge, belowStatusBar } from '../../theme/safeArea.ts'
+import { aboveScreenEdge, belowStatusBar, HEADER_TOP_PADDING } from '../../theme/safeArea.ts'
 import { SettleUpForm } from './components/SettleUpForm'
 
 /** A column about 560 px wide, centered, like the add-expense page. */
-const COLUMN_STYLE = { width: '100%', maxWidth: 560, margin: '0 auto', padding: `${belowStatusBar(24)} 16px ${aboveScreenEdge(24)}` } as const
+const COLUMN_STYLE = { width: '100%', maxWidth: 560, margin: '0 auto', padding: `${belowStatusBar(HEADER_TOP_PADDING)} 16px ${aboveScreenEdge(24)}` } as const
 
 /** Where a signed-in user records a payment between two members of one of their groups. */
 export function SettleUpPage() {

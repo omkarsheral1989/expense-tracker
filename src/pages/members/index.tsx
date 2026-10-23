@@ -13,7 +13,7 @@ import { useSyncStore } from '../../stores/useSyncStore'
 import { ROUTES } from '../../routes.ts'
 import { personService } from '../../services/personService'
 import type { ManagedPerson } from '../../services/personService/types.ts'
-import { aboveScreenEdge, belowStatusBar } from '../../theme/safeArea.ts'
+import { aboveScreenEdge, belowStatusBar, HEADER_TOP_PADDING } from '../../theme/safeArea.ts'
 import { HEADER_TITLE_STYLE } from '../../theme/headerTitle.ts'
 import { EditMemberDialog } from './components/EditMemberDialog'
 import { MemberItem } from './components/MemberItem'
@@ -109,7 +109,7 @@ export function MembersPage() {
   }
 
   return (
-    <Flex justify="center" style={{ flex: 1, padding: `${belowStatusBar(32)} 16px ${aboveScreenEdge(32)}` }}>
+    <Flex justify="center" style={{ flex: 1, padding: `${belowStatusBar(HEADER_TOP_PADDING)} 16px ${aboveScreenEdge(32)}` }}>
       <title>Group members · OwnLedger</title>
       {/* A column that fills the screen, so the loader is centered in what the header leaves. */}
       <div style={{ width: '100%', maxWidth: 720, display: 'flex', flexDirection: 'column' }}>

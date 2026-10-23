@@ -8,12 +8,12 @@ import { getDb } from '../../db/client.ts'
 import { useCachedData } from '../../hooks/useCachedData'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
 import { expenseService } from '../../services/expenseService'
-import { aboveScreenEdge, belowStatusBar } from '../../theme/safeArea.ts'
+import { aboveScreenEdge, belowStatusBar, HEADER_TOP_PADDING } from '../../theme/safeArea.ts'
 import { VersionDetails } from './components/VersionDetails'
 import { VersionNotFound } from './components/VersionNotFound'
 
 /** A column about 560 px wide, centered, like the details page. */
-const COLUMN_STYLE = { width: '100%', maxWidth: 560, margin: '0 auto', padding: `${belowStatusBar(24)} 16px ${aboveScreenEdge(24)}` } as const
+const COLUMN_STYLE = { width: '100%', maxWidth: 560, margin: '0 auto', padding: `${belowStatusBar(HEADER_TOP_PADDING)} 16px ${aboveScreenEdge(24)}` } as const
 
 /**
  * One version of an expense of a group: the expense as it was right after an
