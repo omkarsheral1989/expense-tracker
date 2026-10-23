@@ -15,6 +15,12 @@ type Props = {
   tall?: boolean
   /** Shown under the content, always in view (for example totals and a Done button). */
   footer?: ReactNode
+  /**
+   * False for a dialog that must stay until its work is done (the sync
+   * progress): it has no close button and ignores a click outside and Escape,
+   * and the app behind it stays dimmed. True (the default) for every picker.
+   */
+  dismissible?: boolean
 }
 
 /**
@@ -22,7 +28,7 @@ type Props = {
  * slides up from the bottom on phones. Closes with its close button or by
  * tapping outside.
  */
-export function AdaptiveDialog({ open, onClose, title, children, tall = false, footer }: Props) {
+export function AdaptiveDialog({ open, onClose, title, children, tall = false, footer, dismissible = true }: Props) {
   const screens = Grid.useBreakpoint()
 
   if (screens.md) {
@@ -33,6 +39,9 @@ export function AdaptiveDialog({ open, onClose, title, children, tall = false, f
         title={title}
         footer={footer ?? null}
         centered
+        closable={dismissible}
+        maskClosable={dismissible}
+        keyboard={dismissible}
         destroyOnHidden
         styles={{ body: { maxHeight: '70vh', overflowY: 'auto' } }}
       >
@@ -47,6 +56,9 @@ export function AdaptiveDialog({ open, onClose, title, children, tall = false, f
       onClose={onClose}
       title={title}
       placement="bottom"
+      closable={dismissible}
+      maskClosable={dismissible}
+      keyboard={dismissible}
       size={tall ? '85vh' : 'auto'}
       destroyOnHidden
       footer={footer}

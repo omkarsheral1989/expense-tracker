@@ -15,13 +15,14 @@ const { Text } = Typography
  * The progress of a sync (PRD 5.8): one line per step (the backup,
  * then each group), each with a spinner, a tick, a clock (waiting for the
  * group's creator) or a cross, and what it is doing or what went wrong. Closing
- * it does not stop the run; pressing Sync again opens it. Once a run has ended
- * the footer says when the last sync of what it ran finished, and after Drive
+ * it is not possible while a run goes on (the app behind stays dimmed): the
+ * footer has Stop instead of Close, which cancels the run safely, since every
+ * step can be repeated. Once a run has ended the footer says when the last sync of what it ran finished, and after Drive
  * access ran out it offers Continue. While a run goes on, the browser asks
  * before the tab is closed.
  */
 export function SyncDialog() {
-  const { dialogOpen, title, steps, scope, running, resume, dataVersion, closeDialog } = useSyncStore()
+  const { dialogOpen, title, steps, scope, running, resume, dataVersion, stopping, closeDialog, requestStop } = useSyncStore()
   const { token } = theme.useToken()
   useLeaveWarning(running)
   const { state } = useAsyncData(() => lastSyncedAt(scope), `${scopeKey(scope)}:${dataVersion}`)
@@ -59,7 +60,13 @@ export function SyncDialog() {
               Continue
             </Button>
           )}
-          <Button onClick={closeDialog}>Close</Button>
+          {running ? (
+            <Button onClick={requestStop} disabled={stopping}>
+              {stopping ? 'Stopping…' : 'Stop'}
+            </Button>
+          ) : (
+            <Button onClick={closeDialog}>Close</Button>
+          )}
         </Flex>
       </Flex>
     )
@@ -71,6 +78,7 @@ export function SyncDialog() {
       onClose={closeDialog}
       title={title}
       footer={renderFooter()}
+      dismissible={!running}
     >
       <Flex vertical gap={16} role="list" aria-label="Progress">
         {steps.map(renderStep)}

@@ -5,13 +5,11 @@ import { LoadingMessage } from '../../components/LoadingMessage'
 import { LoadError } from '../../components/LoadError'
 import { ROUTES } from '../../routes.ts'
 import { ExpenseNotFound } from '../../components/ExpenseNotFound'
-import { getDb } from '../../db/client.ts'
-import { useAsyncData } from '../../hooks/useAsyncData'
+import { useCachedData } from '../../hooks/useCachedData'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
-import { expenseService } from '../../services/expenseService'
-import { groupService } from '../../services/groupService'
 import { aboveScreenEdge, belowStatusBar, HEADER_TOP_PADDING } from '../../theme/safeArea.ts'
 import { EditExpenseForm } from './components/EditExpenseForm'
+import { EDIT_EXPENSE_PAGE, editExpenseKey, loadExpenseToEdit } from './utils.ts'
 
 /** A column about 560 px wide, centered, like the add-expense page. */
 const COLUMN_STYLE = { width: '100%', maxWidth: 560, margin: '0 auto', padding: `${belowStatusBar(HEADER_TOP_PADDING)} 16px ${aboveScreenEdge(24)}` } as const
@@ -23,15 +21,8 @@ export function EditExpensePage() {
 
   const userId = user?.personId ?? ''
   const datasetId = user?.datasetId ?? ''
-  const { state, retry } = useAsyncData(async () => {
-    const db = await getDb()
-    const [group, expense] = await Promise.all([
-      groupService.getGroup(db, userId, id),
-      expenseService.getExpenseToEdit(db, userId, id, expenseId),
-    ])
-    if (!group || !expense) return null
-    return { group, expense, recentCurrencies: await expenseService.recentCurrencies(db, userId) }
-  }, `${userId}:${id}:${expenseId}`)
+  // Read when the expense's page opened (ADR-055), so the form usually opens at once.
+  const { state, retry } = useCachedData(() => loadExpenseToEdit(userId, id, expenseId), EDIT_EXPENSE_PAGE, editExpenseKey(userId, id, expenseId))
 
   // Visitors who are not in the app are sent away by `RequireAuth` before this matters.
   if (!user) return null

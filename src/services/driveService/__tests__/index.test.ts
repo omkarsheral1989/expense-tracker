@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { DriveAuthError, DriveError, driveService, stoppingProblem } from '../index.ts'
+import { DriveAuthError, DriveError, DriveStopped, driveService, stoppingProblem } from '../index.ts'
 import { captureLogs } from '../../../testing/logs.ts'
 
 const logs = captureLogs()
@@ -284,10 +284,72 @@ describe('retries', () => {
   })
 })
 
+describe('stopping and timing out', () => {
+  /** A fetch that never answers, and fails the way a browser's does when its signal is aborted. */
+  function silentFetch() {
+    fetchMock.mockImplementation(
+      (_url, init) =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(init.signal!.reason))
+        }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+  }
+
+  it('sends every request with a signal', async () => {
+    const client = drive()
+    respond({ files: [] })
+    await client.findOwn('root')
+    expect(fetchMock.mock.calls[0][1]?.signal).toBeInstanceOf(AbortSignal)
+  })
+
+  it('cancels a request in flight when the signal is aborted, with DriveStopped, and does not retry it', async () => {
+    silentFetch()
+    const controller = new AbortController()
+    const client = driveService.client('token-1', { signal: controller.signal, wait: async () => {} })
+
+    const pending = client.findOwn('root').catch((failure: unknown) => failure)
+    controller.abort()
+
+    const error = await pending
+    expect(error).toBeInstanceOf(DriveStopped)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('sends nothing once the signal was aborted', async () => {
+    vi.stubGlobal('fetch', fetchMock)
+    const controller = new AbortController()
+    controller.abort()
+    const client = driveService.client('token-1', { signal: controller.signal })
+
+    await expect(client.findOwn('root')).rejects.toBeInstanceOf(DriveStopped)
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
+  it('counts a request that gets no answer in time as a dropped connection', async () => {
+    silentFetch()
+    const client = driveService.client('token-1', { timeoutMs: 20 })
+
+    const error = await client.findOwn('root').catch((failure: unknown) => failure)
+
+    expect(error).toBeInstanceOf(DriveError)
+    expect((error as DriveError).connectionLost).toBe(true)
+    expect(stoppingProblem(error)).toBe('connection')
+  })
+
+  it('does not time out a request that answers in time', async () => {
+    vi.stubGlobal('fetch', fetchMock)
+    const client = driveService.client('token-1', { timeoutMs: 5000 })
+    respond({ files: [{ id: 'f1', name: 'OwnLedger' }] })
+    expect(await client.findOwn('root')).toEqual({ id: 'f1', name: 'OwnLedger' })
+  })
+})
+
 describe('stoppingProblem', () => {
   it('names the failures that stop a sync run, and nothing else', () => {
     const full = new DriveError(403, JSON.stringify({ error: { errors: [{ reason: 'storageQuotaExceeded' }] } }))
     expect(stoppingProblem(new DriveAuthError())).toBe('expired')
+    expect(stoppingProblem(new DriveStopped())).toBe('stopped')
     expect(stoppingProblem(new DriveError(0, 'Failed to fetch'))).toBe('connection')
     expect(stoppingProblem(full)).toBe('driveFull')
     expect(stoppingProblem(new DriveError(403, JSON.stringify({ error: { errors: [{ reason: 'insufficientFilePermissions' }] } })))).toBeNull()

@@ -11,11 +11,17 @@ export type DriveFile = {
   properties?: Record<string, string>
 }
 
-/** A failure that stops a whole sync run (ADR-044): Drive access ran out, the connection dropped, or the user's Drive is full. */
-export type StoppingProblem = 'expired' | 'connection' | 'driveFull'
+/** A failure that stops a whole sync run (ADR-044): Drive access ran out, the connection dropped, the user's Drive is full, or the user pressed Stop. */
+export type StoppingProblem = 'expired' | 'connection' | 'driveFull' | 'stopped'
 
 /** How the client waits before a retry; tests pass one that does not wait. */
-export type ClientOptions = { wait?: (ms: number) => Promise<void> }
+export type ClientOptions = {
+  wait?: (ms: number) => Promise<void>
+  /** Aborting it stops the request in flight and every one after it, with `DriveStopped`. */
+  signal?: AbortSignal
+  /** How long a request may take before it counts as a dropped connection; defaults to `REQUEST_TIMEOUT_MS`. */
+  timeoutMs?: number
+}
 
 /** Whose files a search covers: the user's own, others' shared with the user, or both. */
 export type DriveOwner = 'me' | 'others' | 'any'

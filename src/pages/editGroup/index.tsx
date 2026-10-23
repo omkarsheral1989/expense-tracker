@@ -9,12 +9,11 @@ import { LoadingMessage } from '../../components/LoadingMessage'
 import { LoadError } from '../../components/LoadError'
 import { ROUTES } from '../../routes.ts'
 import { GroupNotFound } from '../../components/GroupNotFound'
-import { getDb } from '../../db/client.ts'
-import { useAsyncData } from '../../hooks/useAsyncData'
+import { useCachedData } from '../../hooks/useCachedData'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
-import { groupService } from '../../services/groupService'
 import { aboveScreenEdge, belowStatusBar, HEADER_TOP_PADDING } from '../../theme/safeArea.ts'
 import { EditGroupForm } from './components/EditGroupForm'
+import { EDIT_GROUP_PAGE, editGroupKey, loadGroupToEdit } from './utils.ts'
 
 /** Where any member of a group changes its name, type and default currency. */
 export function EditGroupPage() {
@@ -24,10 +23,8 @@ export function EditGroupPage() {
   const known = knownGroupFrom(useLocation().state, id)
 
   const userId = user?.personId ?? ''
-  const { state, retry } = useAsyncData(
-    async () => groupService.getGroup(await getDb(), userId, id),
-    `${userId}:${id}`,
-  )
+  // Read when the group's page opened (ADR-055), so the form usually opens at once.
+  const { state, retry } = useCachedData(() => loadGroupToEdit(userId, id), EDIT_GROUP_PAGE, editGroupKey(userId, id))
 
   // Visitors who are not in the app are sent away by `RequireAuth` before this matters.
   if (!user) return null

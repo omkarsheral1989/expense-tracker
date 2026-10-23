@@ -14,8 +14,17 @@ export const useSyncStore = create<SyncState>()((set) => ({
   steps: [],
   scope: { kind: 'all' },
   resume: null,
+  stopRun: null,
+  stopping: false,
   dataVersion: 0,
-  start: (title, steps, scope) => set({ running: true, dialogOpen: true, title, steps, scope, resume: null }),
+  start: (title, steps, scope) => set({ running: true, dialogOpen: true, title, steps, scope, resume: null, stopping: false }),
+  setStopRun: (stopRun) => set({ stopRun }),
+  requestStop: () => {
+    const { stopRun } = useSyncStore.getState()
+    if (!stopRun) return
+    set({ stopping: true })
+    stopRun()
+  },
   setResume: (resume) => set({ resume }),
   updateStep: (key, change) =>
     set((state) => ({
@@ -23,7 +32,7 @@ export const useSyncStore = create<SyncState>()((set) => ({
     })),
   addStep: (step) => set((state) => ({ steps: [...state.steps, step] })),
   finish: () => {
-    set((state) => ({ running: false, dataVersion: state.dataVersion + 1 }))
+    set((state) => ({ running: false, stopRun: null, stopping: false, dataVersion: state.dataVersion + 1 }))
     // A sync may have brought in groups and expenses: pages that remember data must read it again.
     dataChanges.announce()
   },

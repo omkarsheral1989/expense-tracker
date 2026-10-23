@@ -1,4 +1,4 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery, type QueryClient } from '@tanstack/react-query'
 import type { AsyncState } from '../useAsyncData/types.ts'
 import { PAGE_QUERY_ROOT } from './constants.ts'
 
@@ -35,4 +35,14 @@ export function useCachedData<T>(
         : { status: 'loading' }
 
   return { state, retry: () => void query.refetch({ cancelRefetch: false }) }
+}
+
+/**
+ * Reads what a page will need before the user opens it (ADR-055), under the
+ * same page and key as `useCachedData` there, so the page finds it already
+ * read, or already being read. A failure is left for the page to show when it
+ * reads again.
+ */
+export function prefetchCachedData<T>(client: QueryClient, load: () => Promise<T>, page: string, key: string) {
+  return client.prefetchQuery({ queryKey: [PAGE_QUERY_ROOT, page, key], queryFn: load })
 }

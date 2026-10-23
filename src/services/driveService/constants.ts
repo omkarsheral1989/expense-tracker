@@ -40,6 +40,9 @@ export const GROUP_PHOTOS_FOLDER_NAME = 'photos'
 /** How long to wait before each retry of a request Drive refused for a moment (ADR-044): 3 retries. */
 export const RETRY_DELAYS_MS = [1000, 2000, 4000]
 
+/** How long one Drive request may take before it counts as a dropped connection (ADR-054). */
+export const REQUEST_TIMEOUT_MS = 120_000
+
 /** Google's reasons for a refusal that is worth retrying, and the one for a full Drive. */
 export const RATE_LIMIT_REASONS = ['rateLimitExceeded', 'userRateLimitExceeded']
 export const DRIVE_FULL_REASON = 'storageQuotaExceeded'

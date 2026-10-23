@@ -11,6 +11,7 @@ export const DRIVE_TOKEN_MESSAGES: Record<DriveTokenProblem, string> = {
 
 export const OFFLINE_MESSAGE = 'Sync needs an internet connection.'
 export const EXPIRED_MESSAGE = 'Sign-in to Drive expired. Press Continue to carry on.'
+export const STOPPED_MESSAGE = 'Stopped. Press Sync to carry on.'
 export const CONNECTION_MESSAGE = 'Lost the connection. Press Sync to try again.'
 export const DRIVE_FULL_MESSAGE = 'Your Google Drive is full. Free some space in Drive, then sync again.'
 

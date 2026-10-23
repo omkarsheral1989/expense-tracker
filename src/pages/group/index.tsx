@@ -1,8 +1,9 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { Flex } from 'antd'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocation, useParams } from 'react-router'
 import { getDb } from '../../db/client.ts'
-import { useCachedData } from '../../hooks/useCachedData'
+import { prefetchCachedData, useCachedData } from '../../hooks/useCachedData'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
 import { expenseService } from '../../services/expenseService'
 import type { ExpenseListItem, PersonBalance } from '../../services/expenseService/types.ts'
@@ -22,6 +23,7 @@ import { LoadingMessage } from '../../components/LoadingMessage'
 import { LoadError } from '../../components/LoadError'
 import { ROUTES } from '../../routes.ts'
 import { knownGroupFrom } from './utils.ts'
+import { EDIT_GROUP_PAGE, editGroupKey, loadGroupToEdit } from '../editGroup/utils.ts'
 import type { KnownGroup } from './types.ts'
 import { ABOVE_FLOATING_BUTTON, FLOATING_BUTTON_ROOM } from '../../components/FloatingPillButton/constants.ts'
 import { aboveScreenEdge, belowStatusBar } from '../../theme/safeArea.ts'
@@ -58,6 +60,14 @@ export function GroupPage() {
       syncedIds: await syncService.syncedMembers(db, id),
     }
   }, 'group', `${userId}:${id}:${dataVersion}`, { keepPrevious: true })
+
+  // Read what Edit group will need while the group is on screen, so the form opens at once (ADR-055).
+  const queryClient = useQueryClient()
+  const loaded = state.status === 'ready' ? state.data : null
+  useEffect(() => {
+    if (!loaded) return
+    void prefetchCachedData(queryClient, () => loadGroupToEdit(userId, id), EDIT_GROUP_PAGE, editGroupKey(userId, id))
+  }, [queryClient, loaded, userId, id])
 
   // Visitors who are not in the app are sent away by `RequireAuth` before this matters.
   if (!user) return null

@@ -5,6 +5,7 @@ import {
   FOLDER_MIME_TYPE,
   OWNLEDGER_PROPERTY,
   RATE_LIMIT_REASONS,
+  REQUEST_TIMEOUT_MS,
   RETRY_DELAYS_MS,
   SHORTCUT_MIME_TYPE,
 } from './constants.ts'
@@ -25,6 +26,14 @@ export class DriveAuthError extends Error {
   constructor() {
     super('Drive access expired.')
     this.name = 'DriveAuthError'
+  }
+}
+
+/** The user pressed Stop: the request in flight was cancelled and nothing more is sent. */
+export class DriveStopped extends Error {
+  constructor() {
+    super('The sync was stopped.')
+    this.name = 'DriveStopped'
   }
 }
 
@@ -77,6 +86,7 @@ function googleError(detail: string): { message?: string; codes: string[] } {
 
 /** Whether a failure stops the whole sync run, and which one it is; null for one a run carries on after. */
 export function stoppingProblem(error: unknown): StoppingProblem | null {
+  if (error instanceof DriveStopped) return 'stopped'
   if (error instanceof DriveAuthError) return 'expired'
   if (error instanceof DriveError && error.connectionLost) return 'connection'
   if (error instanceof DriveError && error.driveFull) return 'driveFull'
@@ -131,15 +141,19 @@ function multipartBlobBody(metadata: object, content: Blob) {
  * A request Drive refuses for a moment is tried again up to 3 times, after
  * 1, 2 and 4 seconds; a dropped connection is not.
  */
-function client(accessToken: string, { wait = waitFor }: ClientOptions = {}): DriveClient {
+function client(accessToken: string, { wait = waitFor, signal, timeoutMs = REQUEST_TIMEOUT_MS }: ClientOptions = {}): DriveClient {
   async function attempt(url: string, init: RequestInit): Promise<Response> {
+    if (signal?.aborted) throw new DriveStopped()
     let response: Response
     try {
       response = await fetch(url, {
         ...init,
         headers: { Authorization: `Bearer ${accessToken}`, ...init.headers },
+        // A request that gets no answer in time counts as a dropped connection; Stop cancels it at once.
+        signal: AbortSignal.any([AbortSignal.timeout(timeoutMs), ...(signal ? [signal] : [])]),
       })
     } catch (error) {
+      if (signal?.aborted) throw new DriveStopped()
       throw new DriveError(0, error instanceof Error ? error.message : String(error))
     }
     if (response.status === 401) throw new DriveAuthError()

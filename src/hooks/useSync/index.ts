@@ -15,6 +15,7 @@ import type { Database } from '../../db/client.ts'
 import {
   DRIVE_TOKEN_MESSAGES,
   CONNECTION_MESSAGE,
+  STOPPED_MESSAGE,
   DRIVE_FULL_MESSAGE,
   EXPIRED_MESSAGE,
   BACKUP_DETAILS,
@@ -62,7 +63,7 @@ export function useSync() {
   const { message } = App.useApp()
   const { getDriveToken, forgetDriveToken } = useDriveToken()
   const running = useSyncStore((state) => state.running)
-  const { start, updateStep, addStep, finish, openDialog, setResume } = useSyncStore.getState()
+  const { start, updateStep, addStep, finish, openDialog, setResume, setStopRun } = useSyncStore.getState()
   // The run going on, offered again as Continue when Drive access runs out.
   const currentRun = useRef<(() => void) | null>(null)
 
@@ -103,6 +104,8 @@ export function useSync() {
         forgetDriveToken()
         setResume(currentRun.current)
         return EXPIRED_MESSAGE
+      case 'stopped':
+        return STOPPED_MESSAGE
       case 'connection':
         return CONNECTION_MESSAGE
       case 'driveFull':
@@ -251,14 +254,16 @@ export function useSync() {
     if (!token) return
 
     currentRun.current = sync
+    const controller = new AbortController()
     const startedAt = Date.now()
     log.info('Full sync started')
     start('Syncing', [{ key: BACKUP_STEP, label: 'Backup', status: 'running', detail: BACKUP_DETAILS.getting }], { kind: 'all' })
+    setStopRun(() => controller.abort())
     // True while the backup's data is merged but not written yet.
     let backupPending = false
     try {
       const db = await getDb()
-      const drive = driveService.client(token)
+      const drive = driveService.client(token, { signal: controller.signal })
       const backup = await mergeBackup(db, drive, user.personId, user.datasetId)
       // A backup that could not be merged is not written over (its line already says why).
       backupPending = backup.merged
@@ -294,10 +299,12 @@ export function useSync() {
     if (!token) return
 
     currentRun.current = () => syncGroup(groupId, name)
+    const controller = new AbortController()
     log.info('Group sync started', { groupId })
     start('Syncing', [], { kind: 'group', groupId })
+    setStopRun(() => controller.abort())
     try {
-      await syncGroupLine(await getDb(), driveService.client(token), user.personId, groupId, name)
+      await syncGroupLine(await getDb(), driveService.client(token, { signal: controller.signal }), user.personId, groupId, name)
     } catch (error) {
       if (!(error instanceof RunStopped)) throw error
     } finally {

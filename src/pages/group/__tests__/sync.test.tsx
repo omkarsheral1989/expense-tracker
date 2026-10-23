@@ -7,7 +7,7 @@ import { eq } from 'drizzle-orm'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SyncDialog } from '../../../components/SyncDialog'
 import { createDatabase, type Database } from '../../../db/client.ts'
-import { DriveAuthError } from '../../../services/driveService'
+import { DriveAuthError, DriveStopped } from '../../../services/driveService'
 import { people } from '../../../db/schema.ts'
 import { ROUTES } from '../../../routes.ts'
 import { expenseService } from '../../../services/expenseService'
@@ -24,6 +24,7 @@ import { GroupPage } from '../index.tsx'
 const fake = vi.hoisted(() => ({
   clientId: 'test-client-id',
   omkar: null as import('../../../services/driveService/types.ts').DriveClient | null,
+  options: undefined as import('../../../services/driveService/types.ts').ClientOptions | undefined,
 }))
 
 vi.mock('../../../config.ts', () => ({
@@ -43,7 +44,15 @@ vi.mock('../../../db/client.ts', async (importOriginal) => {
 
 vi.mock('../../../services/driveService', async (importOriginal) => {
   const original = await importOriginal<typeof import('../../../services/driveService')>()
-  return { ...original, driveService: { client: () => fake.omkar! } }
+  return {
+    ...original,
+    driveService: {
+      client: (_token: string, options?: import('../../../services/driveService/types.ts').ClientOptions) => {
+        fake.options = options
+        return fake.omkar!
+      },
+    },
+  }
 })
 
 vi.mock('../../../services/googleProfileService', () => ({
@@ -217,6 +226,28 @@ describe('the band\'s Sync button', () => {
     await waitFor(() => expect(useSyncStore.getState().dataVersion).toBe(runs + 1))
     expect(lines()).toEqual(['Goa tripShared with Priya'])
     expect(world.named('backup.json')).toBeUndefined()
+  })
+
+  it('can be stopped with Stop, which ends the run and says so', async () => {
+    const groupId = await goaTrip()
+    let reached = () => {}
+    const reading = new Promise<void>((resolve) => (reached = resolve))
+    vi.spyOn(fake.omkar!, 'listChildren').mockImplementation(async () => {
+      reached()
+      await new Promise<never>((_resolve, reject) => fake.options!.signal!.addEventListener('abort', () => reject(new DriveStopped())))
+      return []
+    })
+    renderGroup(groupId)
+
+    await userEvent.click(await bandSync())
+    await reading
+    await userEvent.click(await screen.findByRole('button', { name: 'Stop' }))
+    await waitFor(() => expect(useSyncStore.getState().running).toBe(false))
+
+    expect(fake.options!.signal!.aborted).toBe(true)
+    const lines = within(screen.getByRole('list', { name: 'Progress' })).getAllByRole('listitem').map((line) => line.textContent)
+    expect(lines).toEqual(['Goa tripStopped. Press Sync to carry on.'])
+    expect(screen.queryByRole('button', { name: 'Stop' })).not.toBeInTheDocument()
   })
 
   it('asks a guest to sign in first', async () => {

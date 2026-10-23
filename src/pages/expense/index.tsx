@@ -1,4 +1,6 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { Flex } from 'antd'
+import { useEffect } from 'react'
 import { useLocation, useParams } from 'react-router'
 import { CenteredMessage } from '../../components/CenteredMessage'
 import { LoadingMessage } from '../../components/LoadingMessage'
@@ -8,11 +10,12 @@ import { KnownExpensePage } from './components/KnownExpense'
 import { knownExpenseFrom, knownTitle } from './utils.ts'
 import { ExpenseNotFound } from '../../components/ExpenseNotFound'
 import { getDb } from '../../db/client.ts'
-import { useCachedData } from '../../hooks/useCachedData'
+import { prefetchCachedData, useCachedData } from '../../hooks/useCachedData'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
 import { expenseService } from '../../services/expenseService'
 import { aboveScreenEdge, belowStatusBar } from '../../theme/safeArea.ts'
 import { ExpenseDetails } from './components/ExpenseDetails'
+import { EDIT_EXPENSE_PAGE, editExpenseKey, loadExpenseToEdit } from '../editExpense/utils.ts'
 
 /** A column about 560 px wide, centered, like the add-expense page. */
 const COLUMN_STYLE = { width: '100%', maxWidth: 560, margin: '0 auto', padding: `${belowStatusBar(24)} 16px ${aboveScreenEdge(24)}` } as const
@@ -35,6 +38,15 @@ export function ExpensePage() {
     // After a restoration the page reads the expense again, and meanwhile keeps showing it.
     { keepPrevious: true },
   )
+
+  // Read what Edit will need while the expense is on screen, so the form opens at once (ADR-055).
+  const queryClient = useQueryClient()
+  const expense = state.status === 'ready' ? state.data : null
+  const editable = expense !== null && !expense.deleted && expense.category !== expenseService.settlementCategory
+  useEffect(() => {
+    if (!editable) return
+    void prefetchCachedData(queryClient, () => loadExpenseToEdit(userId, id, expenseId), EDIT_EXPENSE_PAGE, editExpenseKey(userId, id, expenseId))
+  }, [queryClient, editable, expense, userId, id, expenseId])
 
   // Visitors who are not in the app are sent away by `RequireAuth` before this matters.
   if (!user) return null

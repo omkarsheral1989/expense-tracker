@@ -9,7 +9,7 @@ import { createDatabase, type Database } from '../../../db/client.ts'
 import { groups, people } from '../../../db/schema.ts'
 import { ROUTES } from '../../../routes.ts'
 import { DriveError } from '../../../services/driveService'
-import { DriveAuthError } from '../../../services/driveService'
+import { DriveAuthError, DriveStopped } from '../../../services/driveService'
 import { groupService } from '../../../services/groupService'
 import { photoService } from '../../../services/photoService'
 import { syncService } from '../../../services/syncService'
@@ -39,10 +39,19 @@ vi.mock('../../../db/client.ts', async (importOriginal) => {
 })
 
 // The signed-in user's Drive is Omkar's in the shared fake Drive; other members use their own clients.
-const omkarClient = vi.hoisted(() => ({ current: null as import('../../../services/driveService/types.ts').DriveClient | null }))
+const omkarClient = vi.hoisted(() => ({
+  current: null as import('../../../services/driveService/types.ts').DriveClient | null,
+  /** What the app made its client with (its signal for Stop). */
+  options: undefined as import('../../../services/driveService/types.ts').ClientOptions | undefined,
+}))
 vi.mock('../../../services/driveService', async (importOriginal) => {
   const original = await importOriginal<typeof import('../../../services/driveService')>()
-  return { ...original, driveService: { client: () => omkarClient.current! } }
+  return { ...original, driveService: {
+      client: (_token: string, options?: import('../../../services/driveService/types.ts').ClientOptions) => {
+        omkarClient.options = options
+        return omkarClient.current!
+      },
+    } }
 })
 
 vi.mock('../../../services/googleProfileService', () => ({
@@ -387,6 +396,45 @@ describe('failures that stop the run', () => {
     const lines = within(screen.getByRole('list', { name: 'Progress' })).getAllByRole('listitem').map((line) => line.textContent)
     expect(lines).toEqual(['BackupBacked up', 'Goa tripSynced', 'LisbonSynced'])
     expect(within(footer()).queryByRole('button', { name: 'Continue' })).not.toBeInTheDocument()
+  })
+
+  it('stops when Stop is pressed: the run ends, the line says so, and the next groups are not synced', async () => {
+    const { goa } = await twoGroups()
+    const listChildren = omkarClient.current!.listChildren
+    let reached = () => {}
+    const atGoa = new Promise<void>((resolve) => (reached = resolve))
+    vi.spyOn(omkarClient.current!, 'listChildren').mockImplementation(async (folderId) => {
+      if (fake.world!.files.get(folderId)?.properties?.ownledgerGroupId !== goa) return listChildren(folderId)
+      // Held until Stop aborts the signal the app gave its Drive client, as a real request would be.
+      reached()
+      const signal = omkarClient.options!.signal!
+      await new Promise<never>((_resolve, reject) => signal.addEventListener('abort', () => reject(new DriveStopped())))
+      return []
+    })
+    renderHeader()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Sync' }))
+    await atGoa
+    expect(omkarClient.options?.signal?.aborted).toBe(false)
+    await userEvent.click(await screen.findByRole('button', { name: 'Stop' }))
+    await waitFor(() => expect(useSyncStore.getState().running).toBe(false))
+
+    expect(omkarClient.options?.signal?.aborted).toBe(true)
+    const lines = within(screen.getByRole('list', { name: 'Progress' })).getAllByRole('listitem').map((line) => line.textContent)
+    expect(lines).toEqual(['BackupNot backed up: the sync stopped.', 'Goa tripStopped. Press Sync to carry on.'])
+    expect(screen.queryByRole('button', { name: 'Stop' })).not.toBeInTheDocument()
+    expect(within(footer()).queryByRole('button', { name: 'Continue' })).not.toBeInTheDocument()
+  })
+
+  it('runs again after a stop, with a fresh signal', async () => {
+    await twoGroups()
+    renderHeader()
+    await syncAll()
+    const first = omkarClient.options!.signal!
+    await userEvent.click(within(footer()).getByRole('button', { name: 'Close' }))
+    await syncAll()
+    expect(omkarClient.options!.signal).not.toBe(first)
+    expect(omkarClient.options!.signal!.aborted).toBe(false)
   })
 
   it('stops at a dropped connection, with no Continue', async () => {

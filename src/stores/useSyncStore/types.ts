@@ -32,8 +32,15 @@ export type SyncState = {
    * (the home page, the current user) read it again.
    */
   dataVersion: number
+  /** Cancels the run in flight (the dialog's Stop button); null when nothing runs. */
+  stopRun: (() => void) | null
+  /** Stop was pressed and the run is ending. */
+  stopping: boolean
   /** Starts a run: opens the dialog with these lines. */
   start: (title: string, steps: SyncStep[], scope: SyncScope) => void
+  setStopRun: (stopRun: (() => void) | null) => void
+  /** Pressed Stop: cancels the run. */
+  requestStop: () => void
   setResume: (resume: (() => void) | null) => void
   updateStep: (key: string, change: Partial<Omit<SyncStep, 'key'>>) => void
   /** Adds a line at the end, as a run reaches the next group. */
