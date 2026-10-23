@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { dataChanges } from '../../db/changes.ts'
 import type { SyncState } from './types.ts'
 
 /**
@@ -21,7 +22,11 @@ export const useSyncStore = create<SyncState>()((set) => ({
       steps: state.steps.map((step) => (step.key === key ? { ...step, ...change } : step)),
     })),
   addStep: (step) => set((state) => ({ steps: [...state.steps, step] })),
-  finish: () => set((state) => ({ running: false, dataVersion: state.dataVersion + 1 })),
+  finish: () => {
+    set((state) => ({ running: false, dataVersion: state.dataVersion + 1 }))
+    // A sync may have brought in groups and expenses: pages that remember data must read it again.
+    dataChanges.announce()
+  },
   openDialog: () => set({ dialogOpen: true }),
   closeDialog: () => set({ dialogOpen: false }),
 }))

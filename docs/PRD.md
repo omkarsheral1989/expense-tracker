@@ -363,6 +363,12 @@ The app writes what it is doing to the browser console, so a problem can be foun
 ### 5.13 Loading
 Every page that reads its data shows one loader while it waits: a large spinner centered in the space the page has (below the header or the home page's heading, above its floating button; the whole screen on pages without a header), with a short grey label under it: "Opening your data…" (while the device's data opens), "Loading your groups…", "Loading the group…", "Loading the expense…", "Loading the version…" and "Loading your members…". There are no grey skeleton placeholders. The only skeleton left is the small grey tile of a receipt photo that is still being read from the device (5.6). Assistive technology reads the loader as a status with the label. A page that already has its data and reads it again (after adding a member, for example) keeps showing what it has, with no loader.
 
+### 5.14 Moving between pages
+- **Coming back is instant:** a page the user has already opened since the app started (home, a group, an expense, a version, the members page) shows what it showed before at once, with no loader, and reads its data again behind it, changing on screen only if something is different. Only the first visit to a page, and the first load after the app starts, show the loader (5.13).
+- **Always up to date:** after anything changes the data (adding, editing, deleting or restoring an expense or a payment, changing a group or a person, adding a member, a finished sync), the page on screen refreshes in place, and pages not on screen are forgotten, so opening one shows the loader once and then its fresh data, never old numbers. Signing in or out, or starting guest mode, forgets everything.
+- **Forms are always read fresh** (add and edit expense, edit group, settle up), so a form never opens with values that are about to change.
+- **Offline:** works the same; the data is on the device.
+
 ## 6. Open questions
 - Google Cloud setup: the OAuth client ID is not created yet (Drive API, consent screen in Testing mode, authorized origins, test users).
 - Member removal: what happens to a removed member's access and local data (a person who left can already be added back, 5.4).

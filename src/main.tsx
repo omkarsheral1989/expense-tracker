@@ -6,6 +6,7 @@ import '@fontsource/barlow-condensed/100.css'
 import './index.css'
 import App from './App.tsx'
 import { GOOGLE_CLIENT_ID } from './config.ts'
+import { QueryProvider } from './components/QueryProvider'
 import { ThemeProvider } from './components/ThemeProvider'
 import { restoreRedirectedUrl } from './pwa/redirect.ts'
 import { logService } from './services/logService'
@@ -32,14 +33,16 @@ const app = (
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider>
-      {/* Without a client ID the provider (and Google's script) is skipped. */}
-      {GOOGLE_CLIENT_ID ? (
-        <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-          {app}
-        </GoogleOAuthProvider>
-      ) : (
-        app
-      )}
+      <QueryProvider>
+        {/* Without a client ID the provider (and Google's script) is skipped. */}
+        {GOOGLE_CLIENT_ID ? (
+          <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+            {app}
+          </GoogleOAuthProvider>
+        ) : (
+          app
+        )}
+      </QueryProvider>
     </ThemeProvider>
   </StrictMode>,
 )

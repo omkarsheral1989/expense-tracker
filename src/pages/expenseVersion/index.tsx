@@ -5,7 +5,7 @@ import { LoadingMessage } from '../../components/LoadingMessage'
 import { LoadError } from '../../components/LoadError'
 import { ROUTES } from '../../routes.ts'
 import { getDb } from '../../db/client.ts'
-import { useAsyncData } from '../../hooks/useAsyncData'
+import { useCachedData } from '../../hooks/useCachedData'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
 import { expenseService } from '../../services/expenseService'
 import { aboveScreenEdge, belowStatusBar } from '../../theme/safeArea.ts'
@@ -25,7 +25,7 @@ export function ExpenseVersionPage() {
 
   const userId = user?.personId ?? ''
   const datasetId = user?.datasetId ?? ''
-  const { state, retry } = useAsyncData(
+  const { state, retry } = useCachedData(
     async () => expenseService.getExpenseVersion(await getDb(), userId, id, expenseId, eventId),
     `${userId}:${id}:${expenseId}:${eventId}`,
     // When the page's data goes out of date it reads it again, and meanwhile keeps showing it.

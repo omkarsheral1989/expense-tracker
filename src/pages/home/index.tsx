@@ -6,7 +6,7 @@ import { LoadingMessage } from '../../components/LoadingMessage'
 import { TintedPageBackground } from '../../components/TintedPageBackground'
 import { FloatingPillButton } from '../../components/FloatingPillButton'
 import { ABOVE_FLOATING_BUTTON, FLOATING_BUTTON_ROOM } from '../../components/FloatingPillButton/constants.ts'
-import { useAsyncData } from '../../hooks/useAsyncData'
+import { useCachedData } from '../../hooks/useCachedData'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
 import { ROUTES } from '../../routes.ts'
 import { expenseService } from '../../services/expenseService'
@@ -27,7 +27,7 @@ export function HomePage() {
   const userId = user?.personId ?? ''
   // Read again after a sync, which may bring in groups.
   const dataVersion = useSyncStore((syncState) => syncState.dataVersion)
-  const { state, retry } = useAsyncData(async () => {
+  const { state, retry } = useCachedData(async () => {
     const db = await getDb()
     return {
       groups: await groupService.listGroups(db, userId),

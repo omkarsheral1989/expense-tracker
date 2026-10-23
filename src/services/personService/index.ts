@@ -1,5 +1,6 @@
 import { and, eq, isNull, ne, sql } from 'drizzle-orm'
 import type { Database } from '../../db/client.ts'
+import { notifyAfter } from '../../db/changes.ts'
 import { logService } from '../logService'
 import { people } from '../../db/schema.ts'
 import { MEMBER_EMAIL_DOMAIN } from './constants.ts'
@@ -169,7 +170,7 @@ const personServiceBase = {
 }
 
 /** personService with one log line per action (ADR-048). */
-export const personService: typeof personServiceBase = logService.logActions(logService.scope('person'), personServiceBase, {
+export const personService: typeof personServiceBase = notifyAfter(logService.logActions(logService.scope('person'), personServiceBase, {
   addPerson: { message: 'Person added', params: ['userId'] },
   updatePerson: { message: 'Person updated', params: ['userId', 'personId'] },
-})
+}), ['addPerson', 'updatePerson'])

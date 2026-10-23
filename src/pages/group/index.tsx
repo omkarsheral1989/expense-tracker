@@ -2,7 +2,7 @@ import { Flex } from 'antd'
 import { useState } from 'react'
 import { useParams } from 'react-router'
 import { getDb } from '../../db/client.ts'
-import { useAsyncData } from '../../hooks/useAsyncData'
+import { useCachedData } from '../../hooks/useCachedData'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
 import { expenseService } from '../../services/expenseService'
 import type { ExpenseListItem, PersonBalance } from '../../services/expenseService/types.ts'
@@ -43,7 +43,7 @@ export function GroupPage() {
   const dataVersion = useSyncStore((syncState) => syncState.dataVersion)
   // `keepPrevious`: reading the group again (after a member is added, or a sync)
   // keeps what is shown, so the members sheet stays open instead of flashing the placeholder.
-  const { state, retry } = useAsyncData(async () => {
+  const { state, retry } = useCachedData(async () => {
     const db = await getDb()
     const group = await groupService.getGroup(db, userId, id)
     if (!group) return null

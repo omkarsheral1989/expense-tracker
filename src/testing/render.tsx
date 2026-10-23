@@ -2,6 +2,7 @@ import { render } from '@testing-library/react'
 import { ConfigProvider } from 'antd'
 import type { ReactElement } from 'react'
 import { MemoryRouter, Route, Routes } from 'react-router'
+import { QueryProvider } from '../components/QueryProvider'
 import { ThemeProvider } from '../components/ThemeProvider'
 import { CurrentUserContext } from '../hooks/useCurrentUser/context.ts'
 import type { CurrentUser } from '../hooks/useCurrentUser/types.ts'
@@ -33,6 +34,7 @@ export function renderPage(
     // instead of lingering on screen while it "animates" in jsdom.
     <ConfigProvider theme={{ zeroRuntime: true, token: { motion: false } }}>
       <ThemeProvider>
+        <QueryProvider>
         <MemoryRouter initialEntries={[path]}>
           <Routes>
             <Route
@@ -45,6 +47,7 @@ export function renderPage(
           </Routes>
           <CurrentPath />
         </MemoryRouter>
+        </QueryProvider>
       </ThemeProvider>
     </ConfigProvider>
     </CurrentUserContext.Provider>,

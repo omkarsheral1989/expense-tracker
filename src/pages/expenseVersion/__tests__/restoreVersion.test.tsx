@@ -9,6 +9,7 @@ import { expenses, groupMembers } from '../../../db/schema.ts'
 import { ROUTES } from '../../../routes.ts'
 import { expenseService } from '../../../services/expenseService'
 import { useAuthStore } from '../../../stores/useAuthStore'
+import { fromElsewhere } from '../../../testing/changes.ts'
 import { personIdOf } from '../../../testing/expenses.ts'
 import { me, named, setUpVersionTests } from './helpers.tsx'
 
@@ -126,7 +127,7 @@ describe('ExpenseVersionPage: restoring a version', () => {
     const page = renderVersion(groupId, expenseId, added.id)
     await screen.findByRole('heading', { name: 'Beach shack dinner' })
     // Someone else put it back to this version a moment ago.
-    await expenseService.restoreVersion(testDb.db, await personIdOf(testDb.db, 'priya@gmail.com'), groupId, expenseId, added.id)
+    await fromElsewhere(async () => expenseService.restoreVersion(testDb.db, await personIdOf(testDb.db, 'priya@gmail.com'), groupId, expenseId, added.id))
 
     await user.click(restoreButton())
 

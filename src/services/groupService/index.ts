@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, inArray, isNull, ne, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import type { Database } from '../../db/client.ts'
+import { notifyAfter } from '../../db/changes.ts'
 import { logService } from '../logService'
 import { expenses, groupMembers, groups, people } from '../../db/schema.ts'
 import { shownName } from '../../db/shownName.ts'
@@ -329,8 +330,8 @@ const groupServiceBase = {
 }
 
 /** groupService with one log line per action (ADR-048). */
-export const groupService: typeof groupServiceBase = logService.logActions(logService.scope('group'), groupServiceBase, {
+export const groupService: typeof groupServiceBase = notifyAfter(logService.logActions(logService.scope('group'), groupServiceBase, {
   createGroup: { message: 'Group created', params: ['userId'] },
   updateGroup: { message: 'Group updated', params: ['userId', 'groupId'] },
   addMember: { message: 'Member added to group', params: ['userId', 'groupId', 'personId'] },
-})
+}), ['createGroup', 'updateGroup', 'addMember'])

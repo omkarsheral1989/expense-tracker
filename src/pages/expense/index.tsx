@@ -6,7 +6,7 @@ import { LoadError } from '../../components/LoadError'
 import { ROUTES } from '../../routes.ts'
 import { ExpenseNotFound } from '../../components/ExpenseNotFound'
 import { getDb } from '../../db/client.ts'
-import { useAsyncData } from '../../hooks/useAsyncData'
+import { useCachedData } from '../../hooks/useCachedData'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
 import { expenseService } from '../../services/expenseService'
 import { aboveScreenEdge, belowStatusBar } from '../../theme/safeArea.ts'
@@ -25,7 +25,7 @@ export function ExpensePage() {
 
   const userId = user?.personId ?? ''
   const datasetId = user?.datasetId ?? ''
-  const { state, retry } = useAsyncData(
+  const { state, retry } = useCachedData(
     async () => expenseService.getExpense(await getDb(), userId, id, expenseId),
     `${userId}:${id}:${expenseId}`,
     // After a restoration the page reads the expense again, and meanwhile keeps showing it.

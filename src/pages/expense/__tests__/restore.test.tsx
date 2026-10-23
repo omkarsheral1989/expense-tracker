@@ -13,6 +13,7 @@ import { useAuthStore } from '../../../stores/useAuthStore'
 import { setUpTestDatabase } from '../../../testing/database.ts'
 import { addTestExpense, addTestSettlement, personIdOf } from '../../../testing/expenses.ts'
 import { createTestGroup } from '../../../testing/groups.ts'
+import { fromElsewhere } from '../../../testing/changes.ts'
 import { renderPage } from '../../../testing/render.tsx'
 import { ExpensePage } from '../index.tsx'
 
@@ -251,7 +252,8 @@ describe('ExpensePage: restoring', () => {
       await remove(me.email, id, expenseId)
       renderExpense(id, expenseId)
       await screen.findByRole('heading', { name: 'Deleted expense' })
-      await bringBack('priya@gmail.com', id, expenseId)
+      // Priya's device restored it and a sync brought that in; this screen was not told.
+      await fromElsewhere(() => bringBack('priya@gmail.com', id, expenseId))
 
       await user.click(restoreButton())
 

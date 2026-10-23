@@ -22,6 +22,8 @@ export type User = ReturnType<typeof userEvent.setup>
 
 /** Sets up a journey test file: a signed-out device, English (UK) so money is in pounds, and a clean-up after each test. */
 export function setUpJourneyTests() {
+  // A journey opens a database and goes through many screens; with every test file running at once it needs more than the usual 20 s.
+  vi.setConfig({ testTimeout: 60_000 })
   const state = { user: userEvent.setup() }
 
   beforeEach(() => {

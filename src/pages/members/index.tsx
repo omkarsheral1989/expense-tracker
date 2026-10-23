@@ -7,7 +7,7 @@ import { CenteredMessage } from '../../components/CenteredMessage'
 import { LoadingMessage } from '../../components/LoadingMessage'
 import { AddMemberDialog } from '../../components/MemberSelect/AddMemberDialog'
 import { getDb } from '../../db/client.ts'
-import { useAsyncData } from '../../hooks/useAsyncData'
+import { useCachedData } from '../../hooks/useCachedData'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
 import { useSyncStore } from '../../stores/useSyncStore'
 import { ROUTES } from '../../routes.ts'
@@ -35,7 +35,7 @@ export function MembersPage() {
   const userId = user?.personId ?? ''
   // Read again after a sync, which may bring in people and mark them as signed in.
   const dataVersion = useSyncStore((syncState) => syncState.dataVersion)
-  const { state, retry } = useAsyncData(
+  const { state, retry } = useCachedData(
     async () => personService.listManaged(await getDb(), userId),
     `${userId}:${dataVersion}`,
     { keepPrevious: true },
