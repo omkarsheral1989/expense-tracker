@@ -30,7 +30,7 @@ function deferred<T>() {
 describe('useCachedData', () => {
   it('is loading on the first visit, then ready with the data', async () => {
     const { wrapper } = setUp()
-    const { result } = renderHook(() => useCachedData(async () => 'groups', 'home'), { wrapper })
+    const { result } = renderHook(() => useCachedData(async () => 'groups', 'test', 'home'), { wrapper })
 
     expect(result.current.state).toEqual({ status: 'loading' })
     await waitFor(() => expect(result.current.state).toEqual({ status: 'ready', data: 'groups' }))
@@ -38,7 +38,7 @@ describe('useCachedData', () => {
 
   it('counts a result of null (nothing found) as ready', async () => {
     const { wrapper } = setUp()
-    const { result } = renderHook(() => useCachedData(async () => null, 'missing'), { wrapper })
+    const { result } = renderHook(() => useCachedData(async () => null, 'test', 'missing'), { wrapper })
     await waitFor(() => expect(result.current.state).toEqual({ status: 'ready', data: null }))
   })
 
@@ -48,14 +48,14 @@ describe('useCachedData', () => {
       const { wrapper } = setUp()
       let version = 1
       const load = vi.fn(async () => `v${version}`)
-      const first = renderHook(() => useCachedData(load, 'home'), { wrapper })
+      const first = renderHook(() => useCachedData(load, 'test', 'home'), { wrapper })
       await waitFor(() => expect(first.result.current.state).toEqual({ status: 'ready', data: 'v1' }))
       first.unmount()
 
       version = 2
       const again = deferred<string>()
       load.mockReturnValueOnce(again.promise)
-      const second = renderHook(() => useCachedData(load, 'home'), { wrapper })
+      const second = renderHook(() => useCachedData(load, 'test', 'home'), { wrapper })
 
       // At once, before the second read finishes: the earlier data, not the loader.
       expect(second.result.current.state).toEqual({ status: 'ready', data: 'v1' })
@@ -68,12 +68,12 @@ describe('useCachedData', () => {
     it('keeps the earlier screen while the read behind it fails, then shows the failure', async () => {
       const { wrapper } = setUp()
       const load = vi.fn(async () => 'v1')
-      const first = renderHook(() => useCachedData(load, 'home'), { wrapper })
+      const first = renderHook(() => useCachedData(load, 'test', 'home'), { wrapper })
       await waitFor(() => expect(first.result.current.state.status).toBe('ready'))
       first.unmount()
 
       load.mockRejectedValueOnce(new Error('database is closed'))
-      const second = renderHook(() => useCachedData(load, 'home'), { wrapper })
+      const second = renderHook(() => useCachedData(load, 'test', 'home'), { wrapper })
       expect(second.result.current.state).toEqual({ status: 'ready', data: 'v1' })
       await waitFor(() => expect(second.result.current.state.status).toBe('error'))
     })
@@ -81,13 +81,24 @@ describe('useCachedData', () => {
 
   it('remembers each key apart: another page, or another user, starts at loading', async () => {
     const { wrapper } = setUp()
-    const first = renderHook(() => useCachedData(async () => 'mine', 'user-1:home'), { wrapper })
+    const first = renderHook(() => useCachedData(async () => 'mine', 'test', 'user-1:home'), { wrapper })
     await waitFor(() => expect(first.result.current.state.status).toBe('ready'))
     first.unmount()
 
-    const other = renderHook(() => useCachedData(async () => 'theirs', 'user-2:home'), { wrapper })
+    const other = renderHook(() => useCachedData(async () => 'theirs', 'test', 'user-2:home'), { wrapper })
     expect(other.result.current.state).toEqual({ status: 'loading' })
     await waitFor(() => expect(other.result.current.state).toEqual({ status: 'ready', data: 'theirs' }))
+  })
+
+  it('remembers each page apart, even when two pages use the same key', async () => {
+    const { wrapper } = setUp()
+    const home = renderHook(() => useCachedData(async () => ({ groups: [] }), 'home', 'user-1:0'), { wrapper })
+    await waitFor(() => expect(home.result.current.state.status).toBe('ready'))
+    home.unmount()
+
+    const members = renderHook(() => useCachedData(async () => ['Priya'], 'members', 'user-1:0'), { wrapper })
+    expect(members.result.current.state).toEqual({ status: 'loading' })
+    await waitFor(() => expect(members.result.current.state).toEqual({ status: 'ready', data: ['Priya'] }))
   })
 
   describe('keepPrevious', () => {
@@ -95,7 +106,7 @@ describe('useCachedData', () => {
       const { wrapper } = setUp()
       const next = deferred<string>()
       const { result, rerender } = renderHook(
-        ({ id }: { id: string }) => useCachedData(() => (id === 'a' ? Promise.resolve('A') : next.promise), id, { keepPrevious: true }),
+        ({ id }: { id: string }) => useCachedData(() => (id === 'a' ? Promise.resolve('A') : next.promise), 'test', id, { keepPrevious: true }),
         { wrapper, initialProps: { id: 'a' } },
       )
       await waitFor(() => expect(result.current.state).toEqual({ status: 'ready', data: 'A' }))
@@ -111,7 +122,7 @@ describe('useCachedData', () => {
       const { wrapper } = setUp()
       const next = deferred<string>()
       const { result, rerender } = renderHook(
-        ({ id }: { id: string }) => useCachedData(() => (id === 'a' ? Promise.resolve('A') : next.promise), id),
+        ({ id }: { id: string }) => useCachedData(() => (id === 'a' ? Promise.resolve('A') : next.promise), 'test', id),
         { wrapper, initialProps: { id: 'a' } },
       )
       await waitFor(() => expect(result.current.state.status).toBe('ready'))
@@ -123,7 +134,7 @@ describe('useCachedData', () => {
   describe('failures', () => {
     it('reports the error, wrapping anything that is not an Error', async () => {
       const { wrapper } = setUp()
-      const { result } = renderHook(() => useCachedData(() => Promise.reject('plain text'), 'broken'), { wrapper })
+      const { result } = renderHook(() => useCachedData(() => Promise.reject('plain text'), 'test', 'broken'), { wrapper })
       await waitFor(() => expect(result.current.state.status).toBe('error'))
       expect(result.current.state).toMatchObject({ error: expect.objectContaining({ message: 'plain text' }) })
     })
@@ -131,7 +142,7 @@ describe('useCachedData', () => {
     it('does not try again by itself', async () => {
       const { wrapper } = setUp()
       const load = vi.fn(() => Promise.reject(new Error('boom')))
-      const { result } = renderHook(() => useCachedData(load, 'broken'), { wrapper })
+      const { result } = renderHook(() => useCachedData(load, 'test', 'broken'), { wrapper })
       await waitFor(() => expect(result.current.state.status).toBe('error'))
       await new Promise((resolve) => setTimeout(resolve, 50))
       expect(load).toHaveBeenCalledTimes(1)
@@ -141,7 +152,7 @@ describe('useCachedData', () => {
       const { wrapper } = setUp()
       const retried = deferred<string>()
       const load = vi.fn<() => Promise<string>>().mockRejectedValueOnce(new Error('boom')).mockReturnValueOnce(retried.promise)
-      const { result } = renderHook(() => useCachedData(load, 'home'), { wrapper })
+      const { result } = renderHook(() => useCachedData(load, 'test', 'home'), { wrapper })
       await waitFor(() => expect(result.current.state.status).toBe('error'))
 
       act(() => result.current.retry())
@@ -155,7 +166,7 @@ describe('useCachedData', () => {
       const { wrapper } = setUp()
       const slow = deferred<string>()
       const load = vi.fn(() => slow.promise)
-      const { result } = renderHook(() => useCachedData(load, 'home'), { wrapper })
+      const { result } = renderHook(() => useCachedData(load, 'test', 'home'), { wrapper })
       await waitFor(() => expect(load).toHaveBeenCalledTimes(1))
 
       act(() => result.current.retry())
@@ -168,33 +179,33 @@ describe('useCachedData', () => {
 
   it('remembers a page for as long as the app is open, not just for a moment after it was left', async () => {
     const { wrapper } = setUp()
-    const first = renderHook(() => useCachedData(async () => 'v1', 'home'), { wrapper })
+    const first = renderHook(() => useCachedData(async () => 'v1', 'test', 'home'), { wrapper })
     await waitFor(() => expect(first.result.current.state.status).toBe('ready'))
     first.unmount()
     // Nothing is watching the page now; a cache that forgets idle entries would drop it.
     await new Promise((resolve) => setTimeout(resolve, 50))
 
-    const again = renderHook(() => useCachedData(() => new Promise<string>(() => {}), 'home'), { wrapper })
+    const again = renderHook(() => useCachedData(() => new Promise<string>(() => {}), 'test', 'home'), { wrapper })
     expect(again.result.current.state).toEqual({ status: 'ready', data: 'v1' })
   })
 
   it('reads again every time a page opens, however recently it read', async () => {
     const { wrapper } = setUp()
     const load = vi.fn(async () => 'x')
-    const first = renderHook(() => useCachedData(load, 'home'), { wrapper })
+    const first = renderHook(() => useCachedData(load, 'test', 'home'), { wrapper })
     await waitFor(() => expect(first.result.current.state.status).toBe('ready'))
     first.unmount()
-    renderHook(() => useCachedData(load, 'home'), { wrapper })
+    renderHook(() => useCachedData(load, 'test', 'home'), { wrapper })
     expect(load).toHaveBeenCalledTimes(2)
   })
 
   it('shows loading, not the old error, while a retry runs after a failed read behind a remembered page', async () => {
     const { wrapper } = setUp()
     const load = vi.fn<() => Promise<string>>().mockResolvedValueOnce('v1').mockRejectedValueOnce(new Error('boom'))
-    const first = renderHook(() => useCachedData(load, 'home'), { wrapper })
+    const first = renderHook(() => useCachedData(load, 'test', 'home'), { wrapper })
     await waitFor(() => expect(first.result.current.state.status).toBe('ready'))
     first.unmount()
-    const second = renderHook(() => useCachedData(load, 'home'), { wrapper })
+    const second = renderHook(() => useCachedData(load, 'test', 'home'), { wrapper })
     await waitFor(() => expect(second.result.current.state.status).toBe('error'))
 
     const retried = deferred<string>()
@@ -209,7 +220,7 @@ describe('useCachedData', () => {
   it('works offline: the data is on the device', async () => {
     onlineManager.setOnline(false)
     const { wrapper } = setUp()
-    const { result } = renderHook(() => useCachedData(async () => 'local', 'home'), { wrapper })
+    const { result } = renderHook(() => useCachedData(async () => 'local', 'test', 'home'), { wrapper })
     await waitFor(() => expect(result.current.state).toEqual({ status: 'ready', data: 'local' }))
   })
 })

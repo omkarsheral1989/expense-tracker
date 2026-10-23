@@ -27,7 +27,7 @@ export function ExpenseVersionPage() {
   const datasetId = user?.datasetId ?? ''
   const { state, retry } = useCachedData(
     async () => expenseService.getExpenseVersion(await getDb(), userId, id, expenseId, eventId),
-    `${userId}:${id}:${expenseId}:${eventId}`,
+    'expenseVersion', `${userId}:${id}:${expenseId}:${eventId}`,
     // When the page's data goes out of date it reads it again, and meanwhile keeps showing it.
     { keepPrevious: true },
   )

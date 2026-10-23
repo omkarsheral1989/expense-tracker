@@ -19,7 +19,7 @@ afterEach(cleanup)
 
 /** A page reading a counter: it shows the number it read, or "loading". */
 function Page({ name, read }: { name: string; read: () => Promise<number> }) {
-  const { state } = useCachedData(read, name)
+  const { state } = useCachedData(read, 'test', name)
   return <p>{`${name}: ${state.status === 'ready' ? state.data : state.status}`}</p>
 }
 

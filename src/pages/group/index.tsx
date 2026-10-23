@@ -57,7 +57,7 @@ export function GroupPage() {
       balances: await expenseService.groupBalances(db, userId, id),
       syncedIds: await syncService.syncedMembers(db, id),
     }
-  }, `${userId}:${id}:${dataVersion}`, { keepPrevious: true })
+  }, 'group', `${userId}:${id}:${dataVersion}`, { keepPrevious: true })
 
   // Visitors who are not in the app are sent away by `RequireAuth` before this matters.
   if (!user) return null

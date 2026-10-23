@@ -33,7 +33,7 @@ export function HomePage() {
       groups: await groupService.listGroups(db, userId),
       balances: await expenseService.balancesByGroup(db, userId),
     }
-  }, `${userId}:${dataVersion}`, { keepPrevious: true })
+  }, 'home', `${userId}:${dataVersion}`, { keepPrevious: true })
 
   // Visitors who are not in the app are sent away by `RequireAuth` before this matters.
   if (!user) return null

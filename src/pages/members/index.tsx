@@ -37,7 +37,7 @@ export function MembersPage() {
   const dataVersion = useSyncStore((syncState) => syncState.dataVersion)
   const { state, retry } = useCachedData(
     async () => personService.listManaged(await getDb(), userId),
-    `${userId}:${dataVersion}`,
+    'members', `${userId}:${dataVersion}`,
     { keepPrevious: true },
   )
 
