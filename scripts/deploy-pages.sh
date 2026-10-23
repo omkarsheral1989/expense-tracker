@@ -36,6 +36,16 @@ if [ -n "$duplicates" ]; then
   exit 1
 fi
 
+# GitHub Pages (Jekyll) does not serve files or folders whose names start with
+# "_". The service worker caches every file at install, so one 404 stops it
+# from installing at all: no offline use and no share target (ADR-047).
+hidden="$(find dist -name '_*' | head)"
+if [ -n "$hidden" ]; then
+  echo "These files would be hidden by GitHub Pages (names starting with \"_\"):" >&2
+  echo "$hidden" >&2
+  exit 1
+fi
+
 # Replace the folder, so files from older builds (hashed names) do not pile up.
 rm -rf "$pages/ownledger"
 cp -R "$root/dist" "$pages/ownledger"

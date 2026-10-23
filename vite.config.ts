@@ -10,6 +10,16 @@ const BASE = '/ownledger/'
 // https://vite.dev/config/
 export default defineConfig({
   base: BASE,
+  build: {
+    rolldownOptions: {
+      output: {
+        // GitHub Pages hides files whose names start with "_" (Jekyll), so such a
+        // chunk 404s there and the service worker's install, which caches every
+        // file, fails: no worker, no offline use, no share target (ADR-047).
+        chunkFileNames: (chunk) => `assets/${chunk.name.replace(/^_+/, '')}-[hash].js`,
+      },
+    },
+  },
   // PGlite loads its WebAssembly and data files relative to its own module, so
   // Vite must not pre-bundle it.
   optimizeDeps: { exclude: ['@electric-sql/pglite'] },
