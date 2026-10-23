@@ -1,6 +1,6 @@
 import { Flex } from 'antd'
 import { useState } from 'react'
-import { useParams } from 'react-router'
+import { useLocation, useParams } from 'react-router'
 import { getDb } from '../../db/client.ts'
 import { useCachedData } from '../../hooks/useCachedData'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
@@ -21,7 +21,9 @@ import { CenteredMessage } from '../../components/CenteredMessage'
 import { LoadingMessage } from '../../components/LoadingMessage'
 import { LoadError } from '../../components/LoadError'
 import { ROUTES } from '../../routes.ts'
-import { FLOATING_BUTTON_ROOM } from '../../components/FloatingPillButton/constants.ts'
+import { knownGroupFrom } from './utils.ts'
+import type { KnownGroup } from './types.ts'
+import { ABOVE_FLOATING_BUTTON, FLOATING_BUTTON_ROOM } from '../../components/FloatingPillButton/constants.ts'
 import { aboveScreenEdge, belowStatusBar } from '../../theme/safeArea.ts'
 
 /** A column about 720 px wide, centered, which holds everything below the band. */
@@ -37,6 +39,8 @@ export function GroupPage() {
   const user = useCurrentUser()
   const [membersOpen, setMembersOpen] = useState(false)
   const { id = '' } = useParams()
+  // What the home list knew about this group when its row was opened, if it was (ADR-052).
+  const known = knownGroupFrom(useLocation().state, id)
 
   const userId = user?.personId ?? ''
   // Read again after a sync, which may bring in other members' changes.
@@ -58,8 +62,23 @@ export function GroupPage() {
   // Visitors who are not in the app are sent away by `RequireAuth` before this matters.
   if (!user) return null
 
+  // With what the list knew, the page opens with its band and buttons and only the rest loads; otherwise it is all a loader.
   function renderLoading() {
-    return <LoadingMessage label="Loading the group" />
+    if (!known) return <LoadingMessage label="Loading the group" />
+    return renderKnown(known)
+  }
+
+  function renderKnown(group: KnownGroup) {
+    return (
+      <Flex vertical style={{ flex: 1 }}>
+        <GroupBand group={group} peopleCount={group.memberCount} />
+        <Flex vertical style={{ ...COLUMN_STYLE, flex: 1, paddingBottom: 0 }}>
+          <ActionPills groupId={group.id} canSettle={false} loading />
+          <LoadingMessage label="Loading the group" roomBelow={ABOVE_FLOATING_BUTTON} />
+        </Flex>
+        <AddExpenseButton groupId={group.id} />
+      </Flex>
+    )
   }
 
   function renderError() {
@@ -80,6 +99,7 @@ export function GroupPage() {
       <Flex vertical style={{ flex: 1 }}>
         <GroupBand
           group={group}
+          peopleCount={group.members.length}
           onOpenMembers={() => setMembersOpen(true)}
         />
         {/* No room at the bottom here: the list adds it, so an empty list can be
@@ -127,6 +147,7 @@ export function GroupPage() {
   }
 
   function renderTitle() {
+    if (state.status === 'loading') return known ? <title>{`${known.name} · OwnLedger`}</title> : null
     if (state.status !== 'ready') return null
     // React only accepts one string inside <title>, so the text is joined first.
     return <title>{`${state.data ? state.data.group.name : 'Group not found'} · OwnLedger`}</title>

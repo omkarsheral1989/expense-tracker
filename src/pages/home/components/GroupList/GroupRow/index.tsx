@@ -5,6 +5,7 @@ import { useColorScheme } from '../../../../../hooks/useColorScheme'
 import { ROUTES } from '../../../../../routes.ts'
 import type { CurrencyBalance } from '../../../../../services/expenseService/types.ts'
 import type { GroupSummary } from '../../../../../services/groupService/types.ts'
+import type { GroupPageState } from '../../../../group/types.ts'
 import { GroupBalance } from './GroupBalance'
 
 const { Text } = Typography
@@ -26,9 +27,12 @@ export function GroupRow({ group, balances }: Props) {
   const members = `${group.memberCount} ${group.memberCount === 1 ? 'member' : 'members'}`
   const { label, icon, color } = GROUP_TYPE_CONTENT[group.type]
   const scheme = useColorScheme()
+  const { id, name, type, defaultCurrency, memberCount } = group
+  const opened = { group: { id, name, type, defaultCurrency, memberCount } }
 
   return (
-    <Link to={ROUTES.group(group.id)} style={{ display: 'block' }}>
+    // The group page opens with what this list already knows about the group (ADR-052).
+    <Link to={ROUTES.group(group.id)} state={opened satisfies GroupPageState} style={{ display: 'block' }}>
       {/* The type's colored block fills the card's left edge, top to bottom; the card clips its corners. */}
       <Card
         hoverable

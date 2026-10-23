@@ -14,6 +14,8 @@ type Props = {
   onClick?: () => void
   /** The chip's feature is not built yet: it is switched off with a "Coming soon" tip. */
   comingSoon?: boolean
+  /** The chip is switched off for now, without a tip (what it needs is still loading). */
+  disabled?: boolean
   /** A tip shown when the pointer rests on the chip, for a chip whose text is short for something longer. */
   tip?: string
   /** The text's size in pixels; leave out for the button's own. */
@@ -21,13 +23,13 @@ type Props = {
 }
 
 /** A translucent dark pill on the colored band, holding a short fact or an action. */
-export function BandChip({ icon, children, onClick, comingSoon, tip, fontSize }: Props) {
+export function BandChip({ icon, children, onClick, comingSoon, disabled, tip, fontSize }: Props) {
   const chip = (
     <Button
       type="text"
       size="small"
       icon={icon}
-      disabled={comingSoon}
+      disabled={comingSoon || disabled}
       onClick={onClick}
       // A chip with no action only shows information, so it is not clickable.
       style={{
@@ -39,7 +41,7 @@ export function BandChip({ icon, children, onClick, comingSoon, tip, fontSize }:
         color: '#fff',
         background: 'rgba(0, 0, 0, 0.28)',
         border: '1px solid rgba(255, 255, 255, 0.22)',
-        opacity: comingSoon ? 0.7 : 1,
+        opacity: comingSoon || disabled ? 0.7 : 1,
         cursor: onClick ? 'pointer' : 'default',
       }}
     >

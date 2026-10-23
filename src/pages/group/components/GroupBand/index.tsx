@@ -11,7 +11,7 @@ import { GROUP_TYPE_CONTENT } from '../../../../components/GroupTypeIcon/content
 import { SyncButton } from '../../../../components/SyncButton'
 import { ROUTES } from '../../../../routes.ts'
 import { currencyService } from '../../../../services/currencyService'
-import type { GroupDetails } from '../../../../services/groupService/types.ts'
+import type { KnownGroup } from '../../types.ts'
 import { HEADER_TITLE_STYLE } from '../../../../theme/headerTitle.ts'
 import { GROUP_TYPE_COLORS } from '../../../../theme/groupTypeColors.ts'
 import { belowStatusBar } from '../../../../theme/safeArea.ts'
@@ -23,9 +23,12 @@ import { CURRENCY_SYMBOL_FONT_SIZE } from './style.ts'
 const { Title } = Typography
 
 type Props = {
-  group: GroupDetails
-  /** Opens the list of members. */
-  onOpenMembers: () => void
+  /** What the band shows of the group: known from the home list before the rest has loaded (ADR-052). */
+  group: Pick<KnownGroup, 'id' | 'name' | 'type' | 'defaultCurrency'>
+  /** How many people are in the group. */
+  peopleCount: number
+  /** Opens the list of members; left out while the members are still loading, which switches the chip off. */
+  onOpenMembers?: () => void
 }
 
 /**
@@ -33,9 +36,8 @@ type Props = {
  * type: back, search, sync (this group only) and edit buttons, the group's icon and name, and a row
  * of chips with a fact or an action each.
  */
-export function GroupBand({ group, onOpenMembers }: Props) {
+export function GroupBand({ group, peopleCount, onOpenMembers }: Props) {
   const navigate = useNavigate()
-  const peopleCount = group.members.length
 
   function renderButtons() {
     return (
@@ -106,7 +108,7 @@ export function GroupBand({ group, onOpenMembers }: Props) {
         >
           {currencySymbol ?? group.defaultCurrency}
         </BandChip>
-        <BandChip icon={<TeamOutlined />} onClick={onOpenMembers}>
+        <BandChip icon={<TeamOutlined />} onClick={onOpenMembers} disabled={!onOpenMembers}>
           {peopleCount} {peopleCount === 1 ? 'person' : 'people'}
         </BandChip>
         <BandChip icon={<CalendarOutlined />} comingSoon>

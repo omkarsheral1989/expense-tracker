@@ -12,6 +12,7 @@ import { useSyncStore } from '../../../stores/useSyncStore'
 import { setUpTestDatabase } from '../../../testing/database.ts'
 import { addTestExpense } from '../../../testing/expenses.ts'
 import { renderPage } from '../../../testing/render.tsx'
+import { useLocation } from 'react-router'
 import { HomePage } from '../index.tsx'
 import { expectCenteredMessage } from '../../../testing/centered.ts'
 import { createTestGroup, type TestGroupInput } from '../../../testing/groups.ts'
@@ -335,5 +336,28 @@ describe('HomePage', () => {
     useAuthStore.setState({ profile: null })
     renderHome()
     expect(screen.queryByRole('heading', { name: 'Your groups' })).not.toBeInTheDocument()
+  })
+})
+
+describe('opening a group from the list', () => {
+  /** A stand-in for the group page that shows the router state the row handed over. */
+  function StateProbe() {
+    return <pre data-testid="state">{JSON.stringify(useLocation().state)}</pre>
+  }
+
+  it('hands the group page what the list knows: id, name, type, currency and number of members', async () => {
+    useAuthStore.setState({ profile: me, token: null })
+    const id = await createGroup(me, { name: 'Goa trip', type: 'home', defaultCurrency: 'INR', memberEmails: [priya.email] })
+    renderPage(<HomePage />, {
+      path: ROUTES.home,
+      routes: [ROUTES.newGroup],
+      extra: [{ path: ROUTES.groupPattern, element: <StateProbe /> }],
+    })
+
+    await userEvent.click(await screen.findByText('Goa trip'))
+
+    expect(JSON.parse((await screen.findByTestId('state')).textContent ?? '')).toEqual({
+      group: { id, name: 'Goa trip', type: 'home', defaultCurrency: 'INR', memberCount: 2 },
+    })
   })
 })

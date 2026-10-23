@@ -14,7 +14,9 @@ import { CurrentPath } from './CurrentPath.tsx'
  * Renders a page the way the app does: inside the theme and a router, starting
  * at `path`. The page is mounted at `pattern`, which defaults to `path` with a
  * trailing id turned into `:id`. `routes` lists the other paths the page can navigate to; they show
- * a plain placeholder, and `currentPath()` says where the app ended up.
+ * a plain placeholder, and `currentPath()` says where the app ended up. `state` is
+ * the router state the page is opened with, as a link's `state` gives it, and
+ * `extra` lists other routes with a page of the test's own to show.
  *
  * The page is given the current user the way `DatabaseGate` gives it: from the
  * auth store's profile (a Google user, whose person id is `personIdForEmail`) or
@@ -26,7 +28,9 @@ export function renderPage(
     path = '/',
     pattern,
     routes = [],
-  }: { path?: string; pattern?: string; routes?: string[] } = {},
+    state,
+    extra = [],
+  }: { path?: string; pattern?: string; routes?: string[]; state?: unknown; extra?: { path: string; element: ReactElement }[] } = {},
 ) {
   const result = render(
     <CurrentUserContext.Provider value={currentUserOf(useAuthStore.getState())}>
@@ -35,12 +39,15 @@ export function renderPage(
     <ConfigProvider theme={{ zeroRuntime: true, token: { motion: false } }}>
       <ThemeProvider>
         <QueryProvider>
-        <MemoryRouter initialEntries={[path]}>
+        <MemoryRouter initialEntries={[{ pathname: path, state }]}>
           <Routes>
             <Route
               path={pattern ?? path.replace(/\/[0-9a-f-]{36}$/i, '/:id')}
               element={page}
             />
+            {extra.map(({ path: extraPath, element }) => (
+              <Route key={extraPath} path={extraPath} element={element} />
+            ))}
             {routes.map((route) => (
               <Route key={route} path={route} element={<div>Page: {route}</div>} />
             ))}

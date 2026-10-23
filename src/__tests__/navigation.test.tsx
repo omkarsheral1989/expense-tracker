@@ -4,6 +4,8 @@
 import 'fake-indexeddb/auto'
 import { screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+import { act } from 'react'
+import { dataChanges } from '../db/changes.ts'
 import { groupService } from '../services/groupService'
 import { ROUTES } from '../routes.ts'
 import { addExpense, continueAsGuest, createGroupWithFriend, OPENING, renderApp, setUpJourneyTests } from './helpers.tsx'
@@ -104,5 +106,32 @@ describe('moving between pages', () => {
     await createGroupWithFriend(user, 'Goa trip', { name: 'Priya Shah', email: 'priya@gmail.com' })
     // The group page was never opened before the change that created the group: it had to read first.
     expect(await screen.findByText('Goa trip', {}, OPENING)).toBeInTheDocument()
+  })
+
+  it('opens a group from the home list with its band at once, then fills in the rest', async () => {
+    const { user } = device
+    renderApp(ROUTES.getStarted)
+    await continueAsGuest(user)
+    await createGroupWithFriend(user, 'Goa trip', { name: 'Priya Shah', email: 'priya@gmail.com' })
+    await addExpense(user, 'Dinner', '100')
+    await screen.findByText(/Priya owes you/)
+    await user.click(screen.getByRole('button', { name: 'Back' }))
+    await screen.findByText('you are owed')
+    // Something changes (a sync finishes), which drops what the group page remembered; reading the group is slow now.
+    act(() => dataChanges.announce())
+    const slow = slowDown('getGroup')
+
+    await user.click(screen.getByText('Goa trip'))
+
+    // The next thing on screen already has the band from the list, and a spinner for the rest.
+    expect(screen.getByRole('heading', { name: 'Goa trip', level: 2 })).toBeInTheDocument()
+    expect(screen.getByText(/2 people/)).toBeInTheDocument()
+    expect(screen.getByRole('status', { name: 'Loading the group' })).toBeInTheDocument()
+    expect(screen.queryByText('Dinner')).not.toBeInTheDocument()
+
+    expect(await screen.findByText('Dinner', {}, OPENING)).toBeInTheDocument()
+    expect(screen.queryByRole('status', { name: 'Loading the group' })).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Goa trip', level: 2 })).toBeInTheDocument()
+    slow.mockRestore()
   })
 })
