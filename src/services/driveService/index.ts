@@ -8,9 +8,17 @@ import {
   RETRY_DELAYS_MS,
   SHORTCUT_MIME_TYPE,
 } from './constants.ts'
+import { logService } from '../logService'
 import type { ClientOptions, DriveClient, DriveFile, DriveItemKind, DriveOwner, StoppingProblem } from './types.ts'
 
 const FILE_FIELDS = 'id,name,modifiedTime,properties'
+
+const log = logService.scope('drive')
+
+// The kind of request, without ids or the query: enough to follow a run in the console.
+function describeRequest(url: string, init: RequestInit) {
+  return { method: init.method ?? 'GET', path: new URL(url).pathname.replace(/\/files\/[^/]+/, '/files/:id') }
+}
 
 /** Drive refused the token: it expired or was revoked. A new one needs a press (ADR-019). */
 export class DriveAuthError extends Error {
@@ -140,11 +148,19 @@ function client(accessToken: string, { wait = waitFor }: ClientOptions = {}): Dr
   }
 
   async function request(url: string, init: RequestInit = {}): Promise<Response> {
+    const startedAt = Date.now()
     for (let retry = 0; ; retry++) {
       try {
-        return await attempt(url, init)
+        const response = await attempt(url, init)
+        log.debug('Drive request done', { ...describeRequest(url, init), status: response.status, retries: retry, ms: Date.now() - startedAt })
+        return response
       } catch (error) {
-        if (!(error instanceof DriveError) || !error.retryable || retry >= RETRY_DELAYS_MS.length) throw error
+        const final = !(error instanceof DriveError) || !error.retryable || retry >= RETRY_DELAYS_MS.length
+        if (final) {
+          log.warn('Drive request failed', { ...describeRequest(url, init), ...logService.errorFields(error), retries: retry })
+          throw error
+        }
+        log.warn('Drive request refused, trying again', { ...describeRequest(url, init), status: error.status, afterMs: RETRY_DELAYS_MS[retry] })
         await wait(RETRY_DELAYS_MS[retry])
       }
     }

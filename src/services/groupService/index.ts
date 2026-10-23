@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, inArray, isNull, ne, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import type { Database } from '../../db/client.ts'
+import { logService } from '../logService'
 import { expenses, groupMembers, groups, people } from '../../db/schema.ts'
 import { shownName } from '../../db/shownName.ts'
 import type { KnownPerson } from '../personService/types.ts'
@@ -24,7 +25,7 @@ function comparableName(name: string) {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-export const groupService = {
+const groupServiceBase = {
   /** A person's first name, or their email before the "@" when no name is known. */
   shortName,
 
@@ -326,3 +327,10 @@ export const groupService = {
     return { ...group, members }
   },
 }
+
+/** groupService with one log line per action (ADR-048). */
+export const groupService: typeof groupServiceBase = logService.logActions(logService.scope('group'), groupServiceBase, {
+  createGroup: { message: 'Group created', params: ['userId'] },
+  updateGroup: { message: 'Group updated', params: ['userId', 'groupId'] },
+  addMember: { message: 'Member added to group', params: ['userId', 'groupId', 'personId'] },
+})

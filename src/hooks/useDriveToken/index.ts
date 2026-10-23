@@ -1,6 +1,7 @@
 import { GOOGLE_CLIENT_ID } from '../../config.ts'
 import { DRIVE_SCOPE } from '../../services/driveService/constants.ts'
 import { googleProfileService } from '../../services/googleProfileService'
+import { logService } from '../../services/logService'
 import { useAuthStore, validToken } from '../../stores/useAuthStore'
 import type { DriveTokenProblem, GoogleAccounts } from './types.ts'
 
@@ -13,6 +14,8 @@ export class DriveTokenError extends Error {
     this.problem = problem
   }
 }
+
+const log = logService.scope('auth')
 
 function googleAccounts(): GoogleAccounts | undefined {
   return (window as unknown as { google?: { accounts?: GoogleAccounts } }).google?.accounts
@@ -36,13 +39,22 @@ export function useDriveToken() {
   function getDriveToken(): Promise<string> {
     // Read now, not from the last render: Continue runs a function made before the token was forgotten.
     const valid = validToken(useAuthStore.getState().driveToken)
-    if (valid) return Promise.resolve(valid)
+    if (valid) {
+      log.debug('Reusing the Drive token')
+      return Promise.resolve(valid)
+    }
 
     const accounts = googleAccounts()
     if (!profile || !GOOGLE_CLIENT_ID || !accounts) {
+      log.warn('Drive access unavailable', {
+        signedIn: !!profile,
+        hasClientId: !!GOOGLE_CLIENT_ID,
+        googleScriptLoaded: !!accounts,
+      })
       return Promise.reject(new DriveTokenError('unavailable'))
     }
 
+    log.info('Asking Google for Drive access')
     return new Promise((resolve, reject) => {
       const client = accounts.oauth2.initTokenClient({
         client_id: GOOGLE_CLIENT_ID,
@@ -51,16 +63,19 @@ export function useDriveToken() {
         hint: profile.email,
         callback: async (response) => {
           if (!response.access_token || !accounts.oauth2.hasGrantedAllScopes(response, DRIVE_SCOPE)) {
+            log.warn('Drive access not granted')
             reject(new DriveTokenError('denied'))
             return
           }
           try {
             const owner = await googleProfileService.fetchProfile(response.access_token)
             if (owner.id !== profile.id) {
+              log.warn('Drive token belongs to another Google account')
               reject(new DriveTokenError('wrongAccount'))
               return
             }
-          } catch {
+          } catch (error) {
+            log.error('Could not check whose Drive access this is', logService.errorFields(error))
             reject(new DriveTokenError('unavailable'))
             return
           }
@@ -71,8 +86,10 @@ export function useDriveToken() {
           resolve(response.access_token)
         },
         // The window was closed, or the browser did not let it open.
-        error_callback: (error) =>
-          reject(new DriveTokenError(error.type === 'popup_failed_to_open' ? 'blocked' : 'denied')),
+        error_callback: (error) => {
+          log.warn('Google window closed or blocked', { type: error.type })
+          reject(new DriveTokenError(error.type === 'popup_failed_to_open' ? 'blocked' : 'denied'))
+        },
       })
       client.requestAccessToken()
     })

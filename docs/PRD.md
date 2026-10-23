@@ -1,6 +1,6 @@
 # Product Requirements: OwnLedger
 
-_Last updated: 2026-10-25_
+_Last updated: 2026-10-26_
 
 ## 1. Overview
 **OwnLedger** is an installable, offline-capable web app (PWA) for tracking personal expenses and expenses shared in groups (trips, home, couples, others). Everything is stored locally on the user's device. Groups are shared between members through a Google Drive folder. There is no backend.
@@ -352,6 +352,13 @@ Android (installed app) and desktop Chrome or Edge only; iOS does not support it
 - **Nothing usable shared** (no picture and no text), or the address opened by hand: the home page opens.
 - **Offline and privacy:** it works offline. The pictures are held on the device only for the moment between the share and the page opening; they are removed as soon as the page has them (and a share older than an hour is ignored and removed). They are never sent anywhere.
 - **Development:** `SW_DEV=true bun run dev` runs the service worker in development, and a page at `/share-test` (development only, never in the build) posts a picture and text to the share address, to try this on a desktop.
+
+### 5.12 Logs for debugging
+The app writes what it is doing to the browser console, so a problem can be found from DevTools (on a phone, Chrome's remote debugging; the service worker has its own console under Application, Service Workers).
+- **Lines:** `[ownledger:<part>] message` with a few plain details, such as `[ownledger:sync] Group data synced {groupId, status}`. Filter the console by "ownledger". The parts are `app`, `auth`, `database`, `drive`, `sync`, `share`, `sw`, `expense`, `group` and `person`.
+- **Levels:** information, warnings and errors always show. Detail lines (every Drive request, closing the database) show when the debug flag is on: run `localStorage.setItem('ownledger-debug', '1')` in the console (turn it off with `localStorage.removeItem('ownledger-debug')`), or open the app with `?debug=1` for one visit.
+- **What is logged:** the app starting and the connection going and coming; sign-in, sign-out, guest mode and Drive access; the database opening (with how long it took), another tab holding it, and each update to its structure; each step of a sync with counts, every refused or failed Drive request, and the failure that stops a run; a shared picture arriving and where it went; the service worker starting, installing and updating; each expense, payment, group and person action with ids and how it ended; and any uncaught error.
+- **What is never logged:** names, emails, group names, descriptions, notes, amounts, picture addresses, file names or tokens. Only ids, counts, statuses and timings. Logs stay on the device; nothing is sent anywhere.
 
 ## 6. Open questions
 - Google Cloud setup: the OAuth client ID is not created yet (Drive API, consent screen in Testing mode, authorized origins, test users).

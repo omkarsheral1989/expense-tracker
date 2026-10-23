@@ -2,6 +2,10 @@
 // (`toBeInTheDocument`, `toHaveTextContent`, ...) and, in the jsdom tests, the
 // browser features Ant Design and our hooks expect but jsdom does not have.
 import '@testing-library/jest-dom/vitest'
+import { logService } from '../services/logService'
+
+// Log lines would drown the test report; tests that check them read them with `captureLogs`.
+logService.setOutput(() => {})
 
 if (typeof window !== 'undefined') {
   // `findBy...` and `waitFor` give up after 1 s by default, which a busy

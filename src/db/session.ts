@@ -1,5 +1,8 @@
 import { closeDatabase, openDatabase, type Database } from './client.ts'
+import { logService } from '../services/logService'
 import { acquireDatabaseLock, type DatabaseLock } from './lock.ts'
+
+const log = logService.scope('database')
 
 export type SessionResult =
   | { status: 'ready'; db: Database }
@@ -30,6 +33,7 @@ export function createSessionManager(deps: SessionDeps) {
   }
 
   async function stop() {
+    log.debug('Closing database')
     await deps.close()
     heldLock?.release()
     heldLock = null
@@ -40,12 +44,19 @@ export function createSessionManager(deps: SessionDeps) {
     start(datasetId: string): Promise<SessionResult> {
       return enqueue(async () => {
         const lock = await deps.acquireLock(datasetId)
-        if (!lock) return { status: 'locked' }
+        if (!lock) {
+          log.warn('Data is open in another tab')
+          return { status: 'locked' }
+        }
 
         heldLock = lock
+        const startedAt = Date.now()
         try {
-          return { status: 'ready', db: await deps.open(datasetId) }
+          const db = await deps.open(datasetId)
+          log.info('Database opened', { ms: Date.now() - startedAt })
+          return { status: 'ready', db }
         } catch (error) {
+          log.error('Database could not be opened', logService.errorFields(error))
           await stop()
           throw error
         }

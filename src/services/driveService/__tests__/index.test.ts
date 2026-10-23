@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DriveAuthError, DriveError, driveService, stoppingProblem } from '../index.ts'
+import { captureLogs } from '../../../testing/logs.ts'
+
+const logs = captureLogs()
 
 const fetchMock = vi.fn<typeof fetch>()
 
@@ -299,5 +302,67 @@ describe('stoppingProblem', () => {
     expect(new DriveError(403, '').retryable).toBe(false)
     expect(new DriveError(400, '').retryable).toBe(false)
     expect(new DriveError(0, '').retryable).toBe(false)
+  })
+})
+
+describe('logging', () => {
+  const googleError = (status: number, reason?: string) =>
+    JSON.stringify({ error: { code: status, message: 'Refused', errors: reason ? [{ reason }] : [] } })
+
+  function waitingDrive() {
+    vi.stubGlobal('fetch', fetchMock)
+    return driveService.client('token-1', { wait: async () => {} })
+  }
+
+  it('writes a debug line per request with the kind of call, never the token or the query', async () => {
+    const client = waitingDrive()
+    respond({ files: [{ id: 'f1', name: 'OwnLedger' }] })
+    // Debug lines show only when the flag is on.
+    vi.stubGlobal('localStorage', { getItem: (key: string) => (key === 'ownledger-debug' ? '1' : null) })
+    await client.findOwn('root')
+
+    expect(logs.lines).toHaveLength(1)
+    expect(logs.lines[0]).toMatchObject({
+      level: 'debug',
+      scope: 'drive',
+      message: 'Drive request done',
+      fields: { method: 'GET', path: '/drive/v3/files', status: 200, retries: 0 },
+    })
+    const text = JSON.stringify(logs.lines)
+    expect(text).not.toContain('token-1')
+    expect(text).not.toContain('properties has')
+  })
+
+  it('warns about each retry and about the failure when every try is refused', async () => {
+    const client = waitingDrive()
+    for (let index = 0; index < 4; index++) respond(googleError(503), 503)
+
+    await client.findOwn('root').catch(() => {})
+
+    const warnings = logs.lines.filter((line) => line.level === 'warn')
+    expect(warnings.map((line) => line.message)).toEqual([
+      'Drive request refused, trying again',
+      'Drive request refused, trying again',
+      'Drive request refused, trying again',
+      'Drive request failed',
+    ])
+    expect(warnings[0].fields).toMatchObject({ status: 503, afterMs: 1000 })
+    expect(warnings[2].fields).toMatchObject({ afterMs: 4000 })
+    expect(warnings[3].fields).toMatchObject({ status: 503, retries: 3 })
+  })
+
+  it('warns once, without a retry line, for a refusal that is not retried', async () => {
+    const client = waitingDrive()
+    respond(googleError(404), 404)
+    await client.findOwn('root').catch(() => {})
+    expect(logs.lines.map((line) => line.message)).toEqual(['Drive request failed'])
+    expect(logs.lines[0].fields).toMatchObject({ status: 404, reason: expect.stringContaining('Refused') })
+  })
+
+  it('logs expired access as a failure', async () => {
+    const client = waitingDrive()
+    respond('expired', 401)
+    await client.findOwn('root').catch(() => {})
+    expect(logs.lines[0]).toMatchObject({ level: 'warn', message: 'Drive request failed', fields: { error: 'DriveAuthError' } })
   })
 })

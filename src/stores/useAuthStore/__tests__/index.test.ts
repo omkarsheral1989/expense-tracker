@@ -1,6 +1,9 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from 'vitest'
 import { SESSION_KEY, useAuthStore, validToken } from '../index.ts'
+import { captureLogs, messagesOf } from '../../../testing/logs.ts'
+
+const logs = captureLogs()
 
 const profile = { id: '1', email: 'a@example.com', name: 'A' }
 
@@ -65,5 +68,28 @@ describe('validToken', () => {
     expect(validToken({ value: 't', expiresAt: now - 1 }, now)).toBeNull()
     expect(validToken({ value: 't', expiresAt: now + 30_000 }, now)).toBeNull()
     expect(validToken(null, now)).toBeNull()
+  })
+})
+
+describe('auth store logging', () => {
+  beforeEach(() => useAuthStore.setState({ profile: null, guest: false, token: null, driveToken: null }))
+
+  it('logs sign-in, guest mode, sign-out and Drive access, without the profile or tokens', () => {
+    const { signIn, startGuest, signOut, setDriveToken } = useAuthStore.getState()
+    signIn(profile, { value: 'secret-token', expiresAt: 1 })
+    setDriveToken({ value: 'drive-secret', expiresAt: 1 })
+    setDriveToken(null)
+    startGuest()
+    signOut()
+
+    expect(messagesOf(logs.lines)).toEqual([
+      'auth: Signed in with Google',
+      'auth: Drive access granted',
+      'auth: Drive access cleared',
+      'auth: Continuing as a guest',
+      'auth: Signed out',
+    ])
+    const text = JSON.stringify(logs.lines)
+    for (const secret of ['secret-token', 'drive-secret', profile.email]) expect(text).not.toContain(secret)
   })
 })

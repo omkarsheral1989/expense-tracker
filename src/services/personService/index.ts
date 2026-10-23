@@ -1,5 +1,6 @@
 import { and, eq, isNull, ne, sql } from 'drizzle-orm'
 import type { Database } from '../../db/client.ts'
+import { logService } from '../logService'
 import { people } from '../../db/schema.ts'
 import { MEMBER_EMAIL_DOMAIN } from './constants.ts'
 import { shownName } from '../../db/shownName.ts'
@@ -16,7 +17,7 @@ import type {
 } from './types.ts'
 import { comparableName } from './utils.ts'
 
-export const personService = {
+const personServiceBase = {
   /** The domain a member's email must have, when they have one. */
   memberEmailDomain: MEMBER_EMAIL_DOMAIN,
 
@@ -166,3 +167,9 @@ export const personService = {
     })
   },
 }
+
+/** personService with one log line per action (ADR-048). */
+export const personService: typeof personServiceBase = logService.logActions(logService.scope('person'), personServiceBase, {
+  addPerson: { message: 'Person added', params: ['userId'] },
+  updatePerson: { message: 'Person updated', params: ['userId', 'personId'] },
+})

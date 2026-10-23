@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { captureLogs } from '../../../testing/logs.ts'
 import { cleanup, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -10,7 +11,7 @@ import { useSignIn } from '../index.ts'
 
 type LoginOptions = {
   onSuccess: (response: { access_token: string; expires_in: number }) => Promise<void>
-  onError: () => void
+  onError: (error?: { error?: string }) => void
   onNonOAuthError: (error: { type: string }) => void
 }
 
@@ -43,6 +44,8 @@ async function googleSignsIn(profile: typeof omkar) {
   vi.mocked(googleProfileService.fetchProfile).mockResolvedValue(profile)
   await options().onSuccess({ access_token: 'token', expires_in: 3600 })
 }
+
+const logs = captureLogs()
 
 describe('useSignIn', () => {
   let user: ReturnType<typeof userEvent.setup>
@@ -112,6 +115,20 @@ describe('useSignIn', () => {
   it('says Google did not allow it when Google reports an error', async () => {
     options().onError()
     expect(await screen.findByText(/Google didn't allow the sign-in/)).toBeInTheDocument()
+  })
+
+  it('logs what Google said when it refuses, and also when it says nothing', () => {
+    options().onError({ error: 'access_denied' })
+    options().onError()
+    expect(logs.lines.filter((line) => line.message === 'Google refused the sign-in').map((line) => [line.level, line.fields])).toEqual([
+      ['warn', { type: 'access_denied' }],
+      ['warn', {}],
+    ])
+  })
+
+  it('logs a closed or blocked sign-in window', () => {
+    options().onNonOAuthError({ type: 'popup_closed' })
+    expect(logs.lines.at(-1)).toMatchObject({ level: 'info', message: 'Google window closed or blocked', fields: { type: 'popup_closed' } })
   })
 
   it('says the sign-in window was blocked, but nothing when the user just closed it', async () => {

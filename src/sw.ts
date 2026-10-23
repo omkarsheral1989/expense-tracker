@@ -1,30 +1,23 @@
 /// <reference lib="webworker" />
 import { cleanupOutdatedCaches, createHandlerBoundToURL, precacheAndRoute } from 'workbox-precaching'
 import { NavigationRoute, registerRoute } from 'workbox-routing'
-import { receiveShare } from './pwa/shareTarget.ts'
+import { addWorkerHandlers } from './pwa/workerHandlers.ts'
+import { logService } from './services/logService'
 
 declare const self: ServiceWorkerGlobalScope
 
-// The app's scope, such as https://omkarsheral1989.github.io/ownledger/ (ADR-032).
-const SCOPE = self.registration.scope
-const SHARE_TARGET_URL = `${SCOPE}share-target`
-const SHARE_LANDING_URL = `${SCOPE}share`
-
-// The files of the build, listed by vite-plugin-pwa (ADR-022).
-precacheAndRoute(self.__WB_MANIFEST)
+// The files of the build, listed by vite-plugin-pwa (ADR-022). The plugin
+// replaces this one expression, so it must appear once in this file.
+const precached = self.__WB_MANIFEST
+precacheAndRoute(precached)
 cleanupOutdatedCaches()
+logService.scope('sw').info('Precaching', { files: precached.length })
 // Deep links open the app, offline too.
 registerRoute(new NavigationRoute(createHandlerBoundToURL('index.html')))
 
-// A pictures-and-text share from another app (PRD 5.11, ADR-047).
-self.addEventListener('fetch', (event) => {
-  const { request } = event
-  if (request.method === 'POST' && request.url === SHARE_TARGET_URL) {
-    event.respondWith(receiveShare(request, SHARE_LANDING_URL))
-  }
-})
-
-// The update prompt (PwaUpdatePrompt) asks a waiting worker to take over.
-self.addEventListener('message', (event) => {
-  if (event.data?.type === 'SKIP_WAITING') void self.skipWaiting()
+// Sharing from other apps (PRD 5.11, ADR-047), updates (ADR-022) and logs (ADR-048).
+addWorkerHandlers({
+  registration: self.registration,
+  skipWaiting: () => self.skipWaiting(),
+  addEventListener: (type, listener) => self.addEventListener(type, listener as unknown as EventListener),
 })

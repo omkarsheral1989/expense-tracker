@@ -10,6 +10,7 @@ import { useAuthStore } from '../../../stores/useAuthStore'
 import { setUpTestDatabase } from '../../../testing/database.ts'
 import { addTestExpense } from '../../../testing/expenses.ts'
 import { createTestGroup } from '../../../testing/groups.ts'
+import { captureLogs, messagesOf } from '../../../testing/logs.ts'
 import { renderPage } from '../../../testing/render.tsx'
 import { AddExpensePage } from '../../addExpense'
 import { SharePage } from '../index.tsx'
@@ -25,6 +26,7 @@ vi.mock('../../../db/client.ts', async (importOriginal) => {
 
 const me = { id: '1', email: 'omkar@gmail.com', name: 'Omkar Sheral' }
 const testDb = setUpTestDatabase()
+const logs = captureLogs()
 
 function shared(overrides: Partial<SharedItems> = {}): SharedItems {
   return {
@@ -58,6 +60,7 @@ describe('SharePage', () => {
   beforeEach(async () => {
     useAuthStore.setState({ profile: me, token: null })
     await sharedFiles.clear()
+    logs.clear()
   })
   afterEach(async () => {
     cleanup()
@@ -137,5 +140,31 @@ describe('SharePage', () => {
     const { currentPath } = renderShare()
 
     await waitFor(() => expect(currentPath()).toBe(ROUTES.home))
+  })
+
+  describe('logging', () => {
+    it('logs where the share went, with counts and the group id but no names or text', async () => {
+      const groupId = await createGroup('Secret party')
+      await sharedFiles.save(shared({ notes: 'Private note', leftOut: 1 }))
+      renderShare()
+      await screen.findByRole('heading', { name: 'Add expense' })
+
+      const opened = logs.lines.find((line) => line.message === 'Share opened in Add expense')
+      expect(opened).toMatchObject({ level: 'info', scope: 'share', fields: { groupId, pictures: 1, leftOut: 1 } })
+      const text = JSON.stringify(logs.lines)
+      for (const secret of ['Secret party', 'Private note', 'receipt.png']) expect(text).not.toContain(secret)
+    })
+
+    it('logs that the share was dropped when there is no group', async () => {
+      await sharedFiles.save(shared())
+      renderShare()
+      await screen.findByText('Create a group first to add a shared receipt.')
+      expect(messagesOf(logs.lines)).toContain('share: Share dropped, the user has no group')
+    })
+
+    it('logs when the page opens with nothing held', async () => {
+      renderShare()
+      await waitFor(() => expect(messagesOf(logs.lines)).toContain('share: Share page opened with nothing held, going home'))
+    })
   })
 })

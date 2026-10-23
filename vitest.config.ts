@@ -1,11 +1,18 @@
 import { availableParallelism } from 'node:os'
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vitest/config'
 
 // Kept separate from vite.config.ts so tests do not load the PWA plugin.
 export default defineConfig({
+  resolve: {
+    // The update prompt imports the PWA plugin's virtual module, which exists only in the build.
+    alias: {
+      'virtual:pwa-register/react': fileURLToPath(new URL('./src/testing/pwaRegister.ts', import.meta.url)),
+    },
+  },
   test: {
     environment: 'node',
-    include: ['src/**/*.test.{ts,tsx}'],
+    include: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.ts'],
     setupFiles: ['./src/testing/setup.ts'],
     // Page tests type and click through Ant Design in jsdom, which is slow,
     // and slower still when every test file runs at once. The default of 5 s

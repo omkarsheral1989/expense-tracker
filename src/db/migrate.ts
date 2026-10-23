@@ -1,4 +1,7 @@
 import type { PGlite } from '@electric-sql/pglite'
+import { logService } from '../services/logService'
+
+const log = logService.scope('database')
 
 /**
  * The SQL files `drizzle-kit generate` writes to `src/db/migrations`, keyed by
@@ -40,6 +43,7 @@ export async function runMigrations(
     const name = path.split('/').pop() ?? path
     if (applied.has(name)) continue
 
+    log.info('Applying migration', { file: name })
     await pg.transaction(async (tx) => {
       for (const statement of migrations[path].split(STATEMENT_BREAKPOINT)) {
         if (statement.trim()) await tx.exec(statement)

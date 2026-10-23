@@ -8,6 +8,17 @@ import App from './App.tsx'
 import { GOOGLE_CLIENT_ID } from './config.ts'
 import { ThemeProvider } from './components/ThemeProvider'
 import { restoreRedirectedUrl } from './pwa/redirect.ts'
+import { logService } from './services/logService'
+
+const log = logService.scope('app')
+logService.watchGlobalErrors(window)
+log.info('App started', {
+  mode: import.meta.env.MODE,
+  online: navigator.onLine,
+  standalone: window.matchMedia('(display-mode: standalone)').matches,
+})
+window.addEventListener('online', () => log.info('Connection back'))
+window.addEventListener('offline', () => log.warn('Connection lost'))
 
 // GitHub Pages sends unknown addresses to 404.html, which bounces them here.
 restoreRedirectedUrl(window.location, window.history)

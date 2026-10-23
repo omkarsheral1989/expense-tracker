@@ -5,6 +5,7 @@ import { deviceService } from '../../services/deviceService'
 import { DriveError, driveService, stoppingProblem } from '../../services/driveService'
 import type { DriveClient } from '../../services/driveService/types.ts'
 import { groupService } from '../../services/groupService'
+import { logService } from '../../services/logService'
 import { photoService } from '../../services/photoService'
 import { syncService } from '../../services/syncService'
 import { useSyncStore } from '../../stores/useSyncStore'
@@ -27,6 +28,8 @@ import {
   photoCount,
 } from './constants.ts'
 import { joinNames } from './utils.ts'
+
+const log = logService.scope('sync')
 
 const BACKUP_STEP = 'backup'
 const SHARED_STEP = 'shared'
@@ -66,14 +69,19 @@ export function useSync() {
   /** Drive access, or null after telling the user why there is none. Call in the click. */
   function driveAccess(): Promise<string | null> | null {
     if (running) {
+      log.info('Sync pressed while one runs, showing it')
       openDialog()
       return null
     }
     if (!navigator.onLine) {
+      log.warn('Sync refused, the device is offline')
       message.warning(OFFLINE_MESSAGE)
       return null
     }
     return getDriveToken().catch((error: unknown) => {
+      log.warn('Sync stopped, no Drive access', {
+        problem: error instanceof DriveTokenError ? error.problem : 'unknown',
+      })
       if (error instanceof DriveTokenError) message.error(DRIVE_TOKEN_MESSAGES[error.problem])
       else message.error(DRIVE_TOKEN_MESSAGES.unavailable)
       return null
@@ -88,7 +96,9 @@ export function useSync() {
 
   /** What a failed step says: one of the failures that stop a run, or the given failure. */
   function failure(error: unknown, otherwise: string) {
-    switch (stoppingProblem(error)) {
+    const stopping = stoppingProblem(error)
+    log.error(stopping ? 'Run stopped' : 'Step failed', { problem: stopping ?? 'step', ...logService.errorFields(error) })
+    switch (stopping) {
       case 'expired':
         forgetDriveToken()
         setResume(currentRun.current)
@@ -116,6 +126,7 @@ export function useSync() {
   async function mergeBackup(db: Database, drive: DriveClient, userId: string, datasetId: string): Promise<MergedBackup> {
     try {
       const result = await syncService.restore(db, drive)
+      log.info('Backup in Drive merged', result.ok ? { ok: true } : { ok: false, reason: result.reason })
       const me = result.ok ? followRename(userId, result.renamed) : userId
       const photos = await syncService.restorePhotos(db, drive, photoService.open(datasetId), ({ current, total }) =>
         updateStep(BACKUP_STEP, { detail: `${BACKUP_DETAILS.downloading} ${current} of ${total}` }),
@@ -123,6 +134,7 @@ export function useSync() {
       const problems: string[] = []
       if (photos.outOfSpace) problems.push(OUT_OF_SPACE_MESSAGE)
       else if (photos.failures) problems.push(`${photoCount(photos.failures)} couldn't be downloaded. Press Sync to try again.`)
+      log.info('Backup photos downloaded', { failures: photos.failures, outOfSpace: photos.outOfSpace })
       updateStep(BACKUP_STEP, { detail: BACKUP_DETAILS.waiting })
       return { userId: me, merged: true, problems }
     } catch (error) {
@@ -137,9 +149,11 @@ export function useSync() {
     updateStep(BACKUP_STEP, { detail: BACKUP_DETAILS.saving })
     try {
       await syncService.backUp(db, drive, userId)
+      log.info('Backup data written')
       const { failures } = await syncService.backUpPhotos(db, drive, photoService.open(datasetId), ({ current, total }) =>
         updateStep(BACKUP_STEP, { detail: `${BACKUP_DETAILS.uploading} ${current} of ${total}` }),
       )
+      log.info('Backup photos uploaded', { failures })
       const all = failures ? [...problems, `${photoCount(failures)} couldn't be backed up. Press Sync to try again.`] : problems
       if (all.length) updateStep(BACKUP_STEP, { status: 'error', detail: all.join(' ') })
       else updateStep(BACKUP_STEP, { status: 'done', detail: BACKUP_DETAILS.done })
@@ -161,6 +175,11 @@ export function useSync() {
       const result = await syncService.syncGroup(db, drive, userId, groupId, (step) =>
         updateStep(key, { detail: GROUP_STEP_DETAILS[step] }),
       )
+      log.info('Group data synced', {
+        groupId,
+        status: result.status,
+        ...(result.status === 'waiting' ? {} : { sharedWith: result.sharedWith.length, unreadable: result.unreadable.length }),
+      })
       if (result.status === 'waiting') {
         updateStep(key, { status: 'waiting', detail: `Waiting for ${result.creatorName} to sync this group first.` })
         return userId
@@ -170,6 +189,7 @@ export function useSync() {
         updateStep(key, { detail: `${GROUP_PHOTO_DETAILS[direction]} ${current} of ${total}` }),
       )
 
+      log.info('Group photos synced', { groupId, failures: photos.failures, outOfSpace: photos.outOfSpace })
       // Problems first, each in a sentence of its own; otherwise what was done.
       const problems: string[] = []
       if (result.unreadable.length) problems.push(`${joinNames(result.unreadable.map((name) => `${name}'s`))} changes couldn't be read.`)
@@ -197,6 +217,7 @@ export function useSync() {
   async function findSharedGroups(db: Database, drive: DriveClient, userId: string, email: string) {
     try {
       const { found, renamed } = await syncService.findSharedGroups(db, drive, email)
+      log.info('Looked for shared groups', { found: found.length })
       return { found, userId: followRename(userId, renamed) }
     } catch (error) {
       addStep({
@@ -230,6 +251,8 @@ export function useSync() {
     if (!token) return
 
     currentRun.current = sync
+    const startedAt = Date.now()
+    log.info('Full sync started')
     start('Syncing', [{ key: BACKUP_STEP, label: 'Backup', status: 'running', detail: BACKUP_DETAILS.getting }], { kind: 'all' })
     // True while the backup's data is merged but not written yet.
     let backupPending = false
@@ -258,6 +281,7 @@ export function useSync() {
       // A group stopped the run before the backup was written.
       if (backupPending) updateStep(BACKUP_STEP, { status: 'error', detail: BACKUP_DETAILS.stopped })
     } finally {
+      log.info('Full sync ended', { ms: Date.now() - startedAt })
       finish()
     }
   }
@@ -270,6 +294,7 @@ export function useSync() {
     if (!token) return
 
     currentRun.current = () => syncGroup(groupId, name)
+    log.info('Group sync started', { groupId })
     start('Syncing', [], { kind: 'group', groupId })
     try {
       await syncGroupLine(await getDb(), driveService.client(token), user.personId, groupId, name)

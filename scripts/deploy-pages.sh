@@ -21,30 +21,10 @@ fi
 cd "$root"
 bun run build
 
-# A file listed twice in the service worker's precache (with two revisions)
-# makes its install fail, so nothing is cached and the app cannot open offline.
-# The entries are written as "url":"…" (our own worker, ADR-047) or url:"…".
-entries="$(grep -oE '"?url"?:"[^"]*"' dist/sw.js || true)"
-if [ -z "$entries" ]; then
-  echo "dist/sw.js lists no precached files, so the app would not work offline." >&2
-  exit 1
-fi
-duplicates="$(echo "$entries" | sort | uniq -d)"
-if [ -n "$duplicates" ]; then
-  echo "dist/sw.js precaches these files more than once, so the app would not work offline:" >&2
-  echo "$duplicates" >&2
-  exit 1
-fi
-
-# GitHub Pages (Jekyll) does not serve files or folders whose names start with
-# "_". The service worker caches every file at install, so one 404 stops it
-# from installing at all: no offline use and no share target (ADR-047).
-hidden="$(find dist -name '_*' | head)"
-if [ -n "$hidden" ]; then
-  echo "These files would be hidden by GitHub Pages (names starting with \"_\"):" >&2
-  echo "$hidden" >&2
-  exit 1
-fi
+# Refuses a build that would not install or work offline, or that GitHub Pages
+# would break: files hidden by their "_" names, precache entries that are missing
+# or listed twice, no share target (see scripts/checkDist.ts, ADR-022 and ADR-047).
+bun scripts/checkDist.ts dist
 
 # Replace the folder, so files from older builds (hashed names) do not pile up.
 rm -rf "$pages/ownledger"

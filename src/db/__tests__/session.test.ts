@@ -2,6 +2,9 @@ import { describe, expect, it } from 'vitest'
 import type { Database } from '../client.ts'
 import type { DatabaseLock } from '../lock.ts'
 import { createSessionManager } from '../session.ts'
+import { captureLogs } from '../../testing/logs.ts'
+
+const logs = captureLogs()
 
 const fakeDb = {} as Database
 
@@ -83,5 +86,35 @@ describe('session manager', () => {
     const { manager, events } = setup()
     await manager.end()
     expect(events).toEqual(['close'])
+  })
+})
+
+describe('session manager logging', () => {
+  it('logs that the database opened, with how long it took', async () => {
+    await setup().manager.start('a')
+    expect(logs.lines).toEqual([
+      { level: 'info', scope: 'database', message: 'Database opened', fields: { ms: expect.any(Number) } },
+    ])
+  })
+
+  it('warns when another tab has the data open', async () => {
+    await setup({ lockTaken: true }).manager.start('a')
+    expect(logs.lines).toEqual([
+      { level: 'warn', scope: 'database', message: 'Data is open in another tab', fields: {} },
+    ])
+  })
+
+  it('logs an error when opening fails', async () => {
+    await expect(setup({ openFails: true }).manager.start('a')).rejects.toThrow('boom')
+    expect(logs.lines.find((line) => line.level === 'error')).toMatchObject({
+      scope: 'database',
+      message: 'Database could not be opened',
+      fields: { error: 'Error', reason: 'boom' },
+    })
+  })
+
+  it('never logs the dataset id', async () => {
+    await setup().manager.start('a-secret-dataset-id')
+    expect(JSON.stringify(logs.lines)).not.toContain('a-secret-dataset-id')
   })
 })

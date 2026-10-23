@@ -2,6 +2,7 @@ import { and, asc, desc, eq, inArray, isNull, max, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import { displayName } from '../groupService/utils.ts'
 import type { Database } from '../../db/client.ts'
+import { logService } from '../logService'
 import { EXPENSE_EVENT_KINDS } from '../../db/constants.ts'
 import {
   expensePhotos,
@@ -58,7 +59,7 @@ import {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-export const expenseService = {
+const expenseServiceBase = {
   /** The categories in their groups, as the picker lists them (a settlement's is not offered). */
   categoryGroups: CATEGORY_GROUPS.filter((group) => group.key !== SETTLEMENT_CATEGORY),
 
@@ -199,7 +200,7 @@ export const expenseService = {
         ? 'Choose someone other than the payer.'
         : undefined
 
-    const result = await expenseService.createExpense(db, userId, groupId, {
+    const result = await expenseServiceBase.createExpense(db, userId, groupId, {
       description: SETTLEMENT_DESCRIPTION,
       category: SETTLEMENT_CATEGORY,
       amountMinor: input.amountMinor,
@@ -1065,6 +1066,16 @@ export const expenseService = {
     return rows.map((row) => row.currency)
   },
 }
+
+/** expenseService with one log line per action (ADR-048). */
+export const expenseService: typeof expenseServiceBase = logService.logActions(logService.scope('expense'), expenseServiceBase, {
+  createExpense: { message: 'Expense created', params: ['userId', 'groupId'] },
+  createSettlement: { message: 'Payment recorded', params: ['userId', 'groupId'] },
+  updateExpense: { message: 'Expense updated', params: ['userId', 'groupId', 'expenseId'] },
+  deleteExpense: { message: 'Expense deleted', params: ['userId', 'groupId', 'expenseId'] },
+  restoreExpense: { message: 'Expense restored', params: ['userId', 'groupId', 'expenseId'] },
+  restoreVersion: { message: 'Expense restored to a version', params: ['userId', 'groupId', 'expenseId', 'eventId'] },
+})
 
 /** What the helpers below need of a database or a transaction. */
 type Reader = Pick<Database, 'select'>

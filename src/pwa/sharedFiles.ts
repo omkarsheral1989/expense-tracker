@@ -1,4 +1,7 @@
 import { openDB } from 'idb'
+import { logService } from '../services/logService'
+
+const log = logService.scope('share')
 
 const DATABASE_NAME = 'ownledger-shared'
 const STORE_NAME = 'shares'
@@ -56,6 +59,7 @@ export const sharedFiles = {
       if (!items) return null
       if (now - items.sharedAt > SHARE_MAX_AGE_MS) {
         await db.delete(STORE_NAME, KEY)
+        log.info('Held share was too old, removed', { ageMinutes: Math.round((now - items.sharedAt) / 60000) })
         return null
       }
       return items

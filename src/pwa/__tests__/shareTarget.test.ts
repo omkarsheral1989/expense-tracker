@@ -2,6 +2,9 @@ import 'fake-indexeddb/auto'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { receiveShare, notesFrom } from '../shareTarget.ts'
 import { sharedFiles } from '../sharedFiles.ts'
+import { captureLogs, messagesOf } from '../../testing/logs.ts'
+
+const logs = captureLogs()
 
 const LANDING = 'https://example.test/ownledger/share'
 const NOW = 5_000
@@ -107,5 +110,37 @@ describe('receiveShare', () => {
 
     expect(response.status).toBe(303)
     expect(await sharedFiles.read(NOW)).toBeNull()
+  })
+
+  describe('logging', () => {
+    it('logs what was kept, with counts only', async () => {
+      await receiveShare(shareRequest({ files: [picture('a.png'), picture('b.png')], text: 'Dinner at the shack' }), LANDING, NOW)
+
+      expect(messagesOf(logs.lines)).toEqual(['share: Share received', 'share: Share kept'])
+      expect(logs.lines[1]).toMatchObject({ level: 'info', fields: { pictures: 2, leftOut: 0, chars: 19 } })
+      expect(JSON.stringify(logs.lines)).not.toContain('Dinner')
+      expect(JSON.stringify(logs.lines)).not.toContain('a.png')
+    })
+
+    it('counts the pictures left out beyond 10', async () => {
+      const files = Array.from({ length: 12 }, (_, index) => picture(`${index}.png`))
+      await receiveShare(shareRequest({ files }), LANDING, NOW)
+      expect(logs.lines.at(-1)?.fields).toMatchObject({ pictures: 10, leftOut: 2 })
+    })
+
+    it('warns when nothing usable was shared', async () => {
+      await receiveShare(shareRequest({ files: [picture('notes.txt', 'text/plain')] }), LANDING, NOW)
+      expect(logs.lines.at(-1)).toMatchObject({ level: 'warn', message: 'Share had no pictures or text, nothing kept', fields: { files: 1 } })
+    })
+
+    it('logs an error when the request cannot be read', async () => {
+      const broken = new Request('https://example.test/ownledger/share-target', {
+        method: 'POST',
+        headers: { 'content-type': 'multipart/form-data; boundary=x' },
+        body: 'not a form',
+      })
+      await receiveShare(broken, LANDING, NOW)
+      expect(logs.lines.at(-1)).toMatchObject({ level: 'error', message: 'Share could not be read' })
+    })
   })
 })

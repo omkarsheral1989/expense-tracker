@@ -1,4 +1,7 @@
+import { logService } from '../services/logService'
 import { sharedFiles, type SharedPicture } from './sharedFiles.ts'
+
+const log = logService.scope('share')
 
 /** The most pictures one expense can have (the same limit as the form, `MAX_RECEIPTS_PER_EXPENSE`). */
 const MAX_PICTURES = 10
@@ -33,6 +36,7 @@ function textOf(form: FormData, name: string): string {
  */
 export async function receiveShare(request: Request, landingUrl: string, now = Date.now()): Promise<Response> {
   try {
+    log.info('Share received')
     const form = await request.formData()
     const files = form
       .getAll(SHARE_FIELDS.pictures)
@@ -48,11 +52,18 @@ export async function receiveShare(request: Request, landingUrl: string, now = D
     })
     if (pictures.length > 0 || notes) {
       await sharedFiles.save({ pictures, notes, leftOut: files.length - kept.length, sharedAt: now })
+      log.info('Share kept', {
+        pictures: pictures.length,
+        leftOut: files.length - kept.length,
+        chars: notes.length,
+      })
     } else {
       await sharedFiles.clear()
+      log.warn('Share had no pictures or text, nothing kept', { files: form.getAll(SHARE_FIELDS.pictures).length })
     }
-  } catch {
+  } catch (error) {
     // Unreadable share: go on to the landing page, which finds nothing.
+    log.error('Share could not be read', logService.errorFields(error))
   }
   // 303: the browser follows a POST with a GET of the landing page.
   return Response.redirect(landingUrl, 303)

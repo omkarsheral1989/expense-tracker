@@ -8,6 +8,9 @@ import {
   GROUP_NAME_MAX_LENGTH,
 } from '../constants.ts'
 import { runMigrations } from '../migrate.ts'
+import { captureLogs } from '../../testing/logs.ts'
+
+const logs = captureLogs()
 import { expenseRevisions, expenseShares, expenses, groupMembers, groups, people } from '../schema.ts'
 
 let pg: PGlite
@@ -49,6 +52,17 @@ describe('migrations', () => {
     await runMigrations(pg)
     const { rows } = await pg.query('select name from ownledger_migrations')
     expect(rows).toHaveLength(12)
+  })
+
+  it('logs nothing when every migration has run, and each migration it applies', async () => {
+    logs.clear()
+    await runMigrations(pg)
+    expect(logs.lines).toEqual([])
+
+    await runMigrations(pg, { './migrations/0098_extra.sql': 'select 1' })
+    expect(logs.lines).toEqual([
+      { level: 'info', scope: 'database', message: 'Applying migration', fields: { file: '0098_extra.sql' } },
+    ])
   })
 
   it('does not record a file that fails, and applies nothing from it', async () => {

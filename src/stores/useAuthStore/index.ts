@@ -1,9 +1,12 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { logService } from '../../services/logService'
 import { SESSION_KEY } from './constants.ts'
 import type { AccessToken, AuthState } from './types.ts'
 
 export { SESSION_KEY }
+
+const log = logService.scope('auth')
 
 /**
  * The signed-in profile (or the fact that the user is a guest) is kept on the
@@ -17,10 +20,22 @@ export const useAuthStore = create<AuthState>()(
       guest: false,
       token: null,
       driveToken: null,
-      setDriveToken: (driveToken) => set({ driveToken }),
-      signIn: (profile, token) => set({ profile, guest: false, token, driveToken: null }),
-      startGuest: () => set({ profile: null, guest: true, token: null, driveToken: null }),
-      signOut: () => set({ profile: null, guest: false, token: null, driveToken: null }),
+      setDriveToken: (driveToken) => {
+        log.info(driveToken ? 'Drive access granted' : 'Drive access cleared')
+        set({ driveToken })
+      },
+      signIn: (profile, token) => {
+        log.info('Signed in with Google')
+        set({ profile, guest: false, token, driveToken: null })
+      },
+      startGuest: () => {
+        log.info('Continuing as a guest')
+        set({ profile: null, guest: true, token: null, driveToken: null })
+      },
+      signOut: () => {
+        log.info('Signed out')
+        set({ profile: null, guest: false, token: null, driveToken: null })
+      },
     }),
     {
       name: SESSION_KEY,
