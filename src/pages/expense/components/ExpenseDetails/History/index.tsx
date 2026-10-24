@@ -14,11 +14,10 @@ type Props = {
 /**
  * Everything that happened to an expense, newest first, as the events record it
  * (ADR-042): each edit with what it changed, that it was deleted or restored,
- * and last that it was added. Shown only once something besides adding it has
- * happened.
+ * and last that it was added. Always shown, even for an expense never edited.
  */
 export function History({ expense }: Props) {
-  if (expense.history.every((entry) => entry.kind === 'added')) return null
+  if (expense.history.length === 0) return null
   const noun = expense.category === expenseService.settlementCategory ? 'payment' : 'expense'
 
   return (

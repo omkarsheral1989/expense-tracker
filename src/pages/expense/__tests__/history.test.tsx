@@ -105,23 +105,25 @@ describe('ExpensePage: history', () => {
     vi.mocked(getDb).mockClear()
   })
 
-  it('is left out for an expense that was never edited', async () => {
+  it('is shown for an expense that was never edited, with only the entry that it was added', async () => {
     const id = await createGroup()
     const expenseId = await addExpense(id)
     renderExpense(id, expenseId)
 
     await screen.findByRole('heading', { name: 'Beach shack dinner' })
-    expect(screen.queryByText('History')).not.toBeInTheDocument()
-    expect(screen.queryByRole('list', { name: 'History' })).not.toBeInTheDocument()
+    expect(await screen.findByText('History')).toBeInTheDocument()
+    expect(entries()).toHaveLength(1)
+    expect(entries()[0].textContent).toMatch(/^You added this expense · /)
   })
 
-  it('is left out for a payment between members', async () => {
+  it('is shown for a payment between members, with the entry that it was added', async () => {
     const id = await createGroup()
     const payment = await addTestSettlement(testDb.db, me.email, 'priya@gmail.com', id)
     renderExpense(id, payment)
 
     await screen.findByRole('heading', { name: 'You paid Priya' })
-    expect(screen.queryByText('History')).not.toBeInTheDocument()
+    expect(await screen.findByText('History')).toBeInTheDocument()
+    expect(entries()[0].textContent).toMatch(/^You added this payment · /)
   })
 
   it('comes last on the page, after the receipts, under the heading "History"', async () => {

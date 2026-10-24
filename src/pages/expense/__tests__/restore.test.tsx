@@ -306,7 +306,7 @@ describe('ExpensePage: restoring', () => {
       ])
     })
 
-    it('shows up for an expense that was deleted and restored without ever being edited, and for none that was only added', async () => {
+    it('lists deleting and restoring without any edit, and for an expense that was only added just its adding', async () => {
       const id = await createGroup()
       const untouched = await addExpense(id)
       const restored = await addExpense(id, { description: 'Taxi' })
@@ -315,7 +315,8 @@ describe('ExpensePage: restoring', () => {
 
       renderExpense(id, untouched)
       await screen.findByRole('heading', { name: 'Beach shack dinner' })
-      expect(screen.queryByText('History')).not.toBeInTheDocument()
+      expect(await screen.findByText('History')).toBeInTheDocument()
+      expect(historyEntries()).toHaveLength(1)
       cleanup()
 
       renderExpense(id, restored)
