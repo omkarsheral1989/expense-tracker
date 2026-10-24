@@ -14,7 +14,7 @@ import { currencyService } from '../../../../services/currencyService'
 import type { KnownGroup } from '../../types.ts'
 import { HEADER_TITLE_STYLE } from '../../../../theme/headerTitle.ts'
 import { GROUP_TYPE_COLORS } from '../../../../theme/groupTypeColors.ts'
-import { belowStatusBar, HEADER_TOP_PADDING } from '../../../../theme/safeArea.ts'
+import { BAND_BOTTOM_PADDING, belowStatusBar, HEADER_TOP_PADDING } from '../../../../theme/safeArea.ts'
 import { BandChip } from '../../../../components/BandChip'
 import { BandIconButton } from '../../../../components/BandIconButton'
 import { bandBackground } from '../../../../theme/bandBackground.ts'
@@ -123,7 +123,7 @@ export function GroupBand({ group, peopleCount, onOpenMembers }: Props) {
   return (
     <div
       style={{
-        padding: `${belowStatusBar(HEADER_TOP_PADDING)} 16px 20px`,
+        padding: `${belowStatusBar(HEADER_TOP_PADDING)} 16px ${BAND_BOTTOM_PADDING}px`,
         background: bandBackground(GROUP_TYPE_COLORS[group.type]),
       }}
     >
