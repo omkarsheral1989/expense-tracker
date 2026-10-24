@@ -29,11 +29,18 @@ function toFormFields(errors: UpdatePersonErrors) {
   }))
 }
 
+/** The note under the email field: what it is while it can be set, and why it cannot be changed otherwise. */
+function emailNote(person: ManagedPerson) {
+  if (person.pending) return `Only @${personService.memberEmailDomain} addresses. Shared with the group, so they can be sent its Drive folder.`
+  if (person.isYou) return 'The address you signed in with.'
+  return 'This person has signed in, so their email cannot be changed.'
+}
+
 /**
  * The edit dialog of the members page. The name is required: the one this device uses
- * for the person; the email shows only while the
- * person is pending, and is the real, shared one. Save with nothing changed
- * just closes.
+ * for the person (or for the user themself). The email is always shown: the real,
+ * shared one, which can be changed only while the person is pending, and is
+ * disabled for everyone else, the user included. Save with nothing changed just closes.
  */
 export function EditMemberDialog({ person, onClose, userId, onSaved }: Props) {
   const [form] = Form.useForm<FormValues>()
@@ -96,25 +103,18 @@ export function EditMemberDialog({ person, onClose, userId, onSaved }: Props) {
           label="Name"
           name="localName"
           extra="Only you see this name."
-          style={person.pending ? undefined : { marginBottom: 0 }}
         >
           <Input autoFocus autoComplete="off" placeholder="For example, Priya Shah" />
         </Form.Item>
-        {person.pending && (
-          <Form.Item
-            label="Email"
-            name="email"
-            extra={`Only @${personService.memberEmailDomain} addresses. Shared with the group, so they can be sent its Drive folder.`}
-            style={{ marginBottom: 0 }}
-          >
-            <Input
-              type="email"
-              inputMode="email"
-              autoComplete="off"
-              placeholder={`name@${personService.memberEmailDomain}`}
-            />
-          </Form.Item>
-        )}
+        <Form.Item label="Email" name="email" extra={emailNote(person)} style={{ marginBottom: 0 }}>
+          <Input
+            type="email"
+            inputMode="email"
+            autoComplete="off"
+            disabled={!person.pending}
+            placeholder={person.pending ? `name@${personService.memberEmailDomain}` : 'No email'}
+          />
+        </Form.Item>
       </Form>
     )
   }

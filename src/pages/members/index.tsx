@@ -67,16 +67,17 @@ export function MembersPage() {
   function renderList(people: ManagedPerson[]) {
     return (
       <>
-        {people.length === 0 && (
-          <Text type="secondary" style={{ display: 'block', padding: '16px 0' }}>
-            No members yet.
-          </Text>
-        )}
         <Flex vertical gap={12}>
           {people.map((person) => (
             <MemberItem key={person.id} person={person} onEdit={openEditDialog} />
           ))}
         </Flex>
+        {/* Besides the user's own card, which is always first. */}
+        {people.every((person) => person.isYou) && (
+          <Text type="secondary" style={{ display: 'block', padding: '16px 0 0' }}>
+            No members yet.
+          </Text>
+        )}
         <Button icon={<PlusOutlined />} onClick={() => setAdding(true)} style={{ marginTop: 16 }}>
           Add member
         </Button>

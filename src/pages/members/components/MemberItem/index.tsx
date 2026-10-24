@@ -15,7 +15,8 @@ type Props = {
  * One person on the members page, as a card that opens the edit dialog: an
  * avatar with their initial, the name this device shows for them (their email
  * when no name is known) with the email under it ("No email" without one), and
- * a "Pending" tag until they have signed in and synced (PRD 5.4).
+ * a "Pending" tag until they have signed in and synced (PRD 5.4), or a "You"
+ * tag on the user's own card, which is listed first.
  */
 export function MemberItem({ person, onEdit }: Props) {
   const name = person.localName ?? person.sharedName
@@ -48,6 +49,11 @@ export function MemberItem({ person, onEdit }: Props) {
             </Text>
           )}
         </Flex>
+        {person.isYou && (
+          <Tag variant="filled" style={{ margin: 0 }}>
+            You
+          </Tag>
+        )}
         {person.pending && (
           <Tag variant="filled" style={{ margin: 0 }}>
             Pending

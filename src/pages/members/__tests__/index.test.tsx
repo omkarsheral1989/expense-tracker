@@ -46,14 +46,25 @@ describe('the Group members page', () => {
     expect(page.currentPath()).toBe(ROUTES.home)
   })
 
-  it('says so when nobody is saved yet, and still offers Add member', async () => {
+  it('says so when nobody besides the user is saved yet, under the user\'s own card, and still offers Add member', async () => {
     renderMembers()
 
-    expect(await screen.findByText('No members yet.')).toBeInTheDocument()
+    const none = await screen.findByText('No members yet.')
+    expect(none).toBeInTheDocument()
+    const own = card('Omkar Sheral')
+    expect(own.compareDocumentPosition(none) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(screen.getByRole('button', { name: /Add member$/ })).toBeInTheDocument()
   })
 
-  it('lists everyone but the user, A to Z by the name shown, with the email or "No email"', async () => {
+  it('does not say nobody is there once someone besides the user is', async () => {
+    await addTestPerson(testDb.db, me, { name: 'Sam' })
+    renderMembers()
+
+    await screen.findByRole('button', { name: 'Edit Sam' })
+    expect(screen.queryByText('No members yet.')).not.toBeInTheDocument()
+  })
+
+  it('lists the user first, then everyone else A to Z by the name shown, with the email or "No email"', async () => {
     await addTestPerson(testDb.db, me, { name: 'Zoe', email: 'zoe@gmail.com' })
     await addTestPerson(testDb.db, me, { name: 'Sam' })
     const alan = await addTestPerson(testDb.db, me, { name: 'Alan', email: 'alan@gmail.com' })
@@ -62,12 +73,27 @@ describe('the Group members page', () => {
 
     await screen.findByRole('button', { name: 'Edit Sam' })
     const cards = screen.getAllByRole('button', { name: /^Edit / })
-    expect(cards.map((entry) => entry.getAttribute('aria-label'))).toEqual(['Edit alan@gmail.com', 'Edit Sam', 'Edit Zoe'])
+    expect(cards.map((entry) => entry.getAttribute('aria-label'))).toEqual([
+      'Edit Omkar Sheral',
+      'Edit alan@gmail.com',
+      'Edit Sam',
+      'Edit Zoe',
+    ])
     expect(within(card('Sam')).getByText('No email')).toBeInTheDocument()
     expect(within(card('Zoe')).getByText('zoe@gmail.com')).toBeInTheDocument()
     // Without a name the email stands in for it, once.
     expect(within(card('alan@gmail.com')).getAllByText('alan@gmail.com')).toHaveLength(1)
-    expect(screen.queryByText('Omkar Sheral')).not.toBeInTheDocument()
+    expect(within(card('Omkar Sheral')).getByText('omkar@gmail.com')).toBeInTheDocument()
+  })
+
+  it('tags the user "You" where the others are tagged "Pending", and never "Pending"', async () => {
+    await addTestPerson(testDb.db, me, { name: 'Sam' })
+    renderMembers()
+
+    await screen.findByRole('button', { name: 'Edit Sam' })
+    expect(within(card('Omkar Sheral')).getByText('You')).toBeInTheDocument()
+    expect(within(card('Omkar Sheral')).queryByText('Pending')).not.toBeInTheDocument()
+    expect(within(card('Sam')).queryByText('You')).not.toBeInTheDocument()
   })
 
   it('shows the name this device uses for a person instead of their shared name', async () => {
@@ -89,7 +115,8 @@ describe('the Group members page', () => {
     expect(within(card('Sam')).getByText('Pending')).toBeInTheDocument()
     expect(within(card('Priya')).queryByText('Pending')).not.toBeInTheDocument()
     expect(document.querySelector('.anticon-edit')).toBeNull()
-    expect(document.querySelectorAll('.ant-card')).toHaveLength(2)
+    // The user's own card, Sam and Priya.
+    expect(document.querySelectorAll('.ant-card')).toHaveLength(3)
   })
 
   it('shows a Google picture where a person has one and the initial where not', async () => {
@@ -272,15 +299,81 @@ describe('the Group members page', () => {
       expect(screen.getByRole('dialog', { name: 'Edit member' })).toBeInTheDocument()
     })
 
-    it('shows no email field for someone who has signed in and synced', async () => {
+    it('shows the email, switched off and saying why, for someone who has signed in and synced', async () => {
       const priya = await addTestPerson(testDb.db, me, { name: 'Priya', email: 'priya@gmail.com' })
       await testDb.db.insert(syncStatus).values({ scope: `member:some-group:${priya}`, lastSyncedAt: new Date() })
       renderMembers()
 
       const dialog = await openEdit('Priya')
 
-      expect(within(dialog).getByLabelText('Name')).toBeInTheDocument()
-      expect(within(dialog).queryByLabelText('Email')).not.toBeInTheDocument()
+      expect(within(dialog).getByLabelText('Name')).toBeEnabled()
+      expect(within(dialog).getByLabelText('Email')).toBeDisabled()
+      expect(within(dialog).getByLabelText('Email')).toHaveValue('priya@gmail.com')
+      expect(within(dialog).getByText('This person has signed in, so their email cannot be changed.')).toBeInTheDocument()
+    })
+
+    it('shows "No email" in the switched-off field of someone synced who has no email, and an example in an open one', async () => {
+      const sam = await addTestPerson(testDb.db, me, { name: 'Sam' })
+      await addTestPerson(testDb.db, me, { name: 'Zed' })
+      await testDb.db.insert(syncStatus).values({ scope: `member:some-group:${sam}`, lastSyncedAt: new Date() })
+      renderMembers()
+
+      const synced = await openEdit('Sam')
+      expect(within(synced).getByLabelText('Email')).toHaveAttribute('placeholder', 'No email')
+      await userEvent.click(within(synced).getByRole('button', { name: 'Cancel' }))
+      await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Edit member' })).not.toBeInTheDocument())
+
+      const pending = await openEdit('Zed')
+      expect(within(pending).getByLabelText('Email')).toHaveAttribute('placeholder', 'name@gmail.com')
+    })
+
+    it('shows the email of a pending person switched on, with where it is shared', async () => {
+      await addTestPerson(testDb.db, me, { name: 'Sam' })
+      renderMembers()
+
+      const dialog = await openEdit('Sam')
+
+      expect(within(dialog).getByLabelText('Email')).toBeEnabled()
+      expect(within(dialog).getByText(/Shared with the group/)).toBeInTheDocument()
+    })
+
+    it('still saves a new name for someone whose email is switched off, and leaves their email alone', async () => {
+      const priya = await addTestPerson(testDb.db, me, { name: 'Priya', email: 'priya@gmail.com' })
+      await testDb.db.insert(syncStatus).values({ scope: `member:some-group:${priya}`, lastSyncedAt: new Date() })
+      renderMembers()
+      const dialog = await openEdit('Priya')
+
+      await userEvent.clear(within(dialog).getByLabelText('Name'))
+      await userEvent.type(within(dialog).getByLabelText('Name'), 'Pri')
+      await save()
+
+      expect(await screen.findByRole('button', { name: 'Edit Pri' })).toBeInTheDocument()
+      expect((await rowOf('Priya')).email).toBe('priya@gmail.com')
+    })
+
+    it('opens the user\'s own card with their name, and their email switched off with a note that it is the one they signed in with', async () => {
+      renderMembers()
+
+      const dialog = await openEdit('Omkar Sheral')
+
+      expect(within(dialog).getByLabelText('Name')).toHaveValue('Omkar Sheral')
+      expect(within(dialog).getByLabelText('Email')).toBeDisabled()
+      expect(within(dialog).getByLabelText('Email')).toHaveValue('omkar@gmail.com')
+      expect(within(dialog).getByText('The address you signed in with.')).toBeInTheDocument()
+    })
+
+    it('gives the user a name only this device uses, without touching their email or shared name', async () => {
+      renderMembers()
+      const dialog = await openEdit('Omkar Sheral')
+
+      await userEvent.clear(within(dialog).getByLabelText('Name'))
+      await userEvent.type(within(dialog).getByLabelText('Name'), 'Me')
+      await save()
+
+      expect(await screen.findByRole('button', { name: 'Edit Me' })).toBeInTheDocument()
+      expect(within(card('Me')).getByText('You')).toBeInTheDocument()
+      const [own] = await testDb.db.select().from(people).where(eq(people.email, me.email))
+      expect(own).toMatchObject({ name: 'Omkar Sheral', localName: 'Me', email: 'omkar@gmail.com' })
     })
 
     it('says so when the person is gone by the time Save is pressed', async () => {
@@ -294,7 +387,7 @@ describe('the Group members page', () => {
       await save()
 
       expect(await screen.findByText('This person is no longer available.')).toBeInTheDocument()
-      await waitFor(() => expect(screen.queryByRole('button', { name: /^Edit / })).not.toBeInTheDocument())
+      await waitFor(() => expect(screen.queryByRole('button', { name: 'Edit Sam' })).not.toBeInTheDocument())
     })
 
     it('says so when saving fails, and keeps what was typed', async () => {
