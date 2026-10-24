@@ -386,6 +386,15 @@ Moving from one page to another animates, so the app feels like a phone app.
 - **Fallbacks:** a browser without the View Transitions API gets the same quick fade (about 200 ms) of the new page instead of the slide. A device that asked for reduced motion gets no animation at all, in every case.
 - **Unchanged:** pages that come from the page cache (5.14) still show what they had at once; the animation is only how the page arrives.
 
+### 5.16 Opening a group from the list: pieces that travel (experiment, branch `group-hero-transition`; decided, not built)
+When a group is opened from the home list, the pieces that exist in both places travel from the tapped row to the group page's header, instead of the whole page sliding in.
+- **What travels:** the row's colored block becomes the header band (it grows and stretches to the full width, keeping its color); the type icon moves from the block to its place beside the name in the band; the group name moves from the card to the band's title; "USD" and "4 members" on the card become the band's currency chip and "4 people" chip (the two wordings cross-fade as they move).
+- **The rest:** while the pieces travel, the rest of the list (the other rows, the "Your groups" heading, the green header, the card's balance, the floating button) fades out, and the group page's other content (balance lines, actions, expenses, the floating button) fades in. The style of "the rest" is one setting, `GROUP_OPEN_REST` in `src/theme/transition.ts`, so it can be switched without touching the pieces: `fade` (the first build), later `slide` (the page slides as now and the pieces fly on their own path) and `band-only` (the expenses slide in under a band that morphs), if wanted.
+- **Timing:** about 600 ms (`GROUP_OPEN_MS`), all the pieces together, with the same easing.
+- **Going back:** the header's Back arrow, and the browser's Back, from the group page to the list reverse it: the band shrinks back into that group's row.
+- **Only here:** the home list to a group's page and back. Every other page change keeps the slide of 5.15.
+- **Fallbacks:** a browser without View Transitions, and a device that asked for less motion, keep what 5.15 says (no animation or the fade). A group opened by its address, or when the row is not on screen to go back to, uses the normal slide.
+
 ## 6. Open questions
 - Google Cloud setup: the OAuth client ID is not created yet (Drive API, consent screen in Testing mode, authorized origins, test users).
 - Member removal: what happens to a removed member's access and local data (a person who left can already be added back, 5.4).
