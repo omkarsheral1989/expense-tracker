@@ -113,6 +113,9 @@ export function GroupBand({ group, peopleCount, onOpenMembers }: Props) {
         >
           {currencySymbol ?? group.defaultCurrency}
         </BandChip>
+        {/* An empty 0 x 0 px piece between the chips, centered on them, that the dot of a group's row shrinks into (PRD 5.16).
+            The negative margins take back the gap it adds, so the chips stay 8 px apart with the piece halfway between them. */}
+        <span data-vt="dot" style={{ width: 0, height: 0, alignSelf: 'center', margin: '0 -4px' }} />
         <BandChip icon={<TeamOutlined />} onClick={onOpenMembers} disabled={!onOpenMembers} vt="people">
           {peopleCount} {peopleCount === 1 ? 'member' : 'members'}
         </BandChip>

@@ -70,7 +70,10 @@ export function GroupRow({ group, balances }: Props) {
                     {currency}
                   </span>
                 </span>{' '}
-                ·{' '}
+                {/* Shrinks into an empty 0 x 0 px piece between the band's chips (PRD 5.16). */}
+                <span data-vt="dot" style={{ display: 'inline-block' }}>
+                  ·
+                </span>{' '}
                 <span data-vt="peopleChip" style={{ display: 'inline-block' }}>
                   {/* An empty 0 x 0 px piece, centered on the text's 22 px line, which grows into the members icon of the band's chip (PRD 5.16). */}
                   <span data-vt="peopleIcon" style={{ display: 'inline-block', width: 0, height: 0, verticalAlign: 'top', marginTop: 11 }} />

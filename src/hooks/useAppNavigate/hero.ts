@@ -13,6 +13,8 @@ const GROUP_PIECE_NAMES = {
   peopleChip: 'group-people-chip',
   // The members icon of the band's chip, and the empty 0 x 0 px piece in the row that grows into it.
   peopleIcon: 'group-people-icon',
+  // The dot between the two texts in the row, and the empty 0 x 0 px piece between the band's chips that it shrinks into.
+  dot: 'group-dot',
   // The band's header row (Back, the title and the round buttons), which the row has nothing like: it comes in from the top.
   header: 'group-header',
   // The band's trip dates chip, which the row has nothing like either: it comes in from the right.
