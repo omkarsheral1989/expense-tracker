@@ -1,6 +1,6 @@
 import { App, Button, Flex, Form, Input, Typography } from 'antd'
 import { useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useAppNavigate } from '../../../../hooks/useAppNavigate'
 import { getDb } from '../../../../db/client.ts'
 import { useKnownPeople } from '../../../../hooks/useKnownPeople'
 import { useLeaveWarning } from '../../../../hooks/useLeaveWarning'
@@ -27,7 +27,7 @@ type Props = {
 export function CreateGroupForm({ creatorId }: Props) {
   const [form] = Form.useForm<FormValues>()
   const { message, modal } = App.useApp()
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
   const [submitting, setSubmitting] = useState(false)
   const { people, loading, add: addKnownPerson } = useKnownPeople(creatorId)
 
@@ -48,7 +48,7 @@ export function CreateGroupForm({ creatorId }: Props) {
 
   function handleLeave() {
     if (!hasInput) {
-      navigate(ROUTES.home)
+      navigate(ROUTES.home, { direction: 'back' })
       return
     }
     modal.confirm({
@@ -57,7 +57,7 @@ export function CreateGroupForm({ creatorId }: Props) {
       okText: 'Discard',
       okButtonProps: { danger: true },
       cancelText: 'Keep editing',
-      onOk: () => navigate(ROUTES.home),
+      onOk: () => navigate(ROUTES.home, { direction: 'back' }),
     })
   }
 

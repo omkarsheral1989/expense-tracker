@@ -1,6 +1,7 @@
 import { LogoutOutlined, TeamOutlined } from '@ant-design/icons'
 import { Button, Dropdown, Flex, Typography, theme } from 'antd'
-import { Link, useNavigate } from 'react-router'
+import { AppLink } from '../AppLink'
+import { useAppNavigate } from '../../hooks/useAppNavigate'
 import { ROUTES } from '../../routes.ts'
 import type { Profile } from '../../services/googleProfileService/types.ts'
 import { useAuthStore } from '../../stores/useAuthStore'
@@ -23,14 +24,15 @@ export function AppHeader() {
   const guest = useAuthStore((state) => state.guest)
   const signOut = useAuthStore((state) => state.signOut)
   const { token } = theme.useToken()
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
 
   // Visitors who are not in the app are sent away by `RequireAuth` before this matters.
   if (!profile && !guest) return null
 
   function renderBrand() {
     return (
-      <Link
+      <AppLink
+        direction="back"
         to={ROUTES.home}
         style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'inherit' }}
       >
@@ -38,7 +40,7 @@ export function AppHeader() {
         <Text strong style={{ fontSize: 24, color: '#fff' }}>
           OwnLedger
         </Text>
-      </Link>
+      </AppLink>
     )
   }
 

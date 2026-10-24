@@ -1,6 +1,6 @@
 import { Button, Flex, theme, Typography } from 'antd'
 import type { ReactNode } from 'react'
-import { useNavigate } from 'react-router'
+import { useAppNavigate } from '../../../../hooks/useAppNavigate'
 import { BrandLogo } from '../../../../components/BrandLogo'
 import { HIGHLIGHTS, type Highlight } from './content.tsx'
 import { ROUTES } from '../../../../routes.ts'
@@ -23,7 +23,7 @@ type HeroProps = {
 
 export function Hero({ gated, installCard }: HeroProps) {
   const { token } = theme.useToken()
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
 
   function renderTitles() {
     return (

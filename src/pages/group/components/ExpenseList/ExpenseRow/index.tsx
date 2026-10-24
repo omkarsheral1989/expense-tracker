@@ -1,7 +1,7 @@
 import { DeleteOutlined, SwapOutlined } from '@ant-design/icons'
 import { Flex, theme, Typography } from 'antd'
 import type { ReactNode } from 'react'
-import { Link } from 'react-router'
+import { AppLink } from '../../../../../components/AppLink'
 import { CategoryIcon } from '../../../../../components/CategoryIcon'
 import { useColorScheme } from '../../../../../hooks/useColorScheme'
 import { ROUTES } from '../../../../../routes.ts'
@@ -147,7 +147,7 @@ export function ExpenseRow({ expense, groupId }: Props) {
 
   return (
     <div role="listitem">
-      <Link
+      <AppLink
         to={ROUTES.expense(groupId, expense.id)}
         // The expense page opens with what this list knows of the row (ADR-053, ADR-054).
         state={opened}
@@ -155,7 +155,7 @@ export function ExpenseRow({ expense, groupId }: Props) {
       >
         {renderDate()}
         {renderBody()}
-      </Link>
+      </AppLink>
     </div>
   )
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useAppNavigate } from '../../../../hooks/useAppNavigate'
 import { ExpenseForm, type SaveOutcome } from '../../../../components/ExpenseForm'
 import { initialSplit } from '../../../../components/ExpenseForm/SplitField/utils.ts'
 import type { FormValues } from '../../../../components/ExpenseForm/types.ts'
@@ -33,7 +33,7 @@ type Props = {
  * and a switcher to move the expense to another group.
  */
 export function AddExpenseForm({ group, datasetId, userId, recentCurrencies, groups, draft }: Props) {
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
 
   const [initialValues] = useState<FormValues>(() => ({
     description: '',

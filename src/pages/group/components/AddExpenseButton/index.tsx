@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router'
+import { useAppNavigate } from '../../../../hooks/useAppNavigate'
 import { FloatingPillButton } from '../../../../components/FloatingPillButton'
 import { ROUTES } from '../../../../routes.ts'
 
@@ -12,7 +12,7 @@ type Props = {
 
 /** The floating green button that opens the add-expense page. */
 export function AddExpenseButton({ groupId, group }: Props) {
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
 
   return (
     <FloatingPillButton onClick={() => navigate(ROUTES.newExpense(groupId), { state: group && { group } })}>

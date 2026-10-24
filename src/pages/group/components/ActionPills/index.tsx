@@ -1,5 +1,5 @@
 import { Button, Flex, Tooltip } from 'antd'
-import { useNavigate } from 'react-router'
+import { useAppNavigate } from '../../../../hooks/useAppNavigate'
 import { ROUTES } from '../../../../routes.ts'
 import { PILL_RADIUS } from '../../../../theme/radius.ts'
 import type { KnownGroup } from '../../types.ts'
@@ -21,7 +21,7 @@ type Props = {
  * switched off in a group of one.
  */
 export function ActionPills({ groupId, group, canSettle, loading = false }: Props) {
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
   const settleUp = (
     <Button
       disabled={!canSettle || loading}

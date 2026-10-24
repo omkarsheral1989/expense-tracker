@@ -1,6 +1,6 @@
 import { RightOutlined } from '@ant-design/icons'
 import { Flex, Typography } from 'antd'
-import { Link } from 'react-router'
+import { AppLink } from '../AppLink'
 import { dateService } from '../../services/dateService'
 import type { HistoryLine } from '../ExpenseWording'
 
@@ -52,10 +52,10 @@ export function HistoryEntry({ header, at, lines = [], to }: Props) {
   return (
     <div role="listitem">
       {to ? (
-        <Link to={to} style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'inherit' }}>
+        <AppLink to={to} style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'inherit' }}>
           {content}
           <RightOutlined aria-hidden style={{ flex: 'none', fontSize: 12, opacity: 0.45 }} />
-        </Link>
+        </AppLink>
       ) : (
         content
       )}

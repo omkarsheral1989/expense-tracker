@@ -1,7 +1,7 @@
 import { UndoOutlined } from '@ant-design/icons'
 import { App, Button, Divider, Flex, Typography } from 'antd'
 import { useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useAppNavigate } from '../../../../hooks/useAppNavigate'
 import { ExpenseBody } from '../../../../components/ExpenseBody'
 import { historyHeader, historyLines } from '../../../../components/ExpenseWording'
 import { HistoryEntry } from '../../../../components/HistoryEntry'
@@ -33,7 +33,7 @@ type Props = {
  * deleted (it must be restored first) or it is a payment.
  */
 export function VersionDetails({ data, datasetId, userId, onChanged }: Props) {
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
   const { message } = App.useApp()
   const [restoring, setRestoring] = useState(false)
   const { event, version } = data
@@ -47,12 +47,12 @@ export function VersionDetails({ data, datasetId, userId, onChanged }: Props) {
       const result = await expenseService.restoreVersion(await getDb(), userId, data.groupId, data.expenseId, event.id)
       if (result.ok) {
         message.success(`Expense restored to the version from ${madeAt}.`)
-        navigate(toExpense)
+        navigate(toExpense, { direction: 'back' })
         return
       }
       if ('notFound' in result) {
         message.error('This version is no longer available.')
-        navigate(ROUTES.group(data.groupId))
+        navigate(ROUTES.group(data.groupId), { direction: 'back' })
         return
       }
       message.error(
@@ -87,7 +87,7 @@ export function VersionDetails({ data, datasetId, userId, onChanged }: Props) {
     <>
       <Flex align="center" justify="space-between" style={{ marginBottom: 16 }}>
         <Flex align="center" gap={8} style={{ minWidth: 0 }}>
-          <BackButton onClick={() => navigate(toExpense)} />
+          <BackButton onClick={() => navigate(toExpense, { direction: 'back' })} />
           <Title level={3} style={HEADER_TITLE_STYLE}>
             Version
           </Title>

@@ -1,6 +1,6 @@
 import { CheckOutlined } from '@ant-design/icons'
 import { Button, Flex, Typography } from 'antd'
-import { useNavigate } from 'react-router'
+import { useAppNavigate } from '../../hooks/useAppNavigate'
 import { HEADER_TITLE_STYLE } from '../../theme/headerTitle.ts'
 import { aboveScreenEdge, belowStatusBar, HEADER_TOP_PADDING } from '../../theme/safeArea.ts'
 import { BackButton } from '../BackButton'
@@ -28,7 +28,7 @@ type Props = {
  * nothing moves when the form takes its place.
  */
 export function FormLoadingShell({ heading, backTo, label, group }: Props) {
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
 
   return (
     <Flex
@@ -37,7 +37,7 @@ export function FormLoadingShell({ heading, backTo, label, group }: Props) {
     >
       <Flex align="center" justify="space-between" gap={8} style={{ marginBottom: 16 }}>
         <Flex align="center" gap={8}>
-          <BackButton onClick={() => navigate(backTo)} />
+          <BackButton onClick={() => navigate(backTo, { direction: 'back' })} />
           <Title level={3} style={HEADER_TITLE_STYLE}>
             {heading}
           </Title>

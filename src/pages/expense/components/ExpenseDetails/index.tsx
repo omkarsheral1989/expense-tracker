@@ -1,7 +1,7 @@
 import { DeleteOutlined, EditOutlined, UndoOutlined } from '@ant-design/icons'
 import { App, Flex } from 'antd'
 import { useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useAppNavigate } from '../../../../hooks/useAppNavigate'
 import { BandIconButton } from '../../../../components/BandIconButton'
 import { ExpenseBody } from '../../../../components/ExpenseBody'
 import { getDb } from '../../../../db/client.ts'
@@ -31,7 +31,7 @@ type Props = {
  * A deleted expense is shown read-only, with Restore in place of Edit and Delete; its history says who deleted it and when.
  */
 export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props) {
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
   const { message, modal } = App.useApp()
   const [restoring, setRestoring] = useState(false)
   // A settlement is worded by who paid whom ("You paid Priya"), and has no split to show.
@@ -45,7 +45,7 @@ export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props)
       const result = await expenseService.deleteExpense(await getDb(), userId, expense.groupId, expense.id)
       if (result.ok) message.success(`${noun === 'payment' ? 'Payment' : 'Expense'} deleted.`)
       else message.error(`This ${noun} is no longer available.`)
-      navigate(ROUTES.group(expense.groupId))
+      navigate(ROUTES.group(expense.groupId), { direction: 'back' })
     } catch {
       message.error(`Couldn't delete the ${noun}. Please try again.`)
     }
@@ -69,7 +69,7 @@ export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props)
       const result = await expenseService.restoreExpense(await getDb(), userId, expense.groupId, expense.id)
       if (!result.ok && 'notFound' in result) {
         message.error(`This ${noun} is no longer available.`)
-        navigate(ROUTES.group(expense.groupId))
+        navigate(ROUTES.group(expense.groupId), { direction: 'back' })
         return
       }
       if (result.ok) message.success(`${noun === 'payment' ? 'Payment' : 'Expense'} restored.`)

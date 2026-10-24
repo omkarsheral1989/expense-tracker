@@ -1,6 +1,6 @@
 import { LogoutOutlined, TeamOutlined } from '@ant-design/icons'
 import { Button, Dropdown, Flex, Typography } from 'antd'
-import { useNavigate } from 'react-router'
+import { useAppNavigate } from '../../../../hooks/useAppNavigate'
 import { ROUTES } from '../../../../routes.ts'
 import { userService } from '../../../../services/userService'
 import { useAuthStore } from '../../../../stores/useAuthStore'
@@ -23,7 +23,7 @@ type Props = {
  */
 export function GuestMenuView({ onSignIn, loading }: Props) {
   const exitGuestMode = useAuthStore((state) => state.signOut)
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
 
   return (
     <Dropdown

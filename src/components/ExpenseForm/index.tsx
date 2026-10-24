@@ -1,7 +1,7 @@
 import { CheckOutlined } from '@ant-design/icons'
 import { App, Button, Divider, Flex, Form, Input, Typography } from 'antd'
 import { useState, type ReactNode } from 'react'
-import { useNavigate } from 'react-router'
+import { useAppNavigate } from '../../hooks/useAppNavigate'
 import { EXPENSE_NOTES_MAX_LENGTH } from '../../db/constants.ts'
 import { useLeaveWarning } from '../../hooks/useLeaveWarning'
 import type { CreateExpenseErrors, CreateExpenseInput } from '../../services/expenseService/types.ts'
@@ -78,7 +78,7 @@ export function ExpenseForm({
 }: Props) {
   const [form] = Form.useForm<FormValues>()
   const { message, modal } = App.useApp()
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
   const [submitting, setSubmitting] = useState(false)
 
   const [startValues] = useState<FormValues>(() => ({ keptReceipts: [], ...(carriedValues ?? initialValues) }))
@@ -95,7 +95,7 @@ export function ExpenseForm({
   useLeaveWarning(hasInput)
 
   function leave(to: string = leaveTo) {
-    navigate(to)
+    navigate(to, { direction: 'back' })
   }
 
   function handleLeave() {

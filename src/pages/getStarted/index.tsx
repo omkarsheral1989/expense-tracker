@@ -1,6 +1,7 @@
 import { ArrowLeftOutlined } from '@ant-design/icons'
 import { Button, Divider, Flex, Typography } from 'antd'
-import { Link, Navigate } from 'react-router'
+import { Navigate } from 'react-router'
+import { AppLink } from '../../components/AppLink'
 import { BrandLogo } from '../../components/BrandLogo'
 import { useInstallGate } from '../../hooks/useInstallGate'
 import { ROUTES } from '../../routes.ts'
@@ -33,11 +34,11 @@ export function GetStartedPage() {
     >
       <title>Open OwnLedger</title>
       <Flex style={{ width: '100%', maxWidth: 400 }}>
-        <Link to={ROUTES.welcome}>
+        <AppLink direction="back" to={ROUTES.welcome}>
           <Button type="text" icon={<ArrowLeftOutlined />}>
             Back
           </Button>
-        </Link>
+        </AppLink>
       </Flex>
       <Flex vertical align="center" gap={16} style={{ width: '100%', maxWidth: 400, margin: 'auto 0' }}>
         <BrandLogo size={96} />

@@ -13,7 +13,7 @@ import { bandBackground } from '../../../../../theme/bandBackground.ts'
 import { CATEGORY_GROUP_COLORS } from '../../../../../theme/categoryColors.ts'
 import { HEADER_TITLE_STYLE } from '../../../../../theme/headerTitle.ts'
 import { BAND_BOTTOM_PADDING, belowStatusBar, HEADER_TOP_PADDING } from '../../../../../theme/safeArea.ts'
-import { useNavigate } from 'react-router'
+import { useAppNavigate } from '../../../../../hooks/useAppNavigate'
 import { TEXT_SHADOW } from './style.ts'
 
 const { Text, Title } = Typography
@@ -42,7 +42,7 @@ type Props = {
  * paid, who added it and who deleted it are below it and in the history.
  */
 export function ExpenseBand({ expense, title, actions, onEdit }: Props) {
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
   const category = expenseService.categoryOf(expense.category)
   const isSettlement = expense.category === expenseService.settlementCategory
 
@@ -50,7 +50,7 @@ export function ExpenseBand({ expense, title, actions, onEdit }: Props) {
     return (
       <Flex align="center" justify="space-between">
         <Flex align="center" gap={8} style={{ minWidth: 0 }}>
-          <BandIconButton icon={<ArrowLeftOutlined />} label="Back" onClick={() => navigate(ROUTES.group(expense.groupId))} />
+          <BandIconButton icon={<ArrowLeftOutlined />} label="Back" onClick={() => navigate(ROUTES.group(expense.groupId), { direction: 'back' })} />
           {/* Still a heading, but quieter than the expense's own title below it. */}
           <Title level={3} style={{ ...HEADER_TITLE_STYLE, color: '#fff' }}>
             {title}

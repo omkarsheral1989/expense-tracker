@@ -1,5 +1,5 @@
 import { Button, Flex, Result, Typography } from 'antd'
-import { useNavigate } from 'react-router'
+import { useAppNavigate } from '../../hooks/useAppNavigate'
 import { belowStatusBar, HEADER_TOP_PADDING } from '../../theme/safeArea.ts'
 import { BackButton } from '../BackButton'
 
@@ -21,7 +21,7 @@ type Props = {
  * (in the page's 720 px column), so it needs nothing of the page around it.
  */
 export function LoadError({ title, onRetry, error, backTo }: Props) {
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
 
   return (
     <>
@@ -30,7 +30,7 @@ export function LoadError({ title, onRetry, error, backTo }: Props) {
         style={{ position: 'fixed', top: 0, left: 0, right: 0, padding: `${belowStatusBar(HEADER_TOP_PADDING)} 16px 0`, pointerEvents: 'none' }}
       >
         <div style={{ width: '100%', maxWidth: 720, pointerEvents: 'auto' }}>
-          <BackButton onClick={() => navigate(backTo)} />
+          <BackButton onClick={() => navigate(backTo, { direction: 'back' })} />
         </div>
       </Flex>
       <Result

@@ -1,7 +1,7 @@
 import { Spin } from 'antd'
 import { App as AntApp } from 'antd'
 import { useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router'
+import { useAppNavigate } from '../../hooks/useAppNavigate'
 import { CenteredMessage } from '../../components/CenteredMessage'
 import { MAX_RECEIPTS_PER_EXPENSE } from '../../db/constants.ts'
 import { getDb } from '../../db/client.ts'
@@ -23,7 +23,7 @@ const log = logService.scope('share')
  */
 export function SharePage() {
   const user = useCurrentUser()
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
   const { message } = AntApp.useApp()
   // React runs effects twice in development; a share is taken only once.
   const started = useRef(false)

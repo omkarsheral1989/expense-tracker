@@ -1,7 +1,7 @@
 import { PlusOutlined } from '@ant-design/icons'
 import { Button, Flex, Result, Typography } from 'antd'
 import { useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useAppNavigate } from '../../hooks/useAppNavigate'
 import { BackButton } from '../../components/BackButton'
 import { CenteredMessage } from '../../components/CenteredMessage'
 import { LoadingMessage } from '../../components/LoadingMessage'
@@ -26,7 +26,7 @@ const { Text, Title } = Typography
  */
 export function MembersPage() {
   const user = useCurrentUser()
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState<ManagedPerson | null>(null)
   // Counts the openings of the edit dialog; each one gets a fresh form.
@@ -52,7 +52,7 @@ export function MembersPage() {
   function renderHeader() {
     return (
       <Flex align="center" gap={12} style={{ marginBottom: 16 }}>
-        <BackButton onClick={() => navigate(ROUTES.home)} />
+        <BackButton onClick={() => navigate(ROUTES.home, { direction: 'back' })} />
         <Title level={3} style={HEADER_TITLE_STYLE}>
           Group members
         </Title>

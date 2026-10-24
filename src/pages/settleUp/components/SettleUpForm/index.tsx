@@ -1,7 +1,7 @@
 import { CheckOutlined } from '@ant-design/icons'
 import { App, Button, Divider, Flex, Form, Input, Select, Typography } from 'antd'
 import { useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useAppNavigate } from '../../../../hooks/useAppNavigate'
 import { AmountInput } from '../../../../components/AmountInput'
 import { CurrencyField } from '../../../../components/CurrencyField'
 import { DateField } from '../../../../components/DateField'
@@ -44,7 +44,7 @@ type Props = {
 export function SettleUpForm({ group, datasetId, userId, recentCurrencies }: Props) {
   const [form] = Form.useForm<FormValues>()
   const { message, modal } = App.useApp()
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
   const [submitting, setSubmitting] = useState(false)
 
   const [initialValues] = useState<FormValues>(() => ({
@@ -67,7 +67,7 @@ export function SettleUpForm({ group, datasetId, userId, recentCurrencies }: Pro
   const recipient = group.members.find((member) => member.personId === recipientId)
 
   function leave() {
-    navigate(ROUTES.group(group.id))
+    navigate(ROUTES.group(group.id), { direction: 'back' })
   }
 
   function handleLeave() {

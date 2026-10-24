@@ -1,5 +1,5 @@
 import { Button, Result } from 'antd'
-import { Link } from 'react-router'
+import { AppLink } from '../AppLink'
 import { ROUTES } from '../../routes.ts'
 
 type Props = {
@@ -17,9 +17,9 @@ export function ExpenseNotFound({ groupId }: Props) {
       title="Expense not found"
       subTitle="It may have been deleted, or you may not be a member of its group."
       extra={
-        <Link to={ROUTES.group(groupId)}>
+        <AppLink direction="back" to={ROUTES.group(groupId)}>
           <Button type="primary">Back to the group</Button>
-        </Link>
+        </AppLink>
       }
     />
   )

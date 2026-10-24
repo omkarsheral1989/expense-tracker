@@ -1,5 +1,5 @@
 import { Button, Flex, Result, Typography, theme } from 'antd'
-import { useNavigate } from 'react-router'
+import { useAppNavigate } from '../../hooks/useAppNavigate'
 import { getDb } from '../../db/client.ts'
 import { CenteredMessage } from '../../components/CenteredMessage'
 import { LoadingMessage } from '../../components/LoadingMessage'
@@ -21,7 +21,7 @@ const { Title } = Typography
 /** The user's groups, most recently active first. */
 export function HomePage() {
   const user = useCurrentUser()
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
   const { token } = theme.useToken()
 
   const userId = user?.personId ?? ''

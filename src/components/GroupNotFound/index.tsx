@@ -1,5 +1,5 @@
 import { Button, Result } from 'antd'
-import { Link } from 'react-router'
+import { AppLink } from '../AppLink'
 import { ROUTES } from '../../routes.ts'
 
 /**
@@ -14,9 +14,9 @@ export function GroupNotFound() {
       title="Group not found"
       subTitle="It may have been deleted, or you may not be a member of it."
       extra={
-        <Link to={ROUTES.home}>
+        <AppLink direction="back" to={ROUTES.home}>
           <Button type="primary">Back to your groups</Button>
-        </Link>
+        </AppLink>
       }
     />
   )

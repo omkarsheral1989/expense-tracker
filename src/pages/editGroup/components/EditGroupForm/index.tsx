@@ -1,6 +1,6 @@
 import { App, Button, Flex, Form, Input, Typography } from 'antd'
 import { useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useAppNavigate } from '../../../../hooks/useAppNavigate'
 import { CurrencySelect } from '../../../../components/CurrencySelect'
 import { GroupTypeBackground } from '../../../../components/GroupTypeBackground'
 import { GroupTypeSelector } from '../../../../components/GroupTypeSelector'
@@ -26,7 +26,7 @@ type Props = {
 export function EditGroupForm({ userId, group }: Props) {
   const [form] = Form.useForm<FormValues>()
   const { message, modal } = App.useApp()
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
   const [submitting, setSubmitting] = useState(false)
   const [initialValues] = useState<FormValues>(() => ({
     name: group.name,
@@ -38,7 +38,7 @@ export function EditGroupForm({ userId, group }: Props) {
   const type = Form.useWatch('type', form)
   useLeaveWarning(changed)
 
-  const backToGroup = () => navigate(ROUTES.group(group.id))
+  const backToGroup = () => navigate(ROUTES.group(group.id), { direction: 'back' })
 
   function handleLeave() {
     if (!changed) {
@@ -68,7 +68,7 @@ export function EditGroupForm({ userId, group }: Props) {
 
       if (!result.ok && result.notFound) {
         message.error('This group is no longer available.')
-        navigate(ROUTES.home)
+        navigate(ROUTES.home, { direction: 'back' })
         return
       }
 

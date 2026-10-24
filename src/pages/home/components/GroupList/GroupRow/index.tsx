@@ -1,5 +1,5 @@
 import { Card, Flex, Typography } from 'antd'
-import { Link } from 'react-router'
+import { AppLink } from '../../../../../components/AppLink'
 import { GROUP_TYPE_CONTENT } from '../../../../../components/GroupTypeIcon/content.tsx'
 import { useColorScheme } from '../../../../../hooks/useColorScheme'
 import { ROUTES } from '../../../../../routes.ts'
@@ -32,7 +32,7 @@ export function GroupRow({ group, balances }: Props) {
 
   return (
     // The group page opens with what this list already knows about the group (ADR-052).
-    <Link to={ROUTES.group(group.id)} state={opened satisfies GroupPageState} style={{ display: 'block' }}>
+    <AppLink to={ROUTES.group(group.id)} state={opened satisfies GroupPageState} style={{ display: 'block' }}>
       {/* The type's colored block fills the card's left edge, top to bottom; the card clips its corners. */}
       <Card
         hoverable
@@ -64,6 +64,6 @@ export function GroupRow({ group, balances }: Props) {
           </Flex>
         </Flex>
       </Card>
-    </Link>
+    </AppLink>
   )
 }

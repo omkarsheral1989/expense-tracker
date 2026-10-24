@@ -6,7 +6,7 @@ import {
   TeamOutlined,
 } from '@ant-design/icons'
 import { Flex, Typography } from 'antd'
-import { useNavigate } from 'react-router'
+import { useAppNavigate } from '../../../../hooks/useAppNavigate'
 import { GROUP_TYPE_CONTENT } from '../../../../components/GroupTypeIcon/content.tsx'
 import { SyncButton } from '../../../../components/SyncButton'
 import { ROUTES } from '../../../../routes.ts'
@@ -37,7 +37,7 @@ type Props = {
  * of chips with a fact or an action each.
  */
 export function GroupBand({ group, peopleCount, onOpenMembers }: Props) {
-  const navigate = useNavigate()
+  const navigate = useAppNavigate()
   // What the edit page can show while it loads (ADR-054).
   const editState = { group: { id: group.id, name: group.name, type: group.type, defaultCurrency: group.defaultCurrency, memberCount: peopleCount } }
 
@@ -48,7 +48,7 @@ export function GroupBand({ group, peopleCount, onOpenMembers }: Props) {
           <BandIconButton
             icon={<ArrowLeftOutlined />}
             label="Back"
-            onClick={() => navigate(ROUTES.home)}
+            onClick={() => navigate(ROUTES.home, { direction: 'back' })}
           />
           <Title level={3} style={{ ...HEADER_TITLE_STYLE, color: '#fff' }}>
             Group

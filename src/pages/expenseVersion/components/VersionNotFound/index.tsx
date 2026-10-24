@@ -1,5 +1,5 @@
 import { Button, Result } from 'antd'
-import { Link } from 'react-router'
+import { AppLink } from '../../../../components/AppLink'
 import { ROUTES } from '../../../../routes.ts'
 
 type Props = {
@@ -18,9 +18,9 @@ export function VersionNotFound({ groupId, expenseId }: Props) {
       title="Version not found"
       subTitle="It may have been removed, or you may not be a member of its group."
       extra={
-        <Link to={ROUTES.expense(groupId, expenseId)}>
+        <AppLink direction="back" to={ROUTES.expense(groupId, expenseId)}>
           <Button type="primary">Back to the expense</Button>
-        </Link>
+        </AppLink>
       }
     />
   )
