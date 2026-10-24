@@ -94,6 +94,13 @@ function nameScreen(content: PageContent): () => void {
   )
 }
 
+/**
+ * Names the page's floating button (`data-floating-button`): `group-floating-old` on the page left, which drops off the bottom of the screen,
+ * `group-floating-new` on the page that comes, which rises from it. Two names, so Add expense and Create group do not morph into each other.
+ */
+const nameFloatingButton = (name: 'group-floating-old' | 'group-floating-new') =>
+  nameOne(document.querySelector<HTMLElement>('[data-floating-button]'), name)
+
 const rowOf = (groupId: string) => document.querySelector(`[data-group-row="${groupId}"]`)
 const bandOf = () => document.querySelector('[data-group-band]')
 
@@ -108,7 +115,13 @@ export function groupHeroFor(from: string, to: string): GroupHero | null {
     const id = opened[1]
     return {
       direction: 'open-group',
-      before: () => together(nameChildren(rowOf(id)), nameScreen('group-page-old')),
+      before: () =>
+        together(
+          nameChildren(rowOf(id)),
+          nameScreen('group-page-old'),
+          // The list's floating Create group button drops off the bottom of the screen instead of sliding left.
+          nameFloatingButton('group-floating-old'),
+        ),
       after: () => together(nameChildren(bandOf()), nameScreen('group-page-new')),
     }
   }
@@ -117,8 +130,9 @@ export function groupHeroFor(from: string, to: string): GroupHero | null {
     const id = closed[1]
     return {
       direction: 'close-group',
-      before: () => together(nameChildren(bandOf()), nameScreen('group-page-old')),
-      after: () => together(nameChildren(rowOf(id)), nameScreen('group-page-new')),
+      // Going back, the group page's Add expense drops off the bottom and the list's Create group comes up from it.
+      before: () => together(nameChildren(bandOf()), nameScreen('group-page-old'), nameFloatingButton('group-floating-old')),
+      after: () => together(nameChildren(rowOf(id)), nameScreen('group-page-new'), nameFloatingButton('group-floating-new')),
     }
   }
   return null

@@ -22,6 +22,8 @@ type Props = {
 export function FloatingPillButton({ children, onClick }: Props) {
   return (
     <div
+      // Leaves and arrives through the bottom of the screen when a group opens from the list, and back (PRD 5.16).
+      data-floating-button
       style={{
         position: 'fixed',
         bottom: aboveScreenEdge(FLOATING_BUTTON_BOTTOM),
