@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { useNavigate, type NavigateOptions, type To } from 'react-router'
+import { groupHeroFor, routerPathOf, setGroupOpenStyle } from './hero.ts'
 import { canSlide, COMMIT_TIMEOUT_MS, previousPageIs, slide, type NavDirection } from './utils.ts'
 
 type Options = NavigateOptions & {
@@ -38,11 +39,19 @@ export function useAppNavigate() {
         return
       }
       const root = document.documentElement
-      root.dataset.nav = direction ?? 'forward'
+      // A group's row and its page morph into each other (PRD 5.16); anything else slides.
+      const hero = target && !replace ? groupHeroFor(routerPathOf(slide.path), target) : null
+      if (hero) setGroupOpenStyle(root)
+      root.dataset.nav = hero?.direction ?? direction ?? 'forward'
+      const undoBefore = hero?.before()
+      let undoAfter: (() => void) | undefined
       const transition = document.startViewTransition(
         () =>
           new Promise<void>((resolve) => {
-            slide.waiting = resolve
+            slide.waiting = () => {
+              undoAfter = hero?.after()
+              resolve()
+            }
             navigate(to, navigation)
             // Let go if the page never commits (the same address, or a refusal).
             setTimeout(resolve, COMMIT_TIMEOUT_MS)
@@ -51,6 +60,8 @@ export function useAppNavigate() {
       void transition.finished.finally(() => {
         delete root.dataset.nav
         slide.waiting = null
+        undoBefore?.()
+        undoAfter?.()
       })
     },
     [navigate],

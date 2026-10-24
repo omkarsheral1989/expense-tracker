@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef } from 'react'
 import { useLocation } from 'react-router'
 import { prefersReducedMotion, slide } from '../../hooks/useAppNavigate/utils.ts'
+import { RADIUS } from '../../theme/radius.ts'
 import { PAGE_FADE_MS, PAGE_TRANSITION_MS } from '../../theme/transition.ts'
 
 /**
@@ -16,6 +17,8 @@ export function PageTransitions() {
 
   useLayoutEffect(() => {
     document.documentElement.style.setProperty('--page-transition-ms', `${PAGE_TRANSITION_MS}ms`)
+    // The corners of the group's card, which the band's corners grow out of and shrink back into.
+    document.documentElement.style.setProperty('--group-row-radius', `${RADIUS.outer}px`)
   }, [])
 
   useLayoutEffect(() => {

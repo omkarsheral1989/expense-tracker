@@ -1,3 +1,4 @@
+import { groupHeroFor, routerPathOf, setGroupOpenStyle } from '../useAppNavigate/hero.ts'
 import { canSlide, COMMIT_TIMEOUT_MS, slide } from '../useAppNavigate/utils.ts'
 
 /**
@@ -25,11 +26,19 @@ export function installSlideOnBrowserBack(): () => void {
     event.stopImmediatePropagation()
 
     const root = document.documentElement
-    root.dataset.nav = direction
+    // A group's row and its page morph into each other (PRD 5.16), whichever way the browser went.
+    const hero = groupHeroFor(routerPathOf(slide.path), routerPathOf(window.location.pathname))
+    if (hero) setGroupOpenStyle(root)
+    root.dataset.nav = hero?.direction ?? direction
+    const undoBefore = hero?.before()
+    let undoAfter: (() => void) | undefined
     const transition = document.startViewTransition(
       () =>
         new Promise<void>((resolve) => {
-          slide.waiting = resolve
+          slide.waiting = () => {
+            undoAfter = hero?.after()
+            resolve()
+          }
           replaying = true
           window.dispatchEvent(new PopStateEvent('popstate', { state: window.history.state }))
           replaying = false
@@ -39,6 +48,8 @@ export function installSlideOnBrowserBack(): () => void {
     void transition.finished.finally(() => {
       delete root.dataset.nav
       slide.waiting = null
+      undoBefore?.()
+      undoAfter?.()
     })
   }
 
