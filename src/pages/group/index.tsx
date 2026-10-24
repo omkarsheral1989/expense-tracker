@@ -1,12 +1,13 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { Flex } from 'antd'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useParams } from 'react-router'
 import { getDb } from '../../db/client.ts'
 import { prefetchCachedData, useCachedData } from '../../hooks/useCachedData'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
 import { expenseService } from '../../services/expenseService'
-import type { ExpenseListItem, PersonBalance } from '../../services/expenseService/types.ts'
+import { EXPENSE_PAGE_SIZE } from '../../services/expenseService/constants.ts'
+import type { ExpenseCursor, PersonBalance } from '../../services/expenseService/types.ts'
 import { groupService } from '../../services/groupService'
 import { syncService } from '../../services/syncService'
 import { useSyncStore } from '../../stores/useSyncStore'
@@ -15,6 +16,7 @@ import { ActionPills } from './components/ActionPills'
 import { AddExpenseButton } from './components/AddExpenseButton'
 import { BalanceLine } from './components/BalanceLine'
 import { ExpenseList } from './components/ExpenseList'
+import { useExpenseBatches } from './hooks/useExpenseBatches'
 import { GroupBand } from './components/GroupBand'
 import { GroupNotFound } from '../../components/GroupNotFound'
 import { MembersSheet } from './components/MembersSheet'
@@ -49,17 +51,29 @@ export function GroupPage() {
   const dataVersion = useSyncStore((syncState) => syncState.dataVersion)
   // `keepPrevious`: reading the group again (after a member is added, or a sync)
   // keeps what is shown, so the members sheet stays open instead of flashing the placeholder.
+  // How many expenses are on screen, so a read again keeps the list as long (ADR-058).
+  const shown = useRef(EXPENSE_PAGE_SIZE)
   const { state, retry } = useCachedData(async () => {
     const db = await getDb()
     const group = await groupService.getGroup(db, userId, id)
     if (!group) return null
     return {
       group,
-      expenses: await expenseService.listExpenses(db, userId, id),
+      expenses: await expenseService.listExpensesPage(db, userId, id, { limit: Math.max(EXPENSE_PAGE_SIZE, shown.current) }),
       balances: await expenseService.groupBalances(db, userId, id),
       syncedIds: await syncService.syncedMembers(db, id),
     }
   }, 'group', `${userId}:${id}:${dataVersion}`, { keepPrevious: true })
+
+  // The batches after the first, read as the user scrolls to the end of the list.
+  const readNext = useCallback(
+    async (after: ExpenseCursor) => expenseService.listExpensesPage(await getDb(), userId, id, { limit: EXPENSE_PAGE_SIZE, after }),
+    [userId, id],
+  )
+  const batches = useExpenseBatches(state.status === 'ready' && state.data ? state.data.expenses : null, readNext)
+  useEffect(() => {
+    shown.current = Math.max(EXPENSE_PAGE_SIZE, batches.items.length)
+  }, [batches.items.length])
 
   // Read what Edit group will need while the group is on screen, so the form opens at once (ADR-055).
   const queryClient = useQueryClient()
@@ -101,7 +115,6 @@ export function GroupPage() {
 
   function renderGroup(
     group: GroupDetails,
-    expenses: ExpenseListItem[],
     balances: PersonBalance[],
     syncedIds: ReadonlySet<string>,
   ) {
@@ -121,7 +134,14 @@ export function GroupPage() {
             <ActionPills groupId={group.id} group={known} canSettle={group.members.length > 1} />
             <BalanceLine balances={balances} />
           </Flex>
-          <ExpenseList expenses={expenses} groupId={group.id} />
+          <ExpenseList
+            expenses={batches.items}
+            groupId={group.id}
+            hasMore={batches.hasMore}
+            loadingMore={batches.loading}
+            loadMoreFailed={batches.failed}
+            onLoadMore={batches.loadMore}
+          />
         </Flex>
         <AddExpenseButton groupId={group.id} group={known} />
         <MembersSheet
@@ -153,7 +173,7 @@ export function GroupPage() {
         return renderError()
       case 'ready':
         return state.data
-          ? renderGroup(state.data.group, state.data.expenses, state.data.balances, state.data.syncedIds)
+          ? renderGroup(state.data.group, state.data.balances, state.data.syncedIds)
           : renderNotFound()
     }
   }
