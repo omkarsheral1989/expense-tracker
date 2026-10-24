@@ -28,7 +28,7 @@ export function installSlideOnBrowserBack(): () => void {
     const root = document.documentElement
     // A group's row and its page morph into each other (PRD 5.16), whichever way the browser went.
     const hero = groupHeroFor(routerPathOf(slide.path), routerPathOf(window.location.pathname))
-    if (hero) setGroupOpenStyle(root)
+    if (hero) setGroupOpenStyle(root, hero)
     root.dataset.nav = hero?.direction ?? direction
     const undoBefore = hero?.before()
     let undoAfter: (() => void) | undefined
@@ -45,8 +45,11 @@ export function installSlideOnBrowserBack(): () => void {
           setTimeout(resolve, COMMIT_TIMEOUT_MS)
         }),
     )
+    const morph = hero ? transition.finished.then(() => undefined, () => undefined) : null
+    slide.morph = morph
     void transition.finished.finally(() => {
       delete root.dataset.nav
+      if (slide.morph === morph) slide.morph = null
       slide.waiting = null
       undoBefore?.()
       undoAfter?.()

@@ -127,6 +127,7 @@ export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props)
         title={renderTitle()}
         actions={renderActions()}
         onEdit={expense.deleted || isSettlement ? undefined : () => navigate(ROUTES.editExpense(expense.groupId, expense.id))}
+        travels={!expense.deleted}
       />
       {/* Below the band, in a column about 560 px wide. */}
       <Flex vertical style={{ width: '100%', maxWidth: 560, margin: '0 auto', padding: `${UNDER_BAND_PADDING}px 16px ${aboveScreenEdge(24)}` }}>

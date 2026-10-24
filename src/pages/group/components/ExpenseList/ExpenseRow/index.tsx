@@ -53,28 +53,40 @@ export function ExpenseRow({ expense, groupId }: Props) {
   function renderDate() {
     return (
       // 48 px high: 16 px for the month and 32 px for the day, whatever the font's own line height.
-      <Flex vertical align="center" justify="center" style={{ width: 32, height: 48, flex: 'none' }}>
-        <Text type="secondary" style={{ fontSize: 12, lineHeight: '16px' }}>
-          {month}
-        </Text>
-        <Text style={{ fontSize: 20, lineHeight: '32px' }}>{day}</Text>
+      // The column is a box that grows into the date chip of the expense's band, and the day in it travels into the chip's text (PRD 5.16).
+      <Flex vertical align="center" justify="center" data-vt="dateChip" style={{ width: 32, height: 48, flex: 'none' }}>
+        <Flex vertical align="center" data-vt="date">
+          <Text type="secondary" style={{ fontSize: 12, lineHeight: '16px' }}>
+            {month}
+          </Text>
+          <Text style={{ fontSize: 20, lineHeight: '32px' }}>{day}</Text>
+        </Flex>
       </Flex>
     )
   }
 
   // A settlement is worded by who paid whom and how much ("You paid Priya £200.00"),
   // not by its description.
-  const settlement =
+  const settlementSentence =
     expense.category === expenseService.settlementCategory && expense.payer && expense.recipient
-      ? `${expenseService.settlementSentence(expense.payer, expense.recipient)} ${moneyService.format(expense.amountMinor, expense.currency)}`
+      ? expenseService.settlementSentence(expense.payer, expense.recipient)
       : null
+  const amount = moneyService.format(expense.amountMinor, expense.currency)
+  const settlement = settlementSentence ? `${settlementSentence} ${amount}` : null
+
+  /** The amount alone, a piece that grows into the large amount of the expense's band (PRD 5.16). */
+  const travellingAmount = (
+    <span data-vt="amount" style={{ display: 'inline-block' }}>
+      {amount}
+    </span>
+  )
 
   function renderPaidBy() {
     if (!expense.payer) return null
     const who = expense.payer.isYou ? 'You' : groupService.shortName(expense.payer)
     return (
       <Text type="secondary" style={{ fontSize: 13 }}>
-        {who} paid {moneyService.format(expense.amountMinor, expense.currency)}
+        {who} paid {travellingAmount}
       </Text>
     )
   }
@@ -98,7 +110,8 @@ export function ExpenseRow({ expense, groupId }: Props) {
 
   // A settlement and a deleted expense are one line: an icon with no tile
   // behind it, and no amount or status at the end.
-  function renderLine(icon: ReactNode, label: string, color: string, text: string) {
+  // A payment's icon and amount travel into the band of its page like an expense's tile and amount (PRD 5.16); a deleted line's do not.
+  function renderLine(icon: ReactNode, label: string, color: string, text: ReactNode, travels = false) {
     return (
       <>
         <Flex
@@ -106,9 +119,16 @@ export function ExpenseRow({ expense, groupId }: Props) {
           justify="center"
           role="img"
           aria-label={label}
+          data-vt={travels ? 'block' : undefined}
           style={{ flex: 'none', width: 40, height: 40, fontSize: 24, color }}
         >
-          {icon}
+          {travels ? (
+            <span data-vt="icon" style={{ display: 'flex' }}>
+              {icon}
+            </span>
+          ) : (
+            icon
+          )}
         </Flex>
         <Text strong style={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>
           {text}
@@ -127,9 +147,9 @@ export function ExpenseRow({ expense, groupId }: Props) {
   function renderExpense() {
     return (
       <>
-        <CategoryIcon category={expense.category} size={40} />
+        <CategoryIcon category={expense.category} size={40} travels />
         <Flex vertical style={{ flex: 1, minWidth: 0 }}>
-          <Text strong style={{ overflowWrap: 'anywhere' }}>
+          <Text strong data-vt="name" style={{ overflowWrap: 'anywhere', width: 'fit-content', maxWidth: '100%' }}>
             {expense.description}
           </Text>
           {renderPaidBy()}
@@ -141,7 +161,14 @@ export function ExpenseRow({ expense, groupId }: Props) {
 
   function renderBody() {
     if (expense.deleted) return renderLine(<DeleteOutlined />, 'Deleted', token.colorTextTertiary, deletedText(expense.deleted))
-    if (settlement) return renderLine(<SwapOutlined />, 'Settlement', CATEGORY_GROUP_COLORS.settlement, settlement)
+    if (settlementSentence) {
+      const sentence = (
+        <>
+          {settlementSentence} {travellingAmount}
+        </>
+      )
+      return renderLine(<SwapOutlined />, 'Settlement', CATEGORY_GROUP_COLORS.settlement, sentence, true)
+    }
     return renderExpense()
   }
 
@@ -151,6 +178,8 @@ export function ExpenseRow({ expense, groupId }: Props) {
         to={ROUTES.expense(groupId, expense.id)}
         // The expense page opens with what this list knows of the row (ADR-053, ADR-054).
         state={opened}
+        // Its pieces travel into the band of the expense's page when it opens (PRD 5.16); a deleted line keeps the plain slide.
+        data-expense-row={expense.deleted ? undefined : expense.id}
         style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', color: 'inherit' }}
       >
         {renderDate()}

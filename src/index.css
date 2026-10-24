@@ -106,60 +106,64 @@ html[data-nav='back']::view-transition-new(root) {
 html {
   --group-open-ease: cubic-bezier(0.4, 0, 0.2, 1);
 }
-html[data-nav='open-group']::view-transition-group(*),
-html[data-nav='close-group']::view-transition-group(*),
-html[data-nav='open-group']::view-transition-old(root),
-html[data-nav='open-group']::view-transition-new(root),
-html[data-nav='close-group']::view-transition-old(root),
-html[data-nav='close-group']::view-transition-new(root) {
+html[data-nav='hero-open']::view-transition-group(*),
+html[data-nav='hero-close']::view-transition-group(*),
+html[data-nav='hero-open']::view-transition-old(root),
+html[data-nav='hero-open']::view-transition-new(root),
+html[data-nav='hero-close']::view-transition-old(root),
+html[data-nav='hero-close']::view-transition-new(root) {
   animation-duration: var(--group-open-ms, 600ms);
   animation-timing-function: var(--group-open-ease);
 }
 
 /* The band's two pictures (the row's colored block and the page's band) are drawn to fill the box that morphs between them, not at their own
    proportions, which would keep the square block square under the growing band. The pieces on top of it are named apart, so only the flat color and the gradient stretch. */
-html[data-nav='open-group']::view-transition-old(group-band),
-html[data-nav='open-group']::view-transition-new(group-band),
-html[data-nav='close-group']::view-transition-old(group-band),
-html[data-nav='close-group']::view-transition-new(group-band),
-html[data-nav='open-group']::view-transition-old(group-currency-chip),
-html[data-nav='open-group']::view-transition-new(group-currency-chip),
-html[data-nav='close-group']::view-transition-old(group-currency-chip),
-html[data-nav='close-group']::view-transition-new(group-currency-chip),
-html[data-nav='open-group']::view-transition-old(group-people-chip),
-html[data-nav='open-group']::view-transition-new(group-people-chip),
-html[data-nav='close-group']::view-transition-old(group-people-chip),
-html[data-nav='close-group']::view-transition-new(group-people-chip),
-html[data-nav='open-group']::view-transition-old(group-people-icon),
-html[data-nav='open-group']::view-transition-new(group-people-icon),
-html[data-nav='close-group']::view-transition-old(group-people-icon),
-html[data-nav='close-group']::view-transition-new(group-people-icon) {
+html[data-nav='hero-open']::view-transition-old(group-band),
+html[data-nav='hero-open']::view-transition-new(group-band),
+html[data-nav='hero-close']::view-transition-old(group-band),
+html[data-nav='hero-close']::view-transition-new(group-band),
+html[data-nav='hero-open']::view-transition-old(group-currency-chip),
+html[data-nav='hero-open']::view-transition-new(group-currency-chip),
+html[data-nav='hero-close']::view-transition-old(group-currency-chip),
+html[data-nav='hero-close']::view-transition-new(group-currency-chip),
+html[data-nav='hero-open']::view-transition-old(group-people-chip),
+html[data-nav='hero-open']::view-transition-new(group-people-chip),
+html[data-nav='hero-close']::view-transition-old(group-people-chip),
+html[data-nav='hero-close']::view-transition-new(group-people-chip),
+html[data-nav='hero-open']::view-transition-old(group-people-icon),
+html[data-nav='hero-open']::view-transition-new(group-people-icon),
+html[data-nav='hero-close']::view-transition-old(group-people-icon),
+html[data-nav='hero-close']::view-transition-new(group-people-icon),
+html[data-nav='hero-open']::view-transition-old(group-date-chip),
+html[data-nav='hero-open']::view-transition-new(group-date-chip),
+html[data-nav='hero-close']::view-transition-old(group-date-chip),
+html[data-nav='hero-close']::view-transition-new(group-date-chip) {
   inline-size: 100%;
   block-size: 100%;
   object-fit: fill;
 }
 
-/* The corners of the morphing band: the card's rounded left corners (`--group-row-radius`) straighten while the block grows into the band, and come back when it shrinks into the row. */
-html[data-nav='open-group']::view-transition-image-pair(group-band),
-html[data-nav='close-group']::view-transition-image-pair(group-band) {
+/* The corners of the morphing band: the card's rounded left corners (`--hero-block-radius`: a group card's left corners, an expense tile's four) straighten while the block grows into the band, and come back when it shrinks into the row. */
+html[data-nav='hero-open']::view-transition-image-pair(group-band),
+html[data-nav='hero-close']::view-transition-image-pair(group-band) {
   overflow: clip;
   animation-duration: var(--group-open-ms, 600ms);
   animation-timing-function: var(--group-open-ease);
   animation-fill-mode: both;
 }
-html[data-nav='open-group']::view-transition-image-pair(group-band) {
+html[data-nav='hero-open']::view-transition-image-pair(group-band) {
   animation-name: group-band-straighten;
 }
-html[data-nav='close-group']::view-transition-image-pair(group-band) {
+html[data-nav='hero-close']::view-transition-image-pair(group-band) {
   animation-name: group-band-round;
 }
 @keyframes group-band-straighten {
-  from { border-radius: var(--group-row-radius, 24px) 0 0 var(--group-row-radius, 24px); }
+  from { border-radius: var(--hero-block-radius, 24px 0 0 24px); }
   to { border-radius: 0; }
 }
 @keyframes group-band-round {
   from { border-radius: 0; }
-  to { border-radius: var(--group-row-radius, 24px) 0 0 var(--group-row-radius, 24px); }
+  to { border-radius: var(--hero-block-radius, 24px 0 0 24px); }
 }
 
 /* The rest of the screen (`hero.ts`): the page's content is a picture of its own with no background (`group-page-old` on the page left,
@@ -167,43 +171,43 @@ html[data-nav='close-group']::view-transition-image-pair(group-band) {
    (`root`) is the plain background, which stays still. Layered from the bottom: that background, the wash (which fades out in place when a
    group opens, and in when it closes, so the green turns into the group page's background and back), the content (the page that comes slides
    over the one left when opening, and the one left slides away over the list when closing), and on top the pieces that morph. */
-html[data-nav='open-group']::view-transition-group(root),
-html[data-nav='close-group']::view-transition-group(root) {
+html[data-nav='hero-open']::view-transition-group(root),
+html[data-nav='hero-close']::view-transition-group(root) {
   z-index: -4;
 }
-html[data-nav='open-group']::view-transition-group(group-tint),
-html[data-nav='close-group']::view-transition-group(group-tint) {
+html[data-nav='hero-open']::view-transition-group(group-tint),
+html[data-nav='hero-close']::view-transition-group(group-tint) {
   z-index: -3;
 }
-html[data-nav='open-group']::view-transition-group(group-page-old),
-html[data-nav='close-group']::view-transition-group(group-page-new) {
+html[data-nav='hero-open']::view-transition-group(group-page-old),
+html[data-nav='hero-close']::view-transition-group(group-page-new) {
   z-index: -2;
 }
-html[data-nav='open-group']::view-transition-group(group-page-new),
-html[data-nav='close-group']::view-transition-group(group-page-old) {
+html[data-nav='hero-open']::view-transition-group(group-page-new),
+html[data-nav='hero-close']::view-transition-group(group-page-old) {
   z-index: -1;
 }
 
 /* `data-group-rest='slide'`: the content moves as in a page slide while the pieces morph. Opening: the list moves left and fades, the group's page
    comes in from the right. Closing is the mirror: the group's page moves right and fades, the list comes in from the left. */
-html[data-nav='open-group'][data-group-rest='slide']::view-transition-old(group-page-old) {
+html[data-nav='hero-open'][data-group-rest='slide']::view-transition-old(group-page-old) {
   animation-name: group-rest-out-left;
 }
-html[data-nav='open-group'][data-group-rest='slide']::view-transition-new(group-page-new) {
+html[data-nav='hero-open'][data-group-rest='slide']::view-transition-new(group-page-new) {
   animation-name: group-rest-in-right;
 }
-html[data-nav='close-group'][data-group-rest='slide']::view-transition-old(group-page-old) {
+html[data-nav='hero-close'][data-group-rest='slide']::view-transition-old(group-page-old) {
   animation-name: group-rest-out-right;
 }
-html[data-nav='close-group'][data-group-rest='slide']::view-transition-new(group-page-new) {
+html[data-nav='hero-close'][data-group-rest='slide']::view-transition-new(group-page-new) {
   animation-name: group-rest-in-left;
 }
 
 /* The list's green header bar goes up off the screen when a group opens, and comes back down when it closes. */
-html[data-nav='open-group']::view-transition-old(group-app-header) {
+html[data-nav='hero-open']::view-transition-old(group-app-header) {
   animation: group-bar-up var(--group-open-ms, 600ms) var(--group-open-ease) both;
 }
-html[data-nav='close-group']::view-transition-new(group-app-header) {
+html[data-nav='hero-close']::view-transition-new(group-app-header) {
   animation: group-bar-down var(--group-open-ms, 600ms) var(--group-open-ease) both;
 }
 @keyframes group-bar-up {
@@ -230,10 +234,10 @@ html[data-nav='close-group']::view-transition-new(group-app-header) {
 }
 
 /* The band's header row (Back, the title and the round buttons, `hero.ts`) has nothing like it in the row: it comes in from the top when a group opens, and leaves the same way when it closes. */
-html[data-nav='open-group']::view-transition-new(group-header) {
+html[data-nav='hero-open']::view-transition-new(group-header) {
   animation: group-from-top var(--group-open-ms, 600ms) var(--group-open-ease) both;
 }
-html[data-nav='close-group']::view-transition-old(group-header) {
+html[data-nav='hero-close']::view-transition-old(group-header) {
   animation: group-to-top var(--group-open-ms, 600ms) var(--group-open-ease) both;
 }
 @keyframes group-from-top {
@@ -245,10 +249,10 @@ html[data-nav='close-group']::view-transition-old(group-header) {
 
 /* The band's trip dates chip (`hero.ts`) has nothing like it in the row either: it comes in from the right when a group opens, and leaves that way when it closes,
    over the same distance as the page's content (a screen, at most 800 px). */
-html[data-nav='open-group']::view-transition-new(group-dates) {
+html[data-nav='hero-open']::view-transition-new(group-from-right) {
   animation: group-from-right var(--group-open-ms, 600ms) var(--group-open-ease) both;
 }
-html[data-nav='close-group']::view-transition-old(group-dates) {
+html[data-nav='hero-close']::view-transition-old(group-from-right) {
   animation: group-to-right var(--group-open-ms, 600ms) var(--group-open-ease) both;
 }
 @keyframes group-from-right {
@@ -260,12 +264,12 @@ html[data-nav='close-group']::view-transition-old(group-dates) {
 
 /* The floating buttons (`hero.ts`) leave and arrive through the bottom of the screen instead of sliding: the list's Create group drops off it and the group
    page's Add expense rises from it when a group opens; going back, Add expense drops off it and Create group rises from it. */
-html[data-nav='open-group']::view-transition-old(group-floating-old),
-html[data-nav='close-group']::view-transition-old(group-floating-old) {
+html[data-nav='hero-open']::view-transition-old(group-floating-old),
+html[data-nav='hero-close']::view-transition-old(group-floating-old) {
   animation: group-to-bottom var(--group-open-ms, 600ms) linear both;
 }
-html[data-nav='open-group']::view-transition-new(group-floating-new),
-html[data-nav='close-group']::view-transition-new(group-floating-new) {
+html[data-nav='hero-open']::view-transition-new(group-floating-new),
+html[data-nav='hero-close']::view-transition-new(group-floating-new) {
   animation: group-from-bottom var(--group-open-ms, 600ms) linear both;
 }
 /* The buttons move at an even speed (linear). A leaving button has faded out by 50 %, while it is still on screen; an arriving button fades in slowly

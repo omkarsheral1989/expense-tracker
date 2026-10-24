@@ -1,7 +1,8 @@
 import { ROUTES } from '../../routes.ts'
+import { RADIUS } from '../../theme/radius.ts'
 import { GROUP_OPEN_MS, GROUP_OPEN_REST } from '../../theme/transition.ts'
 
-/** The `view-transition-name` of each piece that travels between a group's row and its page (PRD 5.16). */
+/** The `view-transition-name` of each piece that travels between a row of a list and the band of the page it opens: a group's row and its page, an expense's row and its page (PRD 5.16). */
 const GROUP_PIECE_NAMES = {
   block: 'group-band',
   icon: 'group-icon',
@@ -17,8 +18,14 @@ const GROUP_PIECE_NAMES = {
   dot: 'group-dot',
   // The band's header row (Back, the title and the round buttons), which the row has nothing like: it comes in from the top.
   header: 'group-header',
-  // The band's trip dates chip, which the row has nothing like either: it comes in from the right.
-  dates: 'group-dates',
+  // A chip of the band that the row has nothing like either: it comes in from the right (the group's trip dates, the expense's category).
+  dates: 'group-from-right',
+  category: 'group-from-right',
+  // An expense's amount ("$100.00" in "You paid $100.00"), which grows into the band's large amount.
+  amount: 'group-amount',
+  // An expense's day ("Oct 22" in the date column), and a box around it that grows into the band's date chip.
+  date: 'group-date',
+  dateChip: 'group-date-chip',
 } as const
 
 
@@ -26,6 +33,9 @@ type Piece = keyof typeof GROUP_PIECE_NAMES
 
 /** The group's page, with its id captured. */
 const GROUP_PAGE = /^\/groups\/([0-9a-f-]{36})\/?$/i
+
+/** An expense's page, with the group's and the expense's ids captured. */
+const EXPENSE_PAGE = /^\/groups\/([0-9a-f-]{36})\/expenses\/([0-9a-f-]{36})\/?$/i
 
 /** An address of the app without the site's base path ("/ownledger/groups/1" is "/groups/1"). */
 export function routerPathOf(windowPath: string): string {
@@ -37,15 +47,18 @@ export function routerPathOf(windowPath: string): string {
  * Tells the CSS how long the morph lasts and what the rest of the screen does, read when the transition
  * starts (not once when the app opens, so a change to the settings applies at once).
  */
-export function setGroupOpenStyle(root: HTMLElement) {
+export function setGroupOpenStyle(root: HTMLElement, hero: GroupHero) {
   root.style.setProperty('--group-open-ms', `${GROUP_OPEN_MS}ms`)
+  root.style.setProperty('--hero-block-radius', hero.blockRadius)
   root.dataset.groupRest = GROUP_OPEN_REST
 }
 
-/** What a group's row and its page have to do for the morph between them. */
+/** What a row and the page it opens have to do for the morph between them. */
 export type GroupHero = {
-  /** `open-group` from the list to the page, `close-group` back. */
-  direction: 'open-group' | 'close-group'
+  /** `hero-open` from the list to the page, `hero-close` back. */
+  direction: 'hero-open' | 'hero-close'
+  /** The corners of the row's block (`border-radius`), which straighten into the band's square ones (`--hero-block-radius`). */
+  blockRadius: string
   /** Names the old page's pieces, before the browser takes its picture; returns what removes the names. */
   before: () => () => void
   /** Names the new page's pieces, once it is on screen and before the browser takes its picture of it; returns what removes the names. */
@@ -66,7 +79,16 @@ function nameChildren(root: Element | null): () => void {
     root.style.setProperty('view-transition-name', GROUP_PIECE_NAMES[root.dataset.vt as Piece])
     named.push(root)
   }
-  return () => named.forEach((element) => element.style.removeProperty('view-transition-name'))
+  // The block's picture is taken with square corners, as a group's block is (its card clips it): rounded corners painted into the picture
+  // (an expense's tile) would stretch with it into wide curves. The rounding is drawn instead by the clip on the morphing box, which
+  // straightens from `--hero-block-radius` (`group-band-straighten`); the page is hidden behind the pictures while the corners are square.
+  const blocks = named.filter((element) => element.dataset.vt === 'block' && element.style.borderRadius)
+  const radii = blocks.map((element) => element.style.borderRadius)
+  blocks.forEach((element) => (element.style.borderRadius = '0'))
+  return () => {
+    named.forEach((element) => element.style.removeProperty('view-transition-name'))
+    blocks.forEach((element, index) => (element.style.borderRadius = radii[index]))
+  }
 }
 
 /** Names one element, when it is there; returns what takes the name off. */
@@ -103,10 +125,19 @@ const nameFloatingButton = (name: 'group-floating-old' | 'group-floating-new') =
 
 const rowOf = (groupId: string) => document.querySelector(`[data-group-row="${groupId}"]`)
 const bandOf = () => document.querySelector('[data-group-band]')
+/** An expense's row in the group's list; deleted expenses' lines have no mark, so they keep the plain slide. */
+const expenseRowOf = (expenseId: string) => document.querySelector(`[data-expense-row="${expenseId}"]`)
+/** The expense page's band; it has the mark only for a live expense (not a deleted one). */
+const expenseBandOf = () => document.querySelector('[data-expense-band]')
+
+/** A group's card has rounded left corners; an expense's category tile is rounded all round. */
+const GROUP_ROW_RADIUS = `${RADIUS.outer}px 0 0 ${RADIUS.outer}px`
+const EXPENSE_TILE_RADIUS = `${RADIUS.inner}px`
 
 /**
- * The morph between the home list's row of a group and that group's page, for a
- * change from `from` to `to` (router addresses), or null for any other change.
+ * The morph between a row of a list and the band of the page it opens, for a change from `from` to `to`
+ * (router addresses), or null for any other change: the home list's row of a group and that group's page,
+ * and the group page's row of an expense (or a payment) and that expense's page, both ways.
  * Only one row and one band are ever named at a time, since a name must be unique.
  */
 export function groupHeroFor(from: string, to: string): GroupHero | null {
@@ -114,7 +145,8 @@ export function groupHeroFor(from: string, to: string): GroupHero | null {
   if (from === ROUTES.home && opened) {
     const id = opened[1]
     return {
-      direction: 'open-group',
+      direction: 'hero-open',
+      blockRadius: GROUP_ROW_RADIUS,
       before: () =>
         together(
           nameChildren(rowOf(id)),
@@ -130,10 +162,46 @@ export function groupHeroFor(from: string, to: string): GroupHero | null {
   if (closed && to === ROUTES.home) {
     const id = closed[1]
     return {
-      direction: 'close-group',
+      direction: 'hero-close',
+      blockRadius: GROUP_ROW_RADIUS,
       // Going back, the group page's Add expense drops off the bottom and the list's Create group comes up from it.
       before: () => together(nameChildren(bandOf()), nameScreen('group-page-old'), nameFloatingButton('group-floating-old')),
       after: () => together(nameChildren(rowOf(id)), nameScreen('group-page-new'), nameFloatingButton('group-floating-new')),
+    }
+  }
+  // An expense opened from the group's list: the group's band goes up off the screen (named like the list's header bar)
+  // and its Add expense drops off the bottom, while the expense's row grows into the expense's band.
+  const expenseOpened = EXPENSE_PAGE.exec(to)
+  if (closed && expenseOpened && closed[1] === expenseOpened[1] && expenseRowOf(expenseOpened[2])) {
+    const expenseId = expenseOpened[2]
+    return {
+      direction: 'hero-open',
+      blockRadius: EXPENSE_TILE_RADIUS,
+      before: () =>
+        together(
+          nameChildren(expenseRowOf(expenseId)),
+          nameScreen('group-page-old'),
+          nameOne(document.querySelector<HTMLElement>('[data-group-band]'), 'group-app-header'),
+          nameFloatingButton('group-floating-old'),
+        ),
+      after: () => together(nameChildren(expenseBandOf()), nameScreen('group-page-new')),
+    }
+  }
+  // Back from an expense to its group: the mirror. The row is found on the group page once it is on screen.
+  const expenseClosed = EXPENSE_PAGE.exec(from)
+  if (expenseClosed && opened && expenseClosed[1] === opened[1] && expenseBandOf()) {
+    const expenseId = expenseClosed[2]
+    return {
+      direction: 'hero-close',
+      blockRadius: EXPENSE_TILE_RADIUS,
+      before: () => together(nameChildren(expenseBandOf()), nameScreen('group-page-old')),
+      after: () =>
+        together(
+          nameChildren(expenseRowOf(expenseId)),
+          nameScreen('group-page-new'),
+          nameOne(document.querySelector<HTMLElement>('[data-group-band]'), 'group-app-header'),
+          nameFloatingButton('group-floating-new'),
+        ),
     }
   }
   return null

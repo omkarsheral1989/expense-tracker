@@ -9,13 +9,15 @@ type Props = {
   category: string
   /** Width and height of the tile in pixels. */
   size?: number
+  /** Marks the tile and its icon as pieces that travel into the band of the expense's page when the expense opens from the group's list (PRD 5.16); left out elsewhere. */
+  travels?: boolean
 }
 
 /**
  * The colored tile with the icon of an expense's category, in the color of its
  * group. Screen readers read the category's name ("Food and drink: Dining out").
  */
-export function CategoryIcon({ category, size = 40 }: Props) {
+export function CategoryIcon({ category, size = 40, travels }: Props) {
   const { key, label, group, groupLabel } = expenseService.categoryOf(category)
 
   return (
@@ -24,6 +26,7 @@ export function CategoryIcon({ category, size = 40 }: Props) {
       justify="center"
       role="img"
       aria-label={label === 'Other' ? `${groupLabel}: Other` : label}
+      data-vt={travels ? 'block' : undefined}
       style={{
         flex: 'none',
         width: size,
@@ -34,7 +37,13 @@ export function CategoryIcon({ category, size = 40 }: Props) {
         background: CATEGORY_GROUP_COLORS[group],
       }}
     >
-      {CATEGORY_ICONS[key]}
+      {travels ? (
+        <span data-vt="icon" style={{ display: 'flex' }}>
+          {CATEGORY_ICONS[key]}
+        </span>
+      ) : (
+        CATEGORY_ICONS[key]
+      )}
     </Flex>
   )
 }

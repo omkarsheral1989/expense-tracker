@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { Flex } from 'antd'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useLocation, useParams } from 'react-router'
 import { CenteredMessage } from '../../components/CenteredMessage'
 import { LoadingMessage } from '../../components/LoadingMessage'
@@ -15,6 +15,7 @@ import { useCurrentUser } from '../../hooks/useCurrentUser'
 import { expenseService } from '../../services/expenseService'
 import { aboveScreenEdge, belowStatusBar } from '../../theme/safeArea.ts'
 import { ExpenseDetails } from './components/ExpenseDetails'
+import { slide } from '../../hooks/useAppNavigate/utils.ts'
 import { EDIT_EXPENSE_PAGE, editExpenseKey, loadExpenseToEdit } from '../editExpense/utils.ts'
 
 /** A column about 560 px wide, centered, like the add-expense page. */
@@ -38,6 +39,21 @@ export function ExpensePage() {
     // After a restoration the page reads the expense again, and meanwhile keeps showing it.
     { keepPrevious: true },
   )
+
+  // Opened from the group's list while the expense is still being read, the row's pieces travel into the band of the loading view (PRD 5.16).
+  // That band must stay the same element until they arrive (the browser ends the transition if it leaves the page), so the loading view
+  // stays on screen until the transition ends, even when the expense has been read meanwhile.
+  const [morphing, setMorphing] = useState(() => slide.morph !== null && state.status === 'loading')
+  useEffect(() => {
+    if (!morphing || !slide.morph) return
+    let live = true
+    void slide.morph.then(() => {
+      if (live) setMorphing(false)
+    })
+    return () => {
+      live = false
+    }
+  }, [morphing])
 
   // Read what Edit will need while the expense is on screen, so the form opens at once (ADR-055).
   const queryClient = useQueryClient()
@@ -74,7 +90,7 @@ export function ExpensePage() {
     return <title>{`${state.data ? expenseService.titleOf(state.data) : 'Expense not found'} · OwnLedger`}</title>
   }
 
-  if (state.status === 'loading') {
+  if (state.status === 'loading' || (morphing && known)) {
     if (!known) return <LoadingMessage label="Loading the expense" />
     return (
       <>

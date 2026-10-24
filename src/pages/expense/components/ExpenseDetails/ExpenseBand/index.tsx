@@ -33,6 +33,11 @@ type Props = {
   actions: ReactNode
   /** Opens the edit page when the date or category chip is pressed; left out when the expense cannot be edited (a payment, a deleted expense, one still loading). */
   onEdit?: () => void
+  /**
+   * Marks the band and its pieces for the morph from the expense's row in the group's list, and back (PRD 5.16). True for a live
+   * expense or payment; false for a deleted one, whose row is a plain line that keeps the ordinary slide.
+   */
+  travels: boolean
 }
 
 /**
@@ -41,14 +46,16 @@ type Props = {
  * amount and the description in white, and the day and category as chips. Who
  * paid, who added it and who deleted it are below it and in the history.
  */
-export function ExpenseBand({ expense, title, actions, onEdit }: Props) {
+export function ExpenseBand({ expense, title, actions, onEdit, travels }: Props) {
   const navigate = useAppNavigate()
   const category = expenseService.categoryOf(expense.category)
   const isSettlement = expense.category === expenseService.settlementCategory
+  /** The mark of a piece that travels from the row (`hero.ts`), only when the band travels. */
+  const vt = (piece: string) => (travels ? piece : undefined)
 
   function renderHeader() {
     return (
-      <Flex align="center" justify="space-between">
+      <Flex align="center" justify="space-between" data-vt={vt('header')}>
         <Flex align="center" gap={8} style={{ minWidth: 0 }}>
           <BandIconButton icon={<ArrowLeftOutlined />} label="Back" onClick={() => navigate(ROUTES.group(expense.groupId), { direction: 'back' })} />
           {/* Still a heading, but quieter than the expense's own title below it. */}
@@ -67,6 +74,7 @@ export function ExpenseBand({ expense, title, actions, onEdit }: Props) {
         <span
           role="img"
           aria-label={category.label === 'Other' ? `${category.groupLabel}: Other` : category.label}
+          data-vt={vt('icon')}
           // The category's icon alone, 40 px and white on the band, beside the description.
           style={{ display: 'flex', flex: 'none', fontSize: 40, lineHeight: '40px', color: '#fff', filter: 'drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35))' }}
         >
@@ -74,12 +82,12 @@ export function ExpenseBand({ expense, title, actions, onEdit }: Props) {
         </span>
         <Flex vertical style={{ minWidth: 0 }}>
           {/* A 40 px line, the height of the icon beside it, so the two line up. */}
-          <Text style={{ fontSize: 28, fontWeight: 600, lineHeight: '40px', color: '#fff', textShadow: TEXT_SHADOW }}>
+          <Text data-vt={vt('amount')} style={{ fontSize: 28, fontWeight: 600, lineHeight: '40px', color: '#fff', textShadow: TEXT_SHADOW, width: 'fit-content' }}>
             {moneyService.format(expense.amountMinor, expense.currency)}
           </Text>
           {/* A payment is worded by who paid whom, in a row below the band, so it has no title here. */}
           {isSettlement ? null : (
-            <Title level={3} style={{ margin: 0, color: '#fff', overflowWrap: 'anywhere', textShadow: TEXT_SHADOW }}>
+            <Title level={3} data-vt={vt('name')} style={{ margin: 0, color: '#fff', overflowWrap: 'anywhere', textShadow: TEXT_SHADOW }}>
               {expense.description}
             </Title>
           )}
@@ -92,16 +100,26 @@ export function ExpenseBand({ expense, title, actions, onEdit }: Props) {
   function renderChips() {
     return (
       <Flex wrap gap={8}>
-        <BandChip icon={<CalendarOutlined />} onClick={onEdit}>{dateService.formatDay(expense.date, dateService.toDay(new Date()))}</BandChip>
-        <BandChip icon={CATEGORY_ICONS[category.key]} onClick={onEdit}>
-          {category.label === 'Other' ? `${category.groupLabel}: Other` : category.label}
+        <BandChip icon={<CalendarOutlined />} onClick={onEdit} vt={vt('date')}>
+          {dateService.formatDay(expense.date, dateService.toDay(new Date()))}
         </BandChip>
+        {/* Comes in from the right when the expense opens from the group's list (PRD 5.16). */}
+        <span data-vt={vt('category')} style={{ display: 'inline-flex' }}>
+          <BandChip icon={CATEGORY_ICONS[category.key]} onClick={onEdit}>
+            {category.label === 'Other' ? `${category.groupLabel}: Other` : category.label}
+          </BandChip>
+        </span>
       </Flex>
     )
   }
 
   return (
-    <div style={{ padding: `${belowStatusBar(HEADER_TOP_PADDING)} 16px ${BAND_BOTTOM_PADDING}px`, background: bandBackground(CATEGORY_GROUP_COLORS[category.group]) }}>
+    <div
+      // The band, which the expense's row in the group's list morphs into and out of (PRD 5.16).
+      data-expense-band={travels ? '' : undefined}
+      data-vt={vt('block')}
+      style={{ padding: `${belowStatusBar(HEADER_TOP_PADDING)} 16px ${BAND_BOTTOM_PADDING}px`, background: bandBackground(CATEGORY_GROUP_COLORS[category.group]) }}
+    >
       <Flex vertical gap={20} style={{ maxWidth: 560, margin: '0 auto' }}>
         {renderHeader()}
         {renderSummary()}
