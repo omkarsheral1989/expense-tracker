@@ -1,6 +1,5 @@
 import { Avatar, theme } from 'antd'
 import { useState, type CSSProperties } from 'react'
-import { usePersonPicture } from '../../hooks/usePersonPicture'
 import { CONTROL_HEIGHT } from '../../theme/controlHeight.ts'
 
 type Props = {
@@ -14,13 +13,13 @@ type Props = {
 }
 
 /**
- * A person's avatar: their Google picture (from this device's own copy when it
- * has one), or the first letter of their name in the app's teal when there is
- * none or it cannot be loaded.
+ * A person's avatar: their Google picture, loaded from Google's address (offline
+ * it shows only while the browser's cache holds it, ADR-046), or the first letter
+ * of their name in the app's teal when there is none or it cannot be loaded.
  */
 export function PersonAvatar({ name, picture, size = CONTROL_HEIGHT, style }: Props) {
   const { token } = theme.useToken()
-  const source = usePersonPicture(picture)
+  const source = picture ?? undefined
   // A picture that failed to load stays failed for that address.
   const [failed, setFailed] = useState<string | null>(null)
   const showPicture = source !== undefined && failed !== source
