@@ -104,16 +104,14 @@ export function ExpenseBand({ expense, title, actions, onEdit, travels }: Props)
   // The day and the category, as chips like the group page's.
   function renderChips() {
     return (
-      <Flex wrap gap={8}>
-        <BandChip icon={<CalendarOutlined />} onClick={onEdit} vt={vt('date')}>
+      // Both chips come in from the right when the expense opens from the group's list (PRD 5.16).
+      <Flex wrap gap={8} data-vt={vt('chips')}>
+        <BandChip icon={<CalendarOutlined />} onClick={onEdit}>
           {dateService.formatDay(expense.date, dateService.toDay(new Date()))}
         </BandChip>
-        {/* Comes in from the right when the expense opens from the group's list (PRD 5.16). */}
-        <span data-vt={vt('category')} style={{ display: 'inline-flex' }}>
-          <BandChip icon={CATEGORY_ICONS[category.key]} onClick={onEdit}>
-            {category.label === 'Other' ? `${category.groupLabel}: Other` : category.label}
-          </BandChip>
-        </span>
+        <BandChip icon={CATEGORY_ICONS[category.key]} onClick={onEdit}>
+          {category.label === 'Other' ? `${category.groupLabel}: Other` : category.label}
+        </BandChip>
       </Flex>
     )
   }

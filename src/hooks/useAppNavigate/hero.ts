@@ -18,14 +18,11 @@ const GROUP_PIECE_NAMES = {
   dot: 'group-dot',
   // The band's header row (Back, the title and the round buttons), which the row has nothing like: it comes in from the top.
   header: 'group-header',
-  // A chip of the band that the row has nothing like either: it comes in from the right (the group's trip dates, the expense's category).
+  // Chips of the band that the row has nothing like either: they come in from the right (the group's trip dates, the expense's day and category).
   dates: 'group-from-right',
-  category: 'group-from-right',
+  chips: 'group-from-right',
   // An expense's amount ("$100.00" in "You paid $100.00"), which grows into the band's large amount.
   amount: 'group-amount',
-  // An expense's day ("Oct 22" in the date column), and a box around it that grows into the band's date chip.
-  date: 'group-date',
-  dateChip: 'group-date-chip',
 } as const
 
 
@@ -79,16 +76,7 @@ function nameChildren(root: Element | null): () => void {
     root.style.setProperty('view-transition-name', GROUP_PIECE_NAMES[root.dataset.vt as Piece])
     named.push(root)
   }
-  // The block's picture is taken with square corners, as a group's block is (its card clips it): rounded corners painted into the picture
-  // (an expense's tile) would stretch with it into wide curves. The rounding is drawn instead by the clip on the morphing box, which
-  // straightens from `--hero-block-radius` (`group-band-straighten`); the page is hidden behind the pictures while the corners are square.
-  const blocks = named.filter((element) => element.dataset.vt === 'block' && element.style.borderRadius)
-  const radii = blocks.map((element) => element.style.borderRadius)
-  blocks.forEach((element) => (element.style.borderRadius = '0'))
-  return () => {
-    named.forEach((element) => element.style.removeProperty('view-transition-name'))
-    blocks.forEach((element, index) => (element.style.borderRadius = radii[index]))
-  }
+  return () => named.forEach((element) => element.style.removeProperty('view-transition-name'))
 }
 
 /** Names one element, when it is there; returns what takes the name off. */

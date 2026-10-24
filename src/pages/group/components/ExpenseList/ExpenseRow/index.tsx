@@ -53,14 +53,11 @@ export function ExpenseRow({ expense, groupId }: Props) {
   function renderDate() {
     return (
       // 48 px high: 16 px for the month and 32 px for the day, whatever the font's own line height.
-      // The column is a box that grows into the date chip of the expense's band, and the day in it travels into the chip's text (PRD 5.16).
-      <Flex vertical align="center" justify="center" data-vt="dateChip" style={{ width: 32, height: 48, flex: 'none' }}>
-        <Flex vertical align="center" data-vt="date">
-          <Text type="secondary" style={{ fontSize: 12, lineHeight: '16px' }}>
-            {month}
-          </Text>
-          <Text style={{ fontSize: 20, lineHeight: '32px' }}>{day}</Text>
-        </Flex>
+      <Flex vertical align="center" justify="center" style={{ width: 32, height: 48, flex: 'none' }}>
+        <Text type="secondary" style={{ fontSize: 12, lineHeight: '16px' }}>
+          {month}
+        </Text>
+        <Text style={{ fontSize: 20, lineHeight: '32px' }}>{day}</Text>
       </Flex>
     )
   }

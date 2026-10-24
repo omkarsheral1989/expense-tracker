@@ -133,11 +133,7 @@ html[data-nav='hero-close']::view-transition-new(group-people-chip),
 html[data-nav='hero-open']::view-transition-old(group-people-icon),
 html[data-nav='hero-open']::view-transition-new(group-people-icon),
 html[data-nav='hero-close']::view-transition-old(group-people-icon),
-html[data-nav='hero-close']::view-transition-new(group-people-icon),
-html[data-nav='hero-open']::view-transition-old(group-date-chip),
-html[data-nav='hero-open']::view-transition-new(group-date-chip),
-html[data-nav='hero-close']::view-transition-old(group-date-chip),
-html[data-nav='hero-close']::view-transition-new(group-date-chip) {
+html[data-nav='hero-close']::view-transition-new(group-people-icon) {
   inline-size: 100%;
   block-size: 100%;
   object-fit: fill;
@@ -153,6 +149,9 @@ html[data-nav='hero-close']::view-transition-image-pair(group-band) {
 }
 html[data-nav='hero-open']::view-transition-image-pair(group-band) {
   animation-name: group-band-straighten;
+  /* The browser shows the row's (square-taken) picture as soon as it is taken, while the new page is still being drawn, and starts the
+     animations only then; without its own radius the pair would show square corners for that moment. */
+  border-radius: var(--hero-block-radius, 24px 0 0 24px);
 }
 html[data-nav='hero-close']::view-transition-image-pair(group-band) {
   animation-name: group-band-round;
@@ -282,3 +281,4 @@ html[data-nav='hero-close']::view-transition-new(group-floating-new) {
   from { transform: translateY(calc(200% + 64px + env(safe-area-inset-bottom))); opacity: 0; }
   70% { opacity: 0.25; }
 }
+
