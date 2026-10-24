@@ -258,18 +258,19 @@ html[data-nav='close-group']::view-transition-old(group-dates) {
   to { transform: translateX(min(800px, 100vw)); opacity: 0; }
 }
 
-/* The floating buttons (`hero.ts`) leave and arrive through the bottom of the screen instead of sliding: the list's Create group drops off it when a group
-   opens; going back, the group page's Add expense drops off it and Create group rises from it. */
+/* The floating buttons (`hero.ts`) leave and arrive through the bottom of the screen instead of sliding: the list's Create group drops off it and the group
+   page's Add expense rises from it when a group opens; going back, Add expense drops off it and Create group rises from it. */
 html[data-nav='open-group']::view-transition-old(group-floating-old),
 html[data-nav='close-group']::view-transition-old(group-floating-old) {
   animation: group-to-bottom var(--group-open-ms, 600ms) var(--group-open-ease) both;
 }
+html[data-nav='open-group']::view-transition-new(group-floating-new),
 html[data-nav='close-group']::view-transition-new(group-floating-new) {
   animation: group-from-bottom var(--group-open-ms, 600ms) var(--group-open-ease) both;
 }
 @keyframes group-to-bottom {
-  to { transform: translateY(calc(100% + 64px + env(safe-area-inset-bottom))); }
+  to { transform: translateY(calc(200% + 64px + env(safe-area-inset-bottom))); }
 }
 @keyframes group-from-bottom {
-  from { transform: translateY(calc(100% + 64px + env(safe-area-inset-bottom))); }
+  from { transform: translateY(calc(200% + 64px + env(safe-area-inset-bottom))); }
 }

@@ -122,7 +122,8 @@ export function groupHeroFor(from: string, to: string): GroupHero | null {
           // The list's floating Create group button drops off the bottom of the screen instead of sliding left.
           nameFloatingButton('group-floating-old'),
         ),
-      after: () => together(nameChildren(bandOf()), nameScreen('group-page-new')),
+      // The group page's Add expense rises from the bottom of the screen instead of sliding in.
+      after: () => together(nameChildren(bandOf()), nameScreen('group-page-new'), nameFloatingButton('group-floating-new')),
     }
   }
   const closed = GROUP_PAGE.exec(from)
