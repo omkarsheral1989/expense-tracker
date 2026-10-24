@@ -3,18 +3,28 @@ import { vi } from 'vitest'
 /**
  * Gives jsdom a `document.startViewTransition` (it has none), and says what
  * each page change asked for: the direction the page's root carried when the
- * transition started. The transition runs its callback at once, as a browser
- * does a frame later. Call the returned function to put jsdom back.
+ * transition started. The transition runs its callback at once (or, with `hold`,
+ * when the test calls `runHeld`), as a browser does a frame later. Call
+ * `restore` to put jsdom back.
  */
-export function stubViewTransition() {
+export function stubViewTransition({ hold = false }: { hold?: boolean } = {}) {
   const started: (string | undefined)[] = []
+  const held: (() => Promise<void>)[] = []
   const original = document.startViewTransition
   document.startViewTransition = vi.fn((callback?: () => unknown) => {
     started.push(document.documentElement.dataset.nav)
-    const done = Promise.resolve(callback?.()).then(() => undefined)
+    const run = async () => {
+      await callback?.()
+    }
+    // With `hold`, the callback runs only when the test says (a browser runs it a frame later).
+    const done = hold ? new Promise<void>((resolve) => held.push(async () => { await run(); resolve() })) : run()
     return { finished: done, ready: done, updateCallbackDone: done, skipTransition: () => {} } as unknown as ViewTransition
   })
   return {
+    /** With `hold`: runs the callbacks of the transitions that are waiting. */
+    runHeld: async () => {
+      while (held.length) await held.shift()!()
+    },
     /** The direction of each transition started so far ("forward" or "back"). */
     started,
     restore: () => {

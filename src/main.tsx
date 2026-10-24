@@ -8,6 +8,7 @@ import App from './App.tsx'
 import { GOOGLE_CLIENT_ID } from './config.ts'
 import { QueryProvider } from './components/QueryProvider'
 import { ThemeProvider } from './components/ThemeProvider'
+import { installSlideOnBrowserBack } from './hooks/useSlideOnBrowserBack'
 import { restoreRedirectedUrl } from './pwa/redirect.ts'
 import { logService } from './services/logService'
 
@@ -23,6 +24,9 @@ window.addEventListener('offline', () => log.warn('Connection lost'))
 
 // GitHub Pages sends unknown addresses to 404.html, which bounces them here.
 restoreRedirectedUrl(window.location, window.history)
+
+// Before the router exists, so it sees the browser's Back first (the slide on Back).
+installSlideOnBrowserBack()
 
 const app = (
   <BrowserRouter basename={import.meta.env.BASE_URL}>

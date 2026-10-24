@@ -19,4 +19,4 @@ export function canSlide(): boolean {
  * asked for and is waiting for the new page to be on screen. While one waits,
  * the page change is the slide's and no fade runs on top of it.
  */
-export const slide: { waiting: (() => void) | null } = { waiting: null }
+export const slide: { waiting: (() => void) | null; path: string; index: number } = { waiting: null, path: '', index: 0 }

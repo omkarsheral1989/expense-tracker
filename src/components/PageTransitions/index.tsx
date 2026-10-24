@@ -5,9 +5,9 @@ import { PAGE_FADE_MS, PAGE_TRANSITION_MS } from '../../theme/transition.ts'
 
 /**
  * Renders nothing. When the page changes it finishes a slide that is waiting for
- * the new page (`useAppNavigate`), and for every other change (the browser's or
- * the phone's Back, a page that replaces the current one, a browser without
- * View Transitions) fades the new page in. The first screen appears at once, and
+ * the new page (`useAppNavigate`, `installSlideOnBrowserBack`), and for every other
+ * change (a page that replaces the current one, a browser without View
+ * Transitions) fades the new page in. The first screen appears at once, and
  * with reduced motion nothing animates (PRD 5.15).
  */
 export function PageTransitions() {
@@ -19,6 +19,9 @@ export function PageTransitions() {
   }, [])
 
   useLayoutEffect(() => {
+    // Where the app is, for `useSlideOnBrowserBack` to tell which way the browser's Back went.
+    slide.path = window.location.pathname
+    slide.index = window.history.state?.idx ?? 0
     if (first.current) {
       first.current = false
       return
