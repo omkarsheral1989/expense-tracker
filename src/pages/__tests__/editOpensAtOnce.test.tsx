@@ -65,7 +65,7 @@ describe('Edit expense, opened from the expense page', () => {
   it('shows the form at once, filled in, with no loader', async () => {
     const { group, expense } = await setUp()
     const page = renderExpense(group, expense)
-    await screen.findByText('Added by you')
+    await screen.findByText('You added this expense')
     // The form's data is read behind the page; give that a moment.
     await new Promise((resolve) => setTimeout(resolve, 300))
     stopReadingTheDatabase()
@@ -92,7 +92,7 @@ describe('Edit expense, opened from the expense page', () => {
     const toEdit = vi.spyOn(expenseService, 'getExpenseToEdit')
 
     renderExpense(group, payment.id)
-    await screen.findByText(/Added by you/)
+    await screen.findByText('You added this payment')
     await new Promise((resolve) => setTimeout(resolve, 300))
 
     expect(toEdit).not.toHaveBeenCalled()

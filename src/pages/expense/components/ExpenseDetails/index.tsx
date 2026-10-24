@@ -108,16 +108,6 @@ export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props)
     return noun === 'payment' ? 'Payment' : 'Expense'
   }
 
-  function renderLastEdit() {
-    if (!expense.lastEdit) return null
-    const { by, at } = expense.lastEdit
-    return (
-      <Text style={{ color: SOFT_WHITE }}>
-        Edited by {by.isYou ? 'you' : displayName(by)}, {dateService.formatDateTime(at, navigator.language)}
-      </Text>
-    )
-  }
-
   function renderDeleted() {
     if (!expense.deleted) return null
     const { by, at } = expense.deleted
@@ -134,13 +124,8 @@ export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props)
         expense={expense}
         title={renderTitle()}
         actions={renderActions()}
-        before={<Text style={{ color: SOFT_WHITE }}>Added by {expense.createdBy.isYou ? 'you' : displayName(expense.createdBy)}</Text>}
-        after={
-          <>
-            {renderLastEdit()}
-            {renderDeleted()}
-          </>
-        }
+        onEdit={expense.deleted || isSettlement ? undefined : () => navigate(ROUTES.editExpense(expense.groupId, expense.id))}
+        after={renderDeleted()}
       />
       {/* Below the band, in a column about 560 px wide. */}
       <Flex vertical style={{ width: '100%', maxWidth: 560, margin: '0 auto', padding: `24px 16px ${aboveScreenEdge(24)}` }}>

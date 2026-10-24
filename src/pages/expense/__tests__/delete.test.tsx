@@ -285,7 +285,7 @@ describe('ExpensePage: deleting', () => {
       const expenseId = await addExpense(id)
       renderExpense(id, expenseId)
 
-      await screen.findByText('Added by you')
+      await screen.findByText('You added this expense')
       expect(screen.queryByText(/^Deleted by/)).not.toBeInTheDocument()
     })
 

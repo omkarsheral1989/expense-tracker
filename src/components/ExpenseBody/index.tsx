@@ -26,8 +26,6 @@ type Props = {
   receipts: { id: string; mimeType: string }[]
   /** Names the device's photo store, which holds the receipts. */
   datasetId: string
-  /** Lines under the category and day, before who paid ("Added by you"). */
-  before?: ReactNode
   /** Lines after who paid ("Edited by …", "Deleted by …"). */
   after?: ReactNode
   /**
@@ -42,7 +40,7 @@ type Props = {
  * tile, title, amount, category and day, who paid, how it was split and what
  * each person owes, its notes and its receipt photos. A payment is titled by
  * who paid whom and has no payer line or split. The page puts what is its own
- * (who added it, who edited it, when it was deleted) in `before` and `after`.
+ * (when it was deleted) in `after`.
  */
 export function ExpenseBody({
   description,
@@ -55,7 +53,6 @@ export function ExpenseBody({
   shares,
   receipts,
   datasetId,
-  before,
   after,
   withoutSummary = false,
 }: Props) {
@@ -88,7 +85,6 @@ export function ExpenseBody({
             {categoryOf.label === 'Other' ? `${categoryOf.groupLabel}: Other` : categoryOf.label} ·{' '}
             {dateService.formatDay(date, dateService.toDay(new Date()))}
           </Text>
-          {before}
           {renderPayers()}
           {after}
         </Flex>
@@ -106,11 +102,29 @@ export function ExpenseBody({
     )
   }
 
+  // On the expense page, where the band holds no payer line, who paid sits above the split like its rows (a payment has no split section, so no rows).
+  function renderPayerRows() {
+    if (!withoutSummary) return null
+    return (
+      <Flex vertical gap={12} role="list" aria-label="Who paid" style={{ marginBottom: 20 }}>
+        {shares
+          .filter((share) => share.paidMinor > 0)
+          .map((share) => (
+            <Flex key={share.personId} align="center" gap={12} role="listitem">
+              <PersonAvatar name={displayName(share)} picture={share.picture} style={{ flex: 'none' }} />
+              <Text style={{ overflowWrap: 'anywhere' }}>{paidSentence(share, currency)}</Text>
+            </Flex>
+          ))}
+      </Flex>
+    )
+  }
+
   function renderSplit() {
     if (isSettlement) return null
     return (
       <>
         {withoutSummary ? null : <Divider style={{ margin: '16px 0' }} />}
+        {renderPayerRows()}
         <Text strong>{SPLIT_METHOD_LABELS[method]}</Text>
         <Flex vertical gap={12} role="list" aria-label="Who owes" style={{ marginTop: 12 }}>
           {shares.filter((share) => share.owedMinor > 0).map(renderShare)}

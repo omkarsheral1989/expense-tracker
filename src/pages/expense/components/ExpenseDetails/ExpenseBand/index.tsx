@@ -1,9 +1,9 @@
-import { ArrowLeftOutlined } from '@ant-design/icons'
+import { ArrowLeftOutlined, CalendarOutlined } from '@ant-design/icons'
 import { Flex, Typography } from 'antd'
 import type { ReactNode } from 'react'
+import { BandChip } from '../../../../../components/BandChip'
 import { BandIconButton } from '../../../../../components/BandIconButton'
 import { CATEGORY_ICONS } from '../../../../../components/CategoryIcon/content.tsx'
-import { paidSentence } from '../../../../../components/ExpenseWording'
 import { ROUTES } from '../../../../../routes.ts'
 import { dateService } from '../../../../../services/dateService'
 import { expenseService } from '../../../../../services/expenseService'
@@ -14,7 +14,7 @@ import { CATEGORY_GROUP_COLORS } from '../../../../../theme/categoryColors.ts'
 import { HEADER_TITLE_STYLE } from '../../../../../theme/headerTitle.ts'
 import { belowStatusBar, HEADER_TOP_PADDING } from '../../../../../theme/safeArea.ts'
 import { useNavigate } from 'react-router'
-import { SOFT_WHITE, TEXT_SHADOW } from './style.ts'
+import { TEXT_SHADOW } from './style.ts'
 
 const { Text, Title } = Typography
 
@@ -31,10 +31,10 @@ type Props = {
   title: string
   /** The buttons at the right of the header (Edit and Delete, or Restore). */
   actions: ReactNode
-  /** Lines under the category and day, before who paid ("Added by you"). */
-  before: ReactNode
   /** What to call the expense instead of its description: a payment's "You paid Priya", for a payment known from the list (no shares yet). */
   headline?: string
+  /** Opens the edit page when the date or category chip is pressed; left out when the expense cannot be edited (a payment, a deleted expense, one still loading). */
+  onEdit?: () => void
   /** Lines after who paid ("Edited by …", "Deleted by …"). */
   after: ReactNode
 }
@@ -45,11 +45,9 @@ type Props = {
  * description, the amount, the category and day, and who added and paid for it,
  * all in white.
  */
-export function ExpenseBand({ expense, title, actions, before, after, headline }: Props) {
+export function ExpenseBand({ expense, title, actions, after, headline, onEdit }: Props) {
   const navigate = useNavigate()
   const category = expenseService.categoryOf(expense.category)
-  // A settlement is worded by who paid whom ("You paid Priya"), and has no payer line.
-  const isSettlement = expense.category === expenseService.settlementCategory
 
   function renderHeader() {
     return (
@@ -64,17 +62,6 @@ export function ExpenseBand({ expense, title, actions, before, after, headline }
         <Flex gap={12}>{actions}</Flex>
       </Flex>
     )
-  }
-
-  function renderPayers() {
-    if (isSettlement) return null
-    return (expense.shares ?? [])
-      .filter((share) => share.paidMinor > 0)
-      .map((share) => (
-        <Text key={share.personId} style={{ color: SOFT_WHITE }}>
-          {paidSentence(share, expense.currency)}
-        </Text>
-      ))
   }
 
   function renderSummary() {
@@ -96,14 +83,20 @@ export function ExpenseBand({ expense, title, actions, before, after, headline }
           <Title level={3} style={{ margin: 0, color: '#fff', overflowWrap: 'anywhere', textShadow: TEXT_SHADOW }}>
             {headline ?? (expense.shares ? expenseService.titleOf({ ...expense, shares: expense.shares }) : expense.description)}
           </Title>
-          <Text style={{ color: SOFT_WHITE }}>
-            {category.label === 'Other' ? `${category.groupLabel}: Other` : category.label} ·{' '}
-            {dateService.formatDay(expense.date, dateService.toDay(new Date()))}
-          </Text>
-          {before}
-          {renderPayers()}
           {after}
         </Flex>
+      </Flex>
+    )
+  }
+
+  // The day and the category, as chips like the group page's.
+  function renderChips() {
+    return (
+      <Flex wrap gap={8}>
+        <BandChip icon={<CalendarOutlined />} onClick={onEdit}>{dateService.formatDay(expense.date, dateService.toDay(new Date()))}</BandChip>
+        <BandChip icon={CATEGORY_ICONS[category.key]} onClick={onEdit}>
+          {category.label === 'Other' ? `${category.groupLabel}: Other` : category.label}
+        </BandChip>
       </Flex>
     )
   }
@@ -113,6 +106,7 @@ export function ExpenseBand({ expense, title, actions, before, after, headline }
       <Flex vertical gap={20} style={{ maxWidth: 560, margin: '0 auto' }}>
         {renderHeader()}
         {renderSummary()}
+        {renderChips()}
       </Flex>
     </div>
   )

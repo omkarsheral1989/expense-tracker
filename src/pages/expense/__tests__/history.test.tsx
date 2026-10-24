@@ -292,8 +292,8 @@ describe('ExpensePage: history', () => {
         "Description changed from 'Lunch' to 'Beach shack dinner'",
         'Cost changed from £12.00 to £9.00',
       ])
-      // The edit is now an older entry, and the "Edited by" line names the reversion.
-      expect(await screen.findByText(/^Edited by you, 21 Oct 2026, 9:30\s?AM$/)).toBeInTheDocument()
+      // The edit is now an older entry.
+      expect(entries()).toHaveLength(3)
     })
   })
 

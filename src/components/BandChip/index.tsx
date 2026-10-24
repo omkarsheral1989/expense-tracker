@@ -1,8 +1,8 @@
 import { Button, Tooltip } from 'antd'
 import type { ReactNode } from 'react'
-import { ComingSoon } from '../../../../../components/ComingSoon'
-import { CONTROL_HEIGHT } from '../../../../../theme/controlHeight.ts'
-import { PILL_RADIUS } from '../../../../../theme/radius.ts'
+import { ComingSoon } from '../ComingSoon'
+import { CONTROL_HEIGHT } from '../../theme/controlHeight.ts'
+import { PILL_RADIUS } from '../../theme/radius.ts'
 
 type Props = {
   icon?: ReactNode

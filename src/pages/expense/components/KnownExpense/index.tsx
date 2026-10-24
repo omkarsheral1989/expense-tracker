@@ -60,7 +60,6 @@ export function KnownExpensePage({ expense }: Props) {
         title={renderTitle()}
         headline={knownTitle(expense)}
         actions={renderActions()}
-        before={null}
         after={renderDeleted()}
       />
       <Flex vertical style={{ flex: 1, width: '100%', maxWidth: 560, margin: '0 auto', padding: `0 16px ${aboveScreenEdge(24)}` }}>

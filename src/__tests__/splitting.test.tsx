@@ -95,7 +95,7 @@ describe('splitting expenses', () => {
     await user.click(screen.getByRole('button', { name: 'Save' }))
     expect(await screen.findByText('Expense updated.')).toBeInTheDocument()
     expect(await screen.findByRole('heading', { name: 'Weekly groceries' })).toBeInTheDocument()
-    expect(screen.getByText(/Edited by you/)).toBeInTheDocument()
+    expect(screen.getByText('You edited this expense')).toBeInTheDocument()
 
     // Delete: it stays in the group as a line, and nobody owes anything.
     await user.click(screen.getByRole('button', { name: 'Delete' }))

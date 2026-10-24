@@ -60,6 +60,11 @@ async function addExpense(groupId: string, overrides: Partial<CreateExpenseInput
   })
 }
 
+/** Matches a button by the end of its name, which an icon's name leads. */
+function named(text: string) {
+  return new RegExp(`(?<!\\d)${text}$`)
+}
+
 describe('ExpensePage', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] })
@@ -81,17 +86,19 @@ describe('ExpensePage', () => {
     expect(screen.getByRole('status', { name: 'Loading the expense' })).toBeInTheDocument()
   })
 
-  it('shows the description, amount, category, day and who added it', async () => {
+  it('shows the description, amount, category, day and who paid', async () => {
     const id = await createGroup()
     const expenseId = await addExpense(id)
     renderExpense(id, expenseId)
 
     expect(await screen.findByRole('heading', { name: 'Beach shack dinner' })).toBeInTheDocument()
     expect(screen.getByText('£9.00')).toBeInTheDocument()
-    expect(screen.getByText('Dining out · Mon, 5 Oct 2026')).toBeInTheDocument()
-    expect(screen.getByText('Added by you')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: named('Mon, 5 Oct 2026') })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: named('Dining out') })).toBeInTheDocument()
     expect(screen.getByText('You paid £9.00')).toBeInTheDocument()
-    expect(screen.getByRole('img', { name: 'Dining out' })).toBeInTheDocument()
+    expect(screen.getAllByRole('img', { name: 'Dining out' }).length).toBeGreaterThan(0)
+    // Who added it is in the history, not on the band.
+    expect(screen.queryByText(/^Added by/)).not.toBeInTheDocument()
     await waitFor(() => expect(document.title).toBe('Beach shack dinner · OwnLedger'))
   })
 
@@ -103,8 +110,8 @@ describe('ExpensePage', () => {
 
       expect(await screen.findByRole('heading', { name: 'You paid Priya' })).toBeInTheDocument()
       expect(screen.getByText('£45.50')).toBeInTheDocument()
-      expect(screen.getByText('Settlement · Mon, 5 Oct 2026')).toBeInTheDocument()
-      expect(screen.getByText('Added by you')).toBeInTheDocument()
+      expect(screen.getByText('Mon, 5 Oct 2026')).toBeInTheDocument()
+      expect(screen.getByText('Settlement')).toBeInTheDocument()
       await waitFor(() => expect(document.title).toBe('You paid Priya · OwnLedger'))
       expect(screen.queryByText(/^Split by/)).not.toBeInTheDocument()
       expect(screen.queryByRole('list', { name: 'Who owes' })).not.toBeInTheDocument()
@@ -124,8 +131,8 @@ describe('ExpensePage', () => {
 
       renderExpense(id, between)
       expect(await screen.findByRole('heading', { name: 'Priya paid Sam' })).toBeInTheDocument()
-      // It was recorded by Priya, who paid.
-      expect(screen.getByText('Added by Priya Shah')).toBeInTheDocument()
+      // It was recorded by Priya, who paid: the history says so.
+      expect(await screen.findByText('Priya Shah added this payment')).toBeInTheDocument()
     })
 
     it('shows its notes and receipts like any expense', async () => {
@@ -251,14 +258,14 @@ describe('ExpensePage', () => {
     expect(screen.queryByText('Receipts')).not.toBeInTheDocument()
   })
 
-  it('names who added it when it was someone else', async () => {
+  it('names who added it in the history when it was someone else', async () => {
     const priya = { email: 'priya@gmail.com', name: 'Priya Shah' }
     const id = await createGroup(priya, [me.email])
     await testDb.db.update(people).set({ name: 'Priya Shah' }).where(eq(people.email, priya.email))
     const expenseId = await addTestExpense(testDb.db, priya.email, id, { description: 'Groceries' })
     renderExpense(id, expenseId)
 
-    expect(await screen.findByText('Added by Priya Shah')).toBeInTheDocument()
+    expect(await screen.findByText('Priya Shah added this expense')).toBeInTheDocument()
   })
 
   it('has a quiet header title beside Back: "Expense", or "Payment" for a payment, a level 3 heading of 32 px, thin and in capitals, and an outlined Back button', async () => {
@@ -331,13 +338,68 @@ describe('ExpensePage', () => {
       expect(icon.style.background).toBe('')
     })
 
-    it('writes the category and day, who added it and who paid in a softer white', async () => {
+    it('shows the day and then the category as chips, like the group page, and no text lines for who added or edited it', async () => {
       const id = await createGroup()
       renderExpense(id, await addExpense(id))
 
-      for (const text of ['Dining out · Mon, 5 Oct 2026', 'Added by you', 'You paid £9.00']) {
-        expect(await screen.findByText(text)).toHaveStyle({ color: 'rgba(255, 255, 255, 0.82)' })
+      const day = await screen.findByRole('button', { name: named('Mon, 5 Oct 2026') })
+      const category = screen.getByRole('button', { name: named('Dining out') })
+      expect(band()).toContainElement(day)
+      expect(band()).toContainElement(category)
+      expect(day.compareDocumentPosition(category) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      for (const chip of [day, category]) {
+        expect(chip).toHaveStyle({ color: '#fff', background: 'rgba(0, 0, 0, 0.28)' })
       }
+      expect(screen.queryByText(/^Added by/)).not.toBeInTheDocument()
+      expect(screen.queryByText(/^Edited by/)).not.toBeInTheDocument()
+    })
+
+    it('opens the edit page from either chip', async () => {
+      const id = await createGroup()
+      const expenseId = await addExpense(id)
+      for (const chip of ['Mon, 5 Oct 2026', 'Dining out']) {
+        const { currentPath } = renderExpense(id, expenseId)
+        await userEvent.click(await screen.findByRole('button', { name: named(chip) }))
+        expect(currentPath()).toBe(ROUTES.editExpense(id, expenseId))
+        cleanup()
+      }
+    })
+
+    it('does not make the chips open the edit page for a payment or a deleted expense', async () => {
+      const id = await createGroup()
+      const payment = await addTestSettlement(testDb.db, me.email, 'priya@gmail.com', id, { date: '2026-10-05' })
+      const { currentPath, unmount } = renderExpense(id, payment)
+      await userEvent.click(await screen.findByText('Mon, 5 Oct 2026'))
+      expect(currentPath()).toBe(ROUTES.expense(id, payment))
+      unmount()
+
+      const expenseId = await addExpense(id)
+      await expenseService.deleteExpense(testDb.db, await personIdOf(testDb.db, me.email), id, expenseId)
+      const deleted = renderExpense(id, expenseId)
+      await userEvent.click(await screen.findByText('Mon, 5 Oct 2026'))
+      expect(deleted.currentPath()).toBe(ROUTES.expense(id, expenseId))
+    })
+
+    it('puts who paid below the band as a row with their picture, above the split, not on the band', async () => {
+      const id = await createGroup()
+      renderExpense(id, await addExpense(id))
+
+      const row = (await screen.findByText('You paid £9.00')).closest('[role="listitem"]') as HTMLElement
+      expect(row).not.toBeNull()
+      expect(band()).not.toContainElement(row)
+      expect((row.parentElement as HTMLElement).getAttribute('aria-label')).toBe('Who paid')
+      // The avatar (the initial, as nobody has a picture) sits beside the sentence, like the rows of the split.
+      expect(row.querySelector('.ant-avatar')).not.toBeNull()
+      expect(row.compareDocumentPosition(screen.getByText('Split equally')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
+    it('has no who-paid row on a payment, whose title says who paid whom', async () => {
+      const id = await createGroup()
+      const payment = await addTestSettlement(testDb.db, me.email, 'priya@gmail.com', id)
+      renderExpense(id, payment)
+
+      await screen.findByRole('heading', { name: 'You paid Priya' })
+      expect(screen.queryByRole('list', { name: 'Who paid' })).not.toBeInTheDocument()
     })
 
     it('keeps the split, notes and receipts below the band, in the column', async () => {
@@ -387,59 +449,17 @@ describe('ExpensePage', () => {
     expect(currentPath()).toBe(ROUTES.expense(id, payment))
   })
 
-  describe('the last edit', () => {
-    it('is not mentioned for an expense that was never edited', async () => {
+  describe('who edited it', () => {
+    it('is not written on the band, even after edits: the history says it', async () => {
       const id = await createGroup()
       const expenseId = await addExpense(id)
-      renderExpense(id, expenseId)
-
-      await screen.findByText('Added by you')
-      expect(screen.queryByText(/^Edited by/)).not.toBeInTheDocument()
-    })
-
-    it('says who edited it last and when, in the device\'s style of time', async () => {
-      const id = await createGroup()
-      const expenseId = await addExpense(id)
-      const input = await expenseInput(testDb.db, me.email, id, { description: 'Beach shack lunch' })
-      await expenseService.updateExpense(testDb.db, await personIdOf(testDb.db, me.email), id, expenseId, input)
-      renderExpense(id, expenseId)
-
-      // The clock stands at 12:00 on 8 Oct 2026; jsdom's language is US English.
-      expect(await screen.findByText(/^Edited by you, 8 Oct 2026, 12:00\s?PM$/)).toBeInTheDocument()
-    })
-
-    it('names the person when someone else edited it', async () => {
-      const id = await createGroup()
-      const expenseId = await addExpense(id)
-      const priyaId = await personIdOf(testDb.db, 'priya@gmail.com')
-      const input = await expenseInput(testDb.db, 'priya@gmail.com', id, { description: 'Beach shack lunch' })
-      await expenseService.updateExpense(testDb.db, priyaId, id, expenseId, input)
-      renderExpense(id, expenseId)
-
-      expect(await screen.findByText(/^Edited by Priya Shah, 8 Oct 2026/)).toBeInTheDocument()
-    })
-
-    it('names only the latest editor after several edits', async () => {
-      const id = await createGroup()
-      const expenseId = await addExpense(id)
-      const meId = await personIdOf(testDb.db, me.email)
       const priyaId = await personIdOf(testDb.db, 'priya@gmail.com')
       await expenseService.updateExpense(testDb.db, priyaId, id, expenseId, await expenseInput(testDb.db, 'priya@gmail.com', id, { description: 'Lunch' }))
-      vi.setSystemTime(new Date(2026, 9, 8, 15, 30))
-      await expenseService.updateExpense(testDb.db, meId, id, expenseId, await expenseInput(testDb.db, me.email, id, { description: 'Brunch' }))
       renderExpense(id, expenseId)
 
-      expect(await screen.findByText(/^Edited by you, 8 Oct 2026, 3:30\s?PM$/)).toBeInTheDocument()
-      expect(screen.queryByText(/Edited by Priya/)).not.toBeInTheDocument()
-    })
-
-    it('is not shown on a payment, which cannot be edited', async () => {
-      const id = await createGroup()
-      const payment = await addTestSettlement(testDb.db, me.email, 'priya@gmail.com', id)
-      renderExpense(id, payment)
-
-      await screen.findByRole('heading', { name: 'You paid Priya' })
+      await screen.findByRole('heading', { name: 'Lunch' })
       expect(screen.queryByText(/^Edited by/)).not.toBeInTheDocument()
+      expect(await screen.findByText('Priya Shah edited this expense')).toBeInTheDocument()
     })
   })
 

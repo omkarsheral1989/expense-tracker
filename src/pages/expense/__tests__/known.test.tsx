@@ -79,16 +79,21 @@ function renderHeld(groupId: string, expenseId: string, state?: unknown) {
 describe('the expense page while it loads, opened from the group list', () => {
   it('shows the band with the category, amount, description and day at once, titled "Expense"', async () => {
     const { groupId, expenseId } = await setUp()
-    renderHeld(groupId, expenseId, opened(groupId, expenseId))
+    const page = renderHeld(groupId, expenseId, opened(groupId, expenseId))
 
     expect(screen.getByRole('heading', { name: 'Expense', level: 3 })).toBeInTheDocument()
-    expect(screen.getByRole('img', { name: 'Dining out' })).toBeInTheDocument()
+    expect(screen.getAllByRole('img', { name: 'Dining out' }).length).toBeGreaterThan(0)
     expect(screen.getByText('£9.00')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Beach shack dinner' })).toBeInTheDocument()
-    expect(screen.getByText('Dining out · Mon, 5 Oct 2026')).toBeInTheDocument()
+    // The day and the category are chips, which cannot open the edit page until the expense is read.
+    const day = screen.getByRole('button', { name: /Mon, 5 Oct 2026$/ })
+    const category = screen.getByRole('button', { name: /Dining out$/ })
+    expect(day.compareDocumentPosition(category) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    await user.click(day)
+    expect(page.currentPath()).toBe(ROUTES.expense(groupId, expenseId))
   })
 
-  it('shows a spinner for the rest, and nothing of who added it, who paid, the split, notes or history', async () => {
+  it('shows a spinner for the rest, and nothing of who paid, the split, notes or history', async () => {
     const { groupId, expenseId } = await setUp()
     renderHeld(groupId, expenseId, opened(groupId, expenseId))
 
@@ -119,13 +124,13 @@ describe('the expense page while it loads, opened from the group list', () => {
   })
 
   describe('when the data arrives', () => {
-    it('fills in who added and paid, the split, the notes and the history, and switches Edit and Delete on', async () => {
+    it('fills in who paid, the split, the notes and the history, and switches Edit and Delete on', async () => {
       const { groupId, expenseId } = await setUp()
       const { release } = renderHeld(groupId, expenseId, opened(groupId, expenseId))
 
       release()
 
-      expect(await screen.findByText('Added by you')).toBeInTheDocument()
+      expect(await screen.findByText('You added this expense')).toBeInTheDocument()
       expect(screen.getByText('You paid £9.00')).toBeInTheDocument()
       expect(screen.getByText('Paid by card')).toBeInTheDocument()
       expect(screen.queryByRole('status', { name: 'Loading the expense' })).not.toBeInTheDocument()

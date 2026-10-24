@@ -156,9 +156,9 @@ describe('moving between pages', () => {
     expect(screen.getByRole('heading', { name: 'Dinner' })).toBeInTheDocument()
     expect(screen.getByText('£100.00')).toBeInTheDocument()
     expect(screen.getByRole('status', { name: 'Loading the expense' })).toBeInTheDocument()
-    expect(screen.queryByText(/Added by/)).not.toBeInTheDocument()
+    expect(screen.queryByText('You added this expense')).not.toBeInTheDocument()
 
-    expect(await screen.findByText('Added by you', {}, OPENING)).toBeInTheDocument()
+    expect(await screen.findByText('You added this expense', {}, OPENING)).toBeInTheDocument()
     expect(screen.queryByRole('status', { name: 'Loading the expense' })).not.toBeInTheDocument()
     slow.mockRestore()
   })
