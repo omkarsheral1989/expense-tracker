@@ -32,8 +32,10 @@ import type {
   CreateSettlementResult,
   CurrencyBalance,
   DeleteExpenseResult,
+  ExpenseCursor,
   ExpenseDetails,
   ExpenseHistoryEntry,
+  ExpensePage,
   ExpensePerson,
   ExpenseListItem,
   ExpensePayer,
@@ -241,111 +243,27 @@ const expenseServiceBase = {
    * one), each with who paid and what the user paid and owes. A deleted
    * expense is still listed, marked with who deleted it and when, so that the
    * list can show it as a line; the balances never count it. Empty for someone
-   * who is not in the group.
+   * who is not in the group. All of them: the group page reads them in batches
+   * with `listExpensesPage`.
    */
-  async listExpenses(
+  async listExpenses(db: Database, userId: string, groupId: string): Promise<ExpenseListItem[]> {
+    return (await readExpenses(db, userId, groupId, {})).items
+  },
+
+  /**
+   * The same list, `limit` rows at a time (ADR-058): the rows after `after`
+   * (nothing for the first batch), and `next`, the cursor to pass for the batch
+   * after this one, or null when there is nothing more. The cursor is the last
+   * row's date, creation time and id, compared as a row, so two expenses on one
+   * day never repeat or vanish between batches, even when one is added meanwhile.
+   */
+  async listExpensesPage(
     db: Database,
     userId: string,
     groupId: string,
-  ): Promise<ExpenseListItem[]> {
-    // Only for someone in the group.
-    const [member] = await db
-      .select({ id: groupMembers.id })
-      .from(groupMembers)
-      .where(
-        and(
-          eq(groupMembers.groupId, groupId),
-          eq(groupMembers.personId, userId),
-          isNull(groupMembers.deletedAt),
-        ),
-      )
-    if (!member) return []
-
-    const deleter = alias(people, 'deleter')
-    const rows = await db
-      .select({
-        id: expenses.id,
-        description: expenses.description,
-        category: expenses.category,
-        amountMinor: expenses.amountMinor,
-        currency: expenses.currency,
-        date: expenses.date,
-        deletedAt: expenses.deletedAt,
-        deleterId: deleter.id,
-        deleterEmail: deleter.email,
-        deleterName: shownName(deleter),
-      })
-      .from(expenses)
-      .leftJoin(deleter, eq(deleter.id, expenses.updatedBy))
-      .where(eq(expenses.groupId, groupId))
-      .orderBy(desc(expenses.date), desc(expenses.createdAt), desc(expenses.id))
-    if (rows.length === 0) return []
-
-    const shares = await db
-      .select({
-        expenseId: expenseShares.expenseId,
-        personId: expenseShares.personId,
-        paidMinor: expenseShares.paidMinor,
-        owedMinor: expenseShares.owedMinor,
-        email: people.email,
-        name: shownName(people),
-      })
-      .from(expenseShares)
-      .innerJoin(people, eq(people.id, expenseShares.personId))
-      .where(
-        and(
-          inArray(
-            expenseShares.expenseId,
-            rows.map((row) => row.id),
-          ),
-          isNull(expenseShares.deletedAt),
-        ),
-      )
-
-    return rows.map((row) => {
-      const own = shares.filter((share) => share.expenseId === row.id)
-      const mine = own.find((share) => share.personId === userId)
-      // The one who paid the most; with one payer, simply the payer.
-      const payerShare = own
-        .filter((share) => share.paidMinor > 0)
-        .sort((a, b) => b.paidMinor - a.paidMinor)[0]
-      const payer: ExpensePayer | null = payerShare
-        ? {
-            personId: payerShare.personId,
-            email: payerShare.email,
-            name: payerShare.name,
-            isYou: payerShare.personId === userId,
-          }
-        : null
-
-      // A settlement's recipient is the one who owes it all.
-      const recipientShare =
-        row.category === SETTLEMENT_CATEGORY
-          ? own.filter((share) => share.owedMinor > 0).sort((a, b) => b.owedMinor - a.owedMinor)[0]
-          : undefined
-      const recipient: ExpensePayer | undefined = recipientShare && {
-        personId: recipientShare.personId,
-        email: recipientShare.email,
-        name: recipientShare.name,
-        isYou: recipientShare.personId === userId,
-      }
-
-      const { deletedAt, deleterId, deleterEmail, deleterName, ...listed } = row
-      return {
-        ...listed,
-        payer,
-        ...(recipient && { recipient }),
-        ...(deletedAt && {
-          deleted: {
-            by: { personId: deleterId ?? '', email: deleterEmail, name: deleterName, isYou: deleterId === userId },
-            at: deletedAt,
-          },
-        }),
-        yourPaidMinor: mine?.paidMinor ?? 0,
-        yourOwedMinor: mine?.owedMinor ?? 0,
-        involved: !!mine && (mine.paidMinor > 0 || mine.owedMinor > 0),
-      }
-    })
+    { limit, after }: { limit: number; after?: ExpenseCursor | null },
+  ): Promise<ExpensePage> {
+    return readExpenses(db, userId, groupId, { limit, after })
   },
 
   /**
@@ -1066,6 +984,137 @@ const expenseServiceBase = {
       .limit(RECENT_CURRENCY_COUNT)
     return rows.map((row) => row.currency)
   },
+}
+
+/** More rows than a group can have: Postgres reads `LIMIT ALL` as no limit, and a number is simpler here. */
+const ALL_ROWS = 2_000_000_000
+
+/** The rows of a group's list (see `listExpenses`), all of them or one batch (`limit`, after the cursor `after`). */
+async function readExpenses(
+  db: Database,
+  userId: string,
+  groupId: string,
+  { limit, after }: { limit?: number; after?: ExpenseCursor | null },
+): Promise<ExpensePage> {
+    // Only for someone in the group.
+    const [member] = await db
+      .select({ id: groupMembers.id })
+      .from(groupMembers)
+      .where(
+        and(
+          eq(groupMembers.groupId, groupId),
+          eq(groupMembers.personId, userId),
+          isNull(groupMembers.deletedAt),
+        ),
+      )
+    if (!member) return { items: [], next: null }
+
+    const deleter = alias(people, 'deleter')
+    const rows = await db
+      .select({
+        id: expenses.id,
+        description: expenses.description,
+        category: expenses.category,
+        amountMinor: expenses.amountMinor,
+        currency: expenses.currency,
+        date: expenses.date,
+        deletedAt: expenses.deletedAt,
+        // As text, so the cursor keeps the stored time to the microsecond.
+        createdAtText: sql<string>`${expenses.createdAt}::text`,
+        deleterId: deleter.id,
+        deleterEmail: deleter.email,
+        deleterName: shownName(deleter),
+      })
+      .from(expenses)
+      .leftJoin(deleter, eq(deleter.id, expenses.updatedBy))
+      .where(
+        and(
+          eq(expenses.groupId, groupId),
+          after
+            ? sql`(${expenses.date}, ${expenses.createdAt}, ${expenses.id}) < (${after.date}::date, ${after.createdAt}::timestamptz, ${after.id}::uuid)`
+            : undefined,
+        ),
+      )
+      .orderBy(desc(expenses.date), desc(expenses.createdAt), desc(expenses.id))
+      // One more than asked for, to know whether there is a next batch.
+      .limit(limit === undefined ? ALL_ROWS : limit + 1)
+    const more = limit !== undefined && rows.length > limit
+    if (more) rows.pop()
+    const last = rows.at(-1)
+    const next: ExpenseCursor | null = more && last ? { date: last.date, createdAt: last.createdAtText, id: last.id } : null
+    if (rows.length === 0) return { items: [], next: null }
+
+    const shares = await db
+      .select({
+        expenseId: expenseShares.expenseId,
+        personId: expenseShares.personId,
+        paidMinor: expenseShares.paidMinor,
+        owedMinor: expenseShares.owedMinor,
+        email: people.email,
+        name: shownName(people),
+      })
+      .from(expenseShares)
+      .innerJoin(people, eq(people.id, expenseShares.personId))
+      .where(
+        and(
+          inArray(
+            expenseShares.expenseId,
+            rows.map((row) => row.id),
+          ),
+          isNull(expenseShares.deletedAt),
+        ),
+      )
+
+    const items = rows.map((row) => {
+      const own = shares.filter((share) => share.expenseId === row.id)
+      const mine = own.find((share) => share.personId === userId)
+      // The one who paid the most; with one payer, simply the payer.
+      const payerShare = own
+        .filter((share) => share.paidMinor > 0)
+        .sort((a, b) => b.paidMinor - a.paidMinor)[0]
+      const payer: ExpensePayer | null = payerShare
+        ? {
+            personId: payerShare.personId,
+            email: payerShare.email,
+            name: payerShare.name,
+            isYou: payerShare.personId === userId,
+          }
+        : null
+
+      // A settlement's recipient is the one who owes it all.
+      const recipientShare =
+        row.category === SETTLEMENT_CATEGORY
+          ? own.filter((share) => share.owedMinor > 0).sort((a, b) => b.owedMinor - a.owedMinor)[0]
+          : undefined
+      const recipient: ExpensePayer | undefined = recipientShare && {
+        personId: recipientShare.personId,
+        email: recipientShare.email,
+        name: recipientShare.name,
+        isYou: recipientShare.personId === userId,
+      }
+
+      const { deletedAt, deleterId, deleterEmail, deleterName } = row
+      return {
+        id: row.id,
+        description: row.description,
+        category: row.category,
+        amountMinor: row.amountMinor,
+        currency: row.currency,
+        date: row.date,
+        payer,
+        ...(recipient && { recipient }),
+        ...(deletedAt && {
+          deleted: {
+            by: { personId: deleterId ?? '', email: deleterEmail, name: deleterName, isYou: deleterId === userId },
+            at: deletedAt,
+          },
+        }),
+        yourPaidMinor: mine?.paidMinor ?? 0,
+        yourOwedMinor: mine?.owedMinor ?? 0,
+        involved: !!mine && (mine.paidMinor > 0 || mine.owedMinor > 0),
+      }
+    })
+    return { items, next }
 }
 
 /** expenseService with one log line per action (ADR-048). */

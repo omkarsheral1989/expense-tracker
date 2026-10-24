@@ -118,6 +118,12 @@ export type ExpenseListItem = {
   deleted?: { by: ExpensePayer; at: Date }
 }
 
+/** Where the next batch of a group's list starts (ADR-058): the last row's date, creation time (as stored) and id. */
+export type ExpenseCursor = { date: string; createdAt: string; id: string }
+
+/** One batch of a group's list, and the cursor of the batch after it (null when there is none). */
+export type ExpensePage = { items: ExpenseListItem[]; next: ExpenseCursor | null }
+
 /** One person's part in a new expense. */
 export type ShareAmounts = {
   personId: string

@@ -107,3 +107,6 @@ export const DEFAULT_CATEGORY = 'general'
 
 /** How many recently used currencies the currency picker lists first. */
 export const RECENT_CURRENCY_COUNT = 3
+
+/** How many expenses the group page reads at a time (ADR-058). */
+export const EXPENSE_PAGE_SIZE = 30
