@@ -34,8 +34,10 @@ export type ManagedPerson = {
   localName: string | null
   /** The address of their Google picture, once known (ADR-046). */
   picture: string | null
-  /** Nobody has seen them sign in and sync in any group, so their email can still be set. */
+  /** Nobody has seen them sign in and sync in any group, so their email can still be set. Never true for the user. */
   pending: boolean
+  /** The user themself, listed first; only their name can be changed here. */
+  isYou: boolean
 }
 
 /** What the edit dialog sends: the name this device uses for the person (required), and, while they are pending, their email. */

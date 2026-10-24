@@ -77,24 +77,26 @@ const personServiceBase = {
   },
 
   /**
-   * Everyone saved on this device except the user, for the members page, by the
-   * name shown (a person with none, by email). `pending` is true until this
-   * device has read the person's own file in some group (ADR-044).
+   * Everyone saved on this device, for the members page: the user first, then
+   * the others by the name shown (a person with none, by email). `pending` is
+   * true until this device has read the person's own file in some group
+   * (ADR-044), and never for the user.
    */
   async listManaged(db: Database, userId: string): Promise<ManagedPerson[]> {
     const rows = await db
       .select({ id: people.id, email: people.email, sharedName: people.name, localName: people.localName, picture: people.picture })
       .from(people)
-      .where(and(isNull(people.deletedAt), ne(people.id, userId)))
+      .where(isNull(people.deletedAt))
     const scopes = await db.select({ scope: syncStatus.scope }).from(syncStatus)
     const seen = new Set(
       scopes.filter(({ scope }) => scope.startsWith('member:')).map(({ scope }) => scope.slice(scope.lastIndexOf(':') + 1)),
     )
     const label = (person: { localName: string | null; sharedName: string | null; email: string | null }) =>
       (person.localName ?? person.sharedName ?? person.email ?? '').toLowerCase()
+    // The user first, then everyone else A to Z.
     return rows
-      .map((row) => ({ ...row, pending: !seen.has(row.id) }))
-      .sort((a, b) => label(a).localeCompare(label(b)))
+      .map((row) => ({ ...row, isYou: row.id === userId, pending: row.id !== userId && !seen.has(row.id) }))
+      .sort((a, b) => Number(b.isYou) - Number(a.isYou) || label(a).localeCompare(label(b)))
   },
 
   /**
@@ -111,13 +113,14 @@ const personServiceBase = {
   ): Promise<UpdatePersonResult> {
     const parsed = updatePersonSchema.safeParse(input)
     if (!parsed.success) return { ok: false, errors: toUpdateFieldErrors(parsed.error) }
-    const { email } = parsed.data
+    // The user's own email comes from their Google account: only their name can be set here.
+    const email = personId === userId ? undefined : parsed.data.email
 
     return db.transaction(async (tx): Promise<UpdatePersonResult> => {
       const [person] = await tx
         .select({ id: people.id, email: people.email, name: people.name, localName: people.localName })
         .from(people)
-        .where(and(eq(people.id, personId), isNull(people.deletedAt), ne(people.id, userId)))
+        .where(and(eq(people.id, personId), isNull(people.deletedAt)))
       if (!person) return { ok: false, notFound: true }
 
       // A name equal to the shared one is no local name at all.

@@ -187,7 +187,7 @@ describe('personService.addPerson', () => {
 })
 
 describe('personService.listManaged', () => {
-  it('lists everyone but the user, by the name shown (the local name, else the shared name, else the email)', async () => {
+  it('lists the user first, then everyone else by the name shown (the local name, else the shared name, else the email)', async () => {
     const sam = await addTestPerson(db, omkar, { name: 'Sam' })
     await addTestPerson(db, omkar, { name: 'Zoe' })
     await addTestPerson(db, omkar, { name: 'Alan', email: 'alan@gmail.com' })
@@ -196,19 +196,32 @@ describe('personService.listManaged', () => {
 
     const list = await personService.listManaged(db, adderId)
 
-    expect(list.map((person) => person.localName ?? person.sharedName ?? person.email)).toEqual([
+    const others = list.filter((person) => !person.isYou)
+    expect(list[0].id).toBe(adderId)
+    expect(others.map((person) => person.localName ?? person.sharedName ?? person.email)).toEqual([
       'Aaron',
       'alan@gmail.com',
       'Zoe',
     ])
-    expect(list.find((person) => person.id === sam)).toMatchObject({ sharedName: 'Sam', localName: 'Aaron' })
-    expect(list.some((person) => person.id === adderId)).toBe(false)
+    expect(list.find((person) => person.id === sam)).toMatchObject({ sharedName: 'Sam', localName: 'Aaron', isYou: false })
+    expect(list.filter((person) => person.isYou)).toHaveLength(1)
   })
 
   it('leaves out deleted people', async () => {
     const gone = await addTestPerson(db, omkar, { name: 'Old friend' })
     await db.update(people).set({ deletedAt: new Date() }).where(eq(people.id, gone))
-    expect(await personService.listManaged(db, adderId)).toEqual([])
+    expect((await personService.listManaged(db, adderId)).map((person) => person.id)).toEqual([adderId])
+  })
+
+  it('puts the user first even when their name sorts last, and never calls them pending, synced or not', async () => {
+    await addTestPerson(db, omkar, { name: 'Aaron' })
+    await db.update(people).set({ name: 'Zed Last' }).where(eq(people.id, adderId))
+
+    const list = await personService.listManaged(db, adderId)
+
+    expect(list.map((person) => person.sharedName)).toEqual(['Zed Last', 'Aaron'])
+    expect(list[0]).toMatchObject({ isYou: true, pending: false })
+    expect(list[1]).toMatchObject({ isYou: false, pending: true })
   })
 
   it('says who is pending: nobody whose own file this device has read in any group', async () => {
@@ -225,7 +238,8 @@ describe('personService.listManaged', () => {
   it('carries the picture address', async () => {
     const priya = await addTestPerson(db, omkar, { name: 'Priya' })
     await db.update(people).set({ picture: 'https://example.com/p.png' }).where(eq(people.id, priya))
-    expect((await personService.listManaged(db, adderId))[0].picture).toBe('https://example.com/p.png')
+    const list = await personService.listManaged(db, adderId)
+    expect(list.find((person) => person.id === priya)?.picture).toBe('https://example.com/p.png')
   })
 })
 
@@ -293,13 +307,46 @@ describe('personService.updatePerson', () => {
     expect(await update(zoe, { localName: 'BOSS' })).toEqual({ ok: true })
   })
 
-  it('refuses a person who is not there, who was deleted, or the user themself', async () => {
+  it('refuses a person who is not there, or who was deleted', async () => {
     const gone = await addTestPerson(db, omkar, { name: 'Old friend' })
     await db.update(people).set({ deletedAt: new Date() }).where(eq(people.id, gone))
 
-    for (const id of [crypto.randomUUID(), gone, adderId]) {
+    for (const id of [crypto.randomUUID(), gone]) {
       expect(await update(id, { localName: 'Anyone' })).toEqual({ ok: false, notFound: true })
     }
+  })
+
+  describe('the user themself', () => {
+    it('can be given a name only this device uses, leaving their shared name, email and row time alone', async () => {
+      const before = await rowOf(adderId)
+
+      expect(await update(adderId, { localName: 'Me, myself' })).toEqual({ ok: true })
+
+      expect(await rowOf(adderId)).toMatchObject({
+        name: before.name,
+        email: before.email,
+        localName: 'Me, myself',
+        updatedAt: before.updatedAt,
+        updatedBy: before.updatedBy,
+      })
+    })
+
+    it('keeps their email whatever is sent: it comes from their Google account', async () => {
+      const before = await rowOf(adderId)
+
+      expect(await update(adderId, { localName: before.name ?? 'Omkar', email: 'other@gmail.com' })).toEqual({ ok: true })
+
+      expect((await rowOf(adderId)).email).toBe(before.email)
+    })
+
+    it('cannot take a name that is shown for someone else', async () => {
+      await addTestPerson(db, omkar, { name: 'Priya' })
+
+      expect(await update(adderId, { localName: 'priya' })).toEqual({
+        ok: false,
+        errors: { localName: 'You already have someone called Priya.' },
+      })
+    })
   })
 
   describe('the email', () => {
