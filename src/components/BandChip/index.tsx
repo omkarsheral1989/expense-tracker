@@ -20,17 +20,22 @@ type Props = {
   tip?: string
   /** The text's size in pixels; leave out for the button's own. */
   fontSize?: number
+  /** Marks the chip, and its text inside it, as pieces that travel between a group's row and its page (PRD 5.16): `currency` or `people`. */
+  vt?: string
 }
 
 /** A translucent dark pill on the colored band, holding a short fact or an action. */
-export function BandChip({ icon, children, onClick, comingSoon, disabled, tip, fontSize }: Props) {
+export function BandChip({ icon, children, onClick, comingSoon, disabled, tip, fontSize, vt }: Props) {
   const chip = (
     <Button
       type="text"
       size="small"
-      icon={icon}
+      // On the members chip the icon is a piece of its own, which the row's empty 0 x 0 px piece grows into (PRD 5.16).
+      icon={vt === 'people' && icon ? <span data-vt="peopleIcon" style={{ display: 'inline-flex' }}>{icon}</span> : icon}
       disabled={comingSoon || disabled}
       onClick={onClick}
+      // The pill is a piece too, which a plain box around the text in a group's row grows into (PRD 5.16).
+      data-vt={vt ? `${vt}Chip` : undefined}
       // A chip with no action only shows information, so it is not clickable.
       style={{
         padding: '0 14px',
@@ -45,7 +50,14 @@ export function BandChip({ icon, children, onClick, comingSoon, disabled, tip, f
         cursor: onClick ? 'pointer' : 'default',
       }}
     >
-      {children}
+      {/* The text alone is the piece that travels from a group's row (PRD 5.16), not the pill around it. */}
+      {vt ? (
+        <span data-vt={vt} style={{ display: 'inline-block' }}>
+          {children}
+        </span>
+      ) : (
+        children
+      )}
     </Button>
   )
 

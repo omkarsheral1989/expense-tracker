@@ -99,3 +99,90 @@ html[data-nav='back']::view-transition-new(root) {
     animation: none !important;
   }
 }
+
+/* Opening a group from the list, and back (PRD 5.16, ADR-060): the pieces that exist on both pages (named by `hero.ts`) move, and the rest of
+   the screen cross-fades or slides under them. The time is `--group-open-ms`, the curve `--group-open-ease`, a gentle ease-in-out so the movement
+   is seen over the whole time (a quick-start curve finished the slide in the first tenth of it); `data-group-rest` says what the rest does. */
+html {
+  --group-open-ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+html[data-nav='open-group']::view-transition-group(*),
+html[data-nav='close-group']::view-transition-group(*),
+html[data-nav='open-group']::view-transition-old(root),
+html[data-nav='open-group']::view-transition-new(root),
+html[data-nav='close-group']::view-transition-old(root),
+html[data-nav='close-group']::view-transition-new(root) {
+  animation-duration: var(--group-open-ms, 600ms);
+  animation-timing-function: var(--group-open-ease);
+}
+
+/* The band's two pictures (the row's colored block and the page's band) are drawn to fill the box that morphs between them, not at their own
+   proportions, which would keep the square block square under the growing band. The pieces on top of it are named apart, so only the flat color and the gradient stretch. */
+html[data-nav='open-group']::view-transition-old(group-band),
+html[data-nav='open-group']::view-transition-new(group-band),
+html[data-nav='close-group']::view-transition-old(group-band),
+html[data-nav='close-group']::view-transition-new(group-band),
+html[data-nav='open-group']::view-transition-old(group-currency-chip),
+html[data-nav='open-group']::view-transition-new(group-currency-chip),
+html[data-nav='close-group']::view-transition-old(group-currency-chip),
+html[data-nav='close-group']::view-transition-new(group-currency-chip),
+html[data-nav='open-group']::view-transition-old(group-people-chip),
+html[data-nav='open-group']::view-transition-new(group-people-chip),
+html[data-nav='close-group']::view-transition-old(group-people-chip),
+html[data-nav='close-group']::view-transition-new(group-people-chip),
+html[data-nav='open-group']::view-transition-old(group-people-icon),
+html[data-nav='open-group']::view-transition-new(group-people-icon),
+html[data-nav='close-group']::view-transition-old(group-people-icon),
+html[data-nav='close-group']::view-transition-new(group-people-icon) {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: fill;
+}
+
+/* The corners of the morphing band: the card's rounded left corners (`--group-row-radius`) straighten while the block grows into the band, and come back when it shrinks into the row. */
+html[data-nav='open-group']::view-transition-image-pair(group-band),
+html[data-nav='close-group']::view-transition-image-pair(group-band) {
+  overflow: clip;
+  animation-duration: var(--group-open-ms, 600ms);
+  animation-timing-function: var(--group-open-ease);
+  animation-fill-mode: both;
+}
+html[data-nav='open-group']::view-transition-image-pair(group-band) {
+  animation-name: group-band-straighten;
+}
+html[data-nav='close-group']::view-transition-image-pair(group-band) {
+  animation-name: group-band-round;
+}
+@keyframes group-band-straighten {
+  from { border-radius: var(--group-row-radius, 24px) 0 0 var(--group-row-radius, 24px); }
+  to { border-radius: 0; }
+}
+@keyframes group-band-round {
+  from { border-radius: 0; }
+  to { border-radius: var(--group-row-radius, 24px) 0 0 var(--group-row-radius, 24px); }
+}
+
+/* `data-group-rest='slide'`: the rest of the screen moves as in a page slide while the pieces morph. Opening: the list moves left and fades, the group's page comes
+   in from the right. Closing is the mirror: the group's page moves right and fades, the list comes in from the left. */
+html[data-nav='open-group'][data-group-rest='slide']::view-transition-old(root) {
+  animation-name: group-rest-out-left;
+}
+html[data-nav='open-group'][data-group-rest='slide']::view-transition-new(root) {
+  animation-name: page-in-right;
+}
+html[data-nav='close-group'][data-group-rest='slide']::view-transition-old(root) {
+  animation-name: group-rest-out-right;
+  z-index: 2;
+}
+html[data-nav='close-group'][data-group-rest='slide']::view-transition-new(root) {
+  animation-name: group-rest-in-left;
+}
+@keyframes group-rest-out-left {
+  to { transform: translateX(-30%); opacity: 0; }
+}
+@keyframes group-rest-out-right {
+  to { transform: translateX(100%); opacity: 0; }
+}
+@keyframes group-rest-in-left {
+  from { transform: translateX(-30%); opacity: 0; }
+}
