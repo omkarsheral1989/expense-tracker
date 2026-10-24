@@ -1,21 +1,18 @@
 import { DeleteOutlined, EditOutlined, UndoOutlined } from '@ant-design/icons'
-import { App, Flex, Typography } from 'antd'
+import { App, Flex } from 'antd'
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import { BandIconButton } from '../../../../components/BandIconButton'
 import { ExpenseBody } from '../../../../components/ExpenseBody'
-import { displayName } from '../../../../components/ExpenseWording'
 import { getDb } from '../../../../db/client.ts'
 import { ROUTES } from '../../../../routes.ts'
-import { dateService } from '../../../../services/dateService'
 import { expenseService } from '../../../../services/expenseService'
+import { groupService } from '../../../../services/groupService'
 import type { ExpenseDetails } from '../../../../services/expenseService/types.ts'
-import { aboveScreenEdge } from '../../../../theme/safeArea.ts'
+import { aboveScreenEdge, UNDER_BAND_PADDING } from '../../../../theme/safeArea.ts'
+import { PaymentRow } from '../PaymentRow'
 import { ExpenseBand } from './ExpenseBand'
-import { SOFT_WHITE } from './ExpenseBand/style.ts'
 import { History } from './History'
-
-const { Text } = Typography
 
 type Props = {
   expense: ExpenseDetails
@@ -28,10 +25,10 @@ type Props = {
 }
 
 /**
- * One expense: its category, description, amount and day, who added it, who paid and who edited it last, how
- * it was split and what each person owes, its notes and its receipt photos. Edit opens
+ * One expense: its category, description, amount and day, who paid, how
+ * it was split and what each person owes, its notes, its receipt photos and its history. Edit opens
  * the edit page (not for a payment); Delete asks first and then removes the expense or payment.
- * A deleted expense is shown read-only, with Restore in place of Edit and Delete, and who deleted it and when.
+ * A deleted expense is shown read-only, with Restore in place of Edit and Delete; its history says who deleted it and when.
  */
 export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props) {
   const navigate = useNavigate()
@@ -108,13 +105,18 @@ export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props)
     return noun === 'payment' ? 'Payment' : 'Expense'
   }
 
-  function renderDeleted() {
-    if (!expense.deleted) return null
-    const { by, at } = expense.deleted
+  // A payment is worded by who paid whom, in a row below the band.
+  function renderPayment() {
+    if (!isSettlement) return null
+    const payer = expense.shares.find((share) => share.paidMinor > 0)
+    const recipient = expense.shares.find((share) => share.owedMinor > 0)
+    if (!payer || !recipient) return null
     return (
-      <Text style={{ color: SOFT_WHITE }}>
-        Deleted by {by.isYou ? 'you' : displayName(by)}, {dateService.formatDateTime(at, navigator.language)}
-      </Text>
+      <PaymentRow
+        payer={{ name: payer.isYou ? 'You' : groupService.shortName(payer), picture: payer.picture }}
+        recipient={{ name: recipient.isYou ? 'You' : groupService.shortName(recipient), picture: recipient.picture }}
+        label={expenseService.titleOf(expense)}
+      />
     )
   }
 
@@ -125,10 +127,10 @@ export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props)
         title={renderTitle()}
         actions={renderActions()}
         onEdit={expense.deleted || isSettlement ? undefined : () => navigate(ROUTES.editExpense(expense.groupId, expense.id))}
-        after={renderDeleted()}
       />
       {/* Below the band, in a column about 560 px wide. */}
-      <Flex vertical style={{ width: '100%', maxWidth: 560, margin: '0 auto', padding: `24px 16px ${aboveScreenEdge(24)}` }}>
+      <Flex vertical style={{ width: '100%', maxWidth: 560, margin: '0 auto', padding: `${UNDER_BAND_PADDING}px 16px ${aboveScreenEdge(24)}` }}>
+        {renderPayment()}
         <ExpenseBody
           withoutSummary
           description={expense.description}

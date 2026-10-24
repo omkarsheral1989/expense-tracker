@@ -108,7 +108,7 @@ describe('ExpensePage', () => {
       const expenseId = await addTestSettlement(testDb.db, me.email, 'priya@gmail.com', id, { amountMinor: 4550, date: '2026-10-05' })
       renderExpense(id, expenseId)
 
-      expect(await screen.findByRole('heading', { name: 'You paid Priya' })).toBeInTheDocument()
+      expect(await screen.findByRole('group', { name: 'You paid Priya' })).toBeInTheDocument()
       expect(screen.getByText('£45.50')).toBeInTheDocument()
       expect(screen.getByText('Mon, 5 Oct 2026')).toBeInTheDocument()
       expect(screen.getByText('Settlement')).toBeInTheDocument()
@@ -126,13 +126,39 @@ describe('ExpensePage', () => {
       const between = await addTestSettlement(testDb.db, 'priya@gmail.com', 'sam@gmail.com', id)
 
       renderExpense(id, toYou)
-      expect(await screen.findByRole('heading', { name: 'Priya paid you' })).toBeInTheDocument()
+      expect(await screen.findByRole('group', { name: 'Priya paid you' })).toBeInTheDocument()
       cleanup()
 
       renderExpense(id, between)
-      expect(await screen.findByRole('heading', { name: 'Priya paid Sam' })).toBeInTheDocument()
+      expect(await screen.findByRole('group', { name: 'Priya paid Sam' })).toBeInTheDocument()
       // It was recorded by Priya, who paid: the history says so.
       expect(await screen.findByText('Priya Shah added this payment')).toBeInTheDocument()
+    })
+
+    it('shows who paid whom in a row below the band: the payer, "paid" and the recipient, each with an avatar and a first name', async () => {
+      const id = await createGroup()
+      const payment = await addTestSettlement(testDb.db, me.email, 'priya@gmail.com', id)
+      renderExpense(id, payment)
+
+      const row = await screen.findByRole('group', { name: 'You paid Priya' })
+      // "You" first (with the initial as avatar), then "paid", then the recipient by first name (saved as Priya Shah).
+      expect(row.textContent).toBe('YYoupaidPPriya')
+      expect(row.querySelectorAll('.ant-avatar')).toHaveLength(2)
+      // Below the band, not on it, and the band has no line about it.
+      const header = screen.getByRole('heading', { name: 'Payment', level: 3 })
+      const band = header.closest('div[style*="gradient"]') as HTMLElement
+      expect(band).not.toContainElement(row)
+      expect(screen.queryByRole('heading', { name: 'You paid Priya' })).not.toBeInTheDocument()
+      expect(within(band).getAllByRole('heading')).toHaveLength(1)
+    })
+
+    it('names the recipient "You" when the payment was made to you, and keeps the payer first', async () => {
+      const id = await createGroup()
+      const payment = await addTestSettlement(testDb.db, 'priya@gmail.com', me.email, id)
+      renderExpense(id, payment)
+
+      const row = await screen.findByRole('group', { name: 'Priya paid you' })
+      expect(row.textContent).toBe('PPriyapaidYYou')
     })
 
     it('shows its notes and receipts like any expense', async () => {
@@ -398,7 +424,7 @@ describe('ExpensePage', () => {
       const payment = await addTestSettlement(testDb.db, me.email, 'priya@gmail.com', id)
       renderExpense(id, payment)
 
-      await screen.findByRole('heading', { name: 'You paid Priya' })
+      await screen.findByRole('group', { name: 'You paid Priya' })
       expect(screen.queryByRole('list', { name: 'Who paid' })).not.toBeInTheDocument()
     })
 

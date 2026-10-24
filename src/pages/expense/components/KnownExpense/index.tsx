@@ -1,17 +1,14 @@
 import { DeleteOutlined, EditOutlined, UndoOutlined } from '@ant-design/icons'
-import { Flex, Typography } from 'antd'
+import { Flex } from 'antd'
 import { BandIconButton } from '../../../../components/BandIconButton'
-import { displayName } from '../../../../components/ExpenseWording'
 import { LoadingMessage } from '../../../../components/LoadingMessage'
-import { dateService } from '../../../../services/dateService'
 import { expenseService } from '../../../../services/expenseService'
-import { aboveScreenEdge } from '../../../../theme/safeArea.ts'
+import { groupService } from '../../../../services/groupService'
+import { aboveScreenEdge, UNDER_BAND_PADDING } from '../../../../theme/safeArea.ts'
 import type { KnownExpense } from '../../types.ts'
 import { knownTitle } from '../../utils.ts'
+import { PaymentRow, type PaymentSide } from '../PaymentRow'
 import { ExpenseBand } from '../ExpenseDetails/ExpenseBand'
-import { SOFT_WHITE } from '../ExpenseDetails/ExpenseBand/style.ts'
-
-const { Text } = Typography
 
 type Props = {
   expense: KnownExpense
@@ -43,14 +40,14 @@ export function KnownExpensePage({ expense }: Props) {
     )
   }
 
-  function renderDeleted() {
-    if (!expense.deleted) return null
-    const { by, at } = expense.deleted
-    return (
-      <Text style={{ color: SOFT_WHITE }}>
-        Deleted by {by.isYou ? 'you' : displayName(by)}, {dateService.formatDateTime(at, navigator.language)}
-      </Text>
-    )
+  function sideOf(person: NonNullable<KnownExpense['payer']>): PaymentSide {
+    return { name: person.isYou ? 'You' : groupService.shortName(person) }
+  }
+
+  // A payment shows who paid whom below the band at once, as the full page does.
+  function renderPayment() {
+    if (!expense.payer || !expense.recipient) return null
+    return <PaymentRow payer={sideOf(expense.payer)} recipient={sideOf(expense.recipient)} label={knownTitle(expense)} />
   }
 
   return (
@@ -58,11 +55,10 @@ export function KnownExpensePage({ expense }: Props) {
       <ExpenseBand
         expense={expense}
         title={renderTitle()}
-        headline={knownTitle(expense)}
         actions={renderActions()}
-        after={renderDeleted()}
       />
-      <Flex vertical style={{ flex: 1, width: '100%', maxWidth: 560, margin: '0 auto', padding: `0 16px ${aboveScreenEdge(24)}` }}>
+      <Flex vertical style={{ flex: 1, width: '100%', maxWidth: 560, margin: '0 auto', padding: `${UNDER_BAND_PADDING}px 16px ${aboveScreenEdge(24)}` }}>
+        {renderPayment()}
         <LoadingMessage label="Loading the expense" />
       </Flex>
     </Flex>

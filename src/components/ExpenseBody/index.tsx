@@ -1,5 +1,4 @@
 import { Divider, Flex, Typography } from 'antd'
-import type { ReactNode } from 'react'
 import type { SplitMethod } from '../../db/types.ts'
 import { dateService } from '../../services/dateService'
 import { expenseService } from '../../services/expenseService'
@@ -26,8 +25,6 @@ type Props = {
   receipts: { id: string; mimeType: string }[]
   /** Names the device's photo store, which holds the receipts. */
   datasetId: string
-  /** Lines after who paid ("Edited by …", "Deleted by …"). */
-  after?: ReactNode
   /**
    * True when the page shows the summary itself (the expense page draws it on its colored band);
    * only the split, notes and receipts are then drawn. False (the default) draws the summary too.
@@ -39,8 +36,7 @@ type Props = {
  * An expense as the details page and the version page show it: its category
  * tile, title, amount, category and day, who paid, how it was split and what
  * each person owes, its notes and its receipt photos. A payment is titled by
- * who paid whom and has no payer line or split. The page puts what is its own
- * (when it was deleted) in `after`.
+ * who paid whom and has no payer line or split.
  */
 export function ExpenseBody({
   description,
@@ -53,7 +49,6 @@ export function ExpenseBody({
   shares,
   receipts,
   datasetId,
-  after,
   withoutSummary = false,
 }: Props) {
   const categoryOf = expenseService.categoryOf(category)
@@ -86,7 +81,6 @@ export function ExpenseBody({
             {dateService.formatDay(date, dateService.toDay(new Date()))}
           </Text>
           {renderPayers()}
-          {after}
         </Flex>
       </Flex>
     )

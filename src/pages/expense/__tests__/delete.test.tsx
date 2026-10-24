@@ -109,7 +109,7 @@ describe('ExpensePage: deleting', () => {
       const id = await createGroup()
       const payment = await addTestSettlement(testDb.db, me.email, 'priya@gmail.com', id)
       renderExpense(id, payment)
-      await screen.findByRole('heading', { name: 'You paid Priya' })
+      await screen.findByRole('group', { name: 'You paid Priya' })
 
       await user.click(deleteButton())
 
@@ -152,7 +152,7 @@ describe('ExpensePage: deleting', () => {
       const id = await createGroup()
       const payment = await addTestSettlement(testDb.db, me.email, 'priya@gmail.com', id)
       const page = renderExpense(id, payment)
-      await screen.findByRole('heading', { name: 'You paid Priya' })
+      await screen.findByRole('group', { name: 'You paid Priya' })
       await user.click(deleteButton())
 
       await user.click(within(await confirmDialog('Delete this payment?')).getByRole('button', { name: 'Delete' }))
@@ -230,7 +230,9 @@ describe('ExpensePage: deleting', () => {
       expect(await screen.findByRole('heading', { name: 'Beach shack dinner' })).toBeInTheDocument()
       expect(screen.queryByRole('button', { name: /Edit$/ })).not.toBeInTheDocument()
       expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
-      expect(screen.getByText(/^Deleted by you, 21 Oct 2026, 3:45\s?PM$/)).toBeInTheDocument()
+      // Who deleted it and when is in the history, not on the band.
+      expect(screen.queryByText(/^Deleted by/)).not.toBeInTheDocument()
+      expect(screen.getByText('You deleted this expense')).toBeInTheDocument()
       await user.click(screen.getByRole('button', { name: 'Back' }))
       expect(page.currentPath()).toBe(ROUTES.group(id))
     })
@@ -256,7 +258,7 @@ describe('ExpensePage: deleting', () => {
 
       renderExpense(id, payment)
       expect(await screen.findByRole('heading', { name: 'Deleted payment' })).toBeInTheDocument()
-      expect(screen.getByRole('heading', { name: 'You paid Priya' })).toBeInTheDocument()
+      expect(screen.getByRole('group', { name: 'You paid Priya' })).toBeInTheDocument()
     })
 
     it('names someone else who deleted it', async () => {
@@ -265,7 +267,8 @@ describe('ExpensePage: deleting', () => {
       await remove('priya@gmail.com', id, expenseId)
       renderExpense(id, expenseId)
 
-      expect(await screen.findByText(/^Deleted by Priya Shah, 21 Oct 2026/)).toBeInTheDocument()
+      expect(await screen.findByText('Priya Shah deleted this expense')).toBeInTheDocument()
+      expect(screen.queryByText(/^Deleted by/)).not.toBeInTheDocument()
     })
 
     it('still shows what it was: the amount, the split, the notes', async () => {
@@ -280,13 +283,13 @@ describe('ExpensePage: deleting', () => {
       expect(screen.getByText('Card')).toBeInTheDocument()
     })
 
-    it('has no "Deleted by" line while it is not deleted', async () => {
+    it('has no deletion in its history while it is not deleted', async () => {
       const id = await createGroup()
       const expenseId = await addExpense(id)
       renderExpense(id, expenseId)
 
       await screen.findByText('You added this expense')
-      expect(screen.queryByText(/^Deleted by/)).not.toBeInTheDocument()
+      expect(screen.queryByText(/ deleted this expense$/)).not.toBeInTheDocument()
     })
 
     it('starts its history with "You deleted this expense", even if it was never edited', async () => {
@@ -332,7 +335,7 @@ describe('ExpensePage: deleting', () => {
       cleanup()
 
       renderExpense(id, payment)
-      await screen.findByRole('heading', { name: 'You paid Priya' })
+      await screen.findByRole('group', { name: 'You paid Priya' })
       await screen.findByText('History')
       const paymentHeaders = [...screen.getByRole('list', { name: 'History' }).children].map((entry) => entry.textContent?.split(' · ')[0])
       expect(paymentHeaders).toEqual(['You deleted this payment', 'You added this payment'])

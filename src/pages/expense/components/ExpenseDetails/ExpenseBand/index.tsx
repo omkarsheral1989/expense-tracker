@@ -12,7 +12,7 @@ import { moneyService } from '../../../../../services/moneyService'
 import { bandBackground } from '../../../../../theme/bandBackground.ts'
 import { CATEGORY_GROUP_COLORS } from '../../../../../theme/categoryColors.ts'
 import { HEADER_TITLE_STYLE } from '../../../../../theme/headerTitle.ts'
-import { belowStatusBar, HEADER_TOP_PADDING } from '../../../../../theme/safeArea.ts'
+import { BAND_BOTTOM_PADDING, belowStatusBar, HEADER_TOP_PADDING } from '../../../../../theme/safeArea.ts'
 import { useNavigate } from 'react-router'
 import { TEXT_SHADOW } from './style.ts'
 
@@ -31,23 +31,20 @@ type Props = {
   title: string
   /** The buttons at the right of the header (Edit and Delete, or Restore). */
   actions: ReactNode
-  /** What to call the expense instead of its description: a payment's "You paid Priya", for a payment known from the list (no shares yet). */
-  headline?: string
   /** Opens the edit page when the date or category chip is pressed; left out when the expense cannot be edited (a payment, a deleted expense, one still loading). */
   onEdit?: () => void
-  /** Lines after who paid ("Edited by …", "Deleted by …"). */
-  after: ReactNode
 }
 
 /**
  * The colored band at the top of an expense's page, in the color of its
  * category's group: back and the page's buttons, then the category's icon, the
- * description, the amount, the category and day, and who added and paid for it,
- * all in white.
+ * amount and the description in white, and the day and category as chips. Who
+ * paid, who added it and who deleted it are below it and in the history.
  */
-export function ExpenseBand({ expense, title, actions, after, headline, onEdit }: Props) {
+export function ExpenseBand({ expense, title, actions, onEdit }: Props) {
   const navigate = useNavigate()
   const category = expenseService.categoryOf(expense.category)
+  const isSettlement = expense.category === expenseService.settlementCategory
 
   function renderHeader() {
     return (
@@ -80,10 +77,12 @@ export function ExpenseBand({ expense, title, actions, after, headline, onEdit }
           <Text style={{ fontSize: 28, fontWeight: 600, lineHeight: '40px', color: '#fff', textShadow: TEXT_SHADOW }}>
             {moneyService.format(expense.amountMinor, expense.currency)}
           </Text>
-          <Title level={3} style={{ margin: 0, color: '#fff', overflowWrap: 'anywhere', textShadow: TEXT_SHADOW }}>
-            {headline ?? (expense.shares ? expenseService.titleOf({ ...expense, shares: expense.shares }) : expense.description)}
-          </Title>
-          {after}
+          {/* A payment is worded by who paid whom, in a row below the band, so it has no title here. */}
+          {isSettlement ? null : (
+            <Title level={3} style={{ margin: 0, color: '#fff', overflowWrap: 'anywhere', textShadow: TEXT_SHADOW }}>
+              {expense.description}
+            </Title>
+          )}
         </Flex>
       </Flex>
     )
@@ -102,7 +101,7 @@ export function ExpenseBand({ expense, title, actions, after, headline, onEdit }
   }
 
   return (
-    <div style={{ padding: `${belowStatusBar(HEADER_TOP_PADDING)} 16px 24px`, background: bandBackground(CATEGORY_GROUP_COLORS[category.group]) }}>
+    <div style={{ padding: `${belowStatusBar(HEADER_TOP_PADDING)} 16px ${BAND_BOTTOM_PADDING}px`, background: bandBackground(CATEGORY_GROUP_COLORS[category.group]) }}>
       <Flex vertical gap={20} style={{ maxWidth: 560, margin: '0 auto' }}>
         {renderHeader()}
         {renderSummary()}

@@ -121,7 +121,7 @@ describe('ExpensePage: history', () => {
     const payment = await addTestSettlement(testDb.db, me.email, 'priya@gmail.com', id)
     renderExpense(id, payment)
 
-    await screen.findByRole('heading', { name: 'You paid Priya' })
+    await screen.findByRole('group', { name: 'You paid Priya' })
     expect(await screen.findByText('History')).toBeInTheDocument()
     expect(entries()[0].textContent).toMatch(/^You added this payment · /)
   })

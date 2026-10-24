@@ -119,7 +119,7 @@ describe('ExpensePage: restoring', () => {
       cleanup()
 
       renderExpense(id, payment)
-      await screen.findByRole('heading', { name: 'You paid Priya' })
+      await screen.findByRole('group', { name: 'You paid Priya' })
       expect(screen.queryByRole('button', { name: /Restore$/ })).not.toBeInTheDocument()
       cleanup()
 
@@ -200,7 +200,7 @@ describe('ExpensePage: restoring', () => {
       await user.click(restoreButton())
 
       expect(await screen.findByText('Payment restored.')).toBeInTheDocument()
-      expect(await screen.findByRole('heading', { name: 'You paid Priya' })).toBeInTheDocument()
+      expect(await screen.findByRole('group', { name: 'You paid Priya' })).toBeInTheDocument()
       expect((await storedExpense(payment)).deletedAt).toBeNull()
       await waitFor(() => expect(historyEntries()[0]).toMatch(/^You restored this payment/))
     })
