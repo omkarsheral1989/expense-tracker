@@ -428,15 +428,15 @@ describe('GroupPage', () => {
       expect(wrapper).not.toContainElement(screen.getByRole('button', { name: named('Settle up') }))
     })
 
-    it('puts the balance, the action pills and the expenses in that order', async () => {
+    it('puts the action pills, the balance and the expenses in that order', async () => {
       const id = await createGroup(me, { name: 'Goa trip' })
       renderGroup(id)
 
       const balance = await screen.findByText("You're all settled up")
       const settleUp = screen.getByRole('button', { name: named('Settle up') })
       const empty = screen.getByText('No expenses yet')
-      expect(balance.compareDocumentPosition(settleUp) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-      expect(settleUp.compareDocumentPosition(empty) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      expect(settleUp.compareDocumentPosition(balance) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      expect(balance.compareDocumentPosition(empty) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
   })
 

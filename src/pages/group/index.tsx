@@ -118,8 +118,8 @@ export function GroupPage() {
             centered in all the space below the actions. */}
         <Flex vertical style={{ ...COLUMN_STYLE, flex: 1, paddingBottom: 0 }}>
           <Flex vertical gap={16}>
-            <BalanceLine balances={balances} />
             <ActionPills groupId={group.id} group={known} canSettle={group.members.length > 1} />
+            <BalanceLine balances={balances} />
           </Flex>
           <ExpenseList expenses={expenses} groupId={group.id} />
         </Flex>
