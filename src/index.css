@@ -59,3 +59,43 @@ body .group-type-selector .ant-segmented-item:not(.ant-segmented-item-selected) 
     border-color: var(--ant-color-border-secondary);
   }
 }
+
+/* Page transitions (PRD 5.15, ADR-057): the old page and the new one slide when a page change goes through `useAppNavigate`. `data-nav` says which way. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: var(--page-transition-ms, 300ms);
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+  mix-blend-mode: normal;
+}
+html[data-nav='forward']::view-transition-old(root) {
+  animation-name: page-out-left;
+}
+html[data-nav='forward']::view-transition-new(root) {
+  animation-name: page-in-right;
+}
+html[data-nav='back']::view-transition-old(root) {
+  animation-name: page-out-right;
+  z-index: 2;
+}
+html[data-nav='back']::view-transition-new(root) {
+  animation-name: page-in-left;
+}
+@keyframes page-in-right {
+  from { transform: translateX(100%); }
+}
+@keyframes page-out-left {
+  to { transform: translateX(-30%); filter: brightness(0.9); }
+}
+@keyframes page-out-right {
+  to { transform: translateX(100%); }
+}
+@keyframes page-in-left {
+  from { transform: translateX(-30%); filter: brightness(0.9); }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

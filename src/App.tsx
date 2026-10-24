@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router'
+import { PageTransitions } from './components/PageTransitions'
 import { PwaUpdatePrompt } from './components/PwaUpdatePrompt'
 import { RequireAuth } from './components/RequireAuth'
 import { SignedInLayout } from './components/SignedInLayout'
@@ -31,6 +32,7 @@ function App() {
   return (
     <>
       <PwaUpdatePrompt />
+      <PageTransitions />
       <Routes>
         <Route path={ROUTES.welcome} element={<WelcomePage />} />
         <Route path={ROUTES.getStarted} element={<GetStartedPage />} />
