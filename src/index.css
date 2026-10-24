@@ -190,7 +190,7 @@ html[data-nav='open-group'][data-group-rest='slide']::view-transition-old(group-
   animation-name: group-rest-out-left;
 }
 html[data-nav='open-group'][data-group-rest='slide']::view-transition-new(group-page-new) {
-  animation-name: page-in-right;
+  animation-name: group-rest-in-right;
 }
 html[data-nav='close-group'][data-group-rest='slide']::view-transition-old(group-page-old) {
   animation-name: group-rest-out-right;
@@ -212,14 +212,21 @@ html[data-nav='close-group']::view-transition-new(group-app-header) {
 @keyframes group-bar-down {
   from { transform: translateY(-100%); }
 }
-@keyframes group-rest-out-left {
-  to { transform: translateX(-30%); opacity: 0; }
+/* The group page's content starts a screen to the right, but never more than 720 px (the content column's width), so on a wide screen it does not travel the
+   whole window, and fades in as it comes. */
+@keyframes group-rest-in-right {
+  from { transform: translateX(min(720px, 100%)); opacity: 0; }
 }
+/* The list's content leaves the same distance to the left (a screen, at most 720 px), fading out. */
+@keyframes group-rest-out-left {
+  to { transform: translateX(calc(-1 * min(720px, 100%))); opacity: 0; }
+}
+/* Going back is the mirror, over the same distance: the group page's content leaves to the right, the list's comes back from the left. */
 @keyframes group-rest-out-right {
-  to { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(min(720px, 100%)); opacity: 0; }
 }
 @keyframes group-rest-in-left {
-  from { transform: translateX(-30%); opacity: 0; }
+  from { transform: translateX(calc(-1 * min(720px, 100%))); opacity: 0; }
 }
 
 /* The band's header row (Back, the title and the round buttons, `hero.ts`) has nothing like it in the row: it comes in from the top when a group opens, and leaves the same way when it closes. */
@@ -236,7 +243,8 @@ html[data-nav='close-group']::view-transition-old(group-header) {
   to { transform: translateY(-80px); opacity: 0; }
 }
 
-/* The band's trip dates chip (`hero.ts`) has nothing like it in the row either: it comes in from the right when a group opens, and leaves that way when it closes. */
+/* The band's trip dates chip (`hero.ts`) has nothing like it in the row either: it comes in from the right when a group opens, and leaves that way when it closes,
+   over the same distance as the page's content (a screen, at most 720 px). */
 html[data-nav='open-group']::view-transition-new(group-dates) {
   animation: group-from-right var(--group-open-ms, 600ms) var(--group-open-ease) both;
 }
@@ -244,8 +252,8 @@ html[data-nav='close-group']::view-transition-old(group-dates) {
   animation: group-to-right var(--group-open-ms, 600ms) var(--group-open-ease) both;
 }
 @keyframes group-from-right {
-  from { transform: translateX(100vw); opacity: 0; }
+  from { transform: translateX(min(720px, 100vw)); opacity: 0; }
 }
 @keyframes group-to-right {
-  to { transform: translateX(100vw); opacity: 0; }
+  to { transform: translateX(min(720px, 100vw)); opacity: 0; }
 }
