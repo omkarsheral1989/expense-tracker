@@ -94,6 +94,8 @@ export function AppHeader() {
 
   return (
     <header
+      // Moves up off the screen when a group opens from the list, and comes back down (PRD 5.16).
+      data-app-header
       style={{
         boxSizing: 'border-box',
         height: 80,

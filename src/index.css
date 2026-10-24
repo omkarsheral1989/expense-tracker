@@ -162,20 +162,55 @@ html[data-nav='close-group']::view-transition-image-pair(group-band) {
   to { border-radius: var(--group-row-radius, 24px) 0 0 var(--group-row-radius, 24px); }
 }
 
-/* `data-group-rest='slide'`: the rest of the screen moves as in a page slide while the pieces morph. Opening: the list moves left and fades, the group's page comes
-   in from the right. Closing is the mirror: the group's page moves right and fades, the list comes in from the left. */
-html[data-nav='open-group'][data-group-rest='slide']::view-transition-old(root) {
+/* The rest of the screen (`hero.ts`): the page's content is a picture of its own with no background (`group-page-old` on the page left,
+   `group-page-new` on the page that comes), the list's green wash (`group-tint`) another, and what is left in the picture of the whole page
+   (`root`) is the plain background, which stays still. Layered from the bottom: that background, the wash (which fades out in place when a
+   group opens, and in when it closes, so the green turns into the group page's background and back), the content (the page that comes slides
+   over the one left when opening, and the one left slides away over the list when closing), and on top the pieces that morph. */
+html[data-nav='open-group']::view-transition-group(root),
+html[data-nav='close-group']::view-transition-group(root) {
+  z-index: -4;
+}
+html[data-nav='open-group']::view-transition-group(group-tint),
+html[data-nav='close-group']::view-transition-group(group-tint) {
+  z-index: -3;
+}
+html[data-nav='open-group']::view-transition-group(group-page-old),
+html[data-nav='close-group']::view-transition-group(group-page-new) {
+  z-index: -2;
+}
+html[data-nav='open-group']::view-transition-group(group-page-new),
+html[data-nav='close-group']::view-transition-group(group-page-old) {
+  z-index: -1;
+}
+
+/* `data-group-rest='slide'`: the content moves as in a page slide while the pieces morph. Opening: the list moves left and fades, the group's page
+   comes in from the right. Closing is the mirror: the group's page moves right and fades, the list comes in from the left. */
+html[data-nav='open-group'][data-group-rest='slide']::view-transition-old(group-page-old) {
   animation-name: group-rest-out-left;
 }
-html[data-nav='open-group'][data-group-rest='slide']::view-transition-new(root) {
+html[data-nav='open-group'][data-group-rest='slide']::view-transition-new(group-page-new) {
   animation-name: page-in-right;
 }
-html[data-nav='close-group'][data-group-rest='slide']::view-transition-old(root) {
+html[data-nav='close-group'][data-group-rest='slide']::view-transition-old(group-page-old) {
   animation-name: group-rest-out-right;
-  z-index: 2;
 }
-html[data-nav='close-group'][data-group-rest='slide']::view-transition-new(root) {
+html[data-nav='close-group'][data-group-rest='slide']::view-transition-new(group-page-new) {
   animation-name: group-rest-in-left;
+}
+
+/* The list's green header bar goes up off the screen when a group opens, and comes back down when it closes. */
+html[data-nav='open-group']::view-transition-old(group-app-header) {
+  animation: group-bar-up var(--group-open-ms, 600ms) var(--group-open-ease) both;
+}
+html[data-nav='close-group']::view-transition-new(group-app-header) {
+  animation: group-bar-down var(--group-open-ms, 600ms) var(--group-open-ease) both;
+}
+@keyframes group-bar-up {
+  to { transform: translateY(-100%); }
+}
+@keyframes group-bar-down {
+  from { transform: translateY(-100%); }
 }
 @keyframes group-rest-out-left {
   to { transform: translateX(-30%); opacity: 0; }

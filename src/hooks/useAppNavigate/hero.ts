@@ -67,6 +67,31 @@ function nameChildren(root: Element | null): () => void {
   return () => named.forEach((element) => element.style.removeProperty('view-transition-name'))
 }
 
+/** Names one element, when it is there; returns what takes the name off. */
+function nameOne(element: HTMLElement | null, name: string): () => void {
+  element?.style.setProperty('view-transition-name', name)
+  return () => element?.style.removeProperty('view-transition-name')
+}
+
+/** Runs each of the functions that take names off. */
+const together = (...undo: (() => void)[]) => () => undo.forEach((run) => run())
+
+/** The name of the page's content on the page left (`old`) and on the page that comes (`new`): it is the same element on both, so it needs a name for each. */
+type PageContent = 'group-page-old' | 'group-page-new'
+
+/**
+ * The parts of the screen that are not pieces (PRD 5.16): everything the app draws in `#root` is one picture of its own, with no background, that
+ * slides; the list's green wash (`data-page-tint`) and its header bar (`data-app-header`) are pictures too. What is left in the browser's picture of
+ * the whole page is the page's plain background, which stays still, so the wash fades over it in place and the bar moves up.
+ */
+function nameScreen(content: PageContent): () => void {
+  return together(
+    nameOne(document.querySelector<HTMLElement>('#root > *'), content),
+    nameOne(document.querySelector<HTMLElement>('[data-page-tint]'), 'group-tint'),
+    nameOne(document.querySelector<HTMLElement>('[data-app-header]'), 'group-app-header'),
+  )
+}
+
 const rowOf = (groupId: string) => document.querySelector(`[data-group-row="${groupId}"]`)
 const bandOf = () => document.querySelector('[data-group-band]')
 
@@ -79,12 +104,20 @@ export function groupHeroFor(from: string, to: string): GroupHero | null {
   const opened = GROUP_PAGE.exec(to)
   if (from === ROUTES.home && opened) {
     const id = opened[1]
-    return { direction: 'open-group', before: () => nameChildren(rowOf(id)), after: () => nameChildren(bandOf()) }
+    return {
+      direction: 'open-group',
+      before: () => together(nameChildren(rowOf(id)), nameScreen('group-page-old')),
+      after: () => together(nameChildren(bandOf()), nameScreen('group-page-new')),
+    }
   }
   const closed = GROUP_PAGE.exec(from)
   if (closed && to === ROUTES.home) {
     const id = closed[1]
-    return { direction: 'close-group', before: () => nameChildren(bandOf()), after: () => nameChildren(rowOf(id)) }
+    return {
+      direction: 'close-group',
+      before: () => together(nameChildren(bandOf()), nameScreen('group-page-old')),
+      after: () => together(nameChildren(rowOf(id)), nameScreen('group-page-new')),
+    }
   }
   return null
 }
