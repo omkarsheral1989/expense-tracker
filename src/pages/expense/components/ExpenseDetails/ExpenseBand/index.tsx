@@ -87,7 +87,12 @@ export function ExpenseBand({ expense, title, actions, onEdit, travels }: Props)
           </Text>
           {/* A payment is worded by who paid whom, in a row below the band, so it has no title here. */}
           {isSettlement ? null : (
-            <Title level={3} data-vt={vt('name')} style={{ margin: 0, color: '#fff', overflowWrap: 'anywhere', textShadow: TEXT_SHADOW }}>
+            <Title
+              level={3}
+              data-vt={vt('name')}
+              // As wide as its text (not the column, which the amount above may widen), so its picture matches the row's title it grows out of.
+              style={{ margin: 0, color: '#fff', overflowWrap: 'anywhere', textShadow: TEXT_SHADOW, width: 'fit-content', maxWidth: '100%' }}
+            >
               {expense.description}
             </Title>
           )}
