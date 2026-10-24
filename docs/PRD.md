@@ -376,6 +376,14 @@ Every page that reads its data shows one loader while it waits: a large spinner 
 - **The other forms are read fresh** (add expense, settle up), so a form never opens with values that are about to change. Opened from the group page, Add expense, Settle up and Edit group show their own header at once (Back works, Save switched off), with the group's name and icon (not on Edit group, which takes the group type's color wash) and a spinner "Loading the group…" where the fields will be; the form replaces it when the data arrives. Opened by address they show the spinner alone. The Group members page keeps its header and centers its spinner below it.
 - **Offline:** works the same; the data is on the device.
 
+### 5.15 Page transitions
+Moving from one page to another animates, so the app feels like a phone app.
+- **The slide:** going forward, the new page slides in from the right over about 300 ms (ease-out) while the old page moves about 30% to the left and dims a little, as on iOS. Going back reverses it: the old page slides out to the right and the page under it moves back from the left. Everything on a page slides with it (the header, the colored band, the floating buttons); nothing stays fixed.
+- **Forward and back:** a page that is opened (a link, a row, a button, Save that opens another page) is forward. Going back is the app's own Back arrows, the links that return ("Back to the group", the logo), and Cancel, Save and Delete on a form or page that return to where the user came from; these slide back. The browser's or the phone's Back cannot slide (the page is replaced before the browser can take a picture of the old one, ADR-057), so it fades the new page in, like a page that replaces the current one (for example the shared-receipt page opening Add expense, or switching group on Add expense), which has no direction.
+- **Where:** every page change, signed in or out (the welcome page, Open OwnLedger, home, group, expense, version, the forms, members). The first screen after the app opens appears at once. Dialogs, sheets and confirmations keep Ant Design's own animation.
+- **Fallbacks:** a browser without the View Transitions API gets the same quick fade (about 200 ms) of the new page instead of the slide. A device that asked for reduced motion gets no animation at all, in every case.
+- **Unchanged:** pages that come from the page cache (5.14) still show what they had at once; the animation is only how the page arrives.
+
 ## 6. Open questions
 - Google Cloud setup: the OAuth client ID is not created yet (Drive API, consent screen in Testing mode, authorized origins, test users).
 - Member removal: what happens to a removed member's access and local data (a person who left can already be added back, 5.4).
