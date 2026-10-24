@@ -43,7 +43,7 @@ export function GroupBand({ group, peopleCount, onOpenMembers }: Props) {
 
   function renderButtons() {
     return (
-      <Flex justify="space-between">
+      <Flex justify="space-between" data-vt="header">
         <Flex align="center" gap={8}>
           <BandIconButton
             icon={<ArrowLeftOutlined />}
@@ -116,9 +116,12 @@ export function GroupBand({ group, peopleCount, onOpenMembers }: Props) {
         <BandChip icon={<TeamOutlined />} onClick={onOpenMembers} disabled={!onOpenMembers} vt="people">
           {peopleCount} {peopleCount === 1 ? 'member' : 'members'}
         </BandChip>
-        <BandChip icon={<CalendarOutlined />} comingSoon>
-          Add trip dates
-        </BandChip>
+        {/* Comes in from the right when a group opens from the list (PRD 5.16). */}
+        <span data-vt="dates" style={{ display: 'inline-flex' }}>
+          <BandChip icon={<CalendarOutlined />} comingSoon>
+            Add trip dates
+          </BandChip>
+        </span>
       </Flex>
     )
   }

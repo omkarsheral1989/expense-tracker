@@ -186,3 +186,31 @@ html[data-nav='close-group'][data-group-rest='slide']::view-transition-new(root)
 @keyframes group-rest-in-left {
   from { transform: translateX(-30%); opacity: 0; }
 }
+
+/* The band's header row (Back, the title and the round buttons, `hero.ts`) has nothing like it in the row: it comes in from the top when a group opens, and leaves the same way when it closes. */
+html[data-nav='open-group']::view-transition-new(group-header) {
+  animation: group-from-top var(--group-open-ms, 600ms) var(--group-open-ease) both;
+}
+html[data-nav='close-group']::view-transition-old(group-header) {
+  animation: group-to-top var(--group-open-ms, 600ms) var(--group-open-ease) both;
+}
+@keyframes group-from-top {
+  from { transform: translateY(-80px); opacity: 0; }
+}
+@keyframes group-to-top {
+  to { transform: translateY(-80px); opacity: 0; }
+}
+
+/* The band's trip dates chip (`hero.ts`) has nothing like it in the row either: it comes in from the right when a group opens, and leaves that way when it closes. */
+html[data-nav='open-group']::view-transition-new(group-dates) {
+  animation: group-from-right var(--group-open-ms, 600ms) var(--group-open-ease) both;
+}
+html[data-nav='close-group']::view-transition-old(group-dates) {
+  animation: group-to-right var(--group-open-ms, 600ms) var(--group-open-ease) both;
+}
+@keyframes group-from-right {
+  from { transform: translateX(100vw); opacity: 0; }
+}
+@keyframes group-to-right {
+  to { transform: translateX(100vw); opacity: 0; }
+}
