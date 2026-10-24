@@ -22,6 +22,7 @@ export function PageTransitions() {
     // Where the app is, for `useSlideOnBrowserBack` to tell which way the browser's Back went.
     slide.path = window.location.pathname
     slide.index = window.history.state?.idx ?? 0
+    slide.paths.set(slide.index, location.pathname)
     if (first.current) {
       first.current = false
       return
@@ -35,7 +36,7 @@ export function PageTransitions() {
     const root = document.getElementById('root')
     if (!root || typeof root.animate !== 'function' || prefersReducedMotion()) return
     root.animate([{ opacity: 0 }, { opacity: 1 }], { duration: PAGE_FADE_MS, easing: 'ease-out' })
-  }, [location.key])
+  }, [location.key, location.pathname])
 
   return null
 }

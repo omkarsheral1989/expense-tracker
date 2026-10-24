@@ -19,4 +19,20 @@ export function canSlide(): boolean {
  * asked for and is waiting for the new page to be on screen. While one waits,
  * the page change is the slide's and no fade runs on top of it.
  */
-export const slide: { waiting: (() => void) | null; path: string; index: number } = { waiting: null, path: '', index: 0 }
+export const slide: { waiting: (() => void) | null; path: string; index: number; paths: Map<number, string> } = {
+  waiting: null,
+  path: '',
+  index: 0,
+  paths: new Map(),
+}
+
+/**
+ * Whether the page just before this one in the browser's history is `to`, so that going
+ * back to it can pop the history instead of adding a page (ADR-059). The router's own
+ * position in the history is its `idx`; `slide.paths` remembers the page of each position
+ * the app has been at since it opened, so after a reload nothing is known.
+ */
+export function previousPageIs(to: string): boolean {
+  const index: number = window.history.state?.idx ?? 0
+  return index > 0 && slide.paths.get(index - 1) === to.split(/[?#]/)[0]
+}

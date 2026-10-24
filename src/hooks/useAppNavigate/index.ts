@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { useNavigate, type NavigateOptions, type To } from 'react-router'
-import { canSlide, COMMIT_TIMEOUT_MS, slide, type NavDirection } from './utils.ts'
+import { canSlide, COMMIT_TIMEOUT_MS, previousPageIs, slide, type NavDirection } from './utils.ts'
 
 type Options = NavigateOptions & {
   /**
@@ -23,8 +23,18 @@ export function useAppNavigate() {
 
   return useCallback(
     (to: To, { direction, ...options }: Options = {}) => {
-      if (options.replace || !canSlide()) {
-        navigate(to, options)
+      // Going back to the page just before this one leaves it behind in the history, so the
+      // browser's Back does not bring it back (ADR-059). The slide is the history pop's (`useSlideOnBrowserBack`).
+      const target = typeof to === 'string' ? to : to.pathname
+      if (direction === 'back' && !options.replace && target && previousPageIs(target)) {
+        navigate(-1)
+        return
+      }
+      // Any other way back replaces this page by the target, again leaving it out of the history.
+      const replace = options.replace ?? direction === 'back'
+      const navigation = { ...options, replace }
+      if ((replace && !direction) || !canSlide()) {
+        navigate(to, navigation)
         return
       }
       const root = document.documentElement
@@ -33,7 +43,7 @@ export function useAppNavigate() {
         () =>
           new Promise<void>((resolve) => {
             slide.waiting = resolve
-            navigate(to, options)
+            navigate(to, navigation)
             // Let go if the page never commits (the same address, or a refusal).
             setTimeout(resolve, COMMIT_TIMEOUT_MS)
           }),
