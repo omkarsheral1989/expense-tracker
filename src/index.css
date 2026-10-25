@@ -287,6 +287,14 @@ html[data-nav='hero-close']::view-transition-new(group-floating-new) {
    page's color wash are the band. Layered from the bottom: the background, the list's wash, the list (which slides away as in the group
    transition), the band growing over it, and Create group's form on top, which slides in from the right like the other pages' content (and out to the right when going back), its header coming down from the top. The pill's
    plus and label fade out early (and in late when going back). */
+/* While a pill's button travels as a picture of its own, its frame (which rounds it and casts its shadow or draws its outline) stays in the
+   page's picture; without this its shadow or outline would slide away with the page as an empty white pill. */
+[data-floating-button]:has(> [style*='view-transition-name']) {
+  box-shadow: none !important;
+}
+[data-settle-pill]:has(> [style*='view-transition-name']) {
+  outline: none !important;
+}
 html[data-hero-kind='pill'][data-nav='hero-open']::view-transition-group(root),
 html[data-hero-kind='pill'][data-nav='hero-close']::view-transition-group(root) {
   z-index: -5;
