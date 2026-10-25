@@ -10,11 +10,9 @@ import { ROUTES } from '../../routes.ts'
 import { TintedPageBackground } from '../../components/TintedPageBackground'
 import { slide } from '../../hooks/useAppNavigate/utils.ts'
 import { GroupNotFound } from '../../components/GroupNotFound'
-import { getDb } from '../../db/client.ts'
-import { useAsyncData } from '../../hooks/useAsyncData'
+import { useCachedData } from '../../hooks/useCachedData'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
-import { expenseService } from '../../services/expenseService'
-import { groupService } from '../../services/groupService'
+import { loadSettleUp, SETTLE_UP_PAGE, settleUpKey } from './utils.ts'
 import { aboveScreenEdge, belowStatusBar, HEADER_TOP_PADDING } from '../../theme/safeArea.ts'
 import { SettleUpForm } from './components/SettleUpForm'
 
@@ -30,12 +28,8 @@ export function SettleUpPage() {
 
   const userId = user?.personId ?? ''
   const datasetId = user?.datasetId ?? ''
-  const { state, retry } = useAsyncData(async () => {
-    const db = await getDb()
-    const group = await groupService.getGroup(db, userId, id)
-    if (!group) return null
-    return { group, recentCurrencies: await expenseService.recentCurrencies(db, userId) }
-  }, `${userId}:${id}`)
+  // The group page reads it while it is on screen, so the form usually opens at once (ADR-055).
+  const { state, retry } = useCachedData(() => loadSettleUp(userId, id), SETTLE_UP_PAGE, settleUpKey(userId, id))
 
   // Opened from the group page's pill while the group is still being read, the pill grows into this page's loading view (PRD 5.16);
   // its header and background must stay the same elements until it has (the browser ends the transition if they leave the page),

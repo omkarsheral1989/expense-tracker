@@ -10,11 +10,9 @@ import { ROUTES } from '../../routes.ts'
 import { TintedPageBackground } from '../../components/TintedPageBackground'
 import { slide } from '../../hooks/useAppNavigate/utils.ts'
 import { GroupNotFound } from '../../components/GroupNotFound'
-import { getDb } from '../../db/client.ts'
-import { useAsyncData } from '../../hooks/useAsyncData'
+import { useCachedData } from '../../hooks/useCachedData'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
-import { expenseService } from '../../services/expenseService'
-import { groupService } from '../../services/groupService'
+import { ADD_EXPENSE_PAGE, addExpenseKey, loadAddExpense } from './utils.ts'
 import { aboveScreenEdge, belowStatusBar, HEADER_TOP_PADDING } from '../../theme/safeArea.ts'
 import { AddExpenseForm } from './components/AddExpenseForm'
 import type { AddExpenseLocationState } from './components/AddExpenseForm/types.ts'
@@ -36,16 +34,10 @@ export function AddExpensePage() {
   const datasetId = user?.datasetId ?? ''
   // Moving the expense to another group changes `id`: the form stays on screen
   // until the other group is loaded, instead of flashing a loading placeholder.
-  const { state, retry } = useAsyncData(async () => {
-    const db = await getDb()
-    const group = await groupService.getGroup(db, userId, id)
-    if (!group) return null
-    return {
-      group,
-      recentCurrencies: await expenseService.recentCurrencies(db, userId),
-      groups: await groupService.listGroups(db, userId),
-    }
-  }, `${userId}:${id}`, { keepPrevious: true })
+  // The group page reads it while it is on screen, so the form usually opens at once (ADR-055).
+  const { state, retry } = useCachedData(() => loadAddExpense(userId, id), ADD_EXPENSE_PAGE, addExpenseKey(userId, id), {
+    keepPrevious: true,
+  })
 
   // Opened from the group page's pill while the group is still being read, the pill grows into this page's loading view (PRD 5.16);
   // its header and background must stay the same elements until it has (the browser ends the transition if they leave the page),

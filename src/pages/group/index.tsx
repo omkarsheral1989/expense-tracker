@@ -26,6 +26,8 @@ import { LoadError } from '../../components/LoadError'
 import { ROUTES } from '../../routes.ts'
 import { knownGroupFrom } from './utils.ts'
 import { EDIT_GROUP_PAGE, editGroupKey, loadGroupToEdit } from '../editGroup/utils.ts'
+import { ADD_EXPENSE_PAGE, addExpenseKey, loadAddExpense } from '../addExpense/utils.ts'
+import { loadSettleUp, SETTLE_UP_PAGE, settleUpKey } from '../settleUp/utils.ts'
 import type { KnownGroup } from './types.ts'
 import { ABOVE_FLOATING_BUTTON, FLOATING_BUTTON_ROOM } from '../../components/FloatingPillButton/constants.ts'
 import { aboveScreenEdge, UNDER_BAND_PADDING } from '../../theme/safeArea.ts'
@@ -75,12 +77,14 @@ export function GroupPage() {
     shown.current = Math.max(EXPENSE_PAGE_SIZE, batches.items.length)
   }, [batches.items.length])
 
-  // Read what Edit group will need while the group is on screen, so the form opens at once (ADR-055).
+  // Read what Edit group, Add expense and Settle up will need while the group is on screen, so their forms open at once (ADR-055).
   const queryClient = useQueryClient()
   const loaded = state.status === 'ready' ? state.data : null
   useEffect(() => {
     if (!loaded) return
     void prefetchCachedData(queryClient, () => loadGroupToEdit(userId, id), EDIT_GROUP_PAGE, editGroupKey(userId, id))
+    void prefetchCachedData(queryClient, () => loadAddExpense(userId, id), ADD_EXPENSE_PAGE, addExpenseKey(userId, id))
+    void prefetchCachedData(queryClient, () => loadSettleUp(userId, id), SETTLE_UP_PAGE, settleUpKey(userId, id))
   }, [queryClient, loaded, userId, id])
 
   // Visitors who are not in the app are sent away by `RequireAuth` before this matters.
