@@ -8,8 +8,6 @@ import { useCurrentUser } from '../../hooks/useCurrentUser'
 import { expenseService } from '../../services/expenseService'
 import { EXPENSE_PAGE_SIZE } from '../../services/expenseService/constants.ts'
 import type { ExpenseCursor, PersonBalance } from '../../services/expenseService/types.ts'
-import { groupService } from '../../services/groupService'
-import { syncService } from '../../services/syncService'
 import { useSyncStore } from '../../stores/useSyncStore'
 import type { GroupDetails } from '../../services/groupService/types.ts'
 import { ActionPills } from './components/ActionPills'
@@ -24,7 +22,7 @@ import { CenteredMessage } from '../../components/CenteredMessage'
 import { LoadingMessage } from '../../components/LoadingMessage'
 import { LoadError } from '../../components/LoadError'
 import { ROUTES } from '../../routes.ts'
-import { knownGroupFrom } from './utils.ts'
+import { GROUP_PAGE, groupPageKey, knownGroupFrom, loadGroupPage } from './utils.ts'
 import { EDIT_GROUP_PAGE, editGroupKey, loadGroupToEdit } from '../editGroup/utils.ts'
 import { ADD_EXPENSE_PAGE, addExpenseKey, loadAddExpense } from '../addExpense/utils.ts'
 import { loadSettleUp, SETTLE_UP_PAGE, settleUpKey } from '../settleUp/utils.ts'
@@ -55,17 +53,9 @@ export function GroupPage() {
   // keeps what is shown, so the members sheet stays open instead of flashing the placeholder.
   // How many expenses are on screen, so a read again keeps the list as long (ADR-058).
   const shown = useRef(EXPENSE_PAGE_SIZE)
-  const { state, retry } = useCachedData(async () => {
-    const db = await getDb()
-    const group = await groupService.getGroup(db, userId, id)
-    if (!group) return null
-    return {
-      group,
-      expenses: await expenseService.listExpensesPage(db, userId, id, { limit: Math.max(EXPENSE_PAGE_SIZE, shown.current) }),
-      balances: await expenseService.groupBalances(db, userId, id),
-      syncedIds: await syncService.syncedMembers(db, id),
-    }
-  }, 'group', `${userId}:${id}:${dataVersion}`, { keepPrevious: true })
+  const { state, retry } = useCachedData(() => loadGroupPage(userId, id, shown.current), GROUP_PAGE, groupPageKey(userId, id, dataVersion), {
+    keepPrevious: true,
+  })
 
   // The batches after the first, read as the user scrolls to the end of the list.
   const readNext = useCallback(

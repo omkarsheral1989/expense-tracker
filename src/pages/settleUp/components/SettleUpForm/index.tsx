@@ -21,6 +21,8 @@ import type { FormValues } from './types.ts'
 import { hasUnsavedInput, memberLabel, recentCurrencyCodes, toFormFields } from './utils.ts'
 import { HEADER_TITLE_STYLE } from '../../../../theme/headerTitle.ts'
 import { BackButton } from '../../../../components/BackButton'
+import { useQueryClient } from '@tanstack/react-query'
+import { refreshGroupPage } from '../../../group/utils.ts'
 
 const { Text, Title } = Typography
 
@@ -45,6 +47,7 @@ export function SettleUpForm({ group, datasetId, userId, recentCurrencies }: Pro
   const [form] = Form.useForm<FormValues>()
   const { message, modal } = App.useApp()
   const navigate = useAppNavigate()
+  const queryClient = useQueryClient()
   const [submitting, setSubmitting] = useState(false)
 
   const [initialValues] = useState<FormValues>(() => ({
@@ -110,6 +113,8 @@ export function SettleUpForm({ group, datasetId, userId, recentCurrencies }: Pro
         return
       }
 
+      // The group page comes back with the payment already on it, so the way back is not cut short (PRD 5.16).
+      await refreshGroupPage(queryClient, userId, group.id)
       message.success('Payment recorded.')
       leave()
     } catch {

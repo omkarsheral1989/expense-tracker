@@ -1,4 +1,6 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { App, Button, Flex, Form, Input, Typography } from 'antd'
+import { refreshGroupPage } from '../../../group/utils.ts'
 import { useState } from 'react'
 import { useAppNavigate } from '../../../../hooks/useAppNavigate'
 import { CurrencySelect } from '../../../../components/CurrencySelect'
@@ -27,6 +29,7 @@ export function EditGroupForm({ userId, group }: Props) {
   const [form] = Form.useForm<FormValues>()
   const { message, modal } = App.useApp()
   const navigate = useAppNavigate()
+  const queryClient = useQueryClient()
   const [submitting, setSubmitting] = useState(false)
   const [initialValues] = useState<FormValues>(() => ({
     name: group.name,
@@ -76,6 +79,8 @@ export function EditGroupForm({ userId, group }: Props) {
       form.setFields(toFormFields(result.ok ? {} : result.errors))
       if (!result.ok) return
 
+      // The group page comes back with the new details already on it, without its loader.
+      await refreshGroupPage(queryClient, userId, group.id)
       message.success('Group updated.')
       backToGroup()
     } catch {

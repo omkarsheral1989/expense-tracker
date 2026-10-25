@@ -1,5 +1,7 @@
 import { DeleteOutlined, EditOutlined, UndoOutlined } from '@ant-design/icons'
+import { useQueryClient } from '@tanstack/react-query'
 import { App, Flex } from 'antd'
+import { refreshGroupPage } from '../../../group/utils.ts'
 import { useState } from 'react'
 import { useAppNavigate } from '../../../../hooks/useAppNavigate'
 import { BandIconButton } from '../../../../components/BandIconButton'
@@ -32,6 +34,7 @@ type Props = {
  */
 export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props) {
   const navigate = useAppNavigate()
+  const queryClient = useQueryClient()
   const { message, modal } = App.useApp()
   const [restoring, setRestoring] = useState(false)
   // A settlement is worded by who paid whom ("You paid Priya"), and has no split to show.
@@ -43,6 +46,8 @@ export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props)
   async function handleDelete() {
     try {
       const result = await expenseService.deleteExpense(await getDb(), userId, expense.groupId, expense.id)
+      // The group page comes back with the deletion already on it, without its loader.
+      await refreshGroupPage(queryClient, userId, expense.groupId)
       if (result.ok) message.success(`${noun === 'payment' ? 'Payment' : 'Expense'} deleted.`)
       else message.error(`This ${noun} is no longer available.`)
       navigate(ROUTES.group(expense.groupId), { direction: 'back' })

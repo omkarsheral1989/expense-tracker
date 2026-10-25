@@ -1,4 +1,6 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
+import { refreshGroupPage } from '../../../group/utils.ts'
 import { useAppNavigate } from '../../../../hooks/useAppNavigate'
 import { ExpenseForm, type SaveOutcome } from '../../../../components/ExpenseForm'
 import { initialSplit } from '../../../../components/ExpenseForm/SplitField/utils.ts'
@@ -34,6 +36,7 @@ type Props = {
  */
 export function AddExpenseForm({ group, datasetId, userId, recentCurrencies, groups, draft }: Props) {
   const navigate = useAppNavigate()
+  const queryClient = useQueryClient()
 
   const [initialValues] = useState<FormValues>(() => ({
     description: '',
@@ -71,7 +74,10 @@ export function AddExpenseForm({ group, datasetId, userId, recentCurrencies, gro
 
   async function save(input: CreateExpenseInput): Promise<SaveOutcome> {
     const result = await expenseService.createExpense(await getDb(), userId, group.id, input)
-    return result.ok ? { status: 'saved', message: 'Expense added.' } : { status: 'invalid', errors: result.errors }
+    if (!result.ok) return { status: 'invalid', errors: result.errors }
+    // The group page comes back with the expense already on it, so the way back is not cut short (PRD 5.16).
+    await refreshGroupPage(queryClient, userId, group.id)
+    return { status: 'saved', message: 'Expense added.' }
   }
 
   return (
