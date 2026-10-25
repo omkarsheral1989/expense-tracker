@@ -63,9 +63,10 @@ export type GroupHero = {
   blockRadius: string
   /**
    * `pill` when a pill grows into a whole page (Create group from the list, Add expense and Settle up from a group): the CSS layers
-   * it differently (`data-hero-kind`); left out for a row growing into a band.
+   * it differently (`data-hero-kind`). `form` when Create group's chosen type tile grows into the new group's band: the band's chips,
+   * which the form has nothing like, come in from the right. Left out for a row growing into a band.
    */
-  kind?: 'pill'
+  kind?: 'pill' | 'form'
   /** Names the old page's pieces, before the browser takes its picture; returns what removes the names. */
   before: () => () => void
   /** Names the new page's pieces, once it is on screen and before the browser takes its picture of it; returns what removes the names. */
@@ -73,11 +74,11 @@ export type GroupHero = {
 }
 
 /** Gives each `[data-vt]` piece inside `root` its name, and returns a function that takes the names off again. */
-function nameChildren(root: Element | null): () => void {
+function nameChildren(root: Element | null, skip: Piece[] = []): () => void {
   const named: HTMLElement[] = []
   root?.querySelectorAll<HTMLElement>('[data-vt]').forEach((element) => {
     const name = GROUP_PIECE_NAMES[element.dataset.vt as Piece]
-    if (!name) return
+    if (!name || skip.includes(element.dataset.vt as Piece)) return
     element.style.setProperty('view-transition-name', name)
     named.push(element)
   })
@@ -239,6 +240,24 @@ export function groupHeroFor(from: string, to: string): GroupHero | null {
       blockRadius: PILL_END_RADIUS,
       before: () => together(nameOne(tintOf(), 'group-band'), nameOne(contentOf(), 'group-page-old'), nameCreateHeader()),
       after: () => together(nameChildren(floatingButtonOf()), nameScreen('group-page-new')),
+    }
+  }
+  // A group just created: Create group's chosen type tile grows into the new group's band and its icon travels with it. The band's title
+  // and chips come in from the right (the chips as whole pills: their texts and icons are not pieces of their own here), the rest of the
+  // form slides away, and the form's type wash fades out in place.
+  if (from === ROUTES.newGroup && opened) {
+    return {
+      direction: 'hero-open',
+      kind: 'form',
+      blockRadius: `${RADIUS.inner}px`,
+      before: () =>
+        together(nameChildren(document.querySelector('.group-type-selector .ant-segmented-item-selected')), nameScreen('group-page-old')),
+      after: () =>
+        together(
+          nameChildren(bandOf(), ['currency', 'people', 'peopleIcon', 'dot']),
+          nameScreen('group-page-new'),
+          nameFloatingButton('group-floating-new'),
+        ),
     }
   }
   // A group page's pill grows into the page it opens: the floating Add expense into Add expense, Settle up into Settle up. The group's band

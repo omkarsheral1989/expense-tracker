@@ -41,7 +41,8 @@ export function useAppNavigate() {
       }
       const root = document.documentElement
       // A group's row and its page morph into each other (PRD 5.16); anything else slides.
-      const hero = target && !replace ? groupHeroFor(routerPathOf(slide.path), target) : null
+      // A page that replaces this one with a direction (Create group's new group) can morph too.
+      const hero = target && (!replace || options.replace) ? groupHeroFor(routerPathOf(slide.path), target) : null
       if (hero) setGroupOpenStyle(root, hero)
       root.dataset.nav = hero?.direction ?? direction ?? 'forward'
       const undoBefore = hero?.before()

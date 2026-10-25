@@ -260,6 +260,12 @@ html[data-nav='hero-close']::view-transition-old(group-from-right) {
 @keyframes group-to-right {
   to { transform: translateX(min(800px, 100vw)); opacity: 0; }
 }
+/* A group just created (`data-hero-kind='form'`): the band's title and its currency and members chips come in from the right too. */
+html[data-hero-kind='form'][data-nav='hero-open']::view-transition-new(group-name),
+html[data-hero-kind='form'][data-nav='hero-open']::view-transition-new(group-currency-chip),
+html[data-hero-kind='form'][data-nav='hero-open']::view-transition-new(group-people-chip) {
+  animation: group-from-right var(--group-open-ms, 600ms) var(--group-open-ease) both;
+}
 
 /* The floating buttons (`hero.ts`) leave and arrive through the bottom of the screen instead of sliding: the list's Create group drops off it and the group
    page's Add expense rises from it when a group opens; going back, Add expense drops off it and Create group rises from it. */
