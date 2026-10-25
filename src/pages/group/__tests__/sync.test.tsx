@@ -189,7 +189,7 @@ describe('the band\'s Sync button', () => {
     const groupId = await goaTrip()
     renderGroup(groupId)
     await syncThisGroup()
-    await userEvent.click(await screen.findByRole('button', { name: /(?<!\d)2 people$/ }))
+    await userEvent.click(await screen.findByRole('button', { name: /(?<!\d)2 members$/ }))
     const sheet = () => screen.getAllByRole('dialog').find((dialog) => dialog.textContent?.startsWith('Members'))!
     expect(within(sheet()).getByText('Pending')).toBeInTheDocument()
     await priyaSyncs(groupId)

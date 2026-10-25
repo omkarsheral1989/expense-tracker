@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-// Edit expense and Edit group open with no loader: their data is read while the
-// page before them is on screen (ADR-055).
+// Edit expense, Edit group, Add expense and Settle up open with no loader: their
+// data is read while the page before them is on screen (ADR-055).
 import 'fake-indexeddb/auto'
 import { cleanup, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -15,6 +15,8 @@ import { createTestGroup, ensurePersonId } from '../../testing/groups.ts'
 import { renderPage } from '../../testing/render.tsx'
 import { EditExpensePage } from '../editExpense/index.tsx'
 import { EditGroupPage } from '../editGroup/index.tsx'
+import { AddExpensePage } from '../addExpense/index.tsx'
+import { SettleUpPage } from '../settleUp/index.tsx'
 import { ExpensePage } from '../expense/index.tsx'
 import { GroupPage } from '../group/index.tsx'
 
@@ -124,6 +126,57 @@ describe('Edit group, opened from the group page', () => {
     const { group } = await setUp()
     stopReadingTheDatabase()
     renderPage(<EditGroupPage />, { path: ROUTES.editGroup(group), pattern: ROUTES.editGroupPattern, routes: [ROUTES.groupPattern] })
+    expect(screen.getByRole('status', { name: 'Loading the group' })).toBeInTheDocument()
+  })
+})
+
+describe('Add expense and Settle up, opened from the group page', () => {
+  async function renderGroupWithForms(group: string) {
+    const page = renderPage(<GroupPage />, {
+      path: ROUTES.group(group),
+      pattern: ROUTES.groupPattern,
+      routes: [ROUTES.home],
+      extra: [
+        { path: ROUTES.newExpensePattern, element: <AddExpensePage /> },
+        { path: ROUTES.settleUpPattern, element: <SettleUpPage /> },
+      ],
+    })
+    await screen.findByText('Dinner')
+    // The forms' data is read behind the page; give that a moment.
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    stopReadingTheDatabase()
+    return page
+  }
+
+  it('opens Add expense with its form at once, with no loader', async () => {
+    const { group } = await setUp()
+    const page = await renderGroupWithForms(group)
+
+    await userEvent.click(screen.getByRole('button', { name: /Add expense/ }))
+
+    await waitFor(() => expect(page.currentPath()).toBe(ROUTES.newExpense(group)))
+    expect(screen.queryByRole('status', { name: 'Loading the group' })).not.toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Description' })).toBeInTheDocument()
+  })
+
+  it('opens Settle up with its form at once, with no loader', async () => {
+    const { group } = await setUp()
+    const page = await renderGroupWithForms(group)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Settle up' }))
+
+    await waitFor(() => expect(page.currentPath()).toBe(ROUTES.settleUp(group)))
+    expect(screen.queryByRole('status', { name: 'Loading the group' })).not.toBeInTheDocument()
+    expect(screen.getByRole('combobox', { name: 'Who received it?' })).toBeInTheDocument()
+  })
+
+  it('shows the loader when they are opened by their address', async () => {
+    const { group } = await setUp()
+    stopReadingTheDatabase()
+    renderPage(<SettleUpPage />, { path: ROUTES.settleUp(group), pattern: ROUTES.settleUpPattern, routes: [ROUTES.groupPattern] })
+    expect(screen.getByRole('status', { name: 'Loading the group' })).toBeInTheDocument()
+    cleanup()
+    renderPage(<AddExpensePage />, { path: ROUTES.newExpense(group), pattern: ROUTES.newExpensePattern, routes: [ROUTES.groupPattern] })
     expect(screen.getByRole('status', { name: 'Loading the group' })).toBeInTheDocument()
   })
 })

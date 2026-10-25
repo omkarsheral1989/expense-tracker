@@ -35,11 +35,10 @@ export function useExpenseBatches(base: ExpensePage | null, readNext: (after: Ex
   const queryKey = [PAGE_QUERY_ROOT, 'groupBatches', cacheKey]
   const [state, setState] = useState<State>(() => {
     const remembered = client.getQueryData<Remembered>(queryKey)
-    if (remembered && remembered.base === base) return { ...EMPTY, ...remembered }
-    return { ...EMPTY, base, next: base?.next ?? null }
+    return remembered ? { ...EMPTY, ...remembered } : { ...EMPTY, base, next: base?.next ?? null }
   })
 
-  // A new base: forget the batches that followed the old one.
+  // A new base (or batches remembered from an earlier read): forget the batches that followed the old one.
   if (state.base !== base) setState({ ...EMPTY, base, next: base?.next ?? null })
 
   const { rows, next, loading, failed } = state.base === base ? state : { ...EMPTY, next: base?.next ?? null }

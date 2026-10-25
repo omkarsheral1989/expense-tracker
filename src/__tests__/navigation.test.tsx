@@ -126,7 +126,7 @@ describe('moving between pages', () => {
 
     // The next thing on screen already has the band from the list, and a spinner for the rest.
     expect(screen.getByRole('heading', { name: 'Goa trip', level: 2 })).toBeInTheDocument()
-    expect(screen.getByText(/2 people/)).toBeInTheDocument()
+    expect(screen.getByText(/2 members/)).toBeInTheDocument()
     expect(screen.getByRole('status', { name: 'Loading the group' })).toBeInTheDocument()
     expect(screen.queryByText('Dinner')).not.toBeInTheDocument()
 

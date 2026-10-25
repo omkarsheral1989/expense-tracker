@@ -27,6 +27,13 @@ if (typeof window !== 'undefined') {
       dispatchEvent: () => false,
     }) as MediaQueryList
 
+  // jsdom does not scroll (it prints "Not implemented" each time); the page transitions put each page back where it was
+  // scrolled (`PageTransitions`), so this one moves `window.scrollY` for the tests to read.
+  window.scrollTo = ((first: ScrollToOptions | number, second?: number) => {
+    const top = typeof first === 'object' ? (first.top ?? window.scrollY) : (second ?? 0)
+    Object.defineProperty(window, 'scrollY', { value: top, configurable: true })
+  }) as typeof window.scrollTo
+
   // Used by Ant Design to measure dropdowns and lists.
   globalThis.ResizeObserver ??= class {
     observe() {}

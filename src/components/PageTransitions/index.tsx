@@ -40,7 +40,7 @@ export function PageTransitions() {
     const root = document.getElementById('root')
     if (!root || typeof root.animate !== 'function' || prefersReducedMotion()) return
     root.animate([{ opacity: 0 }, { opacity: 1 }], { duration: PAGE_FADE_MS, easing: 'ease-out' })
-  }, [location.key, location.pathname])
+  }, [location.key, location.pathname, navigationType])
 
   return null
 }

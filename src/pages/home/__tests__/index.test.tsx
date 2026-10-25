@@ -172,10 +172,12 @@ describe('HomePage', () => {
       renderHome()
 
       expect(await screen.findByText('Goa trip')).toBeInTheDocument()
-      expect(screen.getByText('3 members · GBP')).toBeInTheDocument()
+      // The currency first, as on the group's band; each part is a piece of its own that travels there (PRD 5.16).
+      const lines = [...document.querySelectorAll('.ant-typography-secondary')].map((line) => line.textContent)
+      expect(lines).toContain('£ · 3 members')
       expect(screen.getByText('Flat')).toBeInTheDocument()
       // One member is "1 member", not "1 members".
-      expect(screen.getByText('1 member · INR')).toBeInTheDocument()
+      expect(lines).toContain('₹ · 1 member')
       expect(screen.getAllByText('Settled up')).toHaveLength(2)
     })
 

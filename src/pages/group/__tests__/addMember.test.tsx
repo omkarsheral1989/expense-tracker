@@ -107,7 +107,7 @@ describe('adding a member from the members sheet', () => {
 
   /** Opens the members sheet, then the "Add a member" sheet, and returns the latter. */
   async function openPicker(count: number) {
-    await user.click(await screen.findByRole('button', { name: named(`${count} (people|person)`) }))
+    await user.click(await screen.findByRole('button', { name: named(`${count} (members|member)`) }))
     const sheet = await screen.findByRole('dialog', { name: `Members (${count})` })
     await user.click(within(sheet).getByRole('button', { name: named('Add member') }))
     return findSheet('Add a member')
@@ -139,7 +139,7 @@ describe('adding a member from the members sheet', () => {
       await addTestPerson(testDb.db, me, { name: 'Sam Lee' })
       renderGroup(id)
 
-      await user.click(await screen.findByRole('button', { name: named('2 people') }))
+      await user.click(await screen.findByRole('button', { name: named('2 members') }))
       const sheet = await screen.findByRole('dialog', { name: 'Members (2)' })
 
       expect(within(sheet).getByRole('button', { name: named('Add member') })).toBeEnabled()
@@ -152,7 +152,7 @@ describe('adding a member from the members sheet', () => {
       const id = await createGroup(['priya@gmail.com'])
       renderGroup(id)
 
-      await user.click(await screen.findByRole('button', { name: named('2 people') }))
+      await user.click(await screen.findByRole('button', { name: named('2 members') }))
       const sheet = await screen.findByRole('dialog', { name: 'Members (2)' })
 
       expect(sheet.querySelector('.ant-drawer-body')?.getAttribute('style')).toContain('env(safe-area-inset-bottom)')
@@ -297,7 +297,7 @@ describe('adding a member from the members sheet', () => {
       expect(await screen.findByText('Sam added.')).toBeInTheDocument()
       const sheet = await screen.findByRole('dialog', { name: 'Members (3)' })
       expect(within(sheet).getByText('Sam Lee')).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: named('3 people') })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: named('3 members') })).toBeInTheDocument()
       await waitFor(() => expect(isClosed('Add a member')).toBe(true))
       expect(isClosed('Members (3)')).toBe(false)
       expect(await memberNames(id)).toEqual(['Omkar Sheral', 'Sam Lee', 'priya@gmail.com'])
@@ -586,7 +586,7 @@ describe('adding a member from the members sheet', () => {
     it('pushes the members sheet up while "Add a member" is open over it, and back when it closes', async () => {
       const id = await createGroup()
       renderGroup(id)
-      await user.click(await screen.findByRole('button', { name: named('1 person') }))
+      await user.click(await screen.findByRole('button', { name: named('1 member') }))
       await findSheet('Members (1)')
       expect(await isPushed('Members (1)')).toBe(false)
 
