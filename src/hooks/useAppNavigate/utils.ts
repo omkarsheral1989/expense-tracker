@@ -24,6 +24,8 @@ export const slide: {
   path: string
   index: number
   paths: Map<number, string>
+  /** How far each page in the history was scrolled when the user left it, by the router's `idx`, so going back returns there. */
+  scrolls: Map<number, number>
   /**
    * While a row's pieces travel into a band (PRD 5.16), settles when that transition ends; null otherwise. A page whose band
    * would be replaced by another element meanwhile (the expense page, when its data arrives) waits for it, since the browser
@@ -36,6 +38,12 @@ export const slide: {
   path: '',
   index: 0,
   paths: new Map(),
+  scrolls: new Map(),
+}
+
+/** Remembers how far the page on screen is scrolled, just before the app leaves it. */
+export function rememberScroll() {
+  slide.scrolls.set(slide.index, window.scrollY)
 }
 
 /**

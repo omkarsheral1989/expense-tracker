@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
 import { useNavigate, type NavigateOptions, type To } from 'react-router'
 import { groupHeroFor, routerPathOf, setGroupOpenStyle } from './hero.ts'
-import { canSlide, COMMIT_TIMEOUT_MS, previousPageIs, slide, type NavDirection } from './utils.ts'
+import { canSlide, COMMIT_TIMEOUT_MS, previousPageIs, rememberScroll, slide, type NavDirection } from './utils.ts'
 
 type Options = NavigateOptions & {
   /**
@@ -24,6 +24,7 @@ export function useAppNavigate() {
 
   return useCallback(
     (to: To, { direction, ...options }: Options = {}) => {
+      rememberScroll()
       // Going back to the page just before this one leaves it behind in the history, so the
       // browser's Back does not bring it back (ADR-059). The slide is the history pop's (`useSlideOnBrowserBack`).
       const target = typeof to === 'string' ? to : to.pathname

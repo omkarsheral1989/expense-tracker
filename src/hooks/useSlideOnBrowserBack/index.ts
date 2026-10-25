@@ -1,5 +1,5 @@
 import { groupHeroFor, routerPathOf, setGroupOpenStyle } from '../useAppNavigate/hero.ts'
-import { canSlide, COMMIT_TIMEOUT_MS, slide } from '../useAppNavigate/utils.ts'
+import { canSlide, COMMIT_TIMEOUT_MS, rememberScroll, slide } from '../useAppNavigate/utils.ts'
 
 /**
  * Slides the page for the browser's and the phone's Back and Forward too (PRD
@@ -15,9 +15,12 @@ import { canSlide, COMMIT_TIMEOUT_MS, slide } from '../useAppNavigate/utils.ts'
  */
 export function installSlideOnBrowserBack(): () => void {
   let replaying = false
+  // The app puts each page back where it was scrolled itself (`PageTransitions`), before the transition takes its picture.
+  if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual'
 
   function handlePopState(event: PopStateEvent) {
     if (replaying) return
+    rememberScroll()
     const index: number = window.history.state?.idx ?? slide.index - 1
     // A change of the #fragment on the same page is not a page change.
     if (window.location.pathname === slide.path || !canSlide()) return

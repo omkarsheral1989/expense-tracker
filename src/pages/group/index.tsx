@@ -72,7 +72,7 @@ export function GroupPage() {
     async (after: ExpenseCursor) => expenseService.listExpensesPage(await getDb(), userId, id, { limit: EXPENSE_PAGE_SIZE, after }),
     [userId, id],
   )
-  const batches = useExpenseBatches(state.status === 'ready' && state.data ? state.data.expenses : null, readNext)
+  const batches = useExpenseBatches(state.status === 'ready' && state.data ? state.data.expenses : null, readNext, `${userId}:${id}`)
   useEffect(() => {
     shown.current = Math.max(EXPENSE_PAGE_SIZE, batches.items.length)
   }, [batches.items.length])
