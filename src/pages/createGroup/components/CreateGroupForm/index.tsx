@@ -103,7 +103,7 @@ export function CreateGroupForm({ creatorId }: Props) {
     return (
       <>
         <Form.Item label="Group name" name="name">
-          <Input autoFocus placeholder="For example, Goa trip" />
+          <Input placeholder="For example, Goa trip" />
         </Form.Item>
         <Form.Item label="Type" name="type">
           <GroupTypeSelector />
