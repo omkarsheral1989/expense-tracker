@@ -282,3 +282,42 @@ html[data-nav='hero-close']::view-transition-new(group-floating-new) {
   70% { opacity: 0.25; }
 }
 
+
+/* The floating Create group pill growing into Create group's whole page (`hero.ts`, `data-hero-kind='create'`): the pill's square block and the
+   page's color wash are the band. Layered from the bottom: the background, the list's wash, the list (which slides away as in the group
+   transition), the band growing over it, and Create group's form on top, which fades in late (and out early when going back). The pill's
+   plus and label fade out early (and in late when going back). */
+html[data-hero-kind='create'][data-nav='hero-open']::view-transition-group(root),
+html[data-hero-kind='create'][data-nav='hero-close']::view-transition-group(root) {
+  z-index: -5;
+}
+html[data-hero-kind='create'][data-nav='hero-open']::view-transition-group(group-tint),
+html[data-hero-kind='create'][data-nav='hero-close']::view-transition-group(group-tint) {
+  z-index: -4;
+}
+html[data-hero-kind='create'][data-nav='hero-open']::view-transition-group(group-page-old),
+html[data-hero-kind='create'][data-nav='hero-close']::view-transition-group(group-page-new) {
+  z-index: -3;
+}
+html[data-hero-kind='create'][data-nav='hero-open']::view-transition-group(group-band),
+html[data-hero-kind='create'][data-nav='hero-close']::view-transition-group(group-band) {
+  z-index: -2;
+}
+html[data-hero-kind='create'][data-nav='hero-open']::view-transition-group(group-page-new),
+html[data-hero-kind='create'][data-nav='hero-close']::view-transition-group(group-page-old) {
+  z-index: -1;
+}
+html[data-hero-kind='create'][data-nav='hero-open']::view-transition-new(group-page-new),
+html[data-nav='hero-close']::view-transition-new(group-pill-label) {
+  animation: hero-fade-in-late var(--group-open-ms, 600ms) linear both;
+}
+html[data-hero-kind='create'][data-nav='hero-close']::view-transition-old(group-page-old),
+html[data-nav='hero-open']::view-transition-old(group-pill-label) {
+  animation: hero-fade-out-early var(--group-open-ms, 600ms) linear both;
+}
+@keyframes hero-fade-out-early {
+  30%, to { opacity: 0; }
+}
+@keyframes hero-fade-in-late {
+  from, 60% { opacity: 0; }
+}

@@ -1,5 +1,6 @@
 import { ROUTES } from '../../routes.ts'
 import { RADIUS } from '../../theme/radius.ts'
+import { FLOATING_BUTTON_HEIGHT } from '../../components/FloatingPillButton/constants.ts'
 import { GROUP_OPEN_MS, GROUP_OPEN_REST } from '../../theme/transition.ts'
 
 /** The `view-transition-name` of each piece that travels between a row of a list and the band of the page it opens: a group's row and its page, an expense's row and its page (PRD 5.16). */
@@ -23,6 +24,8 @@ const GROUP_PIECE_NAMES = {
   chips: 'group-from-right',
   // An expense's amount ("$100.00" in "You paid $100.00"), which grows into the band's large amount.
   amount: 'group-amount',
+  // The plus and label of the floating Create group pill, which fade while the pill grows into Create group's page.
+  pillLabel: 'group-pill-label',
 } as const
 
 
@@ -48,6 +51,7 @@ export function setGroupOpenStyle(root: HTMLElement, hero: GroupHero) {
   root.style.setProperty('--group-open-ms', `${GROUP_OPEN_MS}ms`)
   root.style.setProperty('--hero-block-radius', hero.blockRadius)
   root.dataset.groupRest = GROUP_OPEN_REST
+  root.dataset.heroKind = hero.kind ?? 'row'
 }
 
 /** What a row and the page it opens have to do for the morph between them. */
@@ -56,6 +60,11 @@ export type GroupHero = {
   direction: 'hero-open' | 'hero-close'
   /** The corners of the row's block (`border-radius`), which straighten into the band's square ones (`--hero-block-radius`). */
   blockRadius: string
+  /**
+   * `create` when the floating Create group pill grows into Create group's whole page (the CSS layers and fades it differently,
+   * `data-hero-kind`); left out for a row growing into a band.
+   */
+  kind?: 'create'
   /** Names the old page's pieces, before the browser takes its picture; returns what removes the names. */
   before: () => () => void
   /** Names the new page's pieces, once it is on screen and before the browser takes its picture of it; returns what removes the names. */
@@ -117,6 +126,13 @@ const bandOf = () => document.querySelector('[data-group-band]')
 const expenseRowOf = (expenseId: string) => document.querySelector(`[data-expense-row="${expenseId}"]`)
 /** The expense page's band; it has the mark only for a live expense (not a deleted one). */
 const expenseBandOf = () => document.querySelector('[data-expense-band]')
+
+/** The floating pill (`data-floating-button`) and the page's color wash (`data-page-tint`), the two ends of Create group's transition. */
+const floatingButtonOf = () => document.querySelector<HTMLElement>('[data-floating-button]')
+const tintOf = () => document.querySelector<HTMLElement>('[data-page-tint]')
+const contentOf = () => document.querySelector<HTMLElement>('#root > *')
+/** Half the floating pill's height: its round ends, which straighten as it fills the screen. */
+const PILL_END_RADIUS = `${FLOATING_BUTTON_HEIGHT / 2}px`
 
 /** A group's card has rounded left corners; an expense's category tile is rounded all round. */
 const GROUP_ROW_RADIUS = `${RADIUS.outer}px 0 0 ${RADIUS.outer}px`
@@ -190,6 +206,26 @@ export function groupHeroFor(from: string, to: string): GroupHero | null {
           nameOne(document.querySelector<HTMLElement>('[data-group-band]'), 'group-app-header'),
           nameFloatingButton('group-floating-new'),
         ),
+    }
+  }
+  // The floating Create group pill grows into the whole of Create group's page: the pill (a square block in its rounded frame) and the page's
+  // color wash share the band's name, so the pill's green grows into the wash; the list slides away and the form fades in over the wash.
+  if (from === ROUTES.home && to === ROUTES.newGroup) {
+    return {
+      direction: 'hero-open',
+      kind: 'create',
+      blockRadius: PILL_END_RADIUS,
+      before: () => together(nameChildren(floatingButtonOf()), nameScreen('group-page-old')),
+      after: () => together(nameOne(tintOf(), 'group-band'), nameOne(contentOf(), 'group-page-new')),
+    }
+  }
+  if (from === ROUTES.newGroup && to === ROUTES.home) {
+    return {
+      direction: 'hero-close',
+      kind: 'create',
+      blockRadius: PILL_END_RADIUS,
+      before: () => together(nameOne(tintOf(), 'group-band'), nameOne(contentOf(), 'group-page-old')),
+      after: () => together(nameChildren(floatingButtonOf()), nameScreen('group-page-new')),
     }
   }
   return null
