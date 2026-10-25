@@ -90,7 +90,8 @@ export function CreateGroupForm({ creatorId }: Props) {
 
   function renderHeader() {
     return (
-      <Flex align="center" gap={8} style={{ marginBottom: 24 }}>
+      // Comes in from the top when the page opens from the list's Create group button (PRD 5.16).
+      <Flex align="center" gap={8} data-vt="header" style={{ marginBottom: 24 }}>
         <BackButton onClick={handleLeave} />
         <Title level={3} style={HEADER_TITLE_STYLE}>
           Create a group

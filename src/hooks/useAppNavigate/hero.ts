@@ -131,6 +131,8 @@ const expenseBandOf = () => document.querySelector('[data-expense-band]')
 const floatingButtonOf = () => document.querySelector<HTMLElement>('[data-floating-button]')
 const tintOf = () => document.querySelector<HTMLElement>('[data-page-tint]')
 const contentOf = () => document.querySelector<HTMLElement>('#root > *')
+/** Create group's header row (Back and the title), which comes in from the top like a band's header. */
+const nameCreateHeader = () => nameOne(document.querySelector<HTMLElement>('[data-vt="header"]'), 'group-header')
 /** Half the floating pill's height: its round ends, which straighten as it fills the screen. */
 const PILL_END_RADIUS = `${FLOATING_BUTTON_HEIGHT / 2}px`
 
@@ -216,7 +218,7 @@ export function groupHeroFor(from: string, to: string): GroupHero | null {
       kind: 'create',
       blockRadius: PILL_END_RADIUS,
       before: () => together(nameChildren(floatingButtonOf()), nameScreen('group-page-old')),
-      after: () => together(nameOne(tintOf(), 'group-band'), nameOne(contentOf(), 'group-page-new')),
+      after: () => together(nameOne(tintOf(), 'group-band'), nameOne(contentOf(), 'group-page-new'), nameCreateHeader()),
     }
   }
   if (from === ROUTES.newGroup && to === ROUTES.home) {
@@ -224,7 +226,7 @@ export function groupHeroFor(from: string, to: string): GroupHero | null {
       direction: 'hero-close',
       kind: 'create',
       blockRadius: PILL_END_RADIUS,
-      before: () => together(nameOne(tintOf(), 'group-band'), nameOne(contentOf(), 'group-page-old')),
+      before: () => together(nameOne(tintOf(), 'group-band'), nameOne(contentOf(), 'group-page-old'), nameCreateHeader()),
       after: () => together(nameChildren(floatingButtonOf()), nameScreen('group-page-new')),
     }
   }
