@@ -1,5 +1,6 @@
 import { ROUTES } from '../../routes.ts'
 import { RADIUS } from '../../theme/radius.ts'
+import { CONTROL_HEIGHT } from '../../theme/controlHeight.ts'
 import { FLOATING_BUTTON_HEIGHT } from '../../components/FloatingPillButton/constants.ts'
 import { GROUP_OPEN_MS, GROUP_OPEN_REST } from '../../theme/transition.ts'
 
@@ -61,10 +62,10 @@ export type GroupHero = {
   /** The corners of the row's block (`border-radius`), which straighten into the band's square ones (`--hero-block-radius`). */
   blockRadius: string
   /**
-   * `create` when the floating Create group pill grows into Create group's whole page (the CSS layers and fades it differently,
-   * `data-hero-kind`); left out for a row growing into a band.
+   * `pill` when a pill grows into a whole page (Create group from the list, Add expense and Settle up from a group): the CSS layers
+   * it differently (`data-hero-kind`); left out for a row growing into a band.
    */
-  kind?: 'create'
+  kind?: 'pill'
   /** Names the old page's pieces, before the browser takes its picture; returns what removes the names. */
   before: () => () => void
   /** Names the new page's pieces, once it is on screen and before the browser takes its picture of it; returns what removes the names. */
@@ -135,6 +136,16 @@ const contentOf = () => document.querySelector<HTMLElement>('#root > *')
 const nameCreateHeader = () => nameOne(document.querySelector<HTMLElement>('[data-vt="header"]'), 'group-header')
 /** Half the floating pill's height: its round ends, which straighten as it fills the screen. */
 const PILL_END_RADIUS = `${FLOATING_BUTTON_HEIGHT / 2}px`
+
+/** The pages a group page's pills grow into, with the pill and the radius of its round ends (half its height). */
+const PILL_PAGES = [
+  { pattern: /^\/groups\/([0-9a-f-]{36})\/expenses\/new\/?$/i, pill: floatingButtonOf, radius: PILL_END_RADIUS },
+  {
+    pattern: /^\/groups\/([0-9a-f-]{36})\/settle\/?$/i,
+    pill: () => document.querySelector<HTMLElement>('[data-settle-pill]'),
+    radius: `${CONTROL_HEIGHT / 2}px`,
+  },
+]
 
 /** A group's card has rounded left corners; an expense's category tile is rounded all round. */
 const GROUP_ROW_RADIUS = `${RADIUS.outer}px 0 0 ${RADIUS.outer}px`
@@ -215,7 +226,7 @@ export function groupHeroFor(from: string, to: string): GroupHero | null {
   if (from === ROUTES.home && to === ROUTES.newGroup) {
     return {
       direction: 'hero-open',
-      kind: 'create',
+      kind: 'pill',
       blockRadius: PILL_END_RADIUS,
       before: () => together(nameChildren(floatingButtonOf()), nameScreen('group-page-old')),
       after: () => together(nameOne(tintOf(), 'group-band'), nameOne(contentOf(), 'group-page-new'), nameCreateHeader()),
@@ -224,10 +235,36 @@ export function groupHeroFor(from: string, to: string): GroupHero | null {
   if (from === ROUTES.newGroup && to === ROUTES.home) {
     return {
       direction: 'hero-close',
-      kind: 'create',
+      kind: 'pill',
       blockRadius: PILL_END_RADIUS,
       before: () => together(nameOne(tintOf(), 'group-band'), nameOne(contentOf(), 'group-page-old'), nameCreateHeader()),
       after: () => together(nameChildren(floatingButtonOf()), nameScreen('group-page-new')),
+    }
+  }
+  // A group page's pill grows into the page it opens: the floating Add expense into Add expense, Settle up into Settle up. The group's band
+  // goes up as when an expense opens, and the pill's page shrinks back into it on the way back (Back, Cancel, or Save).
+  const pillPageOpened = PILL_PAGES.map((page) => ({ page, match: page.pattern.exec(to) })).find(({ match }) => match)
+  if (closed && pillPageOpened?.match && closed[1] === pillPageOpened.match[1]) {
+    const pillOf = pillPageOpened.page.pill
+    return {
+      direction: 'hero-open',
+      kind: 'pill',
+      blockRadius: pillPageOpened.page.radius,
+      before: () =>
+        together(nameChildren(pillOf()), nameScreen('group-page-old'), nameOne(document.querySelector<HTMLElement>('[data-group-band]'), 'group-app-header')),
+      after: () => together(nameOne(tintOf(), 'group-band'), nameOne(contentOf(), 'group-page-new'), nameCreateHeader()),
+    }
+  }
+  const pillPageClosed = PILL_PAGES.map((page) => ({ page, match: page.pattern.exec(from) })).find(({ match }) => match)
+  if (opened && pillPageClosed?.match && opened[1] === pillPageClosed.match[1]) {
+    const pillOf = pillPageClosed.page.pill
+    return {
+      direction: 'hero-close',
+      kind: 'pill',
+      blockRadius: pillPageClosed.page.radius,
+      before: () => together(nameOne(tintOf(), 'group-band'), nameOne(contentOf(), 'group-page-old'), nameCreateHeader()),
+      after: () =>
+        together(nameChildren(pillOf()), nameScreen('group-page-new'), nameOne(document.querySelector<HTMLElement>('[data-group-band]'), 'group-app-header')),
     }
   }
   return null

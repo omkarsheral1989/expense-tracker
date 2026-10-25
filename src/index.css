@@ -283,28 +283,28 @@ html[data-nav='hero-close']::view-transition-new(group-floating-new) {
 }
 
 
-/* The floating Create group pill growing into Create group's whole page (`hero.ts`, `data-hero-kind='create'`): the pill's square block and the
+/* The floating Create group pill growing into Create group's whole page (`hero.ts`, `data-hero-kind='pill'`): the pill's square block and the
    page's color wash are the band. Layered from the bottom: the background, the list's wash, the list (which slides away as in the group
    transition), the band growing over it, and Create group's form on top, which slides in from the right like the other pages' content (and out to the right when going back), its header coming down from the top. The pill's
    plus and label fade out early (and in late when going back). */
-html[data-hero-kind='create'][data-nav='hero-open']::view-transition-group(root),
-html[data-hero-kind='create'][data-nav='hero-close']::view-transition-group(root) {
+html[data-hero-kind='pill'][data-nav='hero-open']::view-transition-group(root),
+html[data-hero-kind='pill'][data-nav='hero-close']::view-transition-group(root) {
   z-index: -5;
 }
-html[data-hero-kind='create'][data-nav='hero-open']::view-transition-group(group-tint),
-html[data-hero-kind='create'][data-nav='hero-close']::view-transition-group(group-tint) {
+html[data-hero-kind='pill'][data-nav='hero-open']::view-transition-group(group-tint),
+html[data-hero-kind='pill'][data-nav='hero-close']::view-transition-group(group-tint) {
   z-index: -4;
 }
-html[data-hero-kind='create'][data-nav='hero-open']::view-transition-group(group-page-old),
-html[data-hero-kind='create'][data-nav='hero-close']::view-transition-group(group-page-new) {
+html[data-hero-kind='pill'][data-nav='hero-open']::view-transition-group(group-page-old),
+html[data-hero-kind='pill'][data-nav='hero-close']::view-transition-group(group-page-new) {
   z-index: -3;
 }
-html[data-hero-kind='create'][data-nav='hero-open']::view-transition-group(group-band),
-html[data-hero-kind='create'][data-nav='hero-close']::view-transition-group(group-band) {
+html[data-hero-kind='pill'][data-nav='hero-open']::view-transition-group(group-band),
+html[data-hero-kind='pill'][data-nav='hero-close']::view-transition-group(group-band) {
   z-index: -2;
 }
-html[data-hero-kind='create'][data-nav='hero-open']::view-transition-group(group-page-new),
-html[data-hero-kind='create'][data-nav='hero-close']::view-transition-group(group-page-old) {
+html[data-hero-kind='pill'][data-nav='hero-open']::view-transition-group(group-page-new),
+html[data-hero-kind='pill'][data-nav='hero-close']::view-transition-group(group-page-old) {
   z-index: -1;
 }
 html[data-nav='hero-close']::view-transition-new(group-pill-label) {

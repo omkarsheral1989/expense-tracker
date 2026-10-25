@@ -175,7 +175,8 @@ export function ExpenseForm({
 
   function renderHeader() {
     return (
-      <Flex align="center" justify="space-between" gap={8} style={{ marginBottom: 16 }}>
+      // Comes in from the top when the page opens from the group page's pill (PRD 5.16).
+      <Flex align="center" justify="space-between" gap={8} data-vt="header" style={{ marginBottom: 16 }}>
         <Flex align="center" gap={8}>
           <BackButton onClick={handleLeave} />
           <Title level={3} style={HEADER_TITLE_STYLE}>
