@@ -5,7 +5,7 @@ export const PAGE_TRANSITION_MS = 300
 export const PAGE_FADE_MS = 200
 
 /** How long a group's row morphs into its page, and back, in ms (PRD 5.16). The CSS reads it as `--group-open-ms`. */
-export const GROUP_OPEN_MS = 3000
+export const GROUP_OPEN_MS = 600
 
 /**
  * What the rest of the screen does while a group's row morphs into its page (PRD 5.16): `fade` cross-fades
