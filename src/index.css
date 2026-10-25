@@ -293,6 +293,21 @@ html[data-nav='hero-close']::view-transition-new(group-floating-new) {
    page's color wash are the band. Layered from the bottom: the background, the list's wash, the list (which slides away as in the group
    transition), the band growing over it, and Create group's form on top, which slides in from the right like the other pages' content (and out to the right when going back), its header coming down from the top. The pill's
    plus and label fade out early (and in late when going back). */
+/* A message ("Group created.") sits outside the app's content, so in a page transition it would be part of the still background
+   picture (`root`), under the sliding pages and the growing band. Its own picture, above everything, keeps it in front. There is
+   only ever one message list, so the name stays unique. */
+.ant-message {
+  view-transition-name: app-message;
+}
+::view-transition-group(app-message) {
+  z-index: 100;
+}
+/* Shown at once, not faded in over the whole transition (which would take most of its few seconds on screen); its own pop-in still plays. */
+::view-transition-group(app-message),
+::view-transition-old(app-message),
+::view-transition-new(app-message) {
+  animation: none;
+}
 /* While a pill's button travels as a picture of its own, its frame (which rounds it and casts its shadow or draws its outline) stays in the
    page's picture; without this its shadow or outline would slide away with the page as an empty white pill. */
 [data-floating-button]:has(> [style*='view-transition-name']) {
