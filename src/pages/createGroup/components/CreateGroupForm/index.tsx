@@ -74,7 +74,8 @@ export function CreateGroupForm({ creatorId }: Props) {
       if (!result.ok) return
 
       message.success('Group created.')
-      navigate(ROUTES.group(result.groupId))
+      // The new group takes Create group's place in the history, so Back from it goes to the list, not to the form again.
+      navigate(ROUTES.group(result.groupId), { replace: true, direction: 'forward' })
     } catch {
       message.error("Couldn't create the group. Please try again.")
     } finally {
