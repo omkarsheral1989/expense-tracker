@@ -1,4 +1,6 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { App, Button, Flex, Form, Input, Typography } from 'antd'
+import { refreshGroupPage } from '../../../group/utils.ts'
 import { useState } from 'react'
 import { useAppNavigate } from '../../../../hooks/useAppNavigate'
 import { getDb } from '../../../../db/client.ts'
@@ -28,6 +30,7 @@ export function CreateGroupForm({ creatorId }: Props) {
   const [form] = Form.useForm<FormValues>()
   const { message, modal } = App.useApp()
   const navigate = useAppNavigate()
+  const queryClient = useQueryClient()
   const [submitting, setSubmitting] = useState(false)
   const { people, loading, add: addKnownPerson } = useKnownPeople(creatorId)
 
@@ -73,6 +76,8 @@ export function CreateGroupForm({ creatorId }: Props) {
       form.setFields(toFormFields(result.ok ? {} : result.errors))
       if (!result.ok) return
 
+      // The new group's page opens already filled in, without its loader.
+      await refreshGroupPage(queryClient, creatorId, result.groupId)
       message.success('Group created.')
       // The new group takes Create group's place in the history, so Back from it goes to the list, not to the form again.
       navigate(ROUTES.group(result.groupId), { replace: true, direction: 'forward' })
