@@ -1,9 +1,10 @@
 import { Card, Flex, Progress, theme, Typography } from 'antd'
-import { useColorScheme } from '../../../../hooks/useColorScheme'
+import type { ReactNode } from 'react'
 import { currencyService } from '../../../../services/currencyService'
 import { moneyService } from '../../../../services/moneyService'
 import type { AccountSummary } from '../../../../services/accountService/types.ts'
-import { YOU_OWE_COLOR } from '../../../../theme/balanceColors.ts'
+import { CARD_PADDING } from '../../../../theme/cardPadding.ts'
+import { RADIUS } from '../../../../theme/radius.ts'
 import { ACCOUNT_KIND_LABELS, SPEND_TARGET_LABELS } from '../../content.ts'
 import { AccountKindIcon } from '../AccountKindIcon'
 
@@ -23,44 +24,75 @@ type Props = {
  * count (PRD 5.17).
  */
 export function AccountItem({ account, onEdit }: Props) {
-  const scheme = useColorScheme()
   const { token } = theme.useToken()
   const { spend } = account
   // The currency as the group list shows it ("£", "US$"), or its code where no symbol tells it apart.
   const currency = currencyService.symbol(account.currency, navigator.language) ?? account.currency
 
-  function renderTarget() {
-    if (!spend?.target || account.spendTargetMinor === null) return null
-    const spent = spend.targetSpentMinor
-    const over = spent > account.spendTargetMinor
+  /** One small tile of the card: a label and a value (with an optional ring at their end, as high as the two), and a line under them. */
+  function renderTile(key: string, label: string, value: string, note: string | null, ring: ReactNode = null) {
     return (
-      <div>
-        <Progress
-          percent={Math.min(100, Math.round((spent / account.spendTargetMinor) * 100))}
-          showInfo={false}
-          status={over ? 'exception' : 'normal'}
-          // Ant Design draws a normal bar in its info blue; the app's green is its primary color.
-          strokeColor={over ? undefined : token.colorPrimary}
-          size="small"
-        />
-        <Text style={over ? { color: YOU_OWE_COLOR[scheme] } : undefined}>
-          {moneyService.format(spent, account.currency)} of {moneyService.format(account.spendTargetMinor, account.currency)}{' '}
-          {SPEND_TARGET_LABELS[spend.target.period].this}
-        </Text>
-      </div>
+      <Flex
+        key={key}
+        vertical
+        gap={2}
+        style={{ flex: 1, minWidth: 0, padding: CARD_PADDING, borderRadius: RADIUS.inner, background: token.colorBgLayout }}
+      >
+        <Flex align="center" justify="space-between" gap={8}>
+          <Flex vertical style={{ minWidth: 0 }}>
+            <Text type="secondary">{label}</Text>
+            <Text strong style={{ overflowWrap: 'anywhere' }}>
+              {value}
+            </Text>
+          </Flex>
+          {ring}
+        </Flex>
+        {note && <Text type="secondary">{note}</Text>}
+      </Flex>
     )
   }
 
-  function renderLimit() {
-    if (!spend || account.creditLimitMinor === null) return null
-    const percent = Math.round((spend.cycleSpentMinor / account.creditLimitMinor) * 100)
+  // A ring for how much of an amount is spent, as high as the label and the amount beside it (two 22 px lines), with the
+  // whole percentage in the middle (red once past it).
+  function renderRing(spent: number, of: number, what: string) {
+    const percent = Math.round((spent / of) * 100)
     return (
-      <Flex vertical>
-        <Text type="secondary">Limit {moneyService.format(account.creditLimitMinor, account.currency)}</Text>
-        <Text type="secondary">
-          {moneyService.format(spend.cycleSpentMinor, account.currency)} spent this statement cycle ({percent}%)
-        </Text>
-      </Flex>
+      <Progress
+        type="circle"
+        size={44}
+        strokeWidth={10}
+        percent={Math.min(100, percent)}
+        // The real share, also past 100%. A fixed status keeps Ant Design from swapping it for a tick or a cross.
+        format={() => `${percent}%`}
+        status="normal"
+        // Ant Design draws a normal ring in its info blue; the app's green is its primary color.
+        strokeColor={spent > of ? token.colorError : token.colorPrimary}
+        aria-label={`${percent}% of the ${what}`}
+      />
+    )
+  }
+
+  // This period's spend against the target.
+  function renderTargetTile() {
+    if (!spend?.target || account.spendTargetMinor === null) return null
+    return renderTile(
+      'target',
+      'Spend target',
+      moneyService.format(account.spendTargetMinor, account.currency),
+      `${moneyService.format(spend.targetSpentMinor, account.currency)} spent ${SPEND_TARGET_LABELS[spend.target.period].this}`,
+      renderRing(spend.targetSpentMinor, account.spendTargetMinor, 'target'),
+    )
+  }
+
+  // The credit limit, and the share of it spent in this statement cycle (repayments are not recorded, so it is not what is owed).
+  function renderLimitTile() {
+    if (!spend || account.creditLimitMinor === null) return null
+    return renderTile(
+      'limit',
+      'Credit limit',
+      moneyService.format(account.creditLimitMinor, account.currency),
+      `${moneyService.format(spend.cycleSpentMinor, account.currency)} spent this cycle`,
+      renderRing(spend.cycleSpentMinor, account.creditLimitMinor, 'limit'),
     )
   }
 
@@ -104,8 +136,10 @@ export function AccountItem({ account, onEdit }: Props) {
         </Flex>
         {spend && (
           <Flex vertical gap={8}>
-            {renderTarget()}
-            {renderLimit()}
+            <Flex gap={8}>
+              {renderTargetTile()}
+              {renderLimitTile()}
+            </Flex>
             {renderSkipped()}
           </Flex>
         )}
