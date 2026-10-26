@@ -15,6 +15,7 @@ import { aboveScreenEdge, UNDER_BAND_PADDING } from '../../../../theme/safeArea.
 import { PaymentRow } from '../PaymentRow'
 import { ExpenseBand } from './ExpenseBand'
 import { History } from './History'
+import { dialogLayer } from '../../../../components/DialogLayer'
 
 type Props = {
   expense: ExpenseDetails
@@ -58,6 +59,8 @@ export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props)
 
   function confirmDelete() {
     modal.confirm({
+      // In the layer that stays in front while the page changes after it (`dialogLayer`).
+      getContainer: dialogLayer,
       title: `Delete this ${noun}?`,
       content: 'It will be removed from the group, and the balances will change.',
       okText: 'Delete',

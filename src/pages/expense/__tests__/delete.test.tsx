@@ -98,6 +98,8 @@ describe('ExpensePage: deleting', () => {
       await user.click(deleteButton())
 
       const dialog = await confirmDialog('Delete this expense?')
+      // It opens in the layer that stays in front while the page changes after it (ADR-060).
+      expect(dialog.closest('[data-dialog-layer]')).not.toBeNull()
       expect(within(dialog).getByText('It will be removed from the group, and the balances will change.')).toBeInTheDocument()
       expect(within(dialog).getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
       expect(within(dialog).getByRole('button', { name: 'Delete' })).toHaveClass('ant-btn-dangerous')

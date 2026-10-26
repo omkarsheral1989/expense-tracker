@@ -571,6 +571,8 @@ describe('CreateGroupPage', () => {
       await user.click(screen.getByRole('button', { name: 'Back' }))
 
       const dialog = await screen.findByRole('dialog', { name: 'Discard this group?' })
+      // It opens in the layer that stays in front while the page changes after it (ADR-060).
+      expect(dialog.closest('[data-dialog-layer]')).not.toBeNull()
       expect(within(dialog).getByText('What you entered will be lost.')).toBeInTheDocument()
       expect(page.currentPath()).toBe(ROUTES.newGroup)
     })

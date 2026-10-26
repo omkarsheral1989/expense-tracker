@@ -21,6 +21,7 @@ import type { FormValues } from './types.ts'
 import { hasUnsavedInput, memberLabel, recentCurrencyCodes, toFormFields } from './utils.ts'
 import { HEADER_TITLE_STYLE } from '../../../../theme/headerTitle.ts'
 import { BackButton } from '../../../../components/BackButton'
+import { dialogLayer } from '../../../../components/DialogLayer'
 import { useQueryClient } from '@tanstack/react-query'
 import { refreshGroupPage } from '../../../group/utils.ts'
 
@@ -79,6 +80,8 @@ export function SettleUpForm({ group, datasetId, userId, recentCurrencies }: Pro
       return
     }
     modal.confirm({
+      // In the layer that stays in front while the page changes after it (`dialogLayer`).
+      getContainer: dialogLayer,
       title: 'Discard this payment?',
       content: 'What you entered will be lost.',
       okText: 'Discard',

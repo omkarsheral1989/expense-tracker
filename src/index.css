@@ -308,6 +308,31 @@ html[data-nav='hero-close']::view-transition-new(group-floating-new) {
 ::view-transition-new(app-message) {
   animation: none;
 }
+/* The confirmations that start a page change open in a layer of their own (`dialogLayer`), for the same reason as a message: its own
+   picture, above the pages and below a message. It covers the screen (its dialog's mask and box are fixed to it; a layer with no
+   height would be an empty picture) but lets clicks through to the page; the dialog inside takes them. */
+[data-dialog-layer] {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
+  view-transition-name: app-dialog;
+}
+[data-dialog-layer] > * {
+  pointer-events: auto;
+}
+::view-transition-group(app-dialog) {
+  z-index: 99;
+}
+/* The new page's picture is live, so the dialog closes there with Ant Design's own animation over the page change. The old page's
+   picture is the dialog as it was before Discard, frozen: it would stay on screen until the change ends. */
+::view-transition-group(app-dialog),
+::view-transition-new(app-dialog) {
+  animation: none;
+}
+::view-transition-old(app-dialog) {
+  display: none;
+}
 /* While a pill's button travels as a picture of its own, its frame (which rounds it and casts its shadow or draws its outline) stays in the
    page's picture; without this its shadow or outline would slide away with the page as an empty white pill. */
 [data-floating-button]:has(> [style*='view-transition-name']) {

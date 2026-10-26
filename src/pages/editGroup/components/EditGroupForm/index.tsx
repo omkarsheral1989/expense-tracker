@@ -15,6 +15,7 @@ import type { FormValues } from './types.ts'
 import { hasChanges, toFormFields } from './utils.ts'
 import { HEADER_TITLE_STYLE } from '../../../../theme/headerTitle.ts'
 import { BackButton } from '../../../../components/BackButton'
+import { dialogLayer } from '../../../../components/DialogLayer'
 
 const { Title } = Typography
 
@@ -49,6 +50,8 @@ export function EditGroupForm({ userId, group }: Props) {
       return
     }
     modal.confirm({
+      // In the layer that stays in front while the page changes after it (`dialogLayer`).
+      getContainer: dialogLayer,
       title: 'Discard your changes?',
       content: 'What you changed will be lost.',
       okText: 'Discard',

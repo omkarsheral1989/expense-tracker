@@ -18,6 +18,7 @@ import type { FormValues } from './types.ts'
 import { hasUnsavedInput, toFormFields } from './utils.ts'
 import { HEADER_TITLE_STYLE } from '../../../../theme/headerTitle.ts'
 import { BackButton } from '../../../../components/BackButton'
+import { dialogLayer } from '../../../../components/DialogLayer'
 
 const { Title, Text } = Typography
 
@@ -55,6 +56,8 @@ export function CreateGroupForm({ creatorId }: Props) {
       return
     }
     modal.confirm({
+      // In the layer that stays in front while the page changes after it (`dialogLayer`).
+      getContainer: dialogLayer,
       title: 'Discard this group?',
       content: 'What you entered will be lost.',
       okText: 'Discard',

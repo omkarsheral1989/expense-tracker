@@ -21,6 +21,7 @@ import type { FormValues } from './types.ts'
 import { hasUnsavedInput, recentCurrencyCodes, toFormFields } from './utils.ts'
 import { HEADER_TITLE_STYLE } from '../../theme/headerTitle.ts'
 import { BackButton } from '../BackButton'
+import { dialogLayer } from '../DialogLayer'
 
 const { Title } = Typography
 
@@ -104,6 +105,8 @@ export function ExpenseForm({
       return
     }
     modal.confirm({
+      // In the layer that stays in front while the page changes after it (`dialogLayer`).
+      getContainer: dialogLayer,
       title: discardPrompt.title,
       content: discardPrompt.content,
       okText: 'Discard',
