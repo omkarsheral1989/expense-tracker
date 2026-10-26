@@ -32,7 +32,9 @@ describe('FloatingPillButton', () => {
     expect(button.parentElement?.getAttribute('style')).toContain(`bottom: calc(${FLOATING_BUTTON_BOTTOM}px + env(safe-area-inset-bottom))`)
     expect(button).toHaveStyle({ height: `${FLOATING_BUTTON_HEIGHT}px` })
     expect(FLOATING_BUTTON_HEIGHT).toBe(48)
-    expect(button).toHaveStyle({ borderRadius: '999px' })
+    // The frame rounds it and clips the square button inside, which travels square into the page it opens (PRD 5.16).
+    expect(button.parentElement).toHaveStyle({ borderRadius: '999px', overflow: 'hidden' })
+    expect(button).toHaveStyle({ borderRadius: '0px' })
   })
 
   it('calls onClick when it is pressed', async () => {

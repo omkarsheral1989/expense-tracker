@@ -56,6 +56,7 @@ export function KnownExpensePage({ expense }: Props) {
         expense={expense}
         title={renderTitle()}
         actions={renderActions()}
+        travels={!expense.deleted}
       />
       <Flex vertical style={{ flex: 1, width: '100%', maxWidth: 560, margin: '0 auto', padding: `${UNDER_BAND_PADDING}px 16px ${aboveScreenEdge(24)}` }}>
         {renderPayment()}

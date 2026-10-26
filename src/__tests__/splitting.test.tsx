@@ -32,7 +32,7 @@ describe('splitting expenses', () => {
     // A group with a friend.
     await createGroupWithFriend(user, 'Goa trip', { name: 'Priya Shah', email: 'priya@gmail.com' })
     expect(await screen.findByText('Goa trip', {}, OPENING)).toBeInTheDocument()
-    expect(screen.getByText(/2 people/)).toBeInTheDocument()
+    expect(screen.getByText(/2 members/)).toBeInTheDocument()
 
     // A dinner, paid by me and split equally: Priya owes half.
     await addExpense(user, 'Beach shack dinner', '100')

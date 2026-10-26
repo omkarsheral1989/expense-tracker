@@ -1,4 +1,6 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { App, Button, Flex, Form, Input, Typography } from 'antd'
+import { refreshGroupPage } from '../../../group/utils.ts'
 import { useState } from 'react'
 import { useAppNavigate } from '../../../../hooks/useAppNavigate'
 import { CurrencySelect } from '../../../../components/CurrencySelect'
@@ -13,6 +15,7 @@ import type { FormValues } from './types.ts'
 import { hasChanges, toFormFields } from './utils.ts'
 import { HEADER_TITLE_STYLE } from '../../../../theme/headerTitle.ts'
 import { BackButton } from '../../../../components/BackButton'
+import { dialogLayer } from '../../../../components/DialogLayer'
 
 const { Title } = Typography
 
@@ -27,6 +30,7 @@ export function EditGroupForm({ userId, group }: Props) {
   const [form] = Form.useForm<FormValues>()
   const { message, modal } = App.useApp()
   const navigate = useAppNavigate()
+  const queryClient = useQueryClient()
   const [submitting, setSubmitting] = useState(false)
   const [initialValues] = useState<FormValues>(() => ({
     name: group.name,
@@ -46,6 +50,8 @@ export function EditGroupForm({ userId, group }: Props) {
       return
     }
     modal.confirm({
+      // In the layer that stays in front while the page changes after it (`dialogLayer`).
+      getContainer: dialogLayer,
       title: 'Discard your changes?',
       content: 'What you changed will be lost.',
       okText: 'Discard',
@@ -76,6 +82,8 @@ export function EditGroupForm({ userId, group }: Props) {
       form.setFields(toFormFields(result.ok ? {} : result.errors))
       if (!result.ok) return
 
+      // The group page comes back with the new details already on it, without its loader.
+      await refreshGroupPage(queryClient, userId, group.id)
       message.success('Group updated.')
       backToGroup()
     } catch {
@@ -106,7 +114,7 @@ export function EditGroupForm({ userId, group }: Props) {
     return (
       <>
         <Form.Item label="Group name" name="name">
-          <Input autoFocus placeholder="For example, Goa trip" />
+          <Input placeholder="For example, Goa trip" />
         </Form.Item>
         <Form.Item label="Type" name="type">
           <GroupTypeSelector />

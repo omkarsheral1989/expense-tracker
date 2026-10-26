@@ -99,3 +99,277 @@ html[data-nav='back']::view-transition-new(root) {
     animation: none !important;
   }
 }
+
+/* Opening a group from the list, and back (PRD 5.16, ADR-060): the pieces that exist on both pages (named by `hero.ts`) move, and the rest of
+   the screen cross-fades or slides under them. The time is `--group-open-ms`, the curve `--group-open-ease`, a gentle ease-in-out so the movement
+   is seen over the whole time (a quick-start curve finished the slide in the first tenth of it); `data-group-rest` says what the rest does. */
+html {
+  --group-open-ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+html[data-nav='hero-open']::view-transition-group(*),
+html[data-nav='hero-close']::view-transition-group(*),
+html[data-nav='hero-open']::view-transition-old(root),
+html[data-nav='hero-open']::view-transition-new(root),
+html[data-nav='hero-close']::view-transition-old(root),
+html[data-nav='hero-close']::view-transition-new(root) {
+  animation-duration: var(--group-open-ms, 600ms);
+  animation-timing-function: var(--group-open-ease);
+}
+
+/* The band's two pictures (the row's colored block and the page's band) are drawn to fill the box that morphs between them, not at their own
+   proportions, which would keep the square block square under the growing band. The pieces on top of it are named apart, so only the flat color and the gradient stretch. */
+html[data-nav='hero-open']::view-transition-old(group-band),
+html[data-nav='hero-open']::view-transition-new(group-band),
+html[data-nav='hero-close']::view-transition-old(group-band),
+html[data-nav='hero-close']::view-transition-new(group-band),
+html[data-nav='hero-open']::view-transition-old(group-currency-chip),
+html[data-nav='hero-open']::view-transition-new(group-currency-chip),
+html[data-nav='hero-close']::view-transition-old(group-currency-chip),
+html[data-nav='hero-close']::view-transition-new(group-currency-chip),
+html[data-nav='hero-open']::view-transition-old(group-people-chip),
+html[data-nav='hero-open']::view-transition-new(group-people-chip),
+html[data-nav='hero-close']::view-transition-old(group-people-chip),
+html[data-nav='hero-close']::view-transition-new(group-people-chip),
+html[data-nav='hero-open']::view-transition-old(group-people-icon),
+html[data-nav='hero-open']::view-transition-new(group-people-icon),
+html[data-nav='hero-close']::view-transition-old(group-people-icon),
+html[data-nav='hero-close']::view-transition-new(group-people-icon) {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: fill;
+}
+
+/* The corners of the morphing band: the card's rounded left corners (`--hero-block-radius`: a group card's left corners, an expense tile's four) straighten while the block grows into the band, and come back when it shrinks into the row. */
+html[data-nav='hero-open']::view-transition-image-pair(group-band),
+html[data-nav='hero-close']::view-transition-image-pair(group-band) {
+  overflow: clip;
+  animation-duration: var(--group-open-ms, 600ms);
+  animation-timing-function: var(--group-open-ease);
+  animation-fill-mode: both;
+}
+html[data-nav='hero-open']::view-transition-image-pair(group-band) {
+  animation-name: group-band-straighten;
+  /* The browser shows the row's (square-taken) picture as soon as it is taken, while the new page is still being drawn, and starts the
+     animations only then; without its own radius the pair would show square corners for that moment. */
+  border-radius: var(--hero-block-radius, 24px 0 0 24px);
+}
+html[data-nav='hero-close']::view-transition-image-pair(group-band) {
+  animation-name: group-band-round;
+}
+@keyframes group-band-straighten {
+  from { border-radius: var(--hero-block-radius, 24px 0 0 24px); }
+  to { border-radius: 0; }
+}
+@keyframes group-band-round {
+  from { border-radius: 0; }
+  to { border-radius: var(--hero-block-radius, 24px 0 0 24px); }
+}
+
+/* The rest of the screen (`hero.ts`): the page's content is a picture of its own with no background (`group-page-old` on the page left,
+   `group-page-new` on the page that comes), the list's green wash (`group-tint`) another, and what is left in the picture of the whole page
+   (`root`) is the plain background, which stays still. Layered from the bottom: that background, the wash (which fades out in place when a
+   group opens, and in when it closes, so the green turns into the group page's background and back), the content (the page that comes slides
+   over the one left when opening, and the one left slides away over the list when closing), and on top the pieces that morph. */
+html[data-nav='hero-open']::view-transition-group(root),
+html[data-nav='hero-close']::view-transition-group(root) {
+  z-index: -4;
+}
+html[data-nav='hero-open']::view-transition-group(group-tint),
+html[data-nav='hero-close']::view-transition-group(group-tint) {
+  z-index: -3;
+}
+html[data-nav='hero-open']::view-transition-group(group-page-old),
+html[data-nav='hero-close']::view-transition-group(group-page-new) {
+  z-index: -2;
+}
+html[data-nav='hero-open']::view-transition-group(group-page-new),
+html[data-nav='hero-close']::view-transition-group(group-page-old) {
+  z-index: -1;
+}
+
+/* `data-group-rest='slide'`: the content moves as in a page slide while the pieces morph. Opening: the list moves left and fades, the group's page
+   comes in from the right. Closing is the mirror: the group's page moves right and fades, the list comes in from the left. */
+html[data-nav='hero-open'][data-group-rest='slide']::view-transition-old(group-page-old) {
+  animation-name: group-rest-out-left;
+}
+html[data-nav='hero-open'][data-group-rest='slide']::view-transition-new(group-page-new) {
+  animation-name: group-rest-in-right;
+}
+html[data-nav='hero-close'][data-group-rest='slide']::view-transition-old(group-page-old) {
+  animation-name: group-rest-out-right;
+}
+html[data-nav='hero-close'][data-group-rest='slide']::view-transition-new(group-page-new) {
+  animation-name: group-rest-in-left;
+}
+
+/* The list's green header bar goes up off the screen when a group opens, and comes back down when it closes. */
+html[data-nav='hero-open']::view-transition-old(group-app-header) {
+  animation: group-bar-up var(--group-open-ms, 600ms) var(--group-open-ease) both;
+}
+html[data-nav='hero-close']::view-transition-new(group-app-header) {
+  animation: group-bar-down var(--group-open-ms, 600ms) var(--group-open-ease) both;
+}
+@keyframes group-bar-up {
+  to { transform: translateY(-100%); }
+}
+@keyframes group-bar-down {
+  from { transform: translateY(-100%); }
+}
+/* The group page's content starts a screen to the right, but never more than 800 px, so on a wide screen it does not travel the
+   whole window, and fades in as it comes. */
+@keyframes group-rest-in-right {
+  from { transform: translateX(min(800px, 100%)); opacity: 0; }
+}
+/* The list's content leaves the same distance to the left (a screen, at most 800 px), fading out. */
+@keyframes group-rest-out-left {
+  to { transform: translateX(calc(-1 * min(800px, 100%))); opacity: 0; }
+}
+/* Going back is the mirror, over the same distance: the group page's content leaves to the right, the list's comes back from the left. */
+@keyframes group-rest-out-right {
+  to { transform: translateX(min(800px, 100%)); opacity: 0; }
+}
+@keyframes group-rest-in-left {
+  from { transform: translateX(calc(-1 * min(800px, 100%))); opacity: 0; }
+}
+
+/* The band's header row (Back, the title and the round buttons, `hero.ts`) has nothing like it in the row: it comes in from the top when a group opens, and leaves the same way when it closes. */
+html[data-nav='hero-open']::view-transition-new(group-header) {
+  animation: group-from-top var(--group-open-ms, 600ms) var(--group-open-ease) both;
+}
+html[data-nav='hero-close']::view-transition-old(group-header) {
+  animation: group-to-top var(--group-open-ms, 600ms) var(--group-open-ease) both;
+}
+@keyframes group-from-top {
+  from { transform: translateY(-80px); opacity: 0; }
+}
+@keyframes group-to-top {
+  to { transform: translateY(-80px); opacity: 0; }
+}
+
+/* The band's trip dates chip (`hero.ts`) has nothing like it in the row either: it comes in from the right when a group opens, and leaves that way when it closes,
+   over the same distance as the page's content (a screen, at most 800 px). */
+html[data-nav='hero-open']::view-transition-new(group-from-right) {
+  animation: group-from-right var(--group-open-ms, 600ms) var(--group-open-ease) both;
+}
+html[data-nav='hero-close']::view-transition-old(group-from-right) {
+  animation: group-to-right var(--group-open-ms, 600ms) var(--group-open-ease) both;
+}
+@keyframes group-from-right {
+  from { transform: translateX(min(800px, 100vw)); opacity: 0; }
+}
+@keyframes group-to-right {
+  to { transform: translateX(min(800px, 100vw)); opacity: 0; }
+}
+/* A group just created (`data-hero-kind='form'`): the band's title and its currency and members chips come in from the right too. */
+html[data-hero-kind='form'][data-nav='hero-open']::view-transition-new(group-name),
+html[data-hero-kind='form'][data-nav='hero-open']::view-transition-new(group-currency-chip),
+html[data-hero-kind='form'][data-nav='hero-open']::view-transition-new(group-people-chip) {
+  animation: group-from-right var(--group-open-ms, 600ms) var(--group-open-ease) both;
+}
+
+/* The floating buttons (`hero.ts`) leave and arrive through the bottom of the screen instead of sliding: the list's Create group drops off it and the group
+   page's Add expense rises from it when a group opens; going back, Add expense drops off it and Create group rises from it. */
+html[data-nav='hero-open']::view-transition-old(group-floating-old),
+html[data-nav='hero-close']::view-transition-old(group-floating-old) {
+  animation: group-to-bottom var(--group-open-ms, 600ms) linear both;
+}
+html[data-nav='hero-open']::view-transition-new(group-floating-new),
+html[data-nav='hero-close']::view-transition-new(group-floating-new) {
+  animation: group-from-bottom var(--group-open-ms, 600ms) linear both;
+}
+/* The buttons move at an even speed (linear). A leaving button has faded out by 50 %, while it is still on screen; an arriving button fades in slowly
+   to a quarter by 70 % and fully over the rest. */
+@keyframes group-to-bottom {
+  50% { opacity: 0; }
+  to { transform: translateY(calc(200% + 64px + env(safe-area-inset-bottom))); opacity: 0; }
+}
+@keyframes group-from-bottom {
+  from { transform: translateY(calc(200% + 64px + env(safe-area-inset-bottom))); opacity: 0; }
+  70% { opacity: 0.25; }
+}
+
+
+/* The floating Create group pill growing into Create group's whole page (`hero.ts`, `data-hero-kind='pill'`): the pill's square block and the
+   page's color wash are the band. Layered from the bottom: the background, the list's wash, the list (which slides away as in the group
+   transition), the band growing over it, and Create group's form on top, which slides in from the right like the other pages' content (and out to the right when going back), its header coming down from the top. The pill's
+   plus and label fade out early (and in late when going back). */
+/* A message ("Group created.") sits outside the app's content, so in a page transition it would be part of the still background
+   picture (`root`), under the sliding pages and the growing band. Its own picture, above everything, keeps it in front. There is
+   only ever one message list, so the name stays unique. */
+.ant-message {
+  view-transition-name: app-message;
+}
+::view-transition-group(app-message) {
+  z-index: 100;
+}
+/* Shown at once, not faded in over the whole transition (which would take most of its few seconds on screen); its own pop-in still plays. */
+::view-transition-group(app-message),
+::view-transition-old(app-message),
+::view-transition-new(app-message) {
+  animation: none;
+}
+/* The confirmations that start a page change open in a layer of their own (`dialogLayer`), for the same reason as a message: its own
+   picture, above the pages and below a message. It covers the screen (its dialog's mask and box are fixed to it; a layer with no
+   height would be an empty picture) but lets clicks through to the page; the dialog inside takes them. */
+[data-dialog-layer] {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
+  view-transition-name: app-dialog;
+}
+[data-dialog-layer] > * {
+  pointer-events: auto;
+}
+::view-transition-group(app-dialog) {
+  z-index: 99;
+}
+/* The new page's picture is live, so the dialog closes there with Ant Design's own animation over the page change. The old page's
+   picture is the dialog as it was before Discard, frozen: it would stay on screen until the change ends. */
+::view-transition-group(app-dialog),
+::view-transition-new(app-dialog) {
+  animation: none;
+}
+::view-transition-old(app-dialog) {
+  display: none;
+}
+/* While a pill's button travels as a picture of its own, its frame (which rounds it and casts its shadow or draws its outline) stays in the
+   page's picture; without this its shadow or outline would slide away with the page as an empty white pill. */
+[data-floating-button]:has(> [style*='view-transition-name']) {
+  box-shadow: none !important;
+}
+[data-settle-pill]:has(> [style*='view-transition-name']) {
+  outline: none !important;
+}
+html[data-hero-kind='pill'][data-nav='hero-open']::view-transition-group(root),
+html[data-hero-kind='pill'][data-nav='hero-close']::view-transition-group(root) {
+  z-index: -5;
+}
+html[data-hero-kind='pill'][data-nav='hero-open']::view-transition-group(group-tint),
+html[data-hero-kind='pill'][data-nav='hero-close']::view-transition-group(group-tint) {
+  z-index: -4;
+}
+html[data-hero-kind='pill'][data-nav='hero-open']::view-transition-group(group-page-old),
+html[data-hero-kind='pill'][data-nav='hero-close']::view-transition-group(group-page-new) {
+  z-index: -3;
+}
+html[data-hero-kind='pill'][data-nav='hero-open']::view-transition-group(group-band),
+html[data-hero-kind='pill'][data-nav='hero-close']::view-transition-group(group-band) {
+  z-index: -2;
+}
+html[data-hero-kind='pill'][data-nav='hero-open']::view-transition-group(group-page-new),
+html[data-hero-kind='pill'][data-nav='hero-close']::view-transition-group(group-page-old) {
+  z-index: -1;
+}
+html[data-nav='hero-close']::view-transition-new(group-pill-label) {
+  animation: hero-fade-in-late var(--group-open-ms, 600ms) linear both;
+}
+html[data-nav='hero-open']::view-transition-old(group-pill-label) {
+  animation: hero-fade-out-early var(--group-open-ms, 600ms) linear both;
+}
+@keyframes hero-fade-out-early {
+  30%, to { opacity: 0; }
+}
+@keyframes hero-fade-in-late {
+  from, 60% { opacity: 0; }
+}

@@ -110,3 +110,39 @@ describe('useAppNavigate', () => {
     undo()
   })
 })
+
+describe('useAppNavigate and a morph (PRD 5.16)', () => {
+  const GROUP = '11111111-1111-4111-8111-111111111111'
+
+  function renderCreateGroup(go: Parameters<ReturnType<typeof useAppNavigate>>) {
+    // The morph is chosen from the address the browser shows, which a memory router does not change.
+    window.history.replaceState(null, '', '/groups/new')
+    return render(
+      <MemoryRouter initialEntries={['/groups/new']}>
+        <PageTransitions />
+        <Routes>
+          <Route path="/groups/new" element={<Page label="Create" go={go} />} />
+          <Route path="/groups/:id" element={<div>The new group</div>} />
+          <Route path="/home" element={<div>Your groups</div>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+  }
+  afterEach(() => window.history.replaceState(null, '', '/'))
+
+  it('morphs into a page that replaces this one going forward, as Create group\'s new group does', async () => {
+    renderCreateGroup([`/groups/${GROUP}`, { replace: true, direction: 'forward' }])
+    await userEvent.click(screen.getByRole('button', { name: 'Create' }))
+
+    await screen.findByText('The new group')
+    expect(transitions.started).toEqual(['hero-open'])
+  })
+
+  it('only slides for a page that replaces this one going back, when the page before is not the one asked for', async () => {
+    renderCreateGroup(['/home', { direction: 'back' }])
+    await userEvent.click(screen.getByRole('button', { name: 'Create' }))
+
+    await screen.findByText('Your groups')
+    expect(transitions.started).toEqual(['back'])
+  })
+})

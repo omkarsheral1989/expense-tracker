@@ -1,6 +1,7 @@
 import { useCallback } from 'react'
 import { useNavigate, type NavigateOptions, type To } from 'react-router'
-import { canSlide, COMMIT_TIMEOUT_MS, previousPageIs, slide, type NavDirection } from './utils.ts'
+import { groupHeroFor, routerPathOf, setGroupOpenStyle } from './hero.ts'
+import { canSlide, COMMIT_TIMEOUT_MS, previousPageIs, rememberScroll, slide, type NavDirection } from './utils.ts'
 
 type Options = NavigateOptions & {
   /**
@@ -23,6 +24,7 @@ export function useAppNavigate() {
 
   return useCallback(
     (to: To, { direction, ...options }: Options = {}) => {
+      rememberScroll()
       // Going back to the page just before this one leaves it behind in the history, so the
       // browser's Back does not bring it back (ADR-059). The slide is the history pop's (`useSlideOnBrowserBack`).
       const target = typeof to === 'string' ? to : to.pathname
@@ -38,19 +40,33 @@ export function useAppNavigate() {
         return
       }
       const root = document.documentElement
-      root.dataset.nav = direction ?? 'forward'
+      // A group's row and its page morph into each other (PRD 5.16); anything else slides.
+      // A page that replaces this one with a direction (Create group's new group) can morph too.
+      const hero = target && (!replace || options.replace) ? groupHeroFor(routerPathOf(slide.path), target) : null
+      if (hero) setGroupOpenStyle(root, hero)
+      root.dataset.nav = hero?.direction ?? direction ?? 'forward'
+      const undoBefore = hero?.before()
+      let undoAfter: (() => void) | undefined
       const transition = document.startViewTransition(
         () =>
           new Promise<void>((resolve) => {
-            slide.waiting = resolve
+            slide.waiting = () => {
+              undoAfter = hero?.after()
+              resolve()
+            }
             navigate(to, navigation)
             // Let go if the page never commits (the same address, or a refusal).
             setTimeout(resolve, COMMIT_TIMEOUT_MS)
           }),
       )
+      const morph = hero ? transition.finished.then(() => undefined, () => undefined) : null
+      slide.morph = morph
       void transition.finished.finally(() => {
         delete root.dataset.nav
+        if (slide.morph === morph) slide.morph = null
         slide.waiting = null
+        undoBefore?.()
+        undoAfter?.()
       })
     },
     [navigate],

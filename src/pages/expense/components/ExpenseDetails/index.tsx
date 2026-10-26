@@ -1,5 +1,7 @@
 import { DeleteOutlined, EditOutlined, UndoOutlined } from '@ant-design/icons'
+import { useQueryClient } from '@tanstack/react-query'
 import { App, Flex } from 'antd'
+import { refreshGroupPage } from '../../../group/utils.ts'
 import { useState } from 'react'
 import { useAppNavigate } from '../../../../hooks/useAppNavigate'
 import { BandIconButton } from '../../../../components/BandIconButton'
@@ -13,6 +15,7 @@ import { aboveScreenEdge, UNDER_BAND_PADDING } from '../../../../theme/safeArea.
 import { PaymentRow } from '../PaymentRow'
 import { ExpenseBand } from './ExpenseBand'
 import { History } from './History'
+import { dialogLayer } from '../../../../components/DialogLayer'
 
 type Props = {
   expense: ExpenseDetails
@@ -32,6 +35,7 @@ type Props = {
  */
 export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props) {
   const navigate = useAppNavigate()
+  const queryClient = useQueryClient()
   const { message, modal } = App.useApp()
   const [restoring, setRestoring] = useState(false)
   // A settlement is worded by who paid whom ("You paid Priya"), and has no split to show.
@@ -43,6 +47,8 @@ export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props)
   async function handleDelete() {
     try {
       const result = await expenseService.deleteExpense(await getDb(), userId, expense.groupId, expense.id)
+      // The group page comes back with the deletion already on it, without its loader.
+      await refreshGroupPage(queryClient, userId, expense.groupId)
       if (result.ok) message.success(`${noun === 'payment' ? 'Payment' : 'Expense'} deleted.`)
       else message.error(`This ${noun} is no longer available.`)
       navigate(ROUTES.group(expense.groupId), { direction: 'back' })
@@ -53,6 +59,8 @@ export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props)
 
   function confirmDelete() {
     modal.confirm({
+      // In the layer that stays in front while the page changes after it (`dialogLayer`).
+      getContainer: dialogLayer,
       title: `Delete this ${noun}?`,
       content: 'It will be removed from the group, and the balances will change.',
       okText: 'Delete',
@@ -127,6 +135,7 @@ export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props)
         title={renderTitle()}
         actions={renderActions()}
         onEdit={expense.deleted || isSettlement ? undefined : () => navigate(ROUTES.editExpense(expense.groupId, expense.id))}
+        travels={!expense.deleted}
       />
       {/* Below the band, in a column about 560 px wide. */}
       <Flex vertical style={{ width: '100%', maxWidth: 560, margin: '0 auto', padding: `${UNDER_BAND_PADDING}px 16px ${aboveScreenEdge(24)}` }}>

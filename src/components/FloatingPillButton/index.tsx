@@ -22,28 +22,39 @@ type Props = {
 export function FloatingPillButton({ children, onClick }: Props) {
   return (
     <div
+      // Leaves and arrives through the bottom of the screen when a group opens from the list, and back (PRD 5.16).
+      data-floating-button
       style={{
         position: 'fixed',
         bottom: aboveScreenEdge(FLOATING_BUTTON_BOTTOM),
         right: 'max(16px, calc((100vw - 720px) / 2 + 16px))',
         zIndex: 10,
+        // The frame rounds the pill and casts its shadow; the button inside is square, so a picture of it alone is square
+        // (the browser leaves out its parents' clipping), which Create group's page grows out of (PRD 5.16, ADR-060).
+        display: 'flex',
+        borderRadius: PILL_RADIUS,
+        overflow: 'hidden',
+        boxShadow: '0 6px 16px rgba(0, 0, 0, 0.2)',
       }}
     >
       <Button
         type="primary"
         size="large"
-        icon={<PlusOutlined />}
         onClick={onClick}
+        data-vt="block"
         style={{
           // Taller than other buttons (40 px), with larger text and more padding.
           height: FLOATING_BUTTON_HEIGHT,
           paddingInline: 24,
           fontSize: 16,
-          borderRadius: PILL_RADIUS,
-          boxShadow: '0 6px 16px rgba(0, 0, 0, 0.2)',
+          borderRadius: 0,
         }}
       >
-        {children}
+        {/* The plus and the label, one piece that fades out while the pill grows into Create group's page. */}
+        <span data-vt="pillLabel" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <PlusOutlined />
+          {children}
+        </span>
       </Button>
     </div>
   )

@@ -1,4 +1,6 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { App, Button, Flex, Form, Input, Typography } from 'antd'
+import { refreshGroupPage } from '../../../group/utils.ts'
 import { useState } from 'react'
 import { useAppNavigate } from '../../../../hooks/useAppNavigate'
 import { getDb } from '../../../../db/client.ts'
@@ -16,6 +18,7 @@ import type { FormValues } from './types.ts'
 import { hasUnsavedInput, toFormFields } from './utils.ts'
 import { HEADER_TITLE_STYLE } from '../../../../theme/headerTitle.ts'
 import { BackButton } from '../../../../components/BackButton'
+import { dialogLayer } from '../../../../components/DialogLayer'
 
 const { Title, Text } = Typography
 
@@ -28,6 +31,7 @@ export function CreateGroupForm({ creatorId }: Props) {
   const [form] = Form.useForm<FormValues>()
   const { message, modal } = App.useApp()
   const navigate = useAppNavigate()
+  const queryClient = useQueryClient()
   const [submitting, setSubmitting] = useState(false)
   const { people, loading, add: addKnownPerson } = useKnownPeople(creatorId)
 
@@ -52,6 +56,8 @@ export function CreateGroupForm({ creatorId }: Props) {
       return
     }
     modal.confirm({
+      // In the layer that stays in front while the page changes after it (`dialogLayer`).
+      getContainer: dialogLayer,
       title: 'Discard this group?',
       content: 'What you entered will be lost.',
       okText: 'Discard',
@@ -73,8 +79,11 @@ export function CreateGroupForm({ creatorId }: Props) {
       form.setFields(toFormFields(result.ok ? {} : result.errors))
       if (!result.ok) return
 
+      // The new group's page opens already filled in, without its loader.
+      await refreshGroupPage(queryClient, creatorId, result.groupId)
       message.success('Group created.')
-      navigate(ROUTES.group(result.groupId))
+      // The new group takes Create group's place in the history, so Back from it goes to the list, not to the form again.
+      navigate(ROUTES.group(result.groupId), { replace: true, direction: 'forward' })
     } catch {
       message.error("Couldn't create the group. Please try again.")
     } finally {
@@ -90,7 +99,8 @@ export function CreateGroupForm({ creatorId }: Props) {
 
   function renderHeader() {
     return (
-      <Flex align="center" gap={8} style={{ marginBottom: 24 }}>
+      // Comes in from the top when the page opens from the list's Create group button (PRD 5.16).
+      <Flex align="center" gap={8} data-vt="header" style={{ marginBottom: 24 }}>
         <BackButton onClick={handleLeave} />
         <Title level={3} style={HEADER_TITLE_STYLE}>
           Create a group
@@ -103,7 +113,7 @@ export function CreateGroupForm({ creatorId }: Props) {
     return (
       <>
         <Form.Item label="Group name" name="name">
-          <Input autoFocus placeholder="For example, Goa trip" />
+          <Input placeholder="For example, Goa trip" />
         </Form.Item>
         <Form.Item label="Type" name="type">
           <GroupTypeSelector />

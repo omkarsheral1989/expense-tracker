@@ -81,7 +81,8 @@ async function expenseRows() {
     .getAllByRole('listitem')
     .map((row) =>
       [...row.querySelectorAll('span, strong')]
-        .filter((part) => part.children.length === 0 && part.textContent)
+        // A part's travelling amount ("£30.00" in "You paid £30.00", PRD 5.16) is read with the part, not on its own.
+        .filter((part) => !part.matches('[data-vt="amount"]') && part.querySelectorAll(':scope > :not([data-vt="amount"])').length === 0 && part.textContent)
         .map((part) => part.textContent)
         .join(' | '),
     )
@@ -89,9 +90,9 @@ async function expenseRows() {
 
 /**
  * Matches a button by its text. Ant Design icons add their own name in front
- * ("team 2 people", "plus Add expense"), with or without a space between them
+ * ("team 2 members", "plus Add expense"), with or without a space between them
  * (only the page's styles make it a space), so the text is matched at the end,
- * and not as the end of a longer number ("12 people").
+ * and not as the end of a longer number ("12 members").
  */
 function named(text: string) {
   return new RegExp(`(?<!\\d)${text}$`)
@@ -108,9 +109,9 @@ function membersSheetIsClosed() {
   return !sheet || sheet.classList.contains('ant-drawer-content-wrapper-hidden')
 }
 
-/** Opens the member list by pressing the "N people" chip, and returns the sheet. */
+/** Opens the member list by pressing the "N members" chip, and returns the sheet. */
 async function openMembers(count: number) {
-  await userEvent.click(await screen.findByRole('button', { name: named(`${count} (people|person)`) }))
+  await userEvent.click(await screen.findByRole('button', { name: named(`${count} (members|member)`) }))
   return screen.findByRole('dialog', { name: `Members (${count})` })
 }
 
@@ -207,7 +208,7 @@ describe('GroupPage', () => {
       const chips = (await screen.findByRole('button', { name: '£' })).parentElement as HTMLElement
       expect([...chips.querySelectorAll('button')].map((chip) => chip.textContent)).toEqual([
         '£',
-        expect.stringMatching(/1 person$/),
+        expect.stringMatching(/1 member$/),
         expect.stringMatching(/Add trip dates$/),
       ])
     })
@@ -286,9 +287,9 @@ describe('GroupPage', () => {
     })
 
     it.each([
-      [1, '1 person'],
-      [2, '2 people'],
-      [3, '3 people'],
+      [1, '1 member'],
+      [2, '2 members'],
+      [3, '3 members'],
     ])('counts %i member(s) as "%s" on its chip', async (count, text) => {
       const id = await createGroup(me, {
         name: 'Goa',
@@ -305,7 +306,7 @@ describe('GroupPage', () => {
       await testDb.db.update(groupMembers).set({ deletedAt: new Date() }).where(eq(groupMembers.personId, sam.id))
       renderGroup(id)
 
-      expect(await screen.findByRole('button', { name: named('2 people') })).toBeInTheDocument()
+      expect(await screen.findByRole('button', { name: named('2 members') })).toBeInTheDocument()
     })
   })
 
@@ -342,11 +343,11 @@ describe('GroupPage', () => {
 
       expect(screen.getByRole('button', { name: 'Back' })).toBeEnabled()
       expect(screen.getByRole('button', { name: 'Edit group' })).toBeEnabled()
-      expect(screen.getByRole('button', { name: named('1 person') })).toBeEnabled()
+      expect(screen.getByRole('button', { name: named('1 member') })).toBeEnabled()
       expect(screen.getByRole('button', { name: named('Add expense') })).toBeEnabled()
       await userEvent.hover(screen.getByRole('button', { name: 'Back' }))
       await userEvent.hover(screen.getByRole('button', { name: 'Edit group' }))
-      await userEvent.hover(screen.getByRole('button', { name: named('1 person') }))
+      await userEvent.hover(screen.getByRole('button', { name: named('1 member') }))
       await userEvent.hover(screen.getByRole('button', { name: named('Add expense') }))
       expect(screen.queryByText('Coming soon')).not.toBeInTheDocument()
     })
@@ -501,9 +502,10 @@ describe('GroupPage', () => {
         // 10.01 split in two: the payer takes the extra penny, so lends 5.00.
         'Sep | 30 | Taxi | You paid £10.01 | you lent | £5.00',
       ])
-      // Each tile is in the color of its category's group.
-      expect(screen.getByRole('img', { name: 'Dining out' })).toHaveStyle({ background: 'rgb(232, 89, 12)' })
-      expect(screen.getByRole('img', { name: 'Taxi' })).toHaveStyle({ background: 'rgb(25, 113, 194)' })
+      // Each tile is in the color of its category's group (on the square block its rounded frame clips, which travels, PRD 5.16).
+      const colorOf = (label: string) => screen.getByRole('img', { name: label }).querySelector('[data-vt="block"]')
+      expect(colorOf('Dining out')).toHaveStyle({ background: 'rgb(232, 89, 12)' })
+      expect(colorOf('Taxi')).toHaveStyle({ background: 'rgb(25, 113, 194)' })
       expect(screen.queryByText('No expenses yet')).not.toBeInTheDocument()
     })
 
@@ -634,7 +636,8 @@ describe('GroupPage', () => {
       const expenseId = await addTestSettlement(testDb.db, me.email, 'priya@gmail.com', id)
       const { currentPath } = renderGroup(id)
 
-      await userEvent.click(await screen.findByText('You paid Priya £10.00'))
+      // The amount is a piece of its own (it travels into the payment's band, PRD 5.16), so the line is found by its start.
+      await userEvent.click(await screen.findByText(/^You paid Priya/))
 
       expect(currentPath()).toBe(ROUTES.expense(id, expenseId))
     })
@@ -736,10 +739,10 @@ describe('GroupPage', () => {
   })
 
   describe('the members', () => {
-    it('stays closed until the "N people" chip is pressed', async () => {
+    it('stays closed until the "N members" chip is pressed', async () => {
       const id = await createGroup(me, { name: 'Goa', memberEmails: ['priya@gmail.com'] })
       renderGroup(id)
-      await screen.findByRole('button', { name: named('2 people') })
+      await screen.findByRole('button', { name: named('2 members') })
 
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
       expect(screen.queryByText('priya@gmail.com')).not.toBeInTheDocument()
@@ -925,7 +928,7 @@ describe('GroupPage', () => {
   describe('a group that is not there for this user', () => {
     async function expectNotFound(page: ReturnType<typeof renderGroup>) {
       expect(await screen.findByText('Group not found')).toBeInTheDocument()
-      expect(screen.queryByRole('button', { name: named('(people|person)') })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: named('(members|member)') })).not.toBeInTheDocument()
 
       await userEvent.click(screen.getByRole('link', { name: 'Back to your groups' }))
       expect(page.currentPath()).toBe(ROUTES.home)

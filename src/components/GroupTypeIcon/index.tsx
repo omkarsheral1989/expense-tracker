@@ -11,31 +11,38 @@ type Props = {
   size?: number
   /** Also write the name of the type ("Trip") under the tile. */
   withLabel?: boolean
+  /**
+   * Marks the tile and its icon as pieces that travel into the new group's band when Create group opens it (PRD 5.16): the tile is
+   * then a square block clipped round by its frame, so the transition rounds it with a clip instead of stretching its corners (ADR-060).
+   */
+  travels?: boolean
 }
 
 /** The colored tile with the icon that stands for a kind of group. */
-export function GroupTypeIcon({ type, size = 40, withLabel = false }: Props) {
+export function GroupTypeIcon({ type, size = 40, withLabel = false, travels }: Props) {
   const { label, icon, color } = GROUP_TYPE_CONTENT[type]
+  const box = { flex: 'none', width: size, height: size, borderRadius: RADIUS.inner, fontSize: size * 0.5, color: '#fff' } as const
 
-  const tile = (
-    <Flex
-      align="center"
-      justify="center"
-      role="img"
-      aria-label={label}
-      style={{
-        flex: 'none',
-        width: size,
-        height: size,
-        borderRadius: RADIUS.inner,
-        fontSize: size * 0.5,
-        color: '#fff',
-        background: color,
-      }}
-    >
-      {icon}
-    </Flex>
-  )
+  function renderTile() {
+    if (!travels) {
+      return (
+        <Flex align="center" justify="center" role="img" aria-label={label} style={{ ...box, background: color }}>
+          {icon}
+        </Flex>
+      )
+    }
+    return (
+      <div role="img" aria-label={label} style={{ ...box, overflow: 'hidden' }}>
+        <Flex align="center" justify="center" data-vt="block" style={{ width: '100%', height: '100%', background: color }}>
+          <span data-vt="icon" style={{ display: 'flex' }}>
+            {icon}
+          </span>
+        </Flex>
+      </div>
+    )
+  }
+
+  const tile = renderTile()
 
   if (!withLabel) return tile
 

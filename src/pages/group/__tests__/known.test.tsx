@@ -72,20 +72,20 @@ function renderHeld(id: string, state?: unknown) {
 }
 
 describe('the group page while it loads, opened from the home list', () => {
-  it('shows the band with the name, type, currency and number of people at once', async () => {
+  it('shows the band with the name, type, currency and number of members at once', async () => {
     const id = await createGroup()
     renderHeld(id, opened(id, { name: 'Goa trip', memberCount: 2 }))
 
     expect(screen.getByRole('heading', { name: 'Goa trip', level: 2 })).toBeInTheDocument()
     expect(screen.getByRole('img', { name: 'Home' })).toBeInTheDocument()
     expect(screen.getByText('£')).toBeInTheDocument()
-    expect(screen.getByText(/2 people/)).toBeInTheDocument()
+    expect(screen.getByText(/2 members/)).toBeInTheDocument()
   })
 
-  it('says "1 person" for a group of one', async () => {
+  it('says "1 member" for a group of one', async () => {
     const id = await createGroup()
     renderHeld(id, opened(id, { memberCount: 1 }))
-    expect(screen.getByText(/1 person/)).toBeInTheDocument()
+    expect(screen.getByText(/1 member/)).toBeInTheDocument()
   })
 
   it('shows a spinner with its label where the balance and expenses will be, and no balance or expense list', async () => {
@@ -120,9 +120,9 @@ describe('the group page while it loads, opened from the home list', () => {
     renderHeld(id, opened(id))
 
     expect(screen.getByRole('button', { name: 'Settle up' })).toBeDisabled()
-    expect(screen.getByRole('button', { name: /2 people$/ })).toBeDisabled()
-    // A button wrapped for the "only member" tip would sit in a span; while loading there is no such tip.
-    expect(screen.getByRole('button', { name: 'Settle up' }).parentElement?.tagName).toBe('DIV')
+    expect(screen.getByRole('button', { name: /2 members$/ })).toBeDisabled()
+    // A pill wrapped for the "only member" tip would sit in a span of its own; while loading there is no such tip.
+    expect(screen.getByRole('button', { name: 'Settle up' }).closest('[data-settle-pill]')?.parentElement?.tagName).toBe('DIV')
   })
 
   it('sets the tab title from the known name', async () => {
@@ -144,7 +144,7 @@ describe('the group page while it loads, opened from the home list', () => {
       expect(screen.queryByRole('status', { name: 'Loading the group' })).not.toBeInTheDocument()
       expect(screen.getByText(/Priya owes you/)).toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'Settle up' })).toBeEnabled()
-      await user.click(screen.getByRole('button', { name: /2 people$/ }))
+      await user.click(screen.getByRole('button', { name: /2 members$/ }))
       expect(await screen.findByRole('dialog', { name: 'Members (2)' })).toBeInTheDocument()
     })
 
@@ -153,12 +153,12 @@ describe('the group page while it loads, opened from the home list', () => {
       // The list was out of date: another name and a count of 5.
       const { release } = renderHeld(id, opened(id, { name: 'Old name', memberCount: 5 }))
       expect(screen.getByRole('heading', { name: 'Old name' })).toBeInTheDocument()
-      expect(screen.getByText(/5 people/)).toBeInTheDocument()
+      expect(screen.getByText(/5 members/)).toBeInTheDocument()
 
       release()
 
       expect(await screen.findByRole('heading', { name: 'Goa trip' })).toBeInTheDocument()
-      expect(screen.getByText(/2 people/)).toBeInTheDocument()
+      expect(screen.getByText(/2 members/)).toBeInTheDocument()
       await waitFor(() => expect(document.title).toBe('Goa trip · OwnLedger'))
     })
 

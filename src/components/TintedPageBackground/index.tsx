@@ -20,6 +20,8 @@ export function TintedPageBackground({ color }: Props) {
   return (
     <div
       aria-hidden="true"
+      // Fades in place when a group opens from the list, and back (PRD 5.16).
+      data-page-tint
       style={{
         position: 'fixed',
         inset: 0,

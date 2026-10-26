@@ -43,7 +43,7 @@ export function GroupBand({ group, peopleCount, onOpenMembers }: Props) {
 
   function renderButtons() {
     return (
-      <Flex justify="space-between">
+      <Flex justify="space-between" data-vt="header">
         <Flex align="center" gap={8}>
           <BandIconButton
             icon={<ArrowLeftOutlined />}
@@ -73,6 +73,7 @@ export function GroupBand({ group, peopleCount, onOpenMembers }: Props) {
         <span
           role="img"
           aria-label={GROUP_TYPE_CONTENT[group.type].label}
+          data-vt="icon"
           // The type's icon alone, 40 px and white on the band, beside the name.
           style={{ display: 'flex', flex: 'none', fontSize: 40, lineHeight: '40px', margin: 0, color: '#fff', filter: 'drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35))' }}
         >
@@ -80,6 +81,7 @@ export function GroupBand({ group, peopleCount, onOpenMembers }: Props) {
         </span>
         <Title
           level={2}
+          data-vt="name"
           style={{
             // A one-line name is centered on the 40 px icon: (40 - 38) / 2 above its 38 px line.
             // A longer name wraps downwards from there.
@@ -107,21 +109,31 @@ export function GroupBand({ group, peopleCount, onOpenMembers }: Props) {
           onClick={() => navigate(ROUTES.editGroup(group.id), { state: editState })}
           // A one-character symbol ("£") is drawn larger than the 3-letter code.
           fontSize={currencySymbol ? CURRENCY_SYMBOL_FONT_SIZE : undefined}
+          vt="currency"
         >
           {currencySymbol ?? group.defaultCurrency}
         </BandChip>
-        <BandChip icon={<TeamOutlined />} onClick={onOpenMembers} disabled={!onOpenMembers}>
-          {peopleCount} {peopleCount === 1 ? 'person' : 'people'}
+        {/* An empty 0 x 0 px piece between the chips, centered on them, that the dot of a group's row shrinks into (PRD 5.16).
+            The negative margins take back the gap it adds, so the chips stay 8 px apart with the piece halfway between them. */}
+        <span data-vt="dot" style={{ width: 0, height: 0, alignSelf: 'center', margin: '0 -4px' }} />
+        <BandChip icon={<TeamOutlined />} onClick={onOpenMembers} disabled={!onOpenMembers} vt="people">
+          {peopleCount} {peopleCount === 1 ? 'member' : 'members'}
         </BandChip>
-        <BandChip icon={<CalendarOutlined />} comingSoon>
-          Add trip dates
-        </BandChip>
+        {/* Comes in from the right when a group opens from the list (PRD 5.16). */}
+        <span data-vt="dates" style={{ display: 'inline-flex' }}>
+          <BandChip icon={<CalendarOutlined />} comingSoon>
+            Add trip dates
+          </BandChip>
+        </span>
       </Flex>
     )
   }
 
   return (
     <div
+      // The band, which a group's row morphs into and out of (PRD 5.16).
+      data-group-band
+      data-vt="block"
       style={{
         padding: `${belowStatusBar(HEADER_TOP_PADDING)} 16px ${BAND_BOTTOM_PADDING}px`,
         background: bandBackground(GROUP_TYPE_COLORS[group.type]),

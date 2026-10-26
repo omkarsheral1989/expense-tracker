@@ -19,11 +19,31 @@ export function canSlide(): boolean {
  * asked for and is waiting for the new page to be on screen. While one waits,
  * the page change is the slide's and no fade runs on top of it.
  */
-export const slide: { waiting: (() => void) | null; path: string; index: number; paths: Map<number, string> } = {
+export const slide: {
+  waiting: (() => void) | null
+  path: string
+  index: number
+  paths: Map<number, string>
+  /** How far each page in the history was scrolled when the user left it, by the router's `idx`, so going back returns there. */
+  scrolls: Map<number, number>
+  /**
+   * While a row's pieces travel into a band (PRD 5.16), settles when that transition ends; null otherwise. A page whose band
+   * would be replaced by another element meanwhile (the expense page, when its data arrives) waits for it, since the browser
+   * ends a transition whose named piece leaves the page.
+   */
+  morph: Promise<void> | null
+} = {
   waiting: null,
+  morph: null,
   path: '',
   index: 0,
   paths: new Map(),
+  scrolls: new Map(),
+}
+
+/** Remembers how far the page on screen is scrolled, just before the app leaves it. */
+export function rememberScroll() {
+  slide.scrolls.set(slide.index, window.scrollY)
 }
 
 /**

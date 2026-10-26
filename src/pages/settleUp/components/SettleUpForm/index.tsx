@@ -21,6 +21,9 @@ import type { FormValues } from './types.ts'
 import { hasUnsavedInput, memberLabel, recentCurrencyCodes, toFormFields } from './utils.ts'
 import { HEADER_TITLE_STYLE } from '../../../../theme/headerTitle.ts'
 import { BackButton } from '../../../../components/BackButton'
+import { dialogLayer } from '../../../../components/DialogLayer'
+import { useQueryClient } from '@tanstack/react-query'
+import { refreshGroupPage } from '../../../group/utils.ts'
 
 const { Text, Title } = Typography
 
@@ -45,6 +48,7 @@ export function SettleUpForm({ group, datasetId, userId, recentCurrencies }: Pro
   const [form] = Form.useForm<FormValues>()
   const { message, modal } = App.useApp()
   const navigate = useAppNavigate()
+  const queryClient = useQueryClient()
   const [submitting, setSubmitting] = useState(false)
 
   const [initialValues] = useState<FormValues>(() => ({
@@ -76,6 +80,8 @@ export function SettleUpForm({ group, datasetId, userId, recentCurrencies }: Pro
       return
     }
     modal.confirm({
+      // In the layer that stays in front while the page changes after it (`dialogLayer`).
+      getContainer: dialogLayer,
       title: 'Discard this payment?',
       content: 'What you entered will be lost.',
       okText: 'Discard',
@@ -110,6 +116,8 @@ export function SettleUpForm({ group, datasetId, userId, recentCurrencies }: Pro
         return
       }
 
+      // The group page comes back with the payment already on it, so the way back is not cut short (PRD 5.16).
+      await refreshGroupPage(queryClient, userId, group.id)
       message.success('Payment recorded.')
       leave()
     } catch {
@@ -141,7 +149,8 @@ export function SettleUpForm({ group, datasetId, userId, recentCurrencies }: Pro
 
   function renderHeader() {
     return (
-      <Flex align="center" justify="space-between" gap={8} style={{ marginBottom: 16 }}>
+      // Comes in from the top when the page opens from the group page's pill (PRD 5.16).
+      <Flex align="center" justify="space-between" gap={8} data-vt="header" style={{ marginBottom: 16 }}>
         <Flex align="center" gap={8}>
           <BackButton onClick={handleLeave} />
           <Title level={3} style={HEADER_TITLE_STYLE}>

@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef } from 'react'
-import { useLocation } from 'react-router'
+import { useLocation, useNavigationType } from 'react-router'
 import { prefersReducedMotion, slide } from '../../hooks/useAppNavigate/utils.ts'
 import { PAGE_FADE_MS, PAGE_TRANSITION_MS } from '../../theme/transition.ts'
 
@@ -12,6 +12,7 @@ import { PAGE_FADE_MS, PAGE_TRANSITION_MS } from '../../theme/transition.ts'
  */
 export function PageTransitions() {
   const location = useLocation()
+  const navigationType = useNavigationType()
   const first = useRef(true)
 
   useLayoutEffect(() => {
@@ -27,6 +28,9 @@ export function PageTransitions() {
       first.current = false
       return
     }
+    // Back (or Forward) to a page returns to where it was scrolled; any other page starts at the top. Done before the
+    // transition takes its picture of the new page, so a row that morphs back into its band is where the user left it.
+    window.scrollTo(0, navigationType === 'POP' ? (slide.scrolls.get(slide.index) ?? 0) : 0)
     if (slide.waiting) {
       // The new page is on screen: the slide can start.
       slide.waiting()
@@ -36,7 +40,7 @@ export function PageTransitions() {
     const root = document.getElementById('root')
     if (!root || typeof root.animate !== 'function' || prefersReducedMotion()) return
     root.animate([{ opacity: 0 }, { opacity: 1 }], { duration: PAGE_FADE_MS, easing: 'ease-out' })
-  }, [location.key, location.pathname])
+  }, [location.key, location.pathname, navigationType])
 
   return null
 }
