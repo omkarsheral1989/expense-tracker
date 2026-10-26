@@ -230,7 +230,6 @@ export function AccountDialog({ open, account, onClose, userId, regionCurrency, 
       open={open}
       onClose={onClose}
       title={adding ? 'Add account' : 'Edit account'}
-      pageBackground
       footer={renderFooter()}
     >
       {renderForm()}

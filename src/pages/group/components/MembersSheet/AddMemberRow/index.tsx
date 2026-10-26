@@ -1,10 +1,11 @@
 import { PlusOutlined } from '@ant-design/icons'
-import { App, Button, Divider } from 'antd'
+import { App, Button } from 'antd'
 import { useState } from 'react'
 import { getDb } from '../../../../../db/client.ts'
 import { useKnownPeople } from '../../../../../hooks/useKnownPeople'
 import { groupService } from '../../../../../services/groupService'
 import type { KnownPerson } from '../../../../../services/personService/types.ts'
+import { PILL_RADIUS } from '../../../../../theme/radius.ts'
 import { PickMemberDialog } from './PickMemberDialog'
 
 type Props = {
@@ -18,7 +19,7 @@ type Props = {
 }
 
 /**
- * The last row of the members list: the "Add member" button. It opens a dialog
+ * The last row of the members list: the "Add member" button, a button with round ends like the one on the members page. It opens a dialog
  * (a bottom sheet on phones) with the people saved on this device who are not
  * in the group, and "Add a new member" for someone who is not saved yet. The
  * dialog's Add button adds the people ticked to the group and closes it.
@@ -64,8 +65,7 @@ export function AddMemberRow({ groupId, userId, memberIds, onAdded }: Props) {
 
   return (
     <>
-      <Divider style={{ margin: '12px 0' }} />
-      <Button type="text" block icon={<PlusOutlined />} onClick={openPicker} style={{ justifyContent: 'flex-start' }}>
+      <Button block icon={<PlusOutlined />} onClick={openPicker} style={{ marginTop: 16, borderRadius: PILL_RADIUS }}>
         Add member
       </Button>
       <PickMemberDialog

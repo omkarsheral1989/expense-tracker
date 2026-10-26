@@ -388,6 +388,13 @@ html[data-nav='hero-open']::view-transition-old(group-pill-label) {
 body .account-kind-selector .ant-segmented-item:not(.ant-segmented-item-selected) {
   background: rgba(255, 255, 255, 0.4);
 }
+/* The chosen type has the border a card has; every tile has a transparent one, so choosing does not shift anything. */
+.account-kind-selector .ant-segmented-item {
+  border: 1px solid transparent;
+}
+body .account-kind-selector .ant-segmented-item-selected {
+  border-color: var(--ant-color-border);
+}
 
 @media (prefers-color-scheme: dark) {
   body .account-kind-selector .ant-segmented-item:not(.ant-segmented-item-selected) {
@@ -403,10 +410,11 @@ body .account-kind-selector .ant-segmented-item:not(.ant-segmented-item-selected
   opacity: 0.4;
 }
 
-/* A sheet or dialog with the page's own background (AdaptiveDialog's `pageBackground`), so white fields and tiles stand out on it as they do on a page. */
-.page-background-sheet .ant-drawer-section,
-.page-background-sheet .ant-modal-container {
-  background: var(--ant-color-bg-layout);
+/* Every sheet and dialog has the page's own background, so white fields and tiles stand out on it as they do on a page. */
+/* !important, since Ant Design sets the sheet's own white with a more specific selector. */
+body .ant-drawer-section,
+body .ant-modal-container {
+  background: var(--ant-color-bg-layout) !important;
 }
 
 /* The card-only fields of the accounts dialog fold open and shut, so the sheet changes height smoothly with the type. The side margin and padding keep the fields' focus rings from being clipped. */
@@ -430,7 +438,7 @@ body .account-kind-selector .ant-segmented-item:not(.ant-segmented-item-selected
   }
 }
 
-/* A tall sheet stays within the screen: its body scrolls and the buttons stay in view. */
-.page-background-sheet .ant-drawer-section {
+/* A bottom sheet stays within the screen: its body scrolls and its buttons stay in view. */
+body .ant-drawer-bottom .ant-drawer-section {
   max-height: 85vh;
 }
