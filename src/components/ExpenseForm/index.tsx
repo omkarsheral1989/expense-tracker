@@ -100,7 +100,7 @@ export function ExpenseForm({
   const keptReceipts = Form.useWatch('keptReceipts', form) ?? startValues.keptReceipts ?? []
   const accountId = Form.useWatch('accountId', form) ?? startValues.accountId ?? null
   const charged = Form.useWatch('charged', form) ?? startValues.charged ?? ''
-  // The payment method is only for expenses the user paid, and only once they have an account.
+  // The payment method is only for expenses the user paid.
   const you = group.members.find((member) => member.isYou)
   const youPaid = split.paidBy === you?.personId
   const account = accounts.find((option) => option.id === accountId)
@@ -292,7 +292,7 @@ export function ExpenseForm({
   }
 
   function renderPaymentMethod() {
-    if (!youPaid || accounts.length === 0) return null
+    if (!youPaid) return null
     return (
       <>
         <Form.Item name="accountId" style={{ marginBottom: askCharged ? 8 : 16 }}>
