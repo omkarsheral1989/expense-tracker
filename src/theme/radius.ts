@@ -7,6 +7,8 @@
 export const RADIUS = {
   inner: 12,
   outer: 24,
+  /** Every card: the list rows, the account and member cards, the welcome page's cards. */
+  card: 20,
 } as const
 
 /**

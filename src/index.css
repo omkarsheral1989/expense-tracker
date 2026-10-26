@@ -150,18 +150,18 @@ html[data-nav='hero-open']::view-transition-image-pair(group-band) {
   animation-name: group-band-straighten;
   /* The browser shows the row's (square-taken) picture as soon as it is taken, while the new page is still being drawn, and starts the
      animations only then; without its own radius the pair would show square corners for that moment. */
-  border-radius: var(--hero-block-radius, 24px 0 0 24px);
+  border-radius: var(--hero-block-radius, 20px 0 0 20px);
 }
 html[data-nav='hero-close']::view-transition-image-pair(group-band) {
   animation-name: group-band-round;
 }
 @keyframes group-band-straighten {
-  from { border-radius: var(--hero-block-radius, 24px 0 0 24px); }
+  from { border-radius: var(--hero-block-radius, 20px 0 0 20px); }
   to { border-radius: 0; }
 }
 @keyframes group-band-round {
   from { border-radius: 0; }
-  to { border-radius: var(--hero-block-radius, 24px 0 0 24px); }
+  to { border-radius: var(--hero-block-radius, 20px 0 0 20px); }
 }
 
 /* The rest of the screen (`hero.ts`): the page's content is a picture of its own with no background (`group-page-old` on the page left,

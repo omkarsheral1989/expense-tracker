@@ -149,7 +149,7 @@ const PILL_PAGES = [
 ]
 
 /** A group's card has rounded left corners; an expense's category tile is rounded all round. */
-const GROUP_ROW_RADIUS = `${RADIUS.outer}px 0 0 ${RADIUS.outer}px`
+const GROUP_ROW_RADIUS = `${RADIUS.card}px 0 0 ${RADIUS.card}px`
 const EXPENSE_TILE_RADIUS = `${RADIUS.inner}px`
 
 /**

@@ -53,6 +53,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
             onlyIconSizeSM: ICON_ONLY_SIZE,
             onlyIconSizeLG: ICON_ONLY_SIZE,
           },
+          // Cards have a radius of their own, a little under the other containers'.
+          Card: { borderRadiusLG: RADIUS.card },
           Input: { borderRadiusLG: RADIUS.inner },
           InputNumber: { borderRadiusLG: RADIUS.inner },
           Select: { borderRadiusLG: RADIUS.inner },
