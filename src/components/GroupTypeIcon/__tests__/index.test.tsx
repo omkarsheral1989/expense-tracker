@@ -28,7 +28,7 @@ describe('GroupTypeIcon', () => {
     render(<GroupTypeIcon type="trip" />)
 
     const tile = screen.getByRole('img', { name: 'Trip' })
-    expect(tile).toHaveStyle({ borderRadius: '12px', background: 'rgb(8, 145, 178)' })
+    expect(tile).toHaveStyle({ borderRadius: '10px', background: 'rgb(8, 145, 178)' })
     expect(tile.querySelector('[data-vt]')).toBeNull()
   })
 
@@ -36,7 +36,7 @@ describe('GroupTypeIcon', () => {
     render(<GroupTypeIcon type="trip" travels />)
 
     const frame = screen.getByRole('img', { name: 'Trip' })
-    expect(frame).toHaveStyle({ borderRadius: '12px', overflow: 'hidden' })
+    expect(frame).toHaveStyle({ borderRadius: '10px', overflow: 'hidden' })
     const block = frame.querySelector<HTMLElement>('[data-vt="block"]')
     expect(block).toHaveStyle({ background: 'rgb(8, 145, 178)' })
     expect(block?.style.borderRadius).toBe('')

@@ -51,7 +51,7 @@ describe('migrations', () => {
   it('can run again without changing anything', async () => {
     await runMigrations(pg)
     const { rows } = await pg.query('select name from ownledger_migrations')
-    expect(rows).toHaveLength(12)
+    expect(rows).toHaveLength(13)
   })
 
   it('logs nothing when every migration has run, and each migration it applies', async () => {

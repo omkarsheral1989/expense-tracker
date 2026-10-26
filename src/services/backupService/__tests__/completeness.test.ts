@@ -2,9 +2,10 @@ import { PGlite } from '@electric-sql/pglite'
 import { and, eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createDatabase, type Database } from '../../../db/client.ts'
-import { expenseEvents, expensePhotos, expenseShares, groupMembers, groups, people } from '../../../db/schema.ts'
+import { accounts, expenseEvents, expensePhotos, expenseShares, groupMembers, groups, people } from '../../../db/schema.ts'
 import { addTestExpense, addTestSettlement, expenseInput, personIdOf } from '../../../testing/expenses.ts'
 import { addTestPerson, createTestGroup } from '../../../testing/groups.ts'
+import { accountService } from '../../accountService'
 import { expenseService } from '../../expenseService'
 import { backupService } from '../index.ts'
 import type { BackupRows } from '../types.ts'
@@ -21,6 +22,12 @@ import type { BackupRows } from '../types.ts'
  * it is added here, with its reason.
  */
 const NOT_BACKED_UP = ['ownledger_migrations', 'sync_status', 'expense_revisions']
+
+/**
+ * The tables that are in a backup but never in a group's file, because they are private to their user (ADR-061): a
+ * member's file carries them as empty lists, and importing one never changes them.
+ */
+const PRIVATE_TABLES = ['accounts', 'expense_payments']
 
 let sourcePg: PGlite
 let targetPg: PGlite
@@ -80,7 +87,9 @@ const omkar = { email: 'omkar@gmail.com', name: 'Omkar' }
  * Source data that fills every column of every backed-up table at least once:
  * a group with members (one who left, one without an email), expenses with
  * notes, an edit, a deletion, a version restored, a payment, photos (one
- * removed), a deleted group and a person who is in no group.
+ * removed), a deleted group and a person who is in no group; and the user's own
+ * accounts (a card with every option, a bank account, a deleted one) with the
+ * payment method of two expenses, one cleared.
  */
 async function everything() {
   const trip = await createTestGroup(source, omkar, {
@@ -133,6 +142,21 @@ async function everything() {
   const [share] = await source.select().from(expenseShares).where(eq(expenseShares.expenseId, taxi))
   await source.update(expenseShares).set({ deletedAt: new Date() }).where(eq(expenseShares.id, share.id))
   await source.update(expenseEvents).set({ deletedAt: new Date() }).where(eq(expenseEvents.id, added.id))
+
+  // Accounts and payment methods (ADR-061): a card in another currency than the expense, so a charged amount is kept.
+  const card = await accountService.createAccount(source, userId, {
+    kind: 'card', name: 'HDFC Regalia', currency: 'INR', statementDay: 15,
+    creditLimitMinor: 10_000_000, spendTargetMinor: 6_000_000, spendTargetPeriod: 'quarter',
+  })
+  const savings = await accountService.createAccount(source, userId, { kind: 'bank', name: 'Savings', currency: 'GBP' })
+  const closed = await accountService.createAccount(source, userId, { kind: 'bank', name: 'Closed account', currency: 'GBP' })
+  if (!card.ok || !savings.ok || !closed.ok) throw new Error('accounts not created')
+  await source.update(accounts).set({ deletedAt: new Date() }).where(eq(accounts.id, closed.accountId))
+  const paidWithCard = await accountService.setPaymentMethod(source, userId, dinner, { accountId: card.accountId, chargedMinor: 84_125 })
+  const lunch = await addTestExpense(source, omkar.email, groupId, { description: 'Lunch' })
+  const paidWithSavings = await accountService.setPaymentMethod(source, userId, lunch, { accountId: savings.accountId })
+  const cleared = await accountService.setPaymentMethod(source, userId, lunch, null)
+  if (!paidWithCard.ok || !paidWithSavings.ok || !cleared.ok) throw new Error('payment methods not saved')
 
   const flat = await createTestGroup(source, omkar, { name: 'Old flat', type: 'home', defaultCurrency: 'INR' })
   if (!flat.ok) throw new Error('group not created')
@@ -219,6 +243,12 @@ describe('a member\'s group file holds the whole group', () => {
     expect(read.rows).toEqual(written.rows)
     for (const table of tables) {
       const inFile = rowsIn(read, table)
+      if (PRIVATE_TABLES.includes(table)) {
+        // Private to their user: in the file as empty lists, and nothing of them arrives.
+        expect(inFile, table).toEqual([])
+        expect(await rowsOf(targetPg, table), table).toEqual([])
+        continue
+      }
       expect(inFile.length, `no ${table} rows in the group file`).toBeGreaterThan(0)
       const sourceRows = new Map((await rowsOf(sourcePg, table)).map((row) => [row.id, row]))
       const targetRows = await rowsOf(targetPg, table)
@@ -230,5 +260,6 @@ describe('a member\'s group file holds the whole group', () => {
       }
     }
     expect(JSON.stringify(written)).not.toContain('Dev (flat)')
+    expect(JSON.stringify(written)).not.toContain('HDFC Regalia')
   })
 })

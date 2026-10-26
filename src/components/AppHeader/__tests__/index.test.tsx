@@ -74,11 +74,21 @@ describe('AppHeader', () => {
     expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent)).toEqual([
       'Omkar Sheral' + 'omkar@gmail.com',
       expect.stringMatching(/Group members$/),
+      expect.stringMatching(/Accounts$/),
       expect.stringMatching(/Sign out$/),
     ])
 
     await userEvent.click(within(menu).getByText('Group members'))
     expect(page.currentPath()).toBe(ROUTES.members)
+  })
+
+  it('opens the accounts page from the entry below Group members', async () => {
+    const page = renderHeader()
+    await userEvent.click(screen.getByRole('button', { name: 'Account menu' }))
+
+    await userEvent.click(within(await screen.findByRole('menu')).getByText('Accounts'))
+
+    expect(page.currentPath()).toBe(ROUTES.accounts)
   })
 
   it('signs the user out from the menu', async () => {
@@ -117,6 +127,7 @@ describe('AppHeader', () => {
       expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent)).toEqual([
         'Guest' + 'Your data is only on this device',
         expect.stringMatching(/Group members$/),
+        expect.stringMatching(/Accounts$/),
         expect.stringMatching(/Sign in with Google$/),
         expect.stringMatching(/Exit guest mode$/),
       ])

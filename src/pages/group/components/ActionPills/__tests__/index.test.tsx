@@ -23,6 +23,16 @@ describe('ActionPills', () => {
     await waitFor(() => expect(page.currentPath()).toBe(ROUTES.settleUp(GROUP)))
   })
 
+  it('has the border of a button, drawn over the pill by its frame rather than under the button', () => {
+    renderPills({ canSettle: true })
+
+    const frame = settleUp().closest('[data-settle-pill]') as HTMLElement
+    expect(frame).toHaveStyle({ borderRadius: '999px', overflow: 'hidden' })
+    // The border is the frame's ::after (src/index.css); an outline on the frame would be covered by the white button.
+    expect(frame.style.outline).toBe('')
+    expect(settleUp()).toHaveStyle({ borderRadius: '0px' })
+  })
+
   it('switches Settle up off, with a tip, in a group of one', async () => {
     renderPills({ canSettle: false })
     expect(settleUp()).toBeDisabled()

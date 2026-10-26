@@ -134,6 +134,21 @@ describe('adding a member from the members sheet', () => {
   })
 
   describe('the members sheet', () => {
+    it('has the button as a white one with round ends, with no divider above it', async () => {
+      const id = await createGroup(['priya@gmail.com'])
+      renderGroup(id)
+
+      await user.click(await screen.findByRole('button', { name: named('2 members') }))
+      const sheet = await screen.findByRole('dialog', { name: 'Members (2)' })
+
+      const button = within(sheet).getByRole('button', { name: named('Add member') })
+      expect(button).toHaveStyle({ borderRadius: '999px' })
+      expect(button).toHaveClass('ant-btn-default')
+      expect(button).not.toHaveClass('ant-btn-text')
+      // The members are told apart by lines, but none sits between them and the button.
+      expect(button.previousElementSibling?.classList.contains('ant-divider')).toBe(false)
+    })
+
     it('ends with an "Add member" button and has no people picker of its own', async () => {
       const id = await createGroup(['priya@gmail.com'])
       await addTestPerson(testDb.db, me, { name: 'Sam Lee' })
@@ -212,6 +227,20 @@ describe('adding a member from the members sheet', () => {
       expect(within(picker).getByRole('textbox', { name: 'Search people' })).toBeInTheDocument()
       expect(cancelButton(picker)).toBeEnabled()
       expect(addButton(picker)).toBeDisabled()
+    })
+
+    it('offers "Add a new member" as a white button with round ends, with no divider above it', async () => {
+      const id = await createGroup(['priya@gmail.com'])
+      renderGroup(id)
+      await user.click(await screen.findByRole('button', { name: named('2 members') }))
+      await user.click(within(await screen.findByRole('dialog', { name: 'Members (2)' })).getByRole('button', { name: named('Add member') }))
+
+      const picker = await findSheet('Add a member')
+
+      const button = within(picker).getByRole('button', { name: named('Add a new member') })
+      expect(button).toHaveStyle({ borderRadius: '999px' })
+      expect(button).toHaveClass('ant-btn-default')
+      expect(picker.querySelector('.ant-divider')).toBeNull()
     })
 
     it('says so when everyone saved is already in the group, and still offers "Add a new member"', async () => {

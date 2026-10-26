@@ -73,6 +73,11 @@ describe('rowsOfGroup', () => {
       { ...sync(crypto.randomUUID()), expenseId: E2, position: 0, mimeType: 'image/jpeg', sizeBytes: 1 },
     ],
     expenseEvents: [],
+    // Private to their user (ADR-061): a member's file never brings any.
+    accounts: [
+      { ...sync(crypto.randomUUID()), kind: 'card' as const, name: 'Card', currency: 'GBP', statementDay: 15, creditLimitMinor: 100, spendTargetMinor: 50, spendTargetPeriod: 'month' as const },
+    ],
+    expensePayments: [{ ...sync(crypto.randomUUID()), expenseId: E1, accountId: crypto.randomUUID(), chargedMinor: null }],
   }
 
   it('keeps only the group, its memberships and expenses, and their shares and photos', () => {
@@ -83,6 +88,13 @@ describe('rowsOfGroup', () => {
     expect(kept.expenses.map((row) => row.id)).toEqual([E1])
     expect(kept.expenseShares.map((row) => row.expenseId)).toEqual([E1])
     expect(kept.expensePhotos.map((row) => row.expenseId)).toEqual([E1])
+  })
+
+  it('never takes accounts or payment methods, which are private to their user', () => {
+    const kept = rowsOfGroup(rows, G)
+
+    expect(kept.accounts).toEqual([])
+    expect(kept.expensePayments).toEqual([])
   })
 
   it('keeps only the people those rows name', () => {

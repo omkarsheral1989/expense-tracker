@@ -151,8 +151,19 @@ const accountServiceBase = {
       ).every((field) => next[field] === account[field])
       if (unchanged) return { ok: true, accountId }
 
-      const { kind: _kind, ...values } = next
-      await tx.update(accounts).set({ ...values, updatedAt: new Date(), updatedBy: userId }).where(eq(accounts.id, accountId))
+      await tx
+        .update(accounts)
+        .set({
+          name: next.name,
+          currency: next.currency,
+          statementDay: next.statementDay,
+          creditLimitMinor: next.creditLimitMinor,
+          spendTargetMinor: next.spendTargetMinor,
+          spendTargetPeriod: next.spendTargetPeriod,
+          updatedAt: new Date(),
+          updatedBy: userId,
+        })
+        .where(eq(accounts.id, accountId))
       return { ok: true, accountId }
     })
   },

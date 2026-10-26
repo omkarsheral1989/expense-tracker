@@ -56,6 +56,14 @@ describe('the Group members page', () => {
     expect(screen.getByRole('button', { name: /Add member$/ })).toBeInTheDocument()
   })
 
+  it('has the Add member button as a white one with round ends', async () => {
+    renderMembers()
+
+    const button = await screen.findByRole('button', { name: /Add member$/ })
+    expect(button).toHaveStyle({ borderRadius: '999px' })
+    expect(button).toHaveClass('ant-btn-default')
+  })
+
   it('does not say nobody is there once someone besides the user is', async () => {
     await addTestPerson(testDb.db, me, { name: 'Sam' })
     renderMembers()

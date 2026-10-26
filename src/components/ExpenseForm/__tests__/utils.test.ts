@@ -38,8 +38,22 @@ describe('hasUnsavedInput', () => {
     ['payer', { split: { paidBy: 'priya', method: 'equal' as const, values: { me: 1, priya: 1 } } }],
     ['split', { split: { paidBy: 'me', method: 'equal' as const, values: { me: 0, priya: 1 } } }],
     ['receipts', { receipts: [new File(['x'], 'r.jpg', { type: 'image/jpeg' })] }],
+    ['payment method', { accountId: 'a1' }],
+    ['amount charged to the account', { charged: '78.50' }],
   ])('is true once the %s changes', (_, change) => {
     expect(hasUnsavedInput({ ...initial, ...change }, initial)).toBe(true)
+  })
+
+  it('treats no payment method as the same whether it is missing, null or an empty amount', () => {
+    expect(hasUnsavedInput({ ...initial, accountId: null, charged: '' }, initial)).toBe(false)
+    expect(hasUnsavedInput({ ...initial, accountId: undefined }, { ...initial, accountId: null })).toBe(false)
+  })
+
+  it('is false when the payment method is what the expense had, and true when it is taken off', () => {
+    const paid = { ...initial, accountId: 'a1', charged: '78.50' }
+
+    expect(hasUnsavedInput(paid, paid)).toBe(false)
+    expect(hasUnsavedInput({ ...paid, accountId: null, charged: '' }, paid)).toBe(true)
   })
 
   describe('for an expense that is being edited', () => {

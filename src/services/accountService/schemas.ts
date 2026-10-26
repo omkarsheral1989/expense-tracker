@@ -6,12 +6,10 @@ import type { AccountErrors, AccountField } from './types.ts'
 
 const optionalNumber = z.number().int().nullish().transform((value) => value ?? null)
 
-/**
- * The rules for an account. The dialog and the save functions share it.
- * Parsing also cleans the input: the name is trimmed with its inner spaces
- * collapsed, and everything a bank account does not have becomes null.
- */
-export const accountSchema = z
+/** What a bank account has of a card's options: none. They may still be in the input (the dialog keeps what was typed for a card), and are dropped before they are checked. */
+const NO_CARD_OPTIONS = { statementDay: null, creditLimitMinor: null, spendTargetMinor: null, spendTargetPeriod: null }
+
+const accountFields = z
   .object({
     kind: z.enum(ACCOUNT_KINDS),
     name: z
@@ -36,8 +34,7 @@ export const accountSchema = z
     spendTargetPeriod: z.enum(SPEND_TARGET_PERIODS).nullish().transform((period) => period ?? null),
   })
   .superRefine((account, context) => {
-    // A bank account has none of the card's fields; they are dropped below.
-    if (account.kind === 'bank' || !currencyService.isValid(account.currency)) return
+    if (!currencyService.isValid(account.currency)) return
     const issue = (path: AccountField, message: string) => context.addIssue({ code: 'custom', path: [path], message })
     const max = moneyService.maxMinor(account.currency)
     for (const field of ['creditLimitMinor', 'spendTargetMinor'] as const) {
@@ -50,11 +47,17 @@ export const accountSchema = z
       issue('spendTargetPeriod', 'Choose month or quarter.')
     }
   })
-  .transform((account) =>
-    account.kind === 'bank'
-      ? { ...account, statementDay: null, creditLimitMinor: null, spendTargetMinor: null, spendTargetPeriod: null }
-      : { ...account, spendTargetPeriod: account.spendTargetMinor === null ? null : account.spendTargetPeriod },
-  )
+  .transform((account) => ({ ...account, spendTargetPeriod: account.spendTargetMinor === null ? null : account.spendTargetPeriod }))
+
+/**
+ * The rules for an account. The dialog and the save functions share it.
+ * Parsing also cleans the input: the name is trimmed with its inner spaces
+ * collapsed, and everything a bank account does not have becomes null.
+ */
+export const accountSchema = z.preprocess(
+  (input) => (typeof input === 'object' && input !== null && (input as { kind?: unknown }).kind === 'bank' ? { ...input, ...NO_CARD_OPTIONS } : input),
+  accountFields,
+)
 
 const FIELDS: readonly string[] = ['name', 'currency', 'statementDay', 'creditLimitMinor', 'spendTargetMinor', 'spendTargetPeriod']
 

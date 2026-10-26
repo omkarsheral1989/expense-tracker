@@ -185,7 +185,7 @@ export function ExpenseForm({
   /** The account the user paid with, and what it was debited when its currency differs from the expense's. */
   function paymentMethodOf(values: FormValues): PaymentMethodInput | null {
     const chosen = accounts.find((option) => option.id === values.accountId)
-    if (!chosen || values.split.paidBy !== you?.personId) return null
+    if (!chosen) return null
     const differs = chosen.currency !== values.currency
     return { accountId: chosen.id, chargedMinor: differs ? moneyService.toMinor(values.charged ?? '', chosen.currency) : null }
   }

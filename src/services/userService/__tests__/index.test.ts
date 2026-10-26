@@ -2,7 +2,7 @@ import { PGlite } from '@electric-sql/pglite'
 import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createDatabase, type Database } from '../../../db/client.ts'
-import { expenseEvents, expenseShares, expenses, groupMembers, groups, people } from '../../../db/schema.ts'
+import { accounts, expenseEvents, expensePayments, expenseShares, expenses, groupMembers, groups, people } from '../../../db/schema.ts'
 import type { Profile } from '../../googleProfileService/types.ts'
 import { GOOGLE_NAME_TIME } from '../constants.ts'
 import { userService } from '../index.ts'
@@ -17,7 +17,7 @@ beforeAll(async () => {
 
 afterAll(() => pg.close())
 
-beforeEach(() => pg.exec('truncate expense_photos, expense_shares, expenses, group_members, groups, people cascade'))
+beforeEach(() => pg.exec('truncate expense_payments, accounts, expense_photos, expense_shares, expenses, group_members, groups, people cascade'))
 
 const omkar: Profile = { id: 'g-omkar', email: 'omkar@gmail.com', name: 'Omkar Sheral' }
 
@@ -210,6 +210,20 @@ describe('userService.resolve', () => {
       expect(user).toEqual({ personId: memberId, name: 'Omkar Sheral', email: 'omkar@gmail.com' })
       expect(await db.select().from(people).where(eq(people.id, guestId))).toEqual([])
       expect((await db.select().from(people)).map((person) => person.email).sort()).toEqual(['omkar@gmail.com', 'sam@gmail.com'])
+    })
+
+    it('makes the guest\'s accounts and payment methods the member\'s (who last changed them follows)', async () => {
+      const { guestId, memberId, both } = await guestAndMember()
+      const [account] = await db
+        .insert(accounts)
+        .values({ kind: 'bank', name: 'Savings', currency: 'GBP', updatedBy: guestId })
+        .returning()
+      await db.insert(expensePayments).values({ expenseId: both.id, accountId: account.id, updatedBy: guestId })
+
+      await userService.resolve(db, { userPersonId: guestId }, omkar)
+
+      expect((await db.select().from(accounts))[0].updatedBy).toBe(memberId)
+      expect((await db.select().from(expensePayments))[0].updatedBy).toBe(memberId)
     })
 
     it('keeps one membership in a group both were in, and moves the others', async () => {

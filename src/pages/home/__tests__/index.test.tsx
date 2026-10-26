@@ -229,13 +229,13 @@ describe('HomePage', () => {
       expect(icon.parentElement).not.toHaveClass('ant-flex-align-center')
     })
 
-    it('has no card border in light mode', async () => {
+    it('leaves its border to the theme, which gives every card the border a button has', async () => {
       await createGroup(me, { name: 'Goa' })
       renderHome()
 
       const card = (await screen.findByRole('link', { name: /goa/i })).querySelector('.ant-card') as HTMLElement
-      // Written on the card itself: Ant Design's own border CSS is not loaded in tests.
-      expect(card.style.borderWidth).toBe('0px')
+      // Nothing is written on the card itself (Ant Design's own border CSS is not loaded in tests).
+      expect(card.style.borderWidth).toBe('')
     })
 
     it('lists the most recently changed group first', async () => {

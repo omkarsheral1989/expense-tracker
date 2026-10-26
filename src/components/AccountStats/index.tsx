@@ -55,9 +55,8 @@ export function AccountStats({ account }: Props) {
         size={44}
         strokeWidth={10}
         percent={Math.min(100, percent)}
-        // The real share, also past 100%. A fixed status keeps Ant Design from swapping it for a tick or a cross.
+        // The real share, also past 100% and at 100% (Ant Design would show a tick there, but not when it is given a format).
         format={() => `${percent}%`}
-        status="normal"
         // Ant Design draws a normal ring in its info blue; the app's green is its primary color.
         strokeColor={spent > of ? token.colorError : token.colorPrimary}
         aria-label={`${percent}% of the ${what}`}

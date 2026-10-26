@@ -46,8 +46,8 @@ afterEach(() => {
 
 describe('groupHeroFor', () => {
   it('pairs the home list with a group, both ways, starting from the card\'s rounded left corners', () => {
-    expect(groupHeroFor(ROUTES.home, ROUTES.group(GROUP))).toMatchObject({ direction: 'hero-open', blockRadius: '24px 0 0 24px' })
-    expect(groupHeroFor(ROUTES.group(GROUP), ROUTES.home)).toMatchObject({ direction: 'hero-close', blockRadius: '24px 0 0 24px' })
+    expect(groupHeroFor(ROUTES.home, ROUTES.group(GROUP))).toMatchObject({ direction: 'hero-open', blockRadius: '20px 0 0 20px' })
+    expect(groupHeroFor(ROUTES.group(GROUP), ROUTES.home)).toMatchObject({ direction: 'hero-close', blockRadius: '20px 0 0 20px' })
   })
 
   it('names the row\'s pieces, the screen and the floating button before the picture, and takes the names off again', () => {
@@ -76,9 +76,9 @@ describe('groupHeroFor', () => {
     expect(nameOf('[data-group-row="other"] [data-vt="block"]')).toBe('')
   })
 
-  it('pairs a live expense\'s row with its page, from the tile\'s 12 px corners, and nothing for a row that is not there (a deleted line)', () => {
+  it('pairs a live expense\'s row with its page, from the tile\'s 10 px corners, and nothing for a row that is not there (a deleted line)', () => {
     page(`<a data-expense-row="${EXPENSE}"><div data-vt="block"></div></a>`)
-    expect(groupHeroFor(ROUTES.group(GROUP), ROUTES.expense(GROUP, EXPENSE))).toMatchObject({ direction: 'hero-open', blockRadius: '12px' })
+    expect(groupHeroFor(ROUTES.group(GROUP), ROUTES.expense(GROUP, EXPENSE))).toMatchObject({ direction: 'hero-open', blockRadius: '10px' })
 
     page('<p>A deleted line has no mark.</p>')
     expect(groupHeroFor(ROUTES.group(GROUP), ROUTES.expense(GROUP, EXPENSE))).toBeNull()
@@ -128,7 +128,7 @@ describe('groupHeroFor', () => {
         <label class="ant-segmented-item"><div data-vt="block" id="home-tile"><span data-vt="icon"></span></div></label>
       </div>`)
     const hero = groupHeroFor(ROUTES.newGroup, ROUTES.group(GROUP))!
-    expect(hero).toMatchObject({ direction: 'hero-open', kind: 'form', blockRadius: '12px' })
+    expect(hero).toMatchObject({ direction: 'hero-open', kind: 'form', blockRadius: '10px' })
     hero.before()
 
     expect(nameOf('.ant-segmented-item-selected [data-vt="block"]')).toBe('group-band')
