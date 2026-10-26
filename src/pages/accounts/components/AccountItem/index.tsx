@@ -1,5 +1,6 @@
 import { Card, Flex, Progress, theme, Typography } from 'antd'
 import { useColorScheme } from '../../../../hooks/useColorScheme'
+import { currencyService } from '../../../../services/currencyService'
 import { moneyService } from '../../../../services/moneyService'
 import type { AccountSummary } from '../../../../services/accountService/types.ts'
 import { YOU_OWE_COLOR } from '../../../../theme/balanceColors.ts'
@@ -16,7 +17,7 @@ type Props = {
 
 /**
  * One account on the accounts page, as a card that opens the edit dialog: a
- * colored tile with a bank or card icon, the name and "Credit card · INR". A
+ * colored tile with a bank or card icon, the name and "₹ · Credit card". A
  * credit card also shows its spend against its target, its credit limit with
  * the share of it spent this statement cycle, and the expenses it could not
  * count (PRD 5.17).
@@ -25,6 +26,8 @@ export function AccountItem({ account, onEdit }: Props) {
   const scheme = useColorScheme()
   const { token } = theme.useToken()
   const { spend } = account
+  // The currency as the group list shows it ("£", "US$"), or its code where no symbol tells it apart.
+  const currency = currencyService.symbol(account.currency, navigator.language) ?? account.currency
 
   function renderTarget() {
     if (!spend?.target || account.spendTargetMinor === null) return null
@@ -95,7 +98,7 @@ export function AccountItem({ account, onEdit }: Props) {
               {account.name}
             </Text>
             <Text type="secondary" ellipsis style={{ lineHeight: '20px' }}>
-              {ACCOUNT_KIND_LABELS[account.kind]} · {account.currency}
+              {currency} · {ACCOUNT_KIND_LABELS[account.kind]}
             </Text>
           </Flex>
         </Flex>
