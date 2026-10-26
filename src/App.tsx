@@ -14,6 +14,7 @@ import { ExpenseVersionPage } from './pages/expenseVersion'
 import { GetStartedPage } from './pages/getStarted'
 import { GroupPage } from './pages/group'
 import { HomePage } from './pages/home'
+import { AccountsPage } from './pages/accounts'
 import { MembersPage } from './pages/members'
 import { SharePage } from './pages/share'
 import { ShareTestPage } from './pages/shareTest'
@@ -46,6 +47,7 @@ function App() {
         >
           <Route path={ROUTES.home} element={<HomePage />} />
           <Route path={ROUTES.members} element={<MembersPage />} />
+          <Route path={ROUTES.accounts} element={<AccountsPage />} />
           <Route path={ROUTES.newGroup} element={<CreateGroupPage />} />
           <Route path={ROUTES.share} element={<SharePage />} />
           <Route path={ROUTES.groupPattern} element={<GroupPage />} />

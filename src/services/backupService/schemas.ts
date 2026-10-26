@@ -1,5 +1,11 @@
 import { z } from 'zod'
-import { EXPENSE_EVENT_KINDS, GROUP_TYPES, SPLIT_METHODS } from '../../db/constants.ts'
+import {
+  ACCOUNT_KINDS,
+  EXPENSE_EVENT_KINDS,
+  GROUP_TYPES,
+  SPEND_TARGET_PERIODS,
+  SPLIT_METHODS,
+} from '../../db/constants.ts'
 import { BACKUP_APP, BACKUP_FORMAT, BACKUP_KIND, GROUP_FILE_KIND } from './constants.ts'
 
 // A backup is downloaded from Drive, so it is untrusted (CLAUDE.md, ADR-010):
@@ -117,6 +123,35 @@ export const backupRowsSchema = z.object({
       restoredFrom: z.uuid().nullable(),
     }),
   ),
+  /**
+   * The user's own accounts and the payment method of each expense (ADR-061).
+   * Only in the backup: a group's file leaves them empty, and files written
+   * before they existed leave them out.
+   */
+  accounts: z
+    .array(
+      z.object({
+        ...syncColumns,
+        kind: z.enum(ACCOUNT_KINDS),
+        name: z.string(),
+        currency: z.string(),
+        statementDay: z.number().int().nullable(),
+        creditLimitMinor: minor.nullable(),
+        spendTargetMinor: minor.nullable(),
+        spendTargetPeriod: z.enum(SPEND_TARGET_PERIODS).nullable(),
+      }),
+    )
+    .default([]),
+  expensePayments: z
+    .array(
+      z.object({
+        ...syncColumns,
+        expenseId: z.uuid(),
+        accountId: z.uuid(),
+        chargedMinor: minor.nullable(),
+      }),
+    )
+    .default([]),
 })
 
 export const backupFileSchema = z.object({

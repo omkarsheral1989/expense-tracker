@@ -14,14 +14,26 @@ import {
   type AnyPgColumn,
 } from 'drizzle-orm/pg-core'
 import {
+  ACCOUNT_KINDS,
+  ACCOUNT_NAME_MAX_LENGTH,
   EXPENSE_DESCRIPTION_MAX_LENGTH,
   EXPENSE_EVENT_KINDS,
   EXPENSE_NOTES_MAX_LENGTH,
   GROUP_NAME_MAX_LENGTH,
   GROUP_TYPES,
+  MAX_STATEMENT_DAY,
+  SPEND_TARGET_PERIODS,
   SPLIT_METHODS,
 } from './constants.ts'
-import type { ExpenseChange, ExpenseEventKind, ExpenseSnapshot, GroupType, SplitMethod } from './types.ts'
+import type {
+  AccountKind,
+  ExpenseChange,
+  ExpenseEventKind,
+  ExpenseSnapshot,
+  GroupType,
+  SpendTargetPeriod,
+  SplitMethod,
+} from './types.ts'
 
 /**
  * Columns every synced table has: a UUID primary key (never auto-increment, so
@@ -299,6 +311,83 @@ export const expenseEvents = pgTable(
     ),
     index('expense_events_expense_idx').on(table.expenseId, table.occurredAt),
     index('expense_events_group_idx').on(table.groupId, table.occurredAt),
+  ],
+)
+
+/**
+ * One of the user's own bank accounts or credit cards (ADR-061). Private: it is
+ * in the backup, never in a group's file. Money is in minor units of `currency`,
+ * the currency the account is debited in. The card-only columns stay null for a
+ * bank account.
+ */
+export const accounts = pgTable(
+  'accounts',
+  {
+    ...syncColumns(),
+    kind: text('kind').$type<AccountKind>().notNull(),
+    name: text('name').notNull(),
+    /** An ISO 4217 code such as 'INR'. */
+    currency: text('currency').notNull(),
+    /** Card only: the day of the month the statement is issued, 1 to 28. */
+    statementDay: integer('statement_day'),
+    /** Card only: the credit limit in minor units. */
+    creditLimitMinor: money('credit_limit_minor'),
+    /** Card only: the spend target in minor units, per `spendTargetPeriod`. */
+    spendTargetMinor: money('spend_target_minor'),
+    spendTargetPeriod: text('spend_target_period').$type<SpendTargetPeriod>(),
+  },
+  (table) => [
+    check(
+      'accounts_name_length',
+      sql`char_length(${table.name}) between 1 and ${sql.raw(String(ACCOUNT_NAME_MAX_LENGTH))}`,
+    ),
+    check('accounts_currency_format', sql`${table.currency} ~ '^[A-Z]{3}$'`),
+    check(
+      'accounts_kind_valid',
+      sql`${table.kind} in (${sql.raw(ACCOUNT_KINDS.map((kind) => `'${kind}'`).join(', '))})`,
+    ),
+    check(
+      'accounts_statement_day_range',
+      sql`${table.statementDay} is null or ${table.statementDay} between 1 and ${sql.raw(String(MAX_STATEMENT_DAY))}`,
+    ),
+    check(
+      'accounts_amounts_positive',
+      sql`(${table.creditLimitMinor} is null or ${table.creditLimitMinor} > 0) and (${table.spendTargetMinor} is null or ${table.spendTargetMinor} > 0)`,
+    ),
+    check(
+      'accounts_spend_target_period_valid',
+      sql`(${table.spendTargetMinor} is null) = (${table.spendTargetPeriod} is null) and (${table.spendTargetPeriod} is null or ${table.spendTargetPeriod} in (${sql.raw(SPEND_TARGET_PERIODS.map((period) => `'${period}'`).join(', '))}))`,
+    ),
+    check(
+      'accounts_card_only_columns',
+      sql`${table.kind} = 'card' or (${table.statementDay} is null and ${table.creditLimitMinor} is null and ${table.spendTargetMinor} is null)`,
+    ),
+  ],
+)
+
+/**
+ * Which of the user's accounts paid an expense, and what it was debited when
+ * that differs from the expense's amount (ADR-061). Private like `accounts`:
+ * a table of its own, so the shared expense row, its events and its group files
+ * never carry it. At most one row per expense; clearing it sets `deleted_at`.
+ */
+export const expensePayments = pgTable(
+  'expense_payments',
+  {
+    ...syncColumns(),
+    expenseId: uuid('expense_id')
+      .notNull()
+      .references(() => expenses.id),
+    accountId: uuid('account_id')
+      .notNull()
+      .references(() => accounts.id),
+    /** What the account was debited, in its own currency; null when not entered. */
+    chargedMinor: money('charged_minor'),
+  },
+  (table) => [
+    unique('expense_payments_expense').on(table.expenseId),
+    index('expense_payments_account_idx').on(table.accountId),
+    check('expense_payments_charged_positive', sql`${table.chargedMinor} is null or ${table.chargedMinor} > 0`),
   ],
 )
 

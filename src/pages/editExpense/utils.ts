@@ -1,4 +1,5 @@
 import { getDb } from '../../db/client.ts'
+import { accountService } from '../../services/accountService'
 import { expenseService } from '../../services/expenseService'
 import { groupService } from '../../services/groupService'
 
@@ -20,5 +21,11 @@ export async function loadExpenseToEdit(userId: string, groupId: string, expense
     expenseService.getExpenseToEdit(db, userId, groupId, expenseId),
   ])
   if (!group || !expense) return null
-  return { group, expense, recentCurrencies: await expenseService.recentCurrencies(db, userId) }
+  return {
+    group,
+    expense,
+    recentCurrencies: await expenseService.recentCurrencies(db, userId),
+    accounts: await accountService.listOptions(db),
+    paymentMethod: await accountService.getPaymentMethod(db, expenseId),
+  }
 }

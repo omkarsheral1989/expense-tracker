@@ -85,6 +85,13 @@
       "when": 1792674595246,
       "tag": "0011_people_picture",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793024715618,
+      "tag": "0012_accounts",
+      "breakpoints": true
     }
   ]
 }

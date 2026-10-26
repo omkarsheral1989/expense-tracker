@@ -1,7 +1,6 @@
 import { Card, Flex, Typography } from 'antd'
 import { AppLink } from '../../../../../components/AppLink'
 import { GROUP_TYPE_CONTENT } from '../../../../../components/GroupTypeIcon/content.tsx'
-import { useColorScheme } from '../../../../../hooks/useColorScheme'
 import { currencyService } from '../../../../../services/currencyService'
 import { ROUTES } from '../../../../../routes.ts'
 import type { CurrencyBalance } from '../../../../../services/expenseService/types.ts'
@@ -27,7 +26,6 @@ type Props = {
 export function GroupRow({ group, balances }: Props) {
   const members = `${group.memberCount} ${group.memberCount === 1 ? 'member' : 'members'}`
   const { label, icon, color } = GROUP_TYPE_CONTENT[group.type]
-  const scheme = useColorScheme()
   // The currency as the group page's chip shows it ("US$", "₹"), or its code where no symbol tells it apart.
   const currency = currencyService.symbol(group.defaultCurrency, navigator.language) ?? group.defaultCurrency
   const { id, name, type, defaultCurrency, memberCount } = group
@@ -39,9 +37,7 @@ export function GroupRow({ group, balances }: Props) {
       {/* The type's colored block fills the card's left edge, top to bottom; the card clips its corners. */}
       <Card
         hoverable
-        className="group-row-card"
-        // No border on a white card in light mode (a transparent one would show the card's white around the colored block); dark mode keeps it, since the card is barely lighter than the page.
-        style={{ overflow: 'hidden', borderWidth: scheme === 'light' ? 0 : undefined }}
+        style={{ overflow: 'hidden' }}
         styles={{ body: { padding: 0 } }}
       >
         <Flex align="stretch">

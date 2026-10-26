@@ -9,6 +9,8 @@ import { GroupSwitcher } from '../../../../components/GroupSwitcher'
 import { getDb } from '../../../../db/client.ts'
 import { ROUTES } from '../../../../routes.ts'
 import { dateService } from '../../../../services/dateService'
+import { accountService } from '../../../../services/accountService'
+import type { AccountOption, PaymentMethodInput } from '../../../../services/accountService/types.ts'
 import { expenseService } from '../../../../services/expenseService'
 import type { CreateExpenseInput } from '../../../../services/expenseService/types.ts'
 import type { GroupDetails, GroupSummary } from '../../../../services/groupService/types.ts'
@@ -23,6 +25,8 @@ type Props = {
   userId: string
   /** The currencies of the user's latest expenses, most recent first. */
   recentCurrencies: string[]
+  /** The user's accounts, for the payment method. */
+  accounts: AccountOption[]
   /** Every group of the user, for moving the expense to another one. */
   groups: readonly GroupSummary[]
   /** Fields carried over from another group when the user switched; leave out for a new form. */
@@ -34,7 +38,7 @@ type Props = {
  * user paid, split equally) or the fields carried over from another group,
  * and a switcher to move the expense to another group.
  */
-export function AddExpenseForm({ group, datasetId, userId, recentCurrencies, groups, draft }: Props) {
+export function AddExpenseForm({ group, datasetId, userId, recentCurrencies, accounts, groups, draft }: Props) {
   const navigate = useAppNavigate()
   const queryClient = useQueryClient()
 
@@ -46,6 +50,8 @@ export function AddExpenseForm({ group, datasetId, userId, recentCurrencies, gro
     date: dateService.toDay(new Date()),
     notes: '',
     split: initialSplit(group.members),
+    accountId: null,
+    charged: '',
     receipts: [],
   }))
   // What the form shows at first: the defaults, or what was carried over from
@@ -67,17 +73,31 @@ export function AddExpenseForm({ group, datasetId, userId, recentCurrencies, gro
       date: values.date,
       notes: values.notes,
       receipts: values.receipts,
+      accountId: values.accountId,
+      charged: values.charged,
       fromDefaultCurrency: group.defaultCurrency,
     }
     navigate(ROUTES.newExpense(groupId), { replace: true, state: { draft: carried } })
   }
 
-  async function save(input: CreateExpenseInput): Promise<SaveOutcome> {
-    const result = await expenseService.createExpense(await getDb(), userId, group.id, input)
+  async function save(input: CreateExpenseInput, paymentMethod: PaymentMethodInput | null): Promise<SaveOutcome> {
+    const db = await getDb()
+    const result = await expenseService.createExpense(db, userId, group.id, input)
     if (!result.ok) return { status: 'invalid', errors: result.errors }
+    // The payment method is the user's own, saved apart from the shared expense, which is already saved.
+    let paymentSaved = true
+    if (paymentMethod) {
+      paymentSaved = await accountService
+        .setPaymentMethod(db, userId, result.expenseId, paymentMethod)
+        .then((outcome) => outcome.ok)
+        .catch(() => false)
+    }
     // The group page comes back with the expense already on it, so the way back is not cut short (PRD 5.16).
     await refreshGroupPage(queryClient, userId, group.id)
-    return { status: 'saved', message: 'Expense added.' }
+    return {
+      status: 'saved',
+      message: paymentSaved ? 'Expense added.' : "Expense added, but the payment method couldn't be saved. Edit the expense to add it.",
+    }
   }
 
   return (
@@ -85,6 +105,7 @@ export function AddExpenseForm({ group, datasetId, userId, recentCurrencies, gro
       group={group}
       datasetId={datasetId}
       recentCurrencies={recentCurrencies}
+      accounts={accounts}
       heading="Add expense"
       initialValues={initialValues}
       startValues={startValues}

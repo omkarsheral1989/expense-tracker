@@ -35,3 +35,15 @@ export const EXPENSE_EVENT_KINDS = ['added', 'edited', 'deleted', 'restored', 'r
 
 /** Most receipt photos one expense can have. */
 export const MAX_RECEIPTS_PER_EXPENSE = 10
+
+/** The kinds of account a user can have: a bank account or a credit card (PRD 4.10). */
+export const ACCOUNT_KINDS = ['bank', 'card'] as const
+
+/** Longest account name accepted by the database and the accounts page. */
+export const ACCOUNT_NAME_MAX_LENGTH = 60
+
+/** How often a credit card's spend target repeats. */
+export const SPEND_TARGET_PERIODS = ['month', 'quarter'] as const
+
+/** The last statement day offered, so every month has it. */
+export const MAX_STATEMENT_DAY = 28

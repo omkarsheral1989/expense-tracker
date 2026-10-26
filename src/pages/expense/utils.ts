@@ -1,5 +1,7 @@
+import { getDb } from '../../db/client.ts'
+import { accountService } from '../../services/accountService'
 import { expenseService } from '../../services/expenseService'
-import type { KnownExpense, KnownPerson } from './types.ts'
+import type { ExpenseWithPayment, KnownExpense, KnownPerson } from './types.ts'
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/
 
@@ -57,4 +59,12 @@ export function knownExpenseFrom(state: unknown, groupId: string, expenseId: str
 export function knownTitle(expense: KnownExpense): string {
   if (expense.category !== expenseService.settlementCategory || !expense.payer || !expense.recipient) return expense.description
   return expenseService.settlementSentence(expense.payer, expense.recipient)
+}
+
+/** What the expense page reads: the expense, and its payment method on this device. Null when the user cannot see the expense. */
+export async function loadExpensePage(userId: string, groupId: string, expenseId: string): Promise<ExpenseWithPayment | null> {
+  const db = await getDb()
+  const expense = await expenseService.getExpense(db, userId, groupId, expenseId)
+  if (!expense) return null
+  return { ...expense, paymentMethod: await accountService.getPaymentMethod(db, expenseId) }
 }

@@ -4,6 +4,9 @@ import { useState, type ReactNode } from 'react'
 import { useAppNavigate } from '../../hooks/useAppNavigate'
 import { EXPENSE_NOTES_MAX_LENGTH } from '../../db/constants.ts'
 import { useLeaveWarning } from '../../hooks/useLeaveWarning'
+import { accountService } from '../../services/accountService'
+import type { AccountOption, PaymentMethodInput } from '../../services/accountService/types.ts'
+import { currencyService } from '../../services/currencyService'
 import type { CreateExpenseErrors, CreateExpenseInput } from '../../services/expenseService/types.ts'
 import type { GroupDetails } from '../../services/groupService/types.ts'
 import { moneyService } from '../../services/moneyService'
@@ -15,6 +18,7 @@ import { NOTES_COUNTER_FROM } from './constants.ts'
 import { CurrencyField } from '../CurrencyField'
 import { DateField } from '../DateField'
 import { ReceiptsField } from '../ReceiptsField'
+import { PaymentMethodField } from './PaymentMethodField'
 import { SplitField } from './SplitField'
 import { splitProblem } from './SplitField/utils.ts'
 import type { FormValues } from './types.ts'
@@ -23,7 +27,7 @@ import { HEADER_TITLE_STYLE } from '../../theme/headerTitle.ts'
 import { BackButton } from '../BackButton'
 import { dialogLayer } from '../DialogLayer'
 
-const { Title } = Typography
+const { Text, Title } = Typography
 
 /** What happened to the expense when the form was saved. */
 export type SaveOutcome =
@@ -40,6 +44,8 @@ type Props = {
   datasetId: string
   /** The currencies of the user's latest expenses, most recent first. */
   recentCurrencies: string[]
+  /** The user's accounts, for the payment method (PRD 4.10); with none the field is left out. */
+  accounts: AccountOption[]
   /** The heading, and the title of the browser tab before " · OwnLedger": "Add expense" or "Edit expense". */
   heading: string
   /** What the form has when nothing was entered: leaving asks for confirmation once the form differs from it. */
@@ -54,8 +60,12 @@ type Props = {
   leaveTo: string
   /** Shown when saving fails unexpectedly. */
   failureMessage: string
-  /** Saves what the form holds, with its photos already kept in the photo store; the form removes them again when this does not save. */
-  onSave: (input: CreateExpenseInput) => Promise<SaveOutcome>
+  /**
+   * Saves what the form holds, with its photos already kept in the photo store; the form removes them again when this does not save.
+   * `paymentMethod` is the account the user paid with, or null for none (also when someone else paid): it is the user's own,
+   * saved apart from the expense.
+   */
+  onSave: (input: CreateExpenseInput, paymentMethod: PaymentMethodInput | null) => Promise<SaveOutcome>
 }
 
 /**
@@ -68,6 +78,7 @@ export function ExpenseForm({
   group,
   datasetId,
   recentCurrencies,
+  accounts,
   heading,
   initialValues,
   startValues: carriedValues,
@@ -87,6 +98,13 @@ export function ExpenseForm({
   const amount = Form.useWatch('amount', form) ?? startValues.amount
   const split = Form.useWatch('split', form) ?? startValues.split
   const keptReceipts = Form.useWatch('keptReceipts', form) ?? startValues.keptReceipts ?? []
+  const accountId = Form.useWatch('accountId', form) ?? startValues.accountId ?? null
+  const charged = Form.useWatch('charged', form) ?? startValues.charged ?? ''
+  // The payment method is only for expenses the user paid, and only once they have an account.
+  const you = group.members.find((member) => member.isYou)
+  const youPaid = split.paidBy === you?.personId
+  const account = accounts.find((option) => option.id === accountId)
+  const askCharged = youPaid && account !== undefined && account.currency !== currency
   const amountMinor = moneyService.toMinor(amount, currency)
   // Shown under the split as soon as it stops adding up, for example after the
   // amount changed under exact amounts. Saving refuses it too.
@@ -124,17 +142,20 @@ export function ExpenseForm({
       // The new photos are kept first, so the expense never points at a photo
       // that is not there; they are removed again if the expense is not saved.
       added = await photoService.storeReceipts(photos, values.receipts)
-      const outcome = await onSave({
-        description: values.description,
-        category: values.category,
-        amountMinor: moneyService.toMinor(values.amount, values.currency),
-        currency: values.currency,
-        date: values.date,
-        notes: values.notes,
-        paidBy: values.split.paidBy,
-        split: { method: values.split.method, values: values.split.values },
-        receipts: [...(values.keptReceipts ?? []), ...added],
-      })
+      const outcome = await onSave(
+        {
+          description: values.description,
+          category: values.category,
+          amountMinor: moneyService.toMinor(values.amount, values.currency),
+          currency: values.currency,
+          date: values.date,
+          notes: values.notes,
+          paidBy: values.split.paidBy,
+          split: { method: values.split.method, values: values.split.values },
+          receipts: [...(values.keptReceipts ?? []), ...added],
+        },
+        paymentMethodOf(values),
+      )
 
       // Every problem is shown at once, each beside its own field.
       form.setFields(toFormFields(outcome.status === 'invalid' ? outcome.errors : {}))
@@ -161,6 +182,14 @@ export function ExpenseForm({
     }
   }
 
+  /** The account the user paid with, and what it was debited when its currency differs from the expense's. */
+  function paymentMethodOf(values: FormValues): PaymentMethodInput | null {
+    const chosen = accounts.find((option) => option.id === values.accountId)
+    if (!chosen || values.split.paidBy !== you?.personId) return null
+    const differs = chosen.currency !== values.currency
+    return { accountId: chosen.id, chargedMinor: differs ? moneyService.toMinor(values.charged ?? '', chosen.currency) : null }
+  }
+
   function handleValuesChange(changed: Partial<FormValues>, all: FormValues) {
     // A message disappears as soon as its field is edited. The split is
     // checked against the amount, so a new amount or currency clears its
@@ -173,6 +202,17 @@ export function ExpenseForm({
     // The amount keeps to the decimals of the new currency.
     if (changed.currency) {
       form.setFieldValue('amount', moneyService.convertInput(all.amount, changed.currency))
+    }
+
+    // The payment method is only for the user's own payments: it starts again if someone else pays and the user takes over.
+    if (changed.split && changed.split.paidBy !== you?.personId) {
+      form.setFieldsValue({ accountId: null, charged: '' })
+    }
+    // What the account was debited is in the account's currency: another account starts it again, and when the
+    // account and the expense end up in one currency there is nothing to enter.
+    const chosen = accounts.find((option) => option.id === all.accountId)
+    if (changed.accountId !== undefined || (changed.currency && chosen?.currency === changed.currency)) {
+      form.setFieldValue('charged', '')
     }
   }
 
@@ -225,9 +265,55 @@ export function ExpenseForm({
     )
   }
 
+  function renderCharged(account: AccountOption) {
+    const chargedMinor = moneyService.toMinor(charged, account.currency)
+    const rate = chargedMinor && amountMinor ? accountService.rate({ amountMinor, currency }, { minor: chargedMinor, currency: account.currency }) : null
+    const symbolOf = (code: string) => currencyService.symbol(code, navigator.language) ?? code
+    return (
+      <Form.Item
+        name="charged"
+        style={{ marginBottom: 16 }}
+        extra={
+          rate
+            ? `≈ ${symbolOf(account.currency)}${rate} per ${symbolOf(currency)}1`
+            : account.kind === 'card'
+              ? 'Optional. Without it, this expense is not counted toward the card\'s spend.'
+              : 'Optional.'
+        }
+      >
+        <AmountInput
+          currency={account.currency}
+          large={false}
+          label="Charged to the account"
+          prefix={symbolOf(account.currency)}
+        />
+      </Form.Item>
+    )
+  }
+
+  function renderPaymentMethod() {
+    if (!youPaid || accounts.length === 0) return null
+    return (
+      <>
+        <Form.Item name="accountId" style={{ marginBottom: askCharged ? 8 : 16 }}>
+          <PaymentMethodField accounts={accounts} />
+        </Form.Item>
+        {askCharged && account && (
+          <>
+            <Text type="secondary" style={{ display: 'block', marginBottom: 4 }}>
+              Charged to the account
+            </Text>
+            {renderCharged(account)}
+          </>
+        )}
+      </>
+    )
+  }
+
   function renderDetails() {
     return (
       <>
+        {renderPaymentMethod()}
         <Form.Item name="date" style={{ marginBottom: 16 }}>
           <DateField />
         </Form.Item>

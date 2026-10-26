@@ -1,4 +1,4 @@
-import { LogoutOutlined, TeamOutlined } from '@ant-design/icons'
+import { CreditCardOutlined, LogoutOutlined, TeamOutlined } from '@ant-design/icons'
 import { Button, Dropdown, Flex, Typography } from 'antd'
 import { useAppNavigate } from '../../../../hooks/useAppNavigate'
 import { ROUTES } from '../../../../routes.ts'
@@ -48,6 +48,12 @@ export function GuestMenuView({ onSignIn, loading }: Props) {
             icon: <TeamOutlined />,
             label: 'Group members',
             onClick: () => navigate(ROUTES.members),
+          },
+          {
+            key: 'accounts',
+            icon: <CreditCardOutlined />,
+            label: 'Accounts',
+            onClick: () => navigate(ROUTES.accounts),
           },
           {
             key: 'sign-in',

@@ -6,6 +6,8 @@ export const ROUTES = {
   home: '/home',
   /** Everyone saved on this device, where they are added and renamed. */
   members: '/members',
+  /** The user's own bank accounts and credit cards (PRD 5.17). */
+  accounts: '/accounts',
   newGroup: '/groups/new',
   /** Where the service worker sends the user after a share from another app (PRD 5.11). */
   share: '/share',

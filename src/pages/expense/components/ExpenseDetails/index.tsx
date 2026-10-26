@@ -10,7 +10,7 @@ import { getDb } from '../../../../db/client.ts'
 import { ROUTES } from '../../../../routes.ts'
 import { expenseService } from '../../../../services/expenseService'
 import { groupService } from '../../../../services/groupService'
-import type { ExpenseDetails } from '../../../../services/expenseService/types.ts'
+import type { ExpenseWithPayment } from '../../types.ts'
 import { aboveScreenEdge, UNDER_BAND_PADDING } from '../../../../theme/safeArea.ts'
 import { PaymentRow } from '../PaymentRow'
 import { ExpenseBand } from './ExpenseBand'
@@ -18,7 +18,7 @@ import { History } from './History'
 import { dialogLayer } from '../../../../components/DialogLayer'
 
 type Props = {
-  expense: ExpenseDetails
+  expense: ExpenseWithPayment
   /** Names the device's photo store, which holds the receipts. */
   datasetId: string
   /** The user's person id: a deletion or restoration is saved as theirs. */
@@ -150,6 +150,7 @@ export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props)
           notes={expense.notes}
           method={expense.method}
           shares={expense.shares}
+          paymentMethod={expense.paymentMethod}
           receipts={expense.receipts}
           datasetId={datasetId}
         />

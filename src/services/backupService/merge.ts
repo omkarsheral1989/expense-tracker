@@ -1,7 +1,9 @@
 import { eq } from 'drizzle-orm'
 import type { AnyPgColumn, PgTable } from 'drizzle-orm/pg-core'
 import {
+  accounts,
   expenseEvents,
+  expensePayments,
   expensePhotos,
   expenseShares,
   expenses,
@@ -155,6 +157,10 @@ export async function mergeBackupRows(tx: Transaction, rows: BackupRows): Promis
   // Oldest first, so a 'reverted' event's version is always there before it.
   const events = [...incoming.expenseEvents].sort((a, b) => a.occurredAt.getTime() - b.occurredAt.getTime())
   await mergeRows(tx, expenseEvents, events)
+
+  // The user's own accounts, then the payment method of each expense (ADR-061).
+  await mergeRows(tx, accounts, incoming.accounts)
+  await mergeRows(tx, expensePayments, incoming.expensePayments, (row) => row.expenseId)
 
   return { renamed }
 }

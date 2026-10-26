@@ -21,6 +21,11 @@ type Props = {
    * and the app behind it stays dimmed. True (the default) for every picker.
    */
   dismissible?: boolean
+  /**
+   * True to give the sheet or dialog the page's own light grey background, so white fields stand out on it as on a page (the accounts dialog).
+   * False (the default) leaves it white.
+   */
+  pageBackground?: boolean
 }
 
 /**
@@ -28,7 +33,7 @@ type Props = {
  * slides up from the bottom on phones. Closes with its close button or by
  * tapping outside.
  */
-export function AdaptiveDialog({ open, onClose, title, children, tall = false, footer, dismissible = true }: Props) {
+export function AdaptiveDialog({ open, onClose, title, children, tall = false, footer, dismissible = true, pageBackground = false }: Props) {
   const screens = Grid.useBreakpoint()
 
   if (screens.md) {
@@ -39,6 +44,7 @@ export function AdaptiveDialog({ open, onClose, title, children, tall = false, f
         title={title}
         footer={footer ?? null}
         centered
+        rootClassName={pageBackground ? 'page-background-sheet' : undefined}
         closable={dismissible}
         maskClosable={dismissible}
         keyboard={dismissible}
@@ -56,6 +62,7 @@ export function AdaptiveDialog({ open, onClose, title, children, tall = false, f
       onClose={onClose}
       title={title}
       placement="bottom"
+      rootClassName={pageBackground ? 'page-background-sheet' : undefined}
       closable={dismissible}
       maskClosable={dismissible}
       keyboard={dismissible}

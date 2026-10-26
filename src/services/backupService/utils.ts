@@ -47,5 +47,6 @@ export function rowsOfGroup(rows: BackupRows, groupId: string): BackupRows {
     expenseEvents: rows.expenseEvents.filter((event) => event.groupId === groupId && expenseIds.has(event.expenseId)),
   }
   const named = idsIn(ofGroup)
-  return { people: rows.people.filter((person) => named.has(person.id.toLowerCase())), ...ofGroup }
+  // Accounts and payment methods are private to their user, so a member's file never brings any (ADR-061).
+  return { people: rows.people.filter((person) => named.has(person.id.toLowerCase())), ...ofGroup, accounts: [], expensePayments: [] }
 }

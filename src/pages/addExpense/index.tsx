@@ -82,6 +82,7 @@ export function AddExpensePage() {
             datasetId={datasetId}
             userId={userId}
             recentCurrencies={state.data.recentCurrencies}
+            accounts={state.data.accounts}
             groups={state.data.groups}
             draft={draft}
           />

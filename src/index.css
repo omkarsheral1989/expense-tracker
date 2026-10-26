@@ -53,11 +53,10 @@ body .group-type-selector .ant-segmented-item:not(.ant-segmented-item-selected) 
   }
 }
 
-/* Ant Design hides a hoverable card's border on hover; in dark mode the home page's group cards keep it, since the card is barely lighter than the page. */
-@media (prefers-color-scheme: dark) {
-  body .group-row-card.ant-card-hoverable:hover {
-    border-color: var(--ant-color-border-secondary);
-  }
+/* Every card has the same border as a button (Ant Design's own is fainter, and it hides a hoverable card's border on hover). */
+body .ant-card,
+body .ant-card-hoverable:hover {
+  border-color: var(--ant-color-border);
 }
 
 /* Page transitions (PRD 5.15, ADR-057): the old page and the new one slide when a page change goes through `useAppNavigate`. `data-nav` says which way. */
@@ -372,4 +371,66 @@ html[data-nav='hero-open']::view-transition-old(group-pill-label) {
 }
 @keyframes hero-fade-in-late {
   from, 60% { opacity: 0; }
+}
+
+/* The accounts dialog: a note under a field takes only its own height (Ant Design reserves 40 px), so the gap between fields is the same with or without one. */
+.account-form .ant-form-item-extra {
+  min-height: 0;
+}
+
+/* The account types are two tiles like the group types: the ones not chosen sit on a faint white tile, the chosen one is Ant Design's own white card. */
+.account-kind-selector {
+  padding: 0;
+}
+.account-kind-selector .ant-segmented-group {
+  gap: 12px;
+}
+body .account-kind-selector .ant-segmented-item:not(.ant-segmented-item-selected) {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+@media (prefers-color-scheme: dark) {
+  body .account-kind-selector .ant-segmented-item:not(.ant-segmented-item-selected) {
+    background: rgba(255, 255, 255, 0.06);
+  }
+  body .account-kind-selector .ant-segmented-item-selected {
+    background: rgba(255, 255, 255, 0.2);
+  }
+}
+
+/* When the type cannot change (editing an account), the tile that is not chosen is dimmed. */
+.account-kind-selector.ant-segmented-disabled .ant-segmented-item:not(.ant-segmented-item-selected) {
+  opacity: 0.4;
+}
+
+/* A sheet or dialog with the page's own background (AdaptiveDialog's `pageBackground`), so white fields and tiles stand out on it as they do on a page. */
+.page-background-sheet .ant-drawer-section,
+.page-background-sheet .ant-modal-container {
+  background: var(--ant-color-bg-layout);
+}
+
+/* The card-only fields of the accounts dialog fold open and shut, so the sheet changes height smoothly with the type. The side margin and padding keep the fields' focus rings from being clipped. */
+.account-card-fields {
+  display: grid;
+  grid-template-rows: 0fr;
+  margin-inline: -4px;
+  transition: grid-template-rows 300ms ease;
+}
+.account-card-fields[data-open='true'] {
+  grid-template-rows: 1fr;
+}
+.account-card-fields > div {
+  min-height: 0;
+  overflow: hidden;
+  padding-inline: 4px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .account-card-fields {
+    transition: none;
+  }
+}
+
+/* A tall sheet stays within the screen: its body scrolls and the buttons stay in view. */
+.page-background-sheet .ant-drawer-section {
+  max-height: 85vh;
 }

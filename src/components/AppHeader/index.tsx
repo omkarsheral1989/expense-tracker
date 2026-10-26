@@ -1,4 +1,4 @@
-import { LogoutOutlined, TeamOutlined } from '@ant-design/icons'
+import { CreditCardOutlined, LogoutOutlined, TeamOutlined } from '@ant-design/icons'
 import { Button, Dropdown, Flex, Typography, theme } from 'antd'
 import { AppLink } from '../AppLink'
 import { useAppNavigate } from '../../hooks/useAppNavigate'
@@ -70,6 +70,12 @@ export function AppHeader() {
               icon: <TeamOutlined />,
               label: 'Group members',
               onClick: () => navigate(ROUTES.members),
+            },
+            {
+              key: 'accounts',
+              icon: <CreditCardOutlined />,
+              label: 'Accounts',
+              onClick: () => navigate(ROUTES.accounts),
             },
             {
               key: 'sign-out',

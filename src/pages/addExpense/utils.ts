@@ -1,4 +1,5 @@
 import { getDb } from '../../db/client.ts'
+import { accountService } from '../../services/accountService'
 import { expenseService } from '../../services/expenseService'
 import { groupService } from '../../services/groupService'
 
@@ -16,6 +17,7 @@ export async function loadAddExpense(userId: string, groupId: string) {
   return {
     group,
     recentCurrencies: await expenseService.recentCurrencies(db, userId),
+    accounts: await accountService.listOptions(db),
     groups: await groupService.listGroups(db, userId),
   }
 }

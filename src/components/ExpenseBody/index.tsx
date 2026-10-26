@@ -1,9 +1,14 @@
-import { Divider, Flex, Typography } from 'antd'
+import { BankOutlined, CreditCardOutlined } from '@ant-design/icons'
+import { Avatar, Divider, Flex, Typography } from 'antd'
 import type { SplitMethod } from '../../db/types.ts'
+import { accountService } from '../../services/accountService'
+import type { PaymentMethod } from '../../services/accountService/types.ts'
+import { currencyService } from '../../services/currencyService'
 import { dateService } from '../../services/dateService'
 import { expenseService } from '../../services/expenseService'
 import type { ExpenseShareDetails } from '../../services/expenseService/types.ts'
 import { moneyService } from '../../services/moneyService'
+import { ACCOUNT_KIND_COLORS } from '../../theme/accountColors.ts'
 import { CategoryIcon } from '../CategoryIcon'
 import { PersonAvatar } from '../PersonAvatar'
 import { displayName, owedSentence, paidSentence, SPLIT_METHOD_LABELS } from '../ExpenseWording'
@@ -22,6 +27,8 @@ type Props = {
   method: SplitMethod
   /** The viewer first, then the others; the people who paid or owe something. */
   shares: ExpenseShareDetails[]
+  /** The user's own payment method for the expense (PRD 5.6), shown below who paid on the expense page; leave out elsewhere. */
+  paymentMethod?: PaymentMethod | null
   receipts: { id: string; mimeType: string }[]
   /** Names the device's photo store, which holds the receipts. */
   datasetId: string
@@ -47,6 +54,7 @@ export function ExpenseBody({
   notes,
   method,
   shares,
+  paymentMethod,
   receipts,
   datasetId,
   withoutSummary = false,
@@ -100,7 +108,7 @@ export function ExpenseBody({
   function renderPayerRows() {
     if (!withoutSummary) return null
     return (
-      <Flex vertical gap={12} role="list" aria-label="Who paid" style={{ marginBottom: 20 }}>
+      <Flex vertical gap={12} role="list" aria-label="Who paid" style={{ marginBottom: paymentMethod ? 12 : 20 }}>
         {shares
           .filter((share) => share.paidMinor > 0)
           .map((share) => (
@@ -113,12 +121,39 @@ export function ExpenseBody({
     )
   }
 
+  // Which of the user's accounts paid, and what it was debited when that is another currency (private to the user, ADR-061).
+  function renderPaymentMethod() {
+    if (!withoutSummary || !paymentMethod) return null
+    const { accountCurrency, chargedMinor } = paymentMethod
+    const symbolOf = (code: string) => currencyService.symbol(code, navigator.language) ?? code
+    const rate = chargedMinor ? accountService.rate({ amountMinor, currency }, { minor: chargedMinor, currency: accountCurrency }) : null
+    return (
+      <Flex align="center" gap={12} style={{ marginBottom: 20 }}>
+        <Avatar
+          size={40}
+          style={{ flex: 'none', background: ACCOUNT_KIND_COLORS[paymentMethod.accountKind] }}
+          icon={paymentMethod.accountKind === 'bank' ? <BankOutlined /> : <CreditCardOutlined />}
+        />
+        <Flex vertical style={{ minWidth: 0 }}>
+          <Text style={{ overflowWrap: 'anywhere' }}>Paid with {paymentMethod.accountName}</Text>
+          {chargedMinor !== null && (
+            <Text type="secondary">
+              Charged {moneyService.format(chargedMinor, accountCurrency)}
+              {rate && ` (≈ ${symbolOf(accountCurrency)}${rate} per ${symbolOf(currency)}1)`}
+            </Text>
+          )}
+        </Flex>
+      </Flex>
+    )
+  }
+
   function renderSplit() {
     if (isSettlement) return null
     return (
       <>
         {withoutSummary ? null : <Divider style={{ margin: '16px 0' }} />}
         {renderPayerRows()}
+        {renderPaymentMethod()}
         <Text strong>{SPLIT_METHOD_LABELS[method]}</Text>
         <Flex vertical gap={12} role="list" aria-label="Who owes" style={{ marginTop: 12 }}>
           {shares.filter((share) => share.owedMinor > 0).map(renderShare)}

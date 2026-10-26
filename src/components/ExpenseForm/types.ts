@@ -28,6 +28,13 @@ export type FormValues = {
   date: string
   notes: string
   split: SplitValue
+  /** The id of the account the user paid with, or none (PRD 4.10). Only meaningful when the user is the payer. */
+  accountId?: string | null
+  /**
+   * What the account was debited, as typed in the account's currency ('8412.5'); empty when not entered.
+   * Only used when the account's currency differs from the expense's.
+   */
+  charged?: string
   /** Receipt photos chosen on the device, in order; kept in the photo store on save. */
   receipts: File[]
   /**

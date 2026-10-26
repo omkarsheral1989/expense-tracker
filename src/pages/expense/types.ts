@@ -1,4 +1,5 @@
-import type { ExpenseListItem, ExpensePayer } from '../../services/expenseService/types.ts'
+import type { PaymentMethod } from '../../services/accountService/types.ts'
+import type { ExpenseDetails, ExpenseListItem, ExpensePayer } from '../../services/expenseService/types.ts'
 
 /** A person as the list names them. */
 export type KnownPerson = Pick<ExpensePayer, 'email' | 'name' | 'isYou'>
@@ -21,3 +22,6 @@ export type KnownExpense = Pick<ExpenseListItem, 'id' | 'description' | 'categor
 
 /** The router state the group's list gives the expense page. */
 export type ExpensePageState = { expense: KnownExpense }
+
+/** An expense as the page reads it: its details, and the payment method this device has for it (private, ADR-061). */
+export type ExpenseWithPayment = ExpenseDetails & { paymentMethod: PaymentMethod | null }

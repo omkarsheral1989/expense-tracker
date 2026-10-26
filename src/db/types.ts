@@ -1,7 +1,13 @@
-import type { EXPENSE_EVENT_KINDS, GROUP_TYPES, SPLIT_METHODS } from './constants.ts'
+import type { ACCOUNT_KINDS, EXPENSE_EVENT_KINDS, GROUP_TYPES, SPEND_TARGET_PERIODS, SPLIT_METHODS } from './constants.ts'
 
 /** One of the kinds of group a user can create: 'trip', 'home', 'couple' or 'other'. */
 export type GroupType = (typeof GROUP_TYPES)[number]
+
+/** A bank account or a credit card: 'bank' or 'card'. */
+export type AccountKind = (typeof ACCOUNT_KINDS)[number]
+
+/** How often a credit card's spend target repeats: 'month' or 'quarter'. */
+export type SpendTargetPeriod = (typeof SPEND_TARGET_PERIODS)[number]
 
 /** How an expense is divided: 'equal', 'exact', 'percent', 'shares' or 'adjustment'. */
 export type SplitMethod = (typeof SPLIT_METHODS)[number]

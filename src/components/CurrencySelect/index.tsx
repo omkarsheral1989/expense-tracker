@@ -8,10 +8,12 @@ type Props = {
   firstCode?: string | null
   value?: string
   onChange?: (code: string) => void
+  /** Switches the list off, for a currency that cannot change. */
+  disabled?: boolean
 }
 
 /** Search every ISO currency by code or name. Works as an Ant Design form field. */
-export function CurrencySelect({ id, firstCode, value, onChange }: Props) {
+export function CurrencySelect({ id, firstCode, value, onChange, disabled }: Props) {
   return (
     <Select
       id={id}
@@ -22,6 +24,7 @@ export function CurrencySelect({ id, firstCode, value, onChange }: Props) {
       options={currencyService.options(navigator.language, firstCode)}
       value={value}
       onChange={onChange}
+      disabled={disabled}
     />
   )
 }

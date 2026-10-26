@@ -20,6 +20,8 @@ type Props = {
   large?: boolean
   /** Shown before the number inside a small field, such as "+" for an adjustment. */
   prefix?: string
+  /** Which side the number sits on in a small field: the end (right) by default, or the start (left). Large fields always start. */
+  align?: 'start' | 'end'
 }
 
 /**
@@ -35,6 +37,7 @@ export function AmountInput({
   label = 'Amount',
   large = true,
   prefix,
+  align = 'end',
 }: Props) {
   const inputRef = useRef<InputRef>(null)
   // After a change the field is reformatted, which would throw the caret to
@@ -69,7 +72,7 @@ export function AmountInput({
       onChange={handleChange}
       // The big amount fits the 40 px of every other field: 24 px line, 7 px above and below, 1 px border.
       style={large ? { fontSize: 20, fontWeight: 600, lineHeight: '24px', paddingBlock: 7 } : undefined}
-      styles={large ? undefined : { input: { textAlign: 'end' } }}
+      styles={large ? undefined : { input: { textAlign: align } }}
     />
   )
 }

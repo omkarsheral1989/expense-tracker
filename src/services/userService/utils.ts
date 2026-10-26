@@ -1,6 +1,8 @@
 import { eq, sql } from 'drizzle-orm'
 import {
+  accounts,
   expenseEvents,
+  expensePayments,
   expensePhotos,
   expenseRevisions,
   expenseShares,
@@ -60,6 +62,8 @@ export async function mergePeople(tx: Transaction, fromId: string, intoId: strin
     expensePhotos,
     expenseEvents,
     expenseRevisions,
+    accounts,
+    expensePayments,
   ]) {
     await tx.update(table).set({ updatedBy: intoId }).where(eq(table.updatedBy, fromId))
   }

@@ -58,6 +58,8 @@ export function EditExpensePage() {
           datasetId={datasetId}
           userId={userId}
           recentCurrencies={state.data.recentCurrencies}
+          accounts={state.data.accounts}
+          paymentMethod={state.data.paymentMethod}
         />
       ) : null}
     </Flex>

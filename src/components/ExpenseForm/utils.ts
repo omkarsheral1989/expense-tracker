@@ -41,7 +41,9 @@ export function hasUnsavedInput(
     values.date !== initial.date ||
     (values.receipts ?? []).length !== initial.receipts.length ||
     ids(values.keptReceipts) !== ids(initial.keptReceipts) ||
-    (values.split !== undefined && !sameSplit(values.split, initial.split))
+    (values.split !== undefined && !sameSplit(values.split, initial.split)) ||
+    (values.accountId ?? null) !== (initial.accountId ?? null) ||
+    (values.charged ?? '') !== (initial.charged ?? '')
   )
 }
 
