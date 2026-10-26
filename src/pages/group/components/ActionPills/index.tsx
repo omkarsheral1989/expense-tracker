@@ -1,4 +1,4 @@
-import { Button, Flex, theme, Tooltip } from 'antd'
+import { Button, Flex, Tooltip } from 'antd'
 import { useAppNavigate } from '../../../../hooks/useAppNavigate'
 import { ROUTES } from '../../../../routes.ts'
 import { PILL_RADIUS } from '../../../../theme/radius.ts'
@@ -22,14 +22,13 @@ type Props = {
  */
 export function ActionPills({ groupId, group, canSettle, loading = false }: Props) {
   const navigate = useAppNavigate()
-  const { token } = theme.useToken()
   // The frame rounds the pill and draws its border; the button inside is square, so a picture of it alone is square (the browser
   // leaves out its parents' clipping), which the settle-up page grows out of (PRD 5.16, ADR-060).
   const settleUp = (
     <span
       data-settle-pill
-      // The border is an outline drawn over the inner edge, so the pill stays the controls' 40 px.
-      style={{ display: 'flex', flex: 'none', borderRadius: PILL_RADIUS, overflow: 'hidden', outline: `1px solid ${token.colorBorder}`, outlineOffset: -1 }}
+      // The border is drawn over the button's edge by `[data-settle-pill]::after` (src/index.css), so the pill stays the controls' 40 px.
+      style={{ display: 'flex', flex: 'none', borderRadius: PILL_RADIUS, overflow: 'hidden' }}
     >
       <Button
         disabled={!canSettle || loading}

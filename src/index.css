@@ -337,8 +337,8 @@ html[data-nav='hero-close']::view-transition-new(group-floating-new) {
 [data-floating-button]:has(> [style*='view-transition-name']) {
   box-shadow: none !important;
 }
-[data-settle-pill]:has(> [style*='view-transition-name']) {
-  outline: none !important;
+[data-settle-pill]:has(> [style*='view-transition-name'])::after {
+  display: none;
 }
 html[data-hero-kind='pill'][data-nav='hero-open']::view-transition-group(root),
 html[data-hero-kind='pill'][data-nav='hero-close']::view-transition-group(root) {
@@ -441,4 +441,17 @@ body .ant-modal-container {
 /* A bottom sheet stays within the screen: its body scrolls and its buttons stay in view. */
 body .ant-drawer-bottom .ant-drawer-section {
   max-height: 85vh;
+}
+
+/* The Settle up pill has the border a button has, drawn over its white button (a border on the frame would sit under it). */
+[data-settle-pill] {
+  position: relative;
+}
+[data-settle-pill]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px var(--ant-color-border);
+  pointer-events: none;
 }
