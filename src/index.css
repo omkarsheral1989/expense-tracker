@@ -455,3 +455,8 @@ body .ant-drawer-bottom .ant-drawer-section {
   box-shadow: inset 0 0 0 1px var(--ant-color-border);
   pointer-events: none;
 }
+
+/* The expense form: a note under a field (the exchange rate) takes only its own height, so every gap on the page is the same 16 px (Ant Design reserves 40 px). */
+.expense-form .ant-form-item-extra {
+  min-height: 0;
+}

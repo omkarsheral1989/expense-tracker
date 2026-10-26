@@ -284,6 +284,7 @@ export function ExpenseForm({
         <AmountInput
           currency={account.currency}
           large={false}
+          align="start"
           label="Charged to the account"
           prefix={symbolOf(account.currency)}
         />
@@ -295,7 +296,7 @@ export function ExpenseForm({
     if (!youPaid) return null
     return (
       <>
-        <Form.Item name="accountId" style={{ marginBottom: askCharged ? 8 : 16 }}>
+        <Form.Item name="accountId" style={{ marginBottom: 16 }}>
           <PaymentMethodField accounts={accounts} userId={you?.personId ?? ''} />
         </Form.Item>
         {askCharged && account && (
@@ -348,6 +349,7 @@ export function ExpenseForm({
       <title>{`${heading} · OwnLedger`}</title>
       <Form
         form={form}
+        className="expense-form"
         requiredMark={false}
         initialValues={startValues}
         onFinish={handleFinish}
