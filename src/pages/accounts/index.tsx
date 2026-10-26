@@ -14,7 +14,7 @@ import type { AccountSummary } from '../../services/accountService/types.ts'
 import { currencyService } from '../../services/currencyService'
 import { useSyncStore } from '../../stores/useSyncStore'
 import { HEADER_TITLE_STYLE } from '../../theme/headerTitle.ts'
-import { RADIUS } from '../../theme/radius.ts'
+import { PILL_RADIUS } from '../../theme/radius.ts'
 import { aboveScreenEdge, belowStatusBar, HEADER_TOP_PADDING } from '../../theme/safeArea.ts'
 import { AccountDialog } from './components/AccountDialog'
 import { AccountItem } from './components/AccountItem'
@@ -83,7 +83,7 @@ export function AccountsPage() {
             No accounts yet.
           </Text>
         )}
-        <Button icon={<PlusOutlined />} onClick={() => openDialog(null)} style={{ marginTop: 16, borderRadius: RADIUS.card }}>
+        <Button icon={<PlusOutlined />} onClick={() => openDialog(null)} style={{ marginTop: 16, borderRadius: PILL_RADIUS }}>
           Add account
         </Button>
       </>

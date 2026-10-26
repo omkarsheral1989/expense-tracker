@@ -89,11 +89,12 @@ export function AccountItem({ account, onEdit }: Props) {
       <Flex vertical gap={12}>
         <Flex align="center" gap={12}>
           <AccountKindIcon kind={account.kind} />
+          {/* Two lines of 20 px, so the text is as high as the 40 px icon beside it. */}
           <Flex vertical flex={1} style={{ minWidth: 0 }}>
-            <Text strong ellipsis>
+            <Text strong ellipsis style={{ lineHeight: '20px' }}>
               {account.name}
             </Text>
-            <Text type="secondary" ellipsis>
+            <Text type="secondary" ellipsis style={{ lineHeight: '20px' }}>
               {ACCOUNT_KIND_LABELS[account.kind]} · {account.currency}
             </Text>
           </Flex>

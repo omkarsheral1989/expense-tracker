@@ -15,6 +15,7 @@ import { personService } from '../../services/personService'
 import type { ManagedPerson } from '../../services/personService/types.ts'
 import { aboveScreenEdge, belowStatusBar, HEADER_TOP_PADDING } from '../../theme/safeArea.ts'
 import { HEADER_TITLE_STYLE } from '../../theme/headerTitle.ts'
+import { PILL_RADIUS } from '../../theme/radius.ts'
 import { EditMemberDialog } from './components/EditMemberDialog'
 import { MemberItem } from './components/MemberItem'
 
@@ -78,7 +79,7 @@ export function MembersPage() {
             No members yet.
           </Text>
         )}
-        <Button icon={<PlusOutlined />} onClick={() => setAdding(true)} style={{ marginTop: 16 }}>
+        <Button icon={<PlusOutlined />} onClick={() => setAdding(true)} style={{ marginTop: 16, borderRadius: PILL_RADIUS }}>
           Add member
         </Button>
       </>
