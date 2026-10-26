@@ -35,7 +35,6 @@ export function MemberItem({ person, onEdit }: Props) {
           onEdit(person)
         }
       }}
-      styles={{ body: { padding: 12 } }}
     >
       <Flex align="center" gap={12}>
         <PersonAvatar name={label} picture={person.picture} />

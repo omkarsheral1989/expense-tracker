@@ -3,6 +3,7 @@ import { App as AntApp, ConfigProvider, theme } from 'antd'
 import { useColorScheme } from '../../hooks/useColorScheme'
 import { CONTROL_HEIGHT, ICON_ONLY_SIZE } from '../../theme/controlHeight.ts'
 import '../../theme/dropdown.css'
+import { CARD_PADDING } from '../../theme/cardPadding.ts'
 import { RADIUS } from '../../theme/radius.ts'
 
 const PRIMARY = '#0d9488'
@@ -53,8 +54,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
             onlyIconSizeSM: ICON_ONLY_SIZE,
             onlyIconSizeLG: ICON_ONLY_SIZE,
           },
-          // Cards have a radius of their own, a little under the other containers'.
-          Card: { borderRadiusLG: RADIUS.card },
+          // Cards have a radius of their own, a little under the other containers', and one padding.
+          Card: { borderRadiusLG: RADIUS.card, bodyPadding: CARD_PADDING },
           Input: { borderRadiusLG: RADIUS.inner },
           InputNumber: { borderRadiusLG: RADIUS.inner },
           Select: { borderRadiusLG: RADIUS.inner },

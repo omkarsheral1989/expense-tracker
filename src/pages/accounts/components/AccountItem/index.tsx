@@ -85,7 +85,6 @@ export function AccountItem({ account, onEdit }: Props) {
           onEdit(account)
         }
       }}
-      styles={{ body: { padding: 12 } }}
     >
       <Flex vertical gap={12}>
         <Flex align="center" gap={12}>
