@@ -1,5 +1,5 @@
 import { PlusOutlined } from '@ant-design/icons'
-import { Button, Flex, Result, Typography } from 'antd'
+import { Button, Empty, Flex, Result, Typography } from 'antd'
 import { useState } from 'react'
 import { BackButton } from '../../components/BackButton'
 import { CenteredMessage } from '../../components/CenteredMessage'
@@ -18,6 +18,7 @@ import { PILL_RADIUS } from '../../theme/radius.ts'
 import { aboveScreenEdge, belowStatusBar, HEADER_TOP_PADDING } from '../../theme/safeArea.ts'
 import { AccountDialog } from './components/AccountDialog'
 import { AccountItem } from './components/AccountItem'
+import { AccountsIllustration } from './components/AccountsIllustration'
 
 const { Text, Title } = Typography
 
@@ -70,7 +71,38 @@ export function AccountsPage() {
     )
   }
 
+  // With no accounts: the same illustration as an empty list of expenses, centered in the space the page has, with the button under it.
+  function renderEmpty() {
+    return (
+      <Flex align="center" justify="center" style={{ flex: 1 }}>
+        <Empty
+          image={<AccountsIllustration />}
+          // The picture sets its own size.
+          styles={{ image: { height: 'auto' } }}
+          description={
+            <>
+              <Text strong>No accounts yet</Text>
+              <br />
+              <Text type="secondary">Add a bank account or a credit card.</Text>
+            </>
+          }
+        >
+          {renderAddButton(0)}
+        </Empty>
+      </Flex>
+    )
+  }
+
+  function renderAddButton(marginTop: number) {
+    return (
+      <Button icon={<PlusOutlined />} onClick={() => openDialog(null)} style={{ marginTop, borderRadius: PILL_RADIUS }}>
+        Add account
+      </Button>
+    )
+  }
+
   function renderList(accounts: AccountSummary[]) {
+    if (accounts.length === 0) return renderEmpty()
     return (
       <>
         <Flex vertical gap={12}>
@@ -78,14 +110,7 @@ export function AccountsPage() {
             <AccountItem key={account.id} account={account} onEdit={openDialog} />
           ))}
         </Flex>
-        {accounts.length === 0 && (
-          <Text type="secondary" style={{ display: 'block', padding: '16px 0 0' }}>
-            No accounts yet.
-          </Text>
-        )}
-        <Button icon={<PlusOutlined />} onClick={() => openDialog(null)} style={{ marginTop: 16, borderRadius: PILL_RADIUS }}>
-          Add account
-        </Button>
+        {renderAddButton(16)}
       </>
     )
   }
