@@ -63,7 +63,7 @@ body .group-type-selector .ant-segmented-item:not(.ant-segmented-item-selected) 
 /* Page transitions (PRD 5.15, ADR-057): the old page and the new one slide when a page change goes through `useAppNavigate`. `data-nav` says which way. */
 ::view-transition-old(root),
 ::view-transition-new(root) {
-  animation-duration: var(--page-transition-ms, 300ms);
+  animation-duration: var(--page-transition-ms, 600ms);
   animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
   mix-blend-mode: normal;
 }
