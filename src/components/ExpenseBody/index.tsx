@@ -3,7 +3,6 @@ import { Avatar, Divider, Flex, Typography } from 'antd'
 import type { SplitMethod } from '../../db/types.ts'
 import { accountService } from '../../services/accountService'
 import type { PaymentMethod } from '../../services/accountService/types.ts'
-import { currencyService } from '../../services/currencyService'
 import { dateService } from '../../services/dateService'
 import { expenseService } from '../../services/expenseService'
 import type { ExpenseShareDetails } from '../../services/expenseService/types.ts'
@@ -125,8 +124,7 @@ export function ExpenseBody({
   function renderPaymentMethod() {
     if (!withoutSummary || !paymentMethod) return null
     const { accountCurrency, chargedMinor } = paymentMethod
-    const symbolOf = (code: string) => currencyService.symbol(code, navigator.language) ?? code
-    const rate = chargedMinor ? accountService.rate({ amountMinor, currency }, { minor: chargedMinor, currency: accountCurrency }) : null
+    const rate = chargedMinor ? accountService.rateLine({ amountMinor, currency }, { minor: chargedMinor, currency: accountCurrency }) : null
     return (
       <Flex align="center" gap={12} style={{ marginBottom: 20 }}>
         <Avatar
@@ -139,7 +137,7 @@ export function ExpenseBody({
           {chargedMinor !== null && (
             <Text type="secondary">
               Charged {moneyService.format(chargedMinor, accountCurrency)}
-              {rate && ` (≈ ${symbolOf(accountCurrency)}${rate} per ${symbolOf(currency)}1)`}
+              {rate && ` (${rate})`}
             </Text>
           )}
         </Flex>

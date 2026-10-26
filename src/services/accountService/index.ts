@@ -2,6 +2,7 @@ import { and, asc, eq, isNull, sql } from 'drizzle-orm'
 import type { Database } from '../../db/client.ts'
 import { notifyAfter } from '../../db/changes.ts'
 import { accounts, expensePayments, expenseShares, expenses } from '../../db/schema.ts'
+import { currencyService } from '../currencyService'
 import { dateService } from '../dateService'
 import { logService } from '../logService'
 import { moneyService } from '../moneyService'
@@ -260,12 +261,23 @@ const accountServiceBase = {
     })
   },
 
-  /** The exchange rate an expense was paid at, for display; see `rateOf`. */
-  rate(expense: { amountMinor: number; currency: string }, charged: { minor: number; currency: string }): string | null {
-    return rateOf(
-      { minor: expense.amountMinor, decimals: moneyService.decimals(expense.currency) },
-      { minor: charged.minor, decimals: moneyService.decimals(charged.currency) },
-    )
+  /**
+   * The exchange rate an expense was paid at, both ways, for display: "US$1 ≈ £0.7850 · £1 ≈ US$1.27" (see `rateOf`).
+   * Null when either amount is missing.
+   */
+  rateLine(expense: { amountMinor: number; currency: string }, charged: { minor: number; currency: string }): string | null {
+    const expenseSide = { minor: expense.amountMinor, decimals: moneyService.decimals(expense.currency) }
+    const chargedSide = { minor: charged.minor, decimals: moneyService.decimals(charged.currency) }
+    const forward = rateOf(expenseSide, chargedSide)
+    const backward = rateOf(chargedSide, expenseSide)
+    if (!forward || !backward) return null
+    // A symbol sits against the number ("£1"); a bare code gets a space ("ANG 1").
+    const writing = (code: string, value: string) => {
+      const symbol = currencyService.symbol(code, navigator.language)
+      return symbol ? `${symbol}${value}` : `${code} ${value}`
+    }
+    // The two conversions have room between them (em spaces, which a page does not collapse the way it does ordinary ones).
+    return `${writing(expense.currency, '1')} ≈ ${writing(charged.currency, forward)} \u2003·\u2003 ${writing(charged.currency, '1')} ≈ ${writing(expense.currency, backward)}`
   },
 }
 

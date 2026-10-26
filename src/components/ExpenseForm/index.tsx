@@ -267,7 +267,7 @@ export function ExpenseForm({
 
   function renderCharged(account: AccountSummary) {
     const chargedMinor = moneyService.toMinor(charged, account.currency)
-    const rate = chargedMinor && amountMinor ? accountService.rate({ amountMinor, currency }, { minor: chargedMinor, currency: account.currency }) : null
+    const rate = chargedMinor && amountMinor ? accountService.rateLine({ amountMinor, currency }, { minor: chargedMinor, currency: account.currency }) : null
     const symbolOf = (code: string) => currencyService.symbol(code, navigator.language) ?? code
     return (
       <Form.Item
@@ -275,7 +275,7 @@ export function ExpenseForm({
         style={{ marginBottom: 16 }}
         extra={
           rate
-            ? `≈ ${symbolOf(account.currency)}${rate} per ${symbolOf(currency)}1`
+            ? rate
             : account.kind === 'card'
               ? 'Optional. Without it, this expense is not counted toward the card\'s spend.'
               : 'Optional.'
