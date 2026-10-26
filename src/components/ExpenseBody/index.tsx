@@ -133,7 +133,11 @@ export function ExpenseBody({
           icon={paymentMethod.accountKind === 'bank' ? <BankOutlined /> : <CreditCardOutlined />}
         />
         <Flex vertical style={{ minWidth: 0 }}>
-          <Text style={{ overflowWrap: 'anywhere' }}>Paid with {paymentMethod.accountName}</Text>
+          <Text style={{ overflowWrap: 'anywhere' }}>
+            {paymentMethod.accountKind === 'bank'
+              ? `Paid from ${paymentMethod.accountName} account`
+              : `Paid with ${paymentMethod.accountName} card`}
+          </Text>
           {chargedMinor !== null && <Text type="secondary">Charged {moneyService.format(chargedMinor, accountCurrency)}</Text>}
           {rate && (
             <Text type="secondary" style={{ fontSize: 12 }}>
