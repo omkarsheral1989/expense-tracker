@@ -5,7 +5,7 @@ import { useAppNavigate } from '../../hooks/useAppNavigate'
 import { EXPENSE_NOTES_MAX_LENGTH } from '../../db/constants.ts'
 import { useLeaveWarning } from '../../hooks/useLeaveWarning'
 import { accountService } from '../../services/accountService'
-import type { AccountOption, PaymentMethodInput } from '../../services/accountService/types.ts'
+import type { AccountSummary, PaymentMethodInput } from '../../services/accountService/types.ts'
 import { currencyService } from '../../services/currencyService'
 import type { CreateExpenseErrors, CreateExpenseInput } from '../../services/expenseService/types.ts'
 import type { GroupDetails } from '../../services/groupService/types.ts'
@@ -45,7 +45,7 @@ type Props = {
   /** The currencies of the user's latest expenses, most recent first. */
   recentCurrencies: string[]
   /** The user's accounts, for the payment method (PRD 4.10); with none the field is left out. */
-  accounts: AccountOption[]
+  accounts: AccountSummary[]
   /** The heading, and the title of the browser tab before " · OwnLedger": "Add expense" or "Edit expense". */
   heading: string
   /** What the form has when nothing was entered: leaving asks for confirmation once the form differs from it. */
@@ -265,7 +265,7 @@ export function ExpenseForm({
     )
   }
 
-  function renderCharged(account: AccountOption) {
+  function renderCharged(account: AccountSummary) {
     const chargedMinor = moneyService.toMinor(charged, account.currency)
     const rate = chargedMinor && amountMinor ? accountService.rate({ amountMinor, currency }, { minor: chargedMinor, currency: account.currency }) : null
     const symbolOf = (code: string) => currencyService.symbol(code, navigator.language) ?? code

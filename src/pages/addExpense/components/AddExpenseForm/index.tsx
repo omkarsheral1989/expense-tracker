@@ -10,7 +10,7 @@ import { getDb } from '../../../../db/client.ts'
 import { ROUTES } from '../../../../routes.ts'
 import { dateService } from '../../../../services/dateService'
 import { accountService } from '../../../../services/accountService'
-import type { AccountOption, PaymentMethodInput } from '../../../../services/accountService/types.ts'
+import type { AccountSummary, PaymentMethodInput } from '../../../../services/accountService/types.ts'
 import { expenseService } from '../../../../services/expenseService'
 import type { CreateExpenseInput } from '../../../../services/expenseService/types.ts'
 import type { GroupDetails, GroupSummary } from '../../../../services/groupService/types.ts'
@@ -26,7 +26,7 @@ type Props = {
   /** The currencies of the user's latest expenses, most recent first. */
   recentCurrencies: string[]
   /** The user's accounts, for the payment method. */
-  accounts: AccountOption[]
+  accounts: AccountSummary[]
   /** Every group of the user, for moving the expense to another one. */
   groups: readonly GroupSummary[]
   /** Fields carried over from another group when the user switched; leave out for a new form. */

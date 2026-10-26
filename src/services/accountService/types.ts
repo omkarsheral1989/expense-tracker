@@ -57,14 +57,6 @@ export type AccountSummary = {
   spend: AccountSpend | null
 }
 
-/** An account as the payment method picker lists it. */
-export type AccountOption = {
-  id: string
-  kind: AccountKind
-  name: string
-  currency: string
-}
-
 /** The payment method of an expense, as the details page and the edit form show it. */
 export type PaymentMethod = {
   accountId: string

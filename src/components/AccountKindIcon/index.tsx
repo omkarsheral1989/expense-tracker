@@ -1,9 +1,9 @@
 import { BankOutlined, CreditCardOutlined } from '@ant-design/icons'
 import { Flex, Typography } from 'antd'
-import type { AccountKind } from '../../../../db/types.ts'
-import { ACCOUNT_KIND_COLORS } from '../../../../theme/accountColors.ts'
-import { RADIUS } from '../../../../theme/radius.ts'
-import { ACCOUNT_KIND_LABELS } from '../../content.ts'
+import type { AccountKind } from '../../db/types.ts'
+import { ACCOUNT_KIND_COLORS } from '../../theme/accountColors.ts'
+import { RADIUS } from '../../theme/radius.ts'
+import { ACCOUNT_KIND_LABELS } from './content.ts'
 
 const { Text } = Typography
 

@@ -2,7 +2,7 @@ import { Segmented } from 'antd'
 import { ACCOUNT_KINDS } from '../../../../../db/constants.ts'
 import type { AccountKind } from '../../../../../db/types.ts'
 import { CONTROL_HEIGHT } from '../../../../../theme/controlHeight.ts'
-import { AccountKindIcon } from '../../AccountKindIcon'
+import { AccountKindIcon } from '../../../../../components/AccountKindIcon'
 
 type Props = {
   /** Given by the form item, so that its label is tied to the control. */

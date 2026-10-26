@@ -9,7 +9,7 @@ import type { AccountKind, SpendTargetPeriod } from '../../../../db/types.ts'
 import { accountService } from '../../../../services/accountService'
 import type { AccountErrors, AccountInput, AccountSummary } from '../../../../services/accountService/types.ts'
 import { moneyService } from '../../../../services/moneyService'
-import { SPEND_TARGET_LABELS } from '../../content.ts'
+import { SPEND_TARGET_LABELS } from '../../../../components/AccountStats/content.ts'
 import { AccountKindSelector } from './AccountKindSelector'
 
 type Props = {

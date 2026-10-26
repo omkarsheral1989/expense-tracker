@@ -1,4 +1,4 @@
-import { AccountKindIcon } from '../AccountKindIcon'
+import { AccountKindIcon } from '../../../../components/AccountKindIcon'
 
 /** The size of each tile of the picture, in pixels. */
 const TILE_SIZE = 72

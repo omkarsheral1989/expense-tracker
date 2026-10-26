@@ -1,9 +1,11 @@
 import { BankOutlined, CheckOutlined, CreditCardOutlined } from '@ant-design/icons'
-import { Button, Flex, Typography } from 'antd'
-import { useState } from 'react'
+import { Button, Card, Flex, theme, Typography } from 'antd'
+import { useState, type ReactNode } from 'react'
 import type { AccountKind } from '../../../db/types.ts'
-import type { AccountOption } from '../../../services/accountService/types.ts'
+import type { AccountSummary } from '../../../services/accountService/types.ts'
 import { ICON_ONLY_SIZE } from '../../../theme/controlHeight.ts'
+import { AccountHeading } from '../../AccountHeading'
+import { AccountStats } from '../../AccountStats'
 import { AdaptiveDialog } from '../../AdaptiveDialog'
 
 const { Text } = Typography
@@ -15,7 +17,7 @@ type Props = {
   value?: string | null
   onChange?: (accountId: string | null) => void
   /** The user's accounts, by name. */
-  accounts: AccountOption[]
+  accounts: AccountSummary[]
 }
 
 /** The icon of a kind of account. */
@@ -26,11 +28,12 @@ function KindIcon({ kind }: { kind?: AccountKind }) {
 /**
  * The expense's payment method (PRD 5.5): a full-width row like the date row,
  * showing "Payment method" until an account is chosen, then its name. It opens
- * a picker of the user's accounts with a "None" entry to clear it. Works as an
- * Ant Design form field.
+ * a picker that lists the user's accounts as the same cards the accounts page
+ * shows, with a "None" card to clear it. Works as an Ant Design form field.
  */
 export function PaymentMethodField({ id, value, onChange, accounts }: Props) {
   const [open, setOpen] = useState(false)
+  const { token } = theme.useToken()
   const chosen = accounts.find((account) => account.id === value)
 
   function pick(accountId: string | null) {
@@ -38,25 +41,33 @@ export function PaymentMethodField({ id, value, onChange, accounts }: Props) {
     setOpen(false)
   }
 
-  function renderOption(account: AccountOption) {
-    const selected = account.id === value
+  /** One card of the picker, with the stats of a credit card under its heading; the chosen one has the app's green border and a tick. */
+  function renderCard(key: string, label: string, selected: boolean, onPick: () => void, heading: ReactNode, stats: ReactNode = null) {
     return (
-      <Button
-        key={account.id}
-        type="text"
-        block
+      <Card
+        key={key}
+        hoverable
+        role="button"
+        tabIndex={0}
+        aria-label={label}
         aria-pressed={selected}
-        onClick={() => pick(account.id)}
-        style={{ justifyContent: 'space-between', height: 'auto', padding: '10px 12px' }}
+        onClick={onPick}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault()
+            onPick()
+          }
+        }}
+        style={selected ? { borderColor: token.colorPrimary } : undefined}
       >
-        <Flex vertical align="flex-start">
-          <span>{account.name}</span>
-          <Text type="secondary">
-            {account.kind === 'bank' ? 'Bank account' : 'Credit card'} · {account.currency}
-          </Text>
+        <Flex vertical gap={12}>
+          <Flex align="center" justify="space-between" gap={12}>
+            <div style={{ flex: 1, minWidth: 0 }}>{heading}</div>
+            {selected && <CheckOutlined aria-hidden style={{ fontSize: ICON_ONLY_SIZE, color: token.colorPrimary }} />}
+          </Flex>
+          {stats}
         </Flex>
-        {selected && <CheckOutlined aria-hidden style={{ fontSize: ICON_ONLY_SIZE }} />}
-      </Button>
+      </Card>
     )
   }
 
@@ -74,18 +85,18 @@ export function PaymentMethodField({ id, value, onChange, accounts }: Props) {
         {chosen ? chosen.name : <Text type="secondary">Payment method</Text>}
       </Button>
       <AdaptiveDialog open={open} onClose={() => setOpen(false)} title="Payment method">
-        <Flex vertical gap={2}>
-          <Button
-            type="text"
-            block
-            aria-pressed={!chosen}
-            onClick={() => pick(null)}
-            style={{ justifyContent: 'space-between', height: 'auto', padding: '10px 12px' }}
-          >
-            <span>None</span>
-            {!chosen && <CheckOutlined aria-hidden style={{ fontSize: ICON_ONLY_SIZE }} />}
-          </Button>
-          {accounts.map(renderOption)}
+        <Flex vertical gap={12}>
+          {renderCard('none', 'None', !chosen, () => pick(null), <Text style={{ lineHeight: '40px' }}>None</Text>)}
+          {accounts.map((account) =>
+            renderCard(
+              account.id,
+              account.name,
+              account.id === value,
+              () => pick(account.id),
+              <AccountHeading account={account} />,
+              <AccountStats account={account} />,
+            ),
+          )}
         </Flex>
       </AdaptiveDialog>
     </>

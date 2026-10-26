@@ -5,7 +5,7 @@ import { GroupSwitcher } from '../../../../components/GroupSwitcher'
 import { getDb } from '../../../../db/client.ts'
 import { ROUTES } from '../../../../routes.ts'
 import { accountService } from '../../../../services/accountService'
-import type { AccountOption, PaymentMethod, PaymentMethodInput } from '../../../../services/accountService/types.ts'
+import type { AccountSummary, PaymentMethod, PaymentMethodInput } from '../../../../services/accountService/types.ts'
 import { expenseService } from '../../../../services/expenseService'
 import type { CreateExpenseInput, ExpenseToEdit } from '../../../../services/expenseService/types.ts'
 import type { GroupDetails } from '../../../../services/groupService/types.ts'
@@ -22,7 +22,7 @@ type Props = {
   /** The currencies of the user's latest expenses, most recent first. */
   recentCurrencies: string[]
   /** The user's accounts, for the payment method. */
-  accounts: AccountOption[]
+  accounts: AccountSummary[]
   /** The payment method this device has for the expense, or null. */
   paymentMethod: PaymentMethod | null
 }

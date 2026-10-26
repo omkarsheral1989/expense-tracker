@@ -9,7 +9,6 @@ import { accountSchema, toFieldErrors } from './schemas.ts'
 import type {
   AccountErrors,
   AccountInput,
-  AccountOption,
   AccountSpend,
   AccountSummary,
   PaymentMethod,
@@ -186,12 +185,6 @@ const accountServiceBase = {
         spend: row.kind === 'card' ? await spendOfCard(db, row, userId, today) : null,
       })),
     )
-  },
-
-  /** The accounts the payment method picker lists, by name. */
-  async listOptions(db: Database): Promise<AccountOption[]> {
-    const rows = await liveAccounts(db)
-    return rows.map(({ id, kind, name, currency }) => ({ id, kind, name, currency }))
   },
 
   /** The payment method this device has for an expense, or null. */
