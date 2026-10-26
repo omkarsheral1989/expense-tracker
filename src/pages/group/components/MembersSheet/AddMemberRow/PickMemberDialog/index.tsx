@@ -1,5 +1,5 @@
 import { CheckOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons'
-import { Button, Divider, Flex, Input, theme, Typography } from 'antd'
+import { Button, Flex, Input, theme, Typography } from 'antd'
 import { useState } from 'react'
 import { AdaptiveDialog } from '../../../../../../components/AdaptiveDialog'
 import { PersonAvatar } from '../../../../../../components/PersonAvatar'
@@ -7,6 +7,7 @@ import { AddMemberDialog } from '../../../../../../components/MemberSelect/AddMe
 import { groupService } from '../../../../../../services/groupService'
 import type { KnownPerson } from '../../../../../../services/personService/types.ts'
 import { ICON_ONLY_SIZE } from '../../../../../../theme/controlHeight.ts'
+import { PILL_RADIUS } from '../../../../../../theme/radius.ts'
 
 const { Text } = Typography
 
@@ -136,8 +137,7 @@ export function PickMemberDialog({ open, onClose, people, loading, onAdd, adding
         <Flex vertical role="list" aria-label="People you know">
           {renderPeople()}
         </Flex>
-        <Divider style={{ margin: 0 }} />
-        <Button type="text" block icon={<PlusOutlined />} onClick={() => setNewPersonOpen(true)} style={{ justifyContent: 'flex-start' }}>
+        <Button block icon={<PlusOutlined />} onClick={() => setNewPersonOpen(true)} style={{ marginTop: 8, borderRadius: PILL_RADIUS }}>
           Add a new member
         </Button>
       </Flex>
