@@ -134,12 +134,8 @@ export function ExpenseBody({
         />
         <Flex vertical style={{ minWidth: 0 }}>
           <Text style={{ overflowWrap: 'anywhere' }}>Paid with {paymentMethod.accountName}</Text>
-          {chargedMinor !== null && (
-            <Text type="secondary">
-              Charged {moneyService.format(chargedMinor, accountCurrency)}
-              {rate && ` (${rate})`}
-            </Text>
-          )}
+          {chargedMinor !== null && <Text type="secondary">Charged {moneyService.format(chargedMinor, accountCurrency)}</Text>}
+          {rate && <Text type="secondary">{rate}</Text>}
         </Flex>
       </Flex>
     )
