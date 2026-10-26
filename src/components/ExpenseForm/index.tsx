@@ -296,7 +296,7 @@ export function ExpenseForm({
     return (
       <>
         <Form.Item name="accountId" style={{ marginBottom: askCharged ? 8 : 16 }}>
-          <PaymentMethodField accounts={accounts} />
+          <PaymentMethodField accounts={accounts} userId={you?.personId ?? ''} />
         </Form.Item>
         {askCharged && account && (
           <>

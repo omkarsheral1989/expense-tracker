@@ -1,9 +1,12 @@
-import { BankOutlined, CheckOutlined, CreditCardOutlined } from '@ant-design/icons'
+import { BankOutlined, CheckOutlined, CreditCardOutlined, PlusOutlined } from '@ant-design/icons'
 import { Button, Card, Flex, theme, Typography } from 'antd'
 import { useState, type ReactNode } from 'react'
+import { currencyService } from '../../../services/currencyService'
 import type { AccountKind } from '../../../db/types.ts'
 import type { AccountSummary } from '../../../services/accountService/types.ts'
 import { ICON_ONLY_SIZE } from '../../../theme/controlHeight.ts'
+import { PILL_RADIUS } from '../../../theme/radius.ts'
+import { AccountDialog } from '../../AccountDialog'
 import { AccountHeading } from '../../AccountHeading'
 import { AccountStats } from '../../AccountStats'
 import { AdaptiveDialog } from '../../AdaptiveDialog'
@@ -18,6 +21,8 @@ type Props = {
   onChange?: (accountId: string | null) => void
   /** The user's accounts, by name. */
   accounts: AccountSummary[]
+  /** The user's person id: they add an account from the picker. */
+  userId: string
 }
 
 /** The icon of a kind of account. */
@@ -31,8 +36,12 @@ function KindIcon({ kind }: { kind?: AccountKind }) {
  * a picker that lists the user's accounts as the same cards the accounts page
  * shows, with a "None" card to clear it. Works as an Ant Design form field.
  */
-export function PaymentMethodField({ id, value, onChange, accounts }: Props) {
+export function PaymentMethodField({ id, value, onChange, accounts, userId }: Props) {
   const [open, setOpen] = useState(false)
+  // The dialog for a new account; each opening gets a fresh form (an Ant Design form keeps what was typed in it).
+  const [adding, setAdding] = useState(false)
+  const [openings, setOpenings] = useState(0)
+  const [regionCurrency] = useState(() => currencyService.forLocales(navigator.languages))
   const { token } = theme.useToken()
   const chosen = accounts.find((account) => account.id === value)
 
@@ -97,8 +106,31 @@ export function PaymentMethodField({ id, value, onChange, accounts }: Props) {
               <AccountStats account={account} />,
             ),
           )}
+          <Button
+            block
+            icon={<PlusOutlined />}
+            onClick={() => {
+              setOpenings((count) => count + 1)
+              setAdding(true)
+            }}
+            style={{ borderRadius: PILL_RADIUS }}
+          >
+            Add account
+          </Button>
         </Flex>
       </AdaptiveDialog>
+      {/* An account made here is chosen at once; the form reads the accounts again by itself (every change announces itself). */}
+      <AccountDialog
+        key={openings}
+        open={adding}
+        account={null}
+        onClose={() => setAdding(false)}
+        userId={userId}
+        regionCurrency={regionCurrency}
+        onSaved={(accountId) => {
+          if (accountId) pick(accountId)
+        }}
+      />
     </>
   )
 }

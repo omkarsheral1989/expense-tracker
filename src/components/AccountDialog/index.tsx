@@ -1,15 +1,15 @@
 import { App, Button, Flex, Form, Input, InputNumber, Select } from 'antd'
 import { useState } from 'react'
-import { AdaptiveDialog } from '../../../../components/AdaptiveDialog'
-import { AmountInput } from '../../../../components/AmountInput'
-import { CurrencySelect } from '../../../../components/CurrencySelect'
-import { MAX_STATEMENT_DAY, SPEND_TARGET_PERIODS } from '../../../../db/constants.ts'
-import { getDb } from '../../../../db/client.ts'
-import type { AccountKind, SpendTargetPeriod } from '../../../../db/types.ts'
-import { accountService } from '../../../../services/accountService'
-import type { AccountErrors, AccountInput, AccountSummary } from '../../../../services/accountService/types.ts'
-import { moneyService } from '../../../../services/moneyService'
-import { SPEND_TARGET_LABELS } from '../../../../components/AccountStats/content.ts'
+import { AdaptiveDialog } from '../AdaptiveDialog'
+import { AmountInput } from '../AmountInput'
+import { CurrencySelect } from '../CurrencySelect'
+import { MAX_STATEMENT_DAY, SPEND_TARGET_PERIODS } from '../../db/constants.ts'
+import { getDb } from '../../db/client.ts'
+import type { AccountKind, SpendTargetPeriod } from '../../db/types.ts'
+import { accountService } from '../../services/accountService'
+import type { AccountErrors, AccountInput, AccountSummary } from '../../services/accountService/types.ts'
+import { moneyService } from '../../services/moneyService'
+import { SPEND_TARGET_LABELS } from '../AccountStats/content.ts'
 import { AccountKindSelector } from './AccountKindSelector'
 
 type Props = {
@@ -25,8 +25,8 @@ type Props = {
   userId: string
   /** The currency of the device's region, preselected for a new account. */
   regionCurrency: string | null
-  /** Called after a change is saved (or the account is gone), so the list is read again. */
-  onSaved: () => void
+  /** Called after a change is saved, with the account's id, so the list is read again; and with no id when the account is gone. */
+  onSaved: (accountId?: string) => void
 }
 
 type FormValues = {
@@ -124,7 +124,7 @@ export function AccountDialog({ open, account, onClose, userId, regionCurrency, 
       form.setFields(toFormFields(result.ok ? {} : result.errors))
       if (!result.ok) return
 
-      onSaved()
+      onSaved(result.accountId)
       onClose()
     } catch {
       message.error("Couldn't save the account. Please try again.")

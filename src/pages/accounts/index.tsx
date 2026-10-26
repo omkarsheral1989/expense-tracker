@@ -16,7 +16,7 @@ import { useSyncStore } from '../../stores/useSyncStore'
 import { HEADER_TITLE_STYLE } from '../../theme/headerTitle.ts'
 import { PILL_RADIUS } from '../../theme/radius.ts'
 import { aboveScreenEdge, belowStatusBar, HEADER_TOP_PADDING } from '../../theme/safeArea.ts'
-import { AccountDialog } from './components/AccountDialog'
+import { AccountDialog } from '../../components/AccountDialog'
 import { AccountItem } from './components/AccountItem'
 import { AccountsIllustration } from './components/AccountsIllustration'
 
