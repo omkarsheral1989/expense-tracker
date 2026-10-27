@@ -24,8 +24,6 @@ export type CurrencyTotals = {
 /** What the totals page shows about a group, one entry per currency that has expenses, the group's default first. */
 export type GroupTotals = {
   groupId: string
-  name: string
-  type: import('../../db/types.ts').GroupType
   defaultCurrency: string
   /** Empty while no expense counts. */
   currencies: CurrencyTotals[]

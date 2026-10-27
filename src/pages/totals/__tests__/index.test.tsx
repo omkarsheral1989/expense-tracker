@@ -74,12 +74,15 @@ describe('the Totals page', () => {
     expect(page.currentPath()).toBe(ROUTES.group(groupId))
   })
 
-  it('shows the group\'s name under the header', async () => {
+  it('does not repeat the group\'s name or icon under the header', async () => {
     const groupId = await createGroup()
     await addTestExpense(testDb.db, me.email, groupId)
-    renderTotals(groupId)
+    const { container } = renderTotals(groupId)
 
-    expect(await screen.findByText('Goa trip')).toBeInTheDocument()
+    await screen.findByText('Total spent')
+    expect(screen.queryByText('Goa trip')).not.toBeInTheDocument()
+    expect(container.querySelector('.ant-tag')).toBeNull()
+    expect(container.querySelector('[aria-label="car"]')).toBeNull()
   })
 
   it('shows the total spent, in large type', async () => {

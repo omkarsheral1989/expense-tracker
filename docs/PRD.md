@@ -470,7 +470,7 @@ _Built October 2026 (branch `back-closes-overlays`)._ A bottom sheet, side panel
 ### 5.20 Group totals
 _Built October 2026 (branch `group-totals`)._ Route `/groups/<id>/totals`, opened by a **Totals** pill beside Settle up on the group page (5.4). It shows what the group has spent, and how that splits between its members as shares and as payments.
 - **The pill:** a white pill with round ends like Settle up, with a bar-chart icon and the word "Totals". It works in a group of one member (one slice, 100%). It is switched off with the tip "No expenses yet" while the group has no expense that counts (below).
-- **Header:** like Settle up (5.7): the Back arrow (to the group) and the quiet "TOTALS" heading, then the group's icon and name. No colored band. The tab title is "Totals · OwnLedger".
+- **Header:** the Back arrow (to the group) and the quiet "TOTALS" heading, as on Settle up (5.7); the group's icon and name are not repeated under it (decided after the first build). No colored band. The tab title is "Totals · OwnLedger".
 - **What counts:** every live expense of the group, **all time**, in one currency at a time. Payments between members (5.7) and deleted expenses are left out: a payment moves money, it is not spending. Amounts are never converted (4.5).
 - **Currency:** a dropdown under the header, shown only when the counted expenses are in more than one currency. It lists those currencies, the group's default first (when it has expenses, else A to Z), the way the currency picker writes them ("USD – US Dollar ($)"). The first one is chosen at the start.
 - **Total spent:** the heading "Total spent" and the sum of the counted expenses in the chosen currency as a large amount ("$500.00").

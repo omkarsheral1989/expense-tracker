@@ -3,7 +3,6 @@ import { useState } from 'react'
 import { useParams } from 'react-router'
 import { BackButton } from '../../components/BackButton'
 import { CenteredMessage } from '../../components/CenteredMessage'
-import { GroupLabel } from '../../components/GroupLabel'
 import { GroupNotFound } from '../../components/GroupNotFound'
 import { LoadError } from '../../components/LoadError'
 import { LoadingMessage } from '../../components/LoadingMessage'
@@ -41,19 +40,14 @@ export function TotalsPage() {
   // Visitors who are not in the app are sent away by `RequireAuth` before this matters.
   if (!user) return null
 
-  function renderHeader(totals: GroupTotals) {
+  function renderHeader() {
     return (
-      <>
-        <Flex align="center" gap={8} style={{ marginBottom: 16 }}>
-          <BackButton onClick={() => navigate(ROUTES.group(id), { direction: 'back' })} />
-          <Title level={3} style={HEADER_TITLE_STYLE}>
-            Totals
-          </Title>
-        </Flex>
-        <div style={{ marginBottom: 16 }}>
-          <GroupLabel group={totals} />
-        </div>
-      </>
+      <Flex align="center" gap={8} style={{ marginBottom: 16 }}>
+        <BackButton onClick={() => navigate(ROUTES.group(id), { direction: 'back' })} />
+        <Title level={3} style={HEADER_TITLE_STYLE}>
+          Totals
+        </Title>
+      </Flex>
     )
   }
 
@@ -95,7 +89,7 @@ export function TotalsPage() {
       return (
         <Flex vertical style={COLUMN_STYLE}>
           <title>Totals · OwnLedger</title>
-          {renderHeader(totals)}
+          {renderHeader()}
           <Text type="secondary">No expenses yet</Text>
         </Flex>
       )
@@ -104,7 +98,7 @@ export function TotalsPage() {
     return (
       <Flex vertical style={COLUMN_STYLE}>
         <title>Totals · OwnLedger</title>
-        {renderHeader(totals)}
+        {renderHeader()}
         {renderCurrencySelect(totals, current)}
         <Flex vertical>
           <Text type="secondary">Total spent</Text>
