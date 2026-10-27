@@ -20,6 +20,7 @@ import { MembersPage } from './pages/members'
 import { SharePage } from './pages/share'
 import { ShareTestPage } from './pages/shareTest'
 import { SettleUpPage } from './pages/settleUp'
+import { TotalsPage } from './pages/totals'
 import { WelcomePage } from './pages/welcome'
 import { ROUTES } from './routes.ts'
 
@@ -55,6 +56,7 @@ function App() {
           <Route path={ROUTES.groupPattern} element={<GroupPage />} />
           <Route path={ROUTES.editGroupPattern} element={<EditGroupPage />} />
           <Route path={ROUTES.settleUpPattern} element={<SettleUpPage />} />
+          <Route path={ROUTES.totalsPattern} element={<TotalsPage />} />
           <Route path={ROUTES.newExpensePattern} element={<AddExpensePage />} />
           <Route path={ROUTES.expensePattern} element={<ExpensePage />} />
           <Route path={ROUTES.editExpensePattern} element={<EditExpensePage />} />
