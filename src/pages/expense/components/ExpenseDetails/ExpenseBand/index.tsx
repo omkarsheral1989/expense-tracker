@@ -1,6 +1,7 @@
 import { ArrowLeftOutlined, CalendarOutlined } from '@ant-design/icons'
 import { Flex, Typography } from 'antd'
 import type { ReactNode } from 'react'
+import { useLocation } from 'react-router'
 import { BandChip } from '../../../../../components/BandChip'
 import { BandIconButton } from '../../../../../components/BandIconButton'
 import { CATEGORY_ICONS } from '../../../../../components/CategoryIcon/content.tsx'
@@ -48,6 +49,9 @@ type Props = {
  */
 export function ExpenseBand({ expense, title, actions, onEdit, travels }: Props) {
   const navigate = useAppNavigate()
+  // Opened from a version page (its Open expense button), Back returns there; otherwise to the group.
+  const backTo = (useLocation().state as { backTo?: unknown } | null)?.backTo
+  const backPath = typeof backTo === 'string' && backTo.startsWith(`${ROUTES.group(expense.groupId)}/`) ? backTo : ROUTES.group(expense.groupId)
   const category = expenseService.categoryOf(expense.category)
   const isSettlement = expense.category === expenseService.settlementCategory
   /** The mark of a piece that travels from the row (`hero.ts`), only when the band travels. */
@@ -57,7 +61,7 @@ export function ExpenseBand({ expense, title, actions, onEdit, travels }: Props)
     return (
       <Flex align="center" justify="space-between" data-vt={vt('header')}>
         <Flex align="center" gap={8} style={{ minWidth: 0 }}>
-          <BandIconButton icon={<ArrowLeftOutlined />} label="Back" onClick={() => navigate(ROUTES.group(expense.groupId), { direction: 'back' })} />
+          <BandIconButton icon={<ArrowLeftOutlined />} label="Back" onClick={() => navigate(backPath, { direction: 'back' })} />
           {/* Still a heading, but quieter than the expense's own title below it. */}
           <Title level={3} style={{ ...HEADER_TITLE_STYLE, color: '#fff' }}>
             {title}

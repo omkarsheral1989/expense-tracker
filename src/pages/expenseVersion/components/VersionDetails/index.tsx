@@ -106,7 +106,7 @@ export function VersionDetails({ data, datasetId, userId, onChanged }: Props) {
           lines={historyLines(event, data.people)}
         />
         {renderWhyNot()}
-        <Button style={{ alignSelf: 'flex-start', borderRadius: PILL_RADIUS }} onClick={() => navigate(toExpense)}>
+        <Button style={{ alignSelf: 'flex-start', borderRadius: PILL_RADIUS }} onClick={() => navigate(toExpense, { state: { backTo: ROUTES.expenseVersion(data.groupId, data.expenseId, event.id) } })}>
           Open {noun}
         </Button>
       </Flex>
