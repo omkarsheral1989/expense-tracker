@@ -1,6 +1,5 @@
 import { CreditCardOutlined, LogoutOutlined, TeamOutlined } from '@ant-design/icons'
 import { Button, Dropdown, Flex, Typography, theme } from 'antd'
-import { AppLink } from '../AppLink'
 import { useAppNavigate } from '../../hooks/useAppNavigate'
 import { ROUTES } from '../../routes.ts'
 import type { Profile } from '../../services/googleProfileService/types.ts'
@@ -14,7 +13,7 @@ const { Text } = Typography
 
 /**
  * The bar at the top of every page of the app: the logo and name on the left,
- * which lead back to the home page, and on the right the Sync button and the
+ * which do nothing when pressed, and on the right the Sync button and the
  * user's avatar, which opens a menu with their name, email and Sign out (or,
  * for a guest, "Guest", Sign in with Google and Exit guest mode). Sync appears
  * once the data is open.
@@ -31,16 +30,12 @@ export function AppHeader() {
 
   function renderBrand() {
     return (
-      <AppLink
-        direction="back"
-        to={ROUTES.home}
-        style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'inherit' }}
-      >
+      <Flex align="center" gap={10}>
         <BrandLogo size={56} onPrimary />
         <Text strong style={{ fontSize: 24, color: '#fff' }}>
           OwnLedger
         </Text>
-      </AppLink>
+      </Flex>
     )
   }
 

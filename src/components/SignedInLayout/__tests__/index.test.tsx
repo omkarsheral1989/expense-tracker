@@ -59,7 +59,8 @@ describe('SignedInLayout', () => {
 
       expect(await screen.findByText(`Page: ${ROUTES.home}`)).toBeInTheDocument()
       expect(accountMenu()).toHaveLength(1)
-      expect(screen.getByRole('link', { name: /ownledger/i })).toHaveAttribute('href', ROUTES.home)
+      expect(screen.getByText('OwnLedger')).toBeInTheDocument()
+      expect(screen.queryByRole('link', { name: /ownledger/i })).not.toBeInTheDocument()
     })
 
     it('fills at least the height of the screen, so a page can fill what is left below its header', async () => {

@@ -20,14 +20,17 @@ describe('AppHeader', () => {
   beforeEach(() => useAuthStore.setState({ profile, guest: false, token: null }))
   afterEach(cleanup)
 
-  it('shows the OwnLedger name as a link to the home page', async () => {
+  it('shows the logo and the OwnLedger name, and pressing them does nothing', async () => {
     const page = renderHeader(ROUTES.newGroup)
+    const header = page.container.querySelector('header') as HTMLElement
 
-    const brand = screen.getByRole('link', { name: /ownledger/i })
-    expect(brand).toHaveAttribute('href', ROUTES.home)
+    expect(screen.getByText('OwnLedger')).toBeInTheDocument()
+    expect(screen.queryByRole('link')).not.toBeInTheDocument()
+    expect(header.querySelector('a')).toBeNull()
 
-    await userEvent.click(brand)
-    expect(page.currentPath()).toBe(ROUTES.home)
+    await userEvent.click(screen.getByText('OwnLedger'))
+    await userEvent.click(header.querySelector('[aria-hidden="true"]') as HTMLElement)
+    expect(page.currentPath()).toBe(ROUTES.newGroup)
   })
 
   it('is an 80 px bar in the theme\'s green, with a 24 px white name and a 56 px logo', () => {
@@ -162,9 +165,10 @@ describe('AppHeader', () => {
       expect(useAuthStore.getState()).toMatchObject({ guest: false, profile: null })
     })
 
-    it('still links the name to the home page', () => {
+    it('shows the name here too, with no link', () => {
       renderHeader()
-      expect(screen.getByRole('link', { name: /ownledger/i })).toHaveAttribute('href', ROUTES.home)
+      expect(screen.getByText('OwnLedger')).toBeInTheDocument()
+      expect(screen.queryByRole('link', { name: /ownledger/i })).not.toBeInTheDocument()
     })
   })
 
