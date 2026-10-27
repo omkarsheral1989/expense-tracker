@@ -38,7 +38,8 @@ describe('totalsService.groupTotals', () => {
 
     const totals = await totalsService.groupTotals(db, await personIdOf(db, omkar.email), groupId)
 
-    expect(totals).toMatchObject({ groupId, name: 'Goa trip', type: 'trip', defaultCurrency: 'GBP' })
+    expect(totals).toMatchObject({ groupId, defaultCurrency: 'GBP' })
+    expect(totals).not.toHaveProperty('name')
     const [gbp] = totals!.currencies
     expect(gbp.currency).toBe('GBP')
     expect(gbp.totalMinor).toBe(4500)

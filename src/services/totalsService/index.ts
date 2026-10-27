@@ -70,7 +70,7 @@ export const totalsService = {
       }
     })
 
-    return { groupId: group.id, name: group.name, type: group.type, defaultCurrency: group.defaultCurrency, currencies }
+    return { groupId: group.id, defaultCurrency: group.defaultCurrency, currencies }
   },
 
   /** Whether the group has an expense that counts, which the group page's Totals pill needs. False for a group the user cannot see. */
