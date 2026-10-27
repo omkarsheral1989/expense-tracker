@@ -456,6 +456,17 @@ _Built October 2026 (branch `activity`)._ Route `/activity`, opened by an "Activ
 - **Storage:** the time the page was last left is kept on the device only, in the local `sync_status` table under the scope `activity-seen`, and arrivals in a local table of their own (ADR-062). Neither is synced or backed up. With no `activity-seen` row (first visit) everything that has arrived is new.
 - **Not built:** filters by group or member, and group events.
 
+### 5.19 Overlays and the browser's Back button
+_Built October 2026 (branch `back-closes-overlays`)._ A bottom sheet, side panel, dialog or confirmation the user can dismiss is closed by the browser's Back button (and a phone's Back gesture), instead of leaving the page.
+- **Which:** every dismissible overlay: the pickers and dialogs of the add-expense, edit and settle-up forms (category, currency, date, who paid, split), the members sheet and its Add a member sheet, the new-person and account dialogs, the sync dialog once its run has ended, and the confirmations ("Discard this expense?", "Delete this expense?" and the other "Discard …?" dialogs). A confirmation closes as Cancel does.
+- **One Back, one overlay:** with several open (the members sheet, then Add a member), Back closes the top one only; the next Back closes the one under it, and the next leaves the page.
+- **Not while a sync runs:** the sync dialog cannot be dismissed during a run (5.8), and Back then does nothing: the user stays on the page, as with Escape and a click outside. Once the run has ended, Back closes the dialog like any other.
+- **Closing by other means keeps the history tidy:** closing an overlay with its own button, Cancel, a tap outside or by picking an item also removes the history step it added, so the browser's Back from the page still goes to the previous page in one press.
+- **Close and go:** an action that closes an overlay and changes the page at once (Discard, Delete, Open Activity from the sync dialog, Save in a sheet that returns) ends with the same history as without the overlay: the page change wins and the overlay's step is dropped with it, so the user is not taken back an extra step.
+- **Reload:** reloading with an overlay open starts on the plain page with the overlay closed, and the leftover step is removed on load, so Back goes to the previous page in one press.
+- **Forward:** the browser's Forward onto a closed overlay's step reopens nothing and stays on the page.
+- **Motion:** closing by Back plays the overlay's own close animation and no page slide (5.15).
+
 ## 6. Open questions
 - Google Cloud setup: the OAuth client ID is not created yet (Drive API, consent screen in Testing mode, authorized origins, test users).
 - Member removal: what happens to a removed member's access and local data (a person who left can already be added back, 5.4).

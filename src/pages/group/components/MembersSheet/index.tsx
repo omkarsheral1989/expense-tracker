@@ -1,5 +1,6 @@
 import { Drawer, Grid } from 'antd'
 import type { GroupMember } from '../../../../services/groupService/types.ts'
+import { useCloseOnBack } from '../../../../hooks/useCloseOnBack'
 import { aboveScreenEdge } from '../../../../theme/safeArea.ts'
 import { AddMemberRow } from './AddMemberRow'
 import { MemberList } from './MemberList'
@@ -24,6 +25,8 @@ type Props = {
  */
 export function MembersSheet({ open, onClose, members, syncedIds, groupId, userId, onMemberAdded }: Props) {
   const screens = Grid.useBreakpoint()
+  // The browser's Back closes it (PRD 5.19).
+  useCloseOnBack(open, onClose)
 
   return (
     <Drawer

@@ -39,6 +39,19 @@ afterEach(() => {
   document.documentElement.style.removeProperty('--page-transition-ms')
 })
 
+describe('PageTransitions and the history entry the app is on', () => {
+  it('remembers the router\'s key of the page on screen, which tells an overlay\'s step (same key) from a page change', async () => {
+    renderApp()
+    const first = slide.key
+
+    await userEvent.click(screen.getByRole('button', { name: 'Go' }))
+
+    expect(first).toBe('default')
+    expect(slide.key).not.toBe('default')
+    expect(slide.key).toMatch(/\w+/)
+  })
+})
+
 describe('PageTransitions', () => {
   it('shows the first screen at once, with no fade', () => {
     renderApp()

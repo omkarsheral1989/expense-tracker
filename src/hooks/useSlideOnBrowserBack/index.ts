@@ -1,4 +1,5 @@
 import { groupHeroFor, routerPathOf, setGroupOpenStyle } from '../useAppNavigate/hero.ts'
+import { handleOverlayPop } from '../useCloseOnBack/overlays.ts'
 import { canSlide, COMMIT_TIMEOUT_MS, rememberScroll, slide } from '../useAppNavigate/utils.ts'
 
 /**
@@ -20,6 +21,8 @@ export function installSlideOnBrowserBack(): () => void {
 
   function handlePopState(event: PopStateEvent) {
     if (replaying) return
+    // A move between an overlay's steps is not a page change (PRD 5.19): Back closes the overlay, and the router never hears of it.
+    if (handleOverlayPop(event)) return
     rememberScroll()
     const index: number = window.history.state?.idx ?? slide.index - 1
     // A change of the #fragment on the same page is not a page change.

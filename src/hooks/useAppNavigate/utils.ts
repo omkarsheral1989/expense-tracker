@@ -22,6 +22,8 @@ export function canSlide(): boolean {
 export const slide: {
   waiting: (() => void) | null
   path: string
+  /** The router's `key` of the history entry the app is on, to tell a move between an overlay's steps (same key) from a page change. */
+  key: string
   index: number
   paths: Map<number, string>
   /** How far each page in the history was scrolled when the user left it, by the router's `idx`, so going back returns there. */
@@ -36,6 +38,7 @@ export const slide: {
   waiting: null,
   morph: null,
   path: '',
+  key: 'default',
   index: 0,
   paths: new Map(),
   scrolls: new Map(),

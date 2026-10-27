@@ -26,6 +26,7 @@ import { hasUnsavedInput, recentCurrencyCodes, toFormFields } from './utils.ts'
 import { HEADER_TITLE_STYLE } from '../../theme/headerTitle.ts'
 import { BackButton } from '../BackButton'
 import { dialogLayer } from '../DialogLayer'
+import { useConfirm } from '../../hooks/useConfirm'
 
 const { Text, Title } = Typography
 
@@ -89,7 +90,8 @@ export function ExpenseForm({
   onSave,
 }: Props) {
   const [form] = Form.useForm<FormValues>()
-  const { message, modal } = App.useApp()
+  const { message } = App.useApp()
+  const confirm = useConfirm()
   const navigate = useAppNavigate()
   const [submitting, setSubmitting] = useState(false)
 
@@ -122,7 +124,7 @@ export function ExpenseForm({
       leave()
       return
     }
-    modal.confirm({
+    confirm({
       // In the layer that stays in front while the page changes after it (`dialogLayer`).
       getContainer: dialogLayer,
       title: discardPrompt.title,

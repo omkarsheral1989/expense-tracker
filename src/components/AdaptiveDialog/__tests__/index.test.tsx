@@ -1,7 +1,10 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { slide } from '../../../hooks/useAppNavigate/utils.ts'
+import { handleOverlayPop, openOverlayCount } from '../../../hooks/useCloseOnBack/overlays.ts'
 import { renderPage } from '../../../testing/render.tsx'
 import { AdaptiveDialog } from '../index.tsx'
 
@@ -22,9 +25,11 @@ function setScreenWide(wide: boolean) {
 }
 
 beforeEach(() => setScreenWide(false))
-afterEach(() => {
+afterEach(async () => {
   cleanup()
   window.matchMedia = originalMatchMedia
+  // A closed dialog takes its history step away a moment later; that is over before the next test starts.
+  await new Promise((resolve) => setTimeout(resolve, 30))
 })
 
 const bottom = 'env(safe-area-inset-bottom)'
@@ -114,5 +119,91 @@ describe.each([
     expect(onClose).toHaveBeenCalledTimes(2)
     fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape', code: 'Escape', keyCode: 27 })
     expect(onClose).toHaveBeenCalledTimes(3)
+  })
+})
+
+describe.each([
+  ['a phone', false],
+  ['a wide screen', true],
+])('the browser\'s Back button on %s (PRD 5.19)', (_name, wide) => {
+  beforeEach(() => {
+    setScreenWide(wide)
+    window.history.replaceState({ usr: null, key: 'page', idx: 0 }, '', '/')
+    slide.key = 'page'
+    window.addEventListener('popstate', handleOverlayPop)
+  })
+  afterEach(async () => {
+    cleanup()
+    await tick()
+    window.removeEventListener('popstate', handleOverlayPop)
+  })
+
+  const tick = () => new Promise((resolve) => setTimeout(resolve, 5))
+  const state = () => window.history.state as { overlay?: number } | null
+
+  async function back() {
+    window.history.back()
+    // The overlay handler holds the popstate back from other listeners, so wait on time.
+    await new Promise((resolve) => setTimeout(resolve, 30))
+  }
+
+  /** The dialog opens and closes from the page, as the pickers do. */
+  function Harness({ dismissible = true, onClosed }: { dismissible?: boolean; onClosed?: () => void }) {
+    const [open, setOpen] = useState(true)
+    return (
+      <>
+        <AdaptiveDialog open={open} onClose={() => (setOpen(false), onClosed?.())} title="A sheet" dismissible={dismissible}>
+          <p>Content</p>
+        </AdaptiveDialog>
+        <button onClick={() => setOpen(true)}>Reopen</button>
+      </>
+    )
+  }
+
+  it('holds a step of the history while it is open, and Back closes it', async () => {
+    const onClosed = vi.fn()
+    renderPage(<Harness onClosed={onClosed} />)
+    await screen.findByRole('dialog', { name: 'A sheet' })
+    expect(state()?.overlay).toBe(1)
+
+    await act(async () => back())
+
+    expect(onClosed).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('dialog', { name: 'A sheet' })).not.toBeInTheDocument()
+    expect(state()?.overlay).toBeUndefined()
+  })
+
+  it('takes its step away again when it is closed with its own button, so Back still leaves the page', async () => {
+    renderPage(<Harness />)
+    await screen.findByRole('dialog', { name: 'A sheet' })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Close' }))
+    await act(async () => {
+      await tick()
+      await tick()
+    })
+
+    expect(state()?.overlay).toBeUndefined()
+    expect(openOverlayCount()).toBe(0)
+  })
+
+  it('stays when it must (the sync progress): Back does nothing and the step is kept', async () => {
+    const onClosed = vi.fn()
+    renderPage(<Harness dismissible={false} onClosed={onClosed} />)
+    await screen.findByRole('dialog', { name: 'A sheet' })
+
+    await act(async () => back())
+
+    expect(onClosed).not.toHaveBeenCalled()
+    expect(screen.getByRole('dialog', { name: 'A sheet' })).toBeInTheDocument()
+    expect(state()?.overlay).toBe(1)
+  })
+
+  it('holds a step only while it is open', async () => {
+    renderPage(<AdaptiveDialog open={false} onClose={() => {}} title="A sheet"><p>Content</p></AdaptiveDialog>)
+    await act(async () => tick())
+
+    expect(state()?.overlay).toBeUndefined()
+    expect(openOverlayCount()).toBe(0)
   })
 })

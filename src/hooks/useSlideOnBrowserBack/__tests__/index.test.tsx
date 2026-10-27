@@ -6,6 +6,7 @@ import { BrowserRouter, Route, Routes, useNavigate } from 'react-router'
 import { PageTransitions } from '../../../components/PageTransitions'
 import { slide } from '../../useAppNavigate/utils.ts'
 import { stubReducedMotion, stubViewTransition } from '../../../testing/viewTransition.ts'
+import { openOverlay, releaseOverlay } from '../../useCloseOnBack/overlays.ts'
 import { installSlideOnBrowserBack } from '../index.ts'
 
 function PageA() {
@@ -163,5 +164,61 @@ describe('installSlideOnBrowserBack', () => {
     expect(await screen.findByRole('button', { name: 'Page A: go to B' })).toBeInTheDocument()
     expect(transitions.started).toEqual([])
     uninstall = installSlideOnBrowserBack()
+  })
+})
+
+describe('installSlideOnBrowserBack with overlays open (PRD 5.19)', () => {
+  it('lets Back close the overlay: no slide, no fade, no page change, and the router does not hear of it', async () => {
+    HTMLElement.prototype.animate = vi.fn()
+    renderApp()
+    await goToB()
+    await finishTransitions()
+    transitions.started.length = 0
+    vi.mocked(HTMLElement.prototype.animate).mockClear()
+    const close = vi.fn()
+    const overlay = openOverlay({ close, dismissible: () => true })
+
+    act(() => window.history.back())
+    await waitFor(() => expect(close).toHaveBeenCalledTimes(1))
+
+    expect(transitions.started).toEqual([])
+    expect(HTMLElement.prototype.animate).not.toHaveBeenCalled()
+    expect(screen.getByRole('button', { name: 'Page B: go to C' })).toBeInTheDocument()
+    expect(window.location.pathname).toBe('/b')
+    releaseOverlay(overlay)
+  })
+
+  it('still slides for Back from the page once the overlay is closed', async () => {
+    renderApp()
+    await goToB()
+    await finishTransitions()
+    const overlay = openOverlay({ close: vi.fn(), dismissible: () => true })
+    act(() => window.history.back())
+    await waitFor(() => expect(window.history.state?.overlay).toBeUndefined())
+    releaseOverlay(overlay)
+    transitions.started.length = 0
+
+    act(() => window.history.back())
+    await waitFor(() => expect(transitions.started).toEqual(['back']))
+    await finishTransitions()
+
+    expect(await screen.findByRole('button', { name: 'Page A: go to B' })).toBeInTheDocument()
+  })
+
+  it('does not slide when Back is pressed with a sheet that must stay', async () => {
+    renderApp()
+    await goToB()
+    await finishTransitions()
+    transitions.started.length = 0
+    const close = vi.fn()
+    const overlay = openOverlay({ close, dismissible: () => false })
+
+    act(() => window.history.back())
+    await waitFor(() => expect(window.history.state?.overlay).toBe(1))
+
+    expect(close).not.toHaveBeenCalled()
+    expect(transitions.started).toEqual([])
+    expect(screen.getByRole('button', { name: 'Page B: go to C' })).toBeInTheDocument()
+    releaseOverlay(overlay)
   })
 })

@@ -16,6 +16,7 @@ import { PaymentRow } from '../PaymentRow'
 import { ExpenseBand } from './ExpenseBand'
 import { History } from './History'
 import { dialogLayer } from '../../../../components/DialogLayer'
+import { useConfirm } from '../../../../hooks/useConfirm'
 
 type Props = {
   expense: ExpenseWithPayment
@@ -36,7 +37,8 @@ type Props = {
 export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props) {
   const navigate = useAppNavigate()
   const queryClient = useQueryClient()
-  const { message, modal } = App.useApp()
+  const { message } = App.useApp()
+  const confirm = useConfirm()
   const [restoring, setRestoring] = useState(false)
   // A settlement is worded by who paid whom ("You paid Priya"), and has no split to show.
   const isSettlement = expense.category === expenseService.settlementCategory
@@ -58,7 +60,7 @@ export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props)
   }
 
   function confirmDelete() {
-    modal.confirm({
+    confirm({
       // In the layer that stays in front while the page changes after it (`dialogLayer`).
       getContainer: dialogLayer,
       title: `Delete this ${noun}?`,

@@ -24,6 +24,7 @@ import { BackButton } from '../../../../components/BackButton'
 import { dialogLayer } from '../../../../components/DialogLayer'
 import { useQueryClient } from '@tanstack/react-query'
 import { refreshGroupPage } from '../../../group/utils.ts'
+import { useConfirm } from '../../../../hooks/useConfirm'
 
 const { Text, Title } = Typography
 
@@ -46,7 +47,8 @@ type Props = {
  */
 export function SettleUpForm({ group, datasetId, userId, recentCurrencies }: Props) {
   const [form] = Form.useForm<FormValues>()
-  const { message, modal } = App.useApp()
+  const { message } = App.useApp()
+  const confirm = useConfirm()
   const navigate = useAppNavigate()
   const queryClient = useQueryClient()
   const [submitting, setSubmitting] = useState(false)
@@ -79,7 +81,7 @@ export function SettleUpForm({ group, datasetId, userId, recentCurrencies }: Pro
       leave()
       return
     }
-    modal.confirm({
+    confirm({
       // In the layer that stays in front while the page changes after it (`dialogLayer`).
       getContainer: dialogLayer,
       title: 'Discard this payment?',

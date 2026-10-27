@@ -1,5 +1,6 @@
 import { Drawer, Grid, Modal } from 'antd'
 import type { ReactNode } from 'react'
+import { useCloseOnBack } from '../../hooks/useCloseOnBack'
 import { aboveScreenEdge } from '../../theme/safeArea.ts'
 
 type Props = {
@@ -30,6 +31,8 @@ type Props = {
  */
 export function AdaptiveDialog({ open, onClose, title, children, tall = false, footer, dismissible = true }: Props) {
   const screens = Grid.useBreakpoint()
+  // The browser's Back closes it (PRD 5.19), unless it must stay.
+  useCloseOnBack(open, onClose, dismissible)
 
   if (screens.md) {
     return (
