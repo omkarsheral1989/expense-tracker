@@ -1,6 +1,6 @@
-import { App } from 'antd'
 import { SyncIconButton } from '../../SyncIconButton'
 import type { SyncButtonProps } from '../../types.ts'
+import { useConfirm } from '../../../../hooks/useConfirm'
 
 type Props = SyncButtonProps & {
   /** Starts the Google sign-in, which makes that account the owner of this device's data. */
@@ -9,10 +9,10 @@ type Props = SyncButtonProps & {
 
 /** A guest's Sync button: it explains that sync needs a Google sign-in, and offers one. */
 export function GuestSyncButtonView({ group, onBand, onSignIn }: Props) {
-  const { modal } = App.useApp()
+  const confirm = useConfirm()
 
   function askToSignIn() {
-    modal.confirm({
+    confirm({
       title: 'Sign in to sync',
       content:
         'Backup and sync use your Google Drive, so they need a Google sign-in. Your data on this device stays as it is.',

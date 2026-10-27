@@ -22,6 +22,7 @@ export function PageTransitions() {
   useLayoutEffect(() => {
     // Where the app is, for `useSlideOnBrowserBack` to tell which way the browser's Back went.
     slide.path = window.location.pathname
+    slide.key = location.key
     slide.index = window.history.state?.idx ?? 0
     slide.paths.set(slide.index, location.pathname)
     if (first.current) {

@@ -1,5 +1,6 @@
 import { useCallback } from 'react'
 import { useNavigate, type NavigateOptions, type To } from 'react-router'
+import { dropAll } from '../useCloseOnBack/overlays.ts'
 import { groupHeroFor, routerPathOf, setGroupOpenStyle } from './hero.ts'
 import { canSlide, COMMIT_TIMEOUT_MS, previousPageIs, rememberScroll, slide, type NavDirection } from './utils.ts'
 
@@ -22,7 +23,7 @@ type Options = NavigateOptions & {
 export function useAppNavigate() {
   const navigate = useNavigate()
 
-  return useCallback(
+  const go = useCallback(
     (to: To, { direction, ...options }: Options = {}) => {
       rememberScroll()
       // Going back to the page just before this one leaves it behind in the history, so the
@@ -70,5 +71,12 @@ export function useAppNavigate() {
       })
     },
     [navigate],
+  )
+
+  // Overlays that are open hold steps of the history: those go first, so the page change ends with the same history as without them
+  // (PRD 5.19, ADR-063).
+  return useCallback(
+    (to: To, options: Options = {}) => dropAll(() => go(to, options)),
+    [go],
   )
 }

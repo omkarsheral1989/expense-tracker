@@ -3,6 +3,8 @@ import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/re
 import userEvent from '@testing-library/user-event'
 import { act } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { slide } from '../../../hooks/useAppNavigate/utils.ts'
+import { handleOverlayPop } from '../../../hooks/useCloseOnBack/overlays.ts'
 import { useSyncStore } from '../../../stores/useSyncStore'
 import { ROUTES } from '../../../routes.ts'
 import { renderPage } from '../../../testing/render.tsx'
@@ -17,7 +19,11 @@ vi.mock('../../../db/client.ts', async (importOriginal) => ({
 beforeEach(() =>
   useSyncStore.setState({ running: false, dialogOpen: false, title: '', steps: [], dataVersion: 0, stopRun: null, stopping: false, resume: null, newEvents: 0 }),
 )
-afterEach(cleanup)
+afterEach(async () => {
+  cleanup()
+  // A closed dialog takes its history step away a moment later; that is over before the next test starts.
+  await new Promise((resolve) => setTimeout(resolve, 30))
+})
 
 const steps = [{ key: 'backup', label: 'Backup', status: 'running' as const, detail: 'Getting your backup…' }]
 
@@ -108,7 +114,8 @@ describe('the sync dialog after a sync that brought in changes by other members 
 
     await userEvent.click(screen.getByRole('button', { name: 'Open Activity' }))
 
-    expect(startedPage.currentPath()).toBe(ROUTES.activity)
+    // The dialog's history step goes first, then the page changes.
+    await waitFor(() => expect(startedPage.currentPath()).toBe(ROUTES.activity))
     expect(useSyncStore.getState().dialogOpen).toBe(false)
     expect(screen.queryByText('3 new changes in your groups', { selector: '.ant-message *' })).not.toBeInTheDocument()
   })
@@ -131,5 +138,70 @@ describe('the sync dialog after a sync that brought in changes by other members 
     await userEvent.click(screen.getAllByRole('button', { name: 'Close' }).at(-1)!)
 
     expect(document.querySelector('.ant-message-notice')).toBeNull()
+  })
+})
+
+describe('the sync dialog and the browser\'s Back button (PRD 5.19)', () => {
+  const tick = () => new Promise((resolve) => setTimeout(resolve, 5))
+
+  async function back() {
+    window.history.back()
+    // The overlay handler holds the popstate back from other listeners, so wait on time.
+    await new Promise((resolve) => setTimeout(resolve, 30))
+  }
+
+  beforeEach(() => {
+    window.history.replaceState({ usr: null, key: 'page', idx: 0 }, '', '/')
+    slide.key = 'page'
+    window.addEventListener('popstate', handleOverlayPop)
+  })
+  afterEach(async () => {
+    cleanup()
+    await tick()
+    window.removeEventListener('popstate', handleOverlayPop)
+  })
+
+  it('does nothing while a run goes on: the dialog stays and the page is not left', async () => {
+    await startRun()
+    await act(async () => back())
+
+    expect(screen.getByRole('dialog', { name: 'Syncing' })).toBeInTheDocument()
+    expect(useSyncStore.getState().dialogOpen).toBe(true)
+    expect(window.history.state?.overlay).toBe(1)
+  })
+
+  it('closes the dialog once the run has ended', async () => {
+    await startRun()
+    act(() => useSyncStore.getState().finish())
+
+    await act(async () => back())
+
+    expect(useSyncStore.getState().dialogOpen).toBe(false)
+    expect(window.history.state?.overlay).toBeUndefined()
+  })
+
+  it('leaves the message about new changes when it closes after a run that brought some', async () => {
+    await startRun()
+    act(() => {
+      useSyncStore.getState().setNewEvents(2)
+      useSyncStore.getState().finish()
+    })
+
+    await act(async () => back())
+
+    expect(await screen.findByText('2 new changes in your groups', { selector: '.ant-message *' })).toBeInTheDocument()
+  })
+
+  it('opens Activity from the line with no extra step back, whatever the dialog held', async () => {
+    await startRun()
+    act(() => {
+      useSyncStore.getState().setNewEvents(3)
+      useSyncStore.getState().finish()
+    })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Open Activity' }))
+
+    await waitFor(() => expect(startedPage.currentPath()).toBe(ROUTES.activity))
+    expect(window.history.state?.overlay).toBeUndefined()
   })
 })

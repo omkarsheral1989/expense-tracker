@@ -16,6 +16,7 @@ import { hasChanges, toFormFields } from './utils.ts'
 import { HEADER_TITLE_STYLE } from '../../../../theme/headerTitle.ts'
 import { BackButton } from '../../../../components/BackButton'
 import { dialogLayer } from '../../../../components/DialogLayer'
+import { useConfirm } from '../../../../hooks/useConfirm'
 
 const { Title } = Typography
 
@@ -28,7 +29,8 @@ type Props = {
 /** The group's name, type and default currency, filled in with what it has now. */
 export function EditGroupForm({ userId, group }: Props) {
   const [form] = Form.useForm<FormValues>()
-  const { message, modal } = App.useApp()
+  const { message } = App.useApp()
+  const confirm = useConfirm()
   const navigate = useAppNavigate()
   const queryClient = useQueryClient()
   const [submitting, setSubmitting] = useState(false)
@@ -49,7 +51,7 @@ export function EditGroupForm({ userId, group }: Props) {
       backToGroup()
       return
     }
-    modal.confirm({
+    confirm({
       // In the layer that stays in front while the page changes after it (`dialogLayer`).
       getContainer: dialogLayer,
       title: 'Discard your changes?',
