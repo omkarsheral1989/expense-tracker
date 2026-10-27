@@ -1,8 +1,10 @@
 import { CheckCircleFilled, ClockCircleOutlined, CloseCircleFilled, LoadingOutlined } from '@ant-design/icons'
-import { Button, Flex, Typography, theme } from 'antd'
+import { App, Button, Flex, Typography, theme } from 'antd'
 import { getDb } from '../../db/client.ts'
+import { useAppNavigate } from '../../hooks/useAppNavigate'
 import { useAsyncData } from '../../hooks/useAsyncData'
 import { useLeaveWarning } from '../../hooks/useLeaveWarning'
+import { ROUTES } from '../../routes.ts'
 import { dateService } from '../../services/dateService'
 import { syncService } from '../../services/syncService'
 import { useSyncStore } from '../../stores/useSyncStore'
@@ -10,6 +12,14 @@ import type { SyncScope, SyncStep } from '../../stores/useSyncStore/types.ts'
 import { AdaptiveDialog } from '../AdaptiveDialog'
 
 const { Text } = Typography
+
+/** The line and message after a sync that brought in changes by other members (PRD 5.18). */
+function newChangesText(count: number) {
+  return `${count} new ${count === 1 ? 'change' : 'changes'} in your groups`
+}
+
+/** How long the message after closing the dialog stays, long enough to press Open. */
+const NEW_CHANGES_MESSAGE_SECONDS = 6
 
 /**
  * The progress of a sync (PRD 5.8): one line per step (the backup,
@@ -22,11 +32,57 @@ const { Text } = Typography
  * before the tab is closed.
  */
 export function SyncDialog() {
-  const { dialogOpen, title, steps, scope, running, resume, dataVersion, stopping, closeDialog, requestStop } = useSyncStore()
+  const { dialogOpen, title, steps, scope, running, resume, dataVersion, stopping, newEvents, closeDialog, requestStop } = useSyncStore()
   const { token } = theme.useToken()
+  const { message } = App.useApp()
+  const navigate = useAppNavigate()
   useLeaveWarning(running)
   const { state } = useAsyncData(() => lastSyncedAt(scope), `${scopeKey(scope)}:${dataVersion}`)
   const lastSynced = !running && state.status === 'ready' ? state.data : null
+
+  function openActivity() {
+    closeDialog()
+    navigate(ROUTES.activity)
+  }
+
+  // Closing after a sync that brought changes leaves a message to open them from.
+  function handleClose() {
+    closeDialog()
+    if (running || newEvents === 0) return
+    const key = 'new-changes'
+    message.open({
+      key,
+      type: 'info',
+      duration: NEW_CHANGES_MESSAGE_SECONDS,
+      content: (
+        <>
+          {newChangesText(newEvents)}{' '}
+          <Button
+            type="link"
+            size="small"
+            onClick={() => {
+              message.destroy(key)
+              navigate(ROUTES.activity)
+            }}
+          >
+            Open
+          </Button>
+        </>
+      ),
+    })
+  }
+
+  function renderNewChanges() {
+    if (running || newEvents === 0) return null
+    return (
+      <Flex gap={12} align="center" role="listitem">
+        <Text>{newChangesText(newEvents)}</Text>
+        <Button type="link" size="small" onClick={openActivity}>
+          Open Activity
+        </Button>
+      </Flex>
+    )
+  }
 
   function renderIcon(step: SyncStep) {
     if (step.status === 'running') return <LoadingOutlined style={{ color: token.colorPrimary }} />
@@ -65,7 +121,7 @@ export function SyncDialog() {
               {stopping ? 'Stopping…' : 'Stop'}
             </Button>
           ) : (
-            <Button onClick={closeDialog}>Close</Button>
+            <Button onClick={handleClose}>Close</Button>
           )}
         </Flex>
       </Flex>
@@ -75,13 +131,14 @@ export function SyncDialog() {
   return (
     <AdaptiveDialog
       open={dialogOpen}
-      onClose={closeDialog}
+      onClose={handleClose}
       title={title}
       footer={renderFooter()}
       dismissible={!running}
     >
       <Flex vertical gap={16} role="list" aria-label="Progress">
         {steps.map(renderStep)}
+        {renderNewChanges()}
       </Flex>
     </AdaptiveDialog>
   )

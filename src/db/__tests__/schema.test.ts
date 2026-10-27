@@ -51,7 +51,7 @@ describe('migrations', () => {
   it('can run again without changing anything', async () => {
     await runMigrations(pg)
     const { rows } = await pg.query('select name from ownledger_migrations')
-    expect(rows).toHaveLength(13)
+    expect(rows).toHaveLength(14)
   })
 
   it('logs nothing when every migration has run, and each migration it applies', async () => {
@@ -252,6 +252,46 @@ describe('migration 0007, which adds expense events and copies the history into 
         { personId: priya, paidMinor: 0, owedMinor: 1500, inputValue: 1 },
       ]),
     )
+    await old.close()
+  })
+})
+
+describe('migration 0013, which adds when events reached the device', () => {
+  const all = import.meta.glob('../migrations/*.sql', {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  }) as Record<string, string>
+
+  it('records every event that already exists as arrived at the time of the migration', async () => {
+    const old = new PGlite()
+    const names = Object.keys(all).sort()
+    const last = names.find((name) => name.endsWith('0013_event_arrivals.sql')) as string
+    // A database as it was before this migration.
+    await runMigrations(old, Object.fromEntries(names.filter((name) => name < last).map((name) => [name, all[name]])))
+
+    const [omkar, group, expense] = [crypto.randomUUID(), crypto.randomUUID(), crypto.randomUUID()]
+    await old.query('insert into people (id, email, updated_by) values ($1, $2, $1)', [omkar, 'omkar@gmail.com'])
+    await old.query("insert into groups (id, name, type, default_currency, created_by, updated_by) values ($1, 'G', 'trip', 'INR', $2, $2)", [group, omkar])
+    await old.query(
+      "insert into expenses (id, group_id, description, category, amount_minor, currency, date, method, created_by, updated_by) values ($1, $2, 'Dinner', 'general', 1000, 'INR', '2026-10-08', 'equal', $3, $3)",
+      [expense, group, omkar],
+    )
+    const snapshot = { description: 'Dinner', category: 'general', amountMinor: 1000, currency: 'INR', date: '2026-10-08', notes: null, method: 'equal', shares: [], photos: [] }
+    const events = [crypto.randomUUID(), crypto.randomUUID()]
+    for (const event of events) {
+      await old.query(
+        "insert into expense_events (id, group_id, expense_id, kind, acted_by, occurred_at, snapshot, updated_by) values ($1, $2, $3, 'added', $4, '2026-10-10T10:00:00Z', $5, $4)",
+        [event, group, expense, omkar, JSON.stringify(snapshot)],
+      )
+    }
+
+    const before = Date.now()
+    await runMigrations(old, all)
+
+    const { rows } = await old.query<{ event_id: string; arrived_at: Date }>('select event_id, arrived_at from event_arrivals')
+    expect(rows.map((row) => row.event_id).sort()).toEqual([...events].sort())
+    for (const row of rows) expect(row.arrived_at.getTime()).toBeGreaterThanOrEqual(before - 1000)
     await old.close()
   })
 })

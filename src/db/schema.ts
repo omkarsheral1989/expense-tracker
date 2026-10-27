@@ -400,3 +400,16 @@ export const syncStatus = pgTable('sync_status', {
   scope: text('scope').primaryKey(),
   lastSyncedAt: timestamp('last_synced_at', { withTimezone: true }).notNull(),
 })
+
+/**
+ * When an event of another member reached this device through a sync, for the
+ * Activity page's unread marker (ADR-062). Local to the device: never synced or
+ * backed up, so it has none of the sync columns. Nothing is recorded for the
+ * user's own actions.
+ */
+export const eventArrivals = pgTable('event_arrivals', {
+  eventId: uuid('event_id')
+    .primaryKey()
+    .references(() => expenseEvents.id),
+  arrivedAt: timestamp('arrived_at', { withTimezone: true }).notNull(),
+})

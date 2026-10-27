@@ -121,7 +121,7 @@ export const backupService = {
    * the rows of its group (`rowsOfGroup`): a file cannot change anything else.
    */
   importGroup(db: Database, file: GroupFile): Promise<ImportResult> {
-    return db.transaction((tx) => mergeBackupRows(tx, rowsOfGroup(file.rows, file.groupId)))
+    return db.transaction((tx) => mergeBackupRows(tx, rowsOfGroup(file.rows, file.groupId), { recordArrivals: true }))
   },
 
   /** When this device last finished a backup, or null if it never has. */

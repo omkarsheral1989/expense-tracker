@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import type { AnyPgColumn, PgTable } from 'drizzle-orm/pg-core'
 import {
   accounts,
+  eventArrivals,
   expenseEvents,
   expensePayments,
   expensePhotos,
@@ -130,7 +131,11 @@ async function keepOwnDetails(
  * device is removed. A row that breaks a rule of the database (for example one
  * pointing at a missing person) makes the whole import fail and change nothing.
  */
-export async function mergeBackupRows(tx: Transaction, rows: BackupRows): Promise<ImportResult> {
+export async function mergeBackupRows(
+  tx: Transaction,
+  rows: BackupRows,
+  { recordArrivals = false }: { recordArrivals?: boolean } = {},
+): Promise<ImportResult> {
   const renamed = await joinPeopleByEmail(tx, rows.people)
   const incoming = renamed.size ? backupRowsSchema.parse(renameIds(rows, renamed)) : rows
 
@@ -156,11 +161,18 @@ export async function mergeBackupRows(tx: Transaction, rows: BackupRows): Promis
   await mergeRows(tx, expensePhotos, incoming.expensePhotos)
   // Oldest first, so a 'reverted' event's version is always there before it.
   const events = [...incoming.expenseEvents].sort((a, b) => a.occurredAt.getTime() - b.occurredAt.getTime())
-  await mergeRows(tx, expenseEvents, events)
+  const newEvents = await mergeRows(tx, expenseEvents, events)
+  // Only a member's file records when events reached the device (ADR-062), not the user's own backup.
+  const arrivals = recordArrivals ? newEvents.map((event) => ({ eventId: event.id, actedBy: event.actedBy })) : []
+  const arrivedAt = new Date()
+  for (let start = 0; start < arrivals.length; start += INSERT_CHUNK_SIZE) {
+    const chunk = arrivals.slice(start, start + INSERT_CHUNK_SIZE).map(({ eventId }) => ({ eventId, arrivedAt }))
+    await tx.insert(eventArrivals).values(chunk)
+  }
 
   // The user's own accounts, then the payment method of each expense (ADR-061).
   await mergeRows(tx, accounts, incoming.accounts)
   await mergeRows(tx, expensePayments, incoming.expensePayments, (row) => row.expenseId)
 
-  return { renamed }
+  return { renamed, arrivals }
 }

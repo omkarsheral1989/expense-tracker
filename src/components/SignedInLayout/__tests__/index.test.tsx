@@ -2,6 +2,7 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { QueryProvider } from '../../QueryProvider'
 import { useDatabaseSession } from '../../../hooks/useDatabaseSession'
 import type { DatabaseSessionState } from '../../../hooks/useDatabaseSession/types.ts'
 import { ROUTES } from '../../../routes.ts'
@@ -27,6 +28,7 @@ function setDatabase(state: DatabaseSessionState) {
 
 function renderAt(path: string) {
   return render(
+    <QueryProvider>
     <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route element={<SignedInLayout />}>
@@ -37,7 +39,8 @@ function renderAt(path: string) {
           )}
         </Route>
       </Routes>
-    </MemoryRouter>,
+    </MemoryRouter>
+    </QueryProvider>,
   )
 }
 

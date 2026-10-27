@@ -32,6 +32,8 @@ export type GroupSyncResult =
       unreadable: string[]
       /** People who now have another id, as for a restore (old id → new id). */
       renamed: Map<string, string>
+      /** Events by other members this sync brought onto the device (ADR-062). */
+      newEvents: number
     }
   /** The group's folder does not exist yet, and only its creator makes it (ADR-044). */
   | { status: 'waiting'; creatorName: string }

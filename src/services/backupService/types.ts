@@ -16,4 +16,9 @@ export type ImportResult = {
    * ids and the two became one person (ADR-044): old id → id they have now.
    */
   renamed: Map<string, string>
+  /**
+   * The events a member's file added to the device, with who acted: each now has an
+   * arrival time (ADR-062). Empty for the user's own backup, which records none.
+   */
+  arrivals: { eventId: string; actedBy: string }[]
 }

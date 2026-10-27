@@ -98,7 +98,7 @@ describe('syncService.restore', () => {
 
     const result = await syncService.restore(testDb.db, drive.client)
 
-    expect(result).toEqual({ ok: true, renamed: new Map() })
+    expect(result).toEqual({ ok: true, renamed: new Map(), arrivals: [] })
     const names = (await testDb.db.select().from(groups)).map((group) => group.name).sort()
     expect(names).toEqual(['Goa trip', 'Lisbon'])
   })
