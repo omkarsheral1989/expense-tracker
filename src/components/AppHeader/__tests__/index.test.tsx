@@ -13,7 +13,7 @@ vi.mock('../../../config.ts', () => ({ GOOGLE_CLIENT_ID: '', REQUIRE_INSTALL: tr
 const profile = { id: '1', email: 'omkar@gmail.com', name: 'Omkar Sheral' }
 
 function renderHeader(path: string = ROUTES.newGroup) {
-  return renderPage(<AppHeader />, { path, routes: [ROUTES.home, ROUTES.members] })
+  return renderPage(<AppHeader />, { path, routes: [ROUTES.home, ROUTES.members, ROUTES.activity] })
 }
 
 describe('AppHeader', () => {
@@ -76,6 +76,7 @@ describe('AppHeader', () => {
     const menu = await screen.findByRole('menu')
     expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent)).toEqual([
       'Omkar Sheral' + 'omkar@gmail.com',
+      expect.stringMatching(/Activity$/),
       expect.stringMatching(/Group members$/),
       expect.stringMatching(/Accounts$/),
       expect.stringMatching(/Sign out$/),
@@ -83,6 +84,18 @@ describe('AppHeader', () => {
 
     await userEvent.click(within(menu).getByText('Group members'))
     expect(page.currentPath()).toBe(ROUTES.members)
+  })
+
+  it('has an Activity entry above Group members that opens the Activity page', async () => {
+    const page = renderHeader()
+    await userEvent.click(screen.getByRole('button', { name: 'Account menu' }))
+
+    const menu = await screen.findByRole('menu')
+    const labels = within(menu).getAllByRole('menuitem').map((item) => item.textContent ?? '')
+    expect(labels.findIndex((label) => label.endsWith('Activity'))).toBeLessThan(labels.findIndex((label) => label.endsWith('Group members')))
+    await userEvent.click(within(menu).getByText('Activity'))
+
+    expect(page.currentPath()).toBe(ROUTES.activity)
   })
 
   it('opens the accounts page from the entry below Group members', async () => {
@@ -129,6 +142,7 @@ describe('AppHeader', () => {
       expect(within(menu).getByText('Your data is only on this device')).toBeInTheDocument()
       expect(within(menu).getAllByRole('menuitem').map((item) => item.textContent)).toEqual([
         'Guest' + 'Your data is only on this device',
+        expect.stringMatching(/Activity$/),
         expect.stringMatching(/Group members$/),
         expect.stringMatching(/Accounts$/),
         expect.stringMatching(/Sign in with Google$/),

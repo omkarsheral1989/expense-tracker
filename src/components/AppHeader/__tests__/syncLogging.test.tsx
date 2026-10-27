@@ -137,7 +137,7 @@ describe('a full sync is logged', () => {
     expect(line('Group data synced')?.fields).toMatchObject({ status: 'synced', sharedWith: 0, unreadable: 0 })
     expect(line('Group photos synced')?.fields).toMatchObject({ failures: 0, outOfSpace: false })
     expect(line('Looked for shared groups')?.fields).toEqual({ found: 0 })
-    expect(line('Full sync ended')?.fields).toEqual({ ms: expect.any(Number) })
+    expect(line('Full sync ended')?.fields).toEqual({ ms: expect.any(Number), newEvents: 0 })
   })
 
   it('never writes emails, group names or the Drive token', async () => {

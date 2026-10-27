@@ -79,11 +79,12 @@ export function setUpVersionTests() {
     return rows.toSorted((a, b) => a.occurredAt.getTime() - b.occurredAt.getTime() || order.indexOf(a.kind) - order.indexOf(b.kind))
   }
 
-  function renderVersion(groupId: string, expenseId: string, eventId: string) {
+  function renderVersion(groupId: string, expenseId: string, eventId: string, state?: unknown) {
     return renderPage(<ExpenseVersionPage />, {
       path: ROUTES.expenseVersion(groupId, expenseId, eventId),
       pattern: ROUTES.expenseVersionPattern,
-      routes: [ROUTES.expensePattern, ROUTES.groupPattern],
+      routes: [ROUTES.expensePattern, ROUTES.groupPattern, ROUTES.activity],
+      state,
     })
   }
 

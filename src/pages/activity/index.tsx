@@ -15,7 +15,6 @@ import { ROUTES } from '../../routes.ts'
 import { activityService } from '../../services/activityService'
 import { ACTIVITY_PAGE_SIZE } from '../../services/activityService/constants.ts'
 import type { ActivityCursor } from '../../services/activityService/types.ts'
-import { useSyncStore } from '../../stores/useSyncStore'
 import { HEADER_TITLE_STYLE } from '../../theme/headerTitle.ts'
 import { aboveScreenEdge, belowStatusBar, HEADER_TOP_PADDING } from '../../theme/safeArea.ts'
 import { ActivityRow } from './components/ActivityRow'
@@ -38,7 +37,6 @@ export function ActivityPage() {
   const user = useCurrentUser()
   const navigate = useAppNavigate()
   const userId = user?.personId ?? ''
-  const dataVersion = useSyncStore((state) => state.dataVersion)
   const client = useQueryClient()
   // How many rows are on screen, so reading the page again keeps the list as long as it was (ADR-058).
   const shown = useRef(0)
@@ -50,7 +48,7 @@ export function ActivityPage() {
       const [page, unread] = await Promise.all([activityService.listActivity(db, userId, { limit: Math.max(ACTIVITY_PAGE_SIZE, shown.current) }), activityService.unreadState(db, userId)])
       return { page, seenAt: unread.seenAt }
     },
-    'activity', `${userId}:${dataVersion}`,
+    'activity', userId,
     { keepPrevious: true },
   )
   const base = state.status === 'ready' ? state.data.page : null
@@ -73,7 +71,9 @@ export function ActivityPage() {
     }
   }, [client])
 
-  shown.current = items.length
+  useEffect(() => {
+    shown.current = items.length
+  }, [items.length])
 
   const end = useRef<HTMLDivElement>(null)
   // Asks for the next batch when the end of the list comes near the view, set up again after each batch.

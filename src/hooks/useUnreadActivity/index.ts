@@ -1,6 +1,5 @@
 import { getDb } from '../../db/client.ts'
 import { activityService } from '../../services/activityService'
-import { useSyncStore } from '../../stores/useSyncStore'
 import { useCachedData } from '../useCachedData'
 import { useCurrentUser } from '../useCurrentUser'
 
@@ -12,11 +11,10 @@ import { useCurrentUser } from '../useCurrentUser'
 export function useUnreadActivity(): boolean {
   const user = useCurrentUser()
   const userId = user?.personId ?? ''
-  const dataVersion = useSyncStore((state) => state.dataVersion)
   const { state } = useCachedData(
     async () => (user ? (await activityService.unreadState(await getDb(), userId)).hasUnread : false),
     'activityUnread',
-    `${userId}:${dataVersion}`,
+    userId,
     { keepPrevious: true },
   )
   return state.status === 'ready' && state.data

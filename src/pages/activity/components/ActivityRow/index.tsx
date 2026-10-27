@@ -7,8 +7,9 @@ import { UnreadDot } from '../../../../components/UnreadDot'
 import { ROUTES } from '../../../../routes.ts'
 import type { ActivityItem } from '../../../../services/activityService/types.ts'
 import { dateService } from '../../../../services/dateService'
+import { groupService } from '../../../../services/groupService'
 import { RADIUS } from '../../../../theme/radius.ts'
-import { actorName, activityDetail, activitySentence } from '../../utils.ts'
+import { activityDetail, activitySentence } from '../../utils.ts'
 import { ACTIVITY_FROM } from '../../constants.ts'
 
 const { Text } = Typography
@@ -52,7 +53,7 @@ export function ActivityRow({ item, isNew }: Props) {
       <div style={{ position: 'relative', flex: 'none', width: TILE_SIZE, height: TILE_SIZE }}>
         <CategoryIcon category={item.category} size={TILE_SIZE} />
         <PersonAvatar
-          name={actorName(item.by)}
+          name={groupService.shortName(item.by)}
           picture={item.by.picture}
           size={BADGE_SIZE}
           style={{ position: 'absolute', right: -4, bottom: -4, boxShadow: `0 0 0 2px ${token.colorBgLayout}`, fontSize: 11 }}

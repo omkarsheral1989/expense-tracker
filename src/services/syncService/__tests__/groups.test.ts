@@ -178,6 +178,48 @@ describe('two devices', () => {
     return { ...setup, found, priyaOnB: result.renamed.get(priyaOnB) ?? priyaOnB }
   }
 
+  it('counts the events by other members a sync brought in, and none of the user\'s own', async () => {
+    const setup = await omkarsGroup()
+    await syncService.syncGroup(a, omkarDrive(), setup.omkar, setup.groupId)
+    const priyaOnB = await self(b, 'priya@gmail.com', 'Priya Shah')
+
+    // A group found for the first time brings in Omkar's one event, which is new to Priya.
+    const found = await syncService.findSharedGroups(b, priyaDrive(), 'priya@gmail.com')
+    const me = found.renamed.get(priyaOnB) ?? priyaOnB
+    expect(found.newEvents).toBe(1)
+
+    // Syncing it again brings in nothing.
+    expect(await syncService.syncGroup(b, priyaDrive(), me, setup.groupId)).toMatchObject({ newEvents: 0 })
+
+    // Omkar adds two more; Priya's next sync counts them.
+    await addExpense(a, setup.omkar, setup.groupId, 'Taxi', 500)
+    await addExpense(a, setup.omkar, setup.groupId, 'Lunch', 800)
+    await syncService.syncGroup(a, omkarDrive(), setup.omkar, setup.groupId)
+    expect(await syncService.syncGroup(b, priyaDrive(), me, setup.groupId)).toMatchObject({ newEvents: 2 })
+
+    // Priya's own event, read back by Omkar, is not new to Priya: her device's own file brings in nothing of others'.
+    await addExpense(b, me, setup.groupId, 'Coffee', 300)
+    await syncService.syncGroup(b, priyaDrive(), me, setup.groupId)
+    expect(await syncService.syncGroup(b, priyaDrive(), me, setup.groupId)).toMatchObject({ newEvents: 0 })
+    expect(await syncService.syncGroup(a, omkarDrive(), setup.omkar, setup.groupId)).toMatchObject({ newEvents: 1 })
+  })
+
+  it('does not count the user\'s own events that arrive from their other device', async () => {
+    const setup = await omkarsGroup()
+    await syncService.syncGroup(a, omkarDrive(), setup.omkar, setup.groupId)
+    // Omkar's second device (`b`) finds his own group, and its one event is his own.
+    const omkarOnB = await self(b, 'omkar@gmail.com', 'Omkar')
+    const found = await syncService.findSharedGroups(b, omkarDrive(), 'omkar@gmail.com')
+    expect(found.found).toHaveLength(1)
+    expect(found.newEvents).toBe(0)
+
+    // He adds one there; his first device reads it back: also his own.
+    const me = found.renamed.get(omkarOnB) ?? omkarOnB
+    await addExpense(b, me, setup.groupId, 'Coffee', 300)
+    await syncService.syncGroup(b, omkarDrive(), me, setup.groupId)
+    expect(await syncService.syncGroup(a, omkarDrive(), setup.omkar, setup.groupId)).toMatchObject({ newEvents: 0 })
+  })
+
   it('keeps the name a member typed for someone, on both devices, over that person\'s Google name', async () => {
     const setup = await omkarsGroup()
     await syncService.syncGroup(a, omkarDrive(), setup.omkar, setup.groupId)

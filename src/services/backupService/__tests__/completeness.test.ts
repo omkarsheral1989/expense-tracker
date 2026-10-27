@@ -17,11 +17,12 @@ import type { BackupRows } from '../types.ts'
 
 /**
  * The only tables that are not in a backup, on purpose: the migration runner's
- * own record, this device's sync times, and the legacy history that migration
- * 0007 copied into `expense_events`. A new table belongs in the backup unless
+ * own record, this device's sync times, the legacy history that migration
+ * 0007 copied into `expense_events`, and the local record of when events by
+ * other members reached the device (ADR-062). A new table belongs in the backup unless
  * it is added here, with its reason.
  */
-const NOT_BACKED_UP = ['ownledger_migrations', 'sync_status', 'expense_revisions']
+const NOT_BACKED_UP = ['ownledger_migrations', 'sync_status', 'expense_revisions', 'event_arrivals']
 
 /**
  * The tables that are in a backup but never in a group's file, because they are private to their user (ADR-061): a
