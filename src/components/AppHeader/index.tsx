@@ -1,12 +1,15 @@
 import { CreditCardOutlined, LogoutOutlined, TeamOutlined } from '@ant-design/icons'
 import { Button, Dropdown, Flex, Typography, theme } from 'antd'
 import { useAppNavigate } from '../../hooks/useAppNavigate'
+import { useUnreadActivity } from '../../hooks/useUnreadActivity'
 import { ROUTES } from '../../routes.ts'
 import type { Profile } from '../../services/googleProfileService/types.ts'
 import { useAuthStore } from '../../stores/useAuthStore'
 import { BrandLogo } from '../BrandLogo'
 import { ProfileAvatar } from '../ProfileAvatar'
 import { SyncButton } from '../SyncButton'
+import { UnreadDot } from '../UnreadDot'
+import { activityMenuItem } from './activityMenuItem.tsx'
 import { GuestMenu } from './GuestMenu'
 
 const { Text } = Typography
@@ -24,6 +27,7 @@ export function AppHeader() {
   const signOut = useAuthStore((state) => state.signOut)
   const { token } = theme.useToken()
   const navigate = useAppNavigate()
+  const unread = useUnreadActivity()
 
   // Visitors who are not in the app are sent away by `RequireAuth` before this matters.
   if (!profile && !guest) return null
@@ -60,6 +64,7 @@ export function AppHeader() {
               style: { cursor: 'default' },
             },
             { type: 'divider' },
+            activityMenuItem(unread, navigate),
             {
               key: 'members',
               icon: <TeamOutlined />,
@@ -114,7 +119,11 @@ export function AppHeader() {
         {renderBrand()}
         <Flex align="center" gap={12}>
           <SyncButton />
-          {profile ? renderAccountMenu(profile) : <GuestMenu />}
+          {/* The dot sits on the avatar's top-right corner, ringed in the header's green. */}
+          <span style={{ position: 'relative', display: 'inline-flex' }}>
+            {profile ? renderAccountMenu(profile) : <GuestMenu />}
+            {unread && <UnreadDot ringColor={token.colorPrimary} style={{ position: 'absolute', top: 0, right: 0, pointerEvents: 'none' }} />}
+          </span>
         </Flex>
       </Flex>
     </header>

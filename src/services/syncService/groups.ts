@@ -83,14 +83,25 @@ async function readMemberFiles(drive: DriveClient, folderId: string, groupId: st
  */
 async function importFiles(db: Database, groupId: string, files: GroupFile[]) {
   const renamed = new Map<string, string>()
+  const arrivals: { eventId: string; actedBy: string }[] = []
   for (const file of files) {
     const result = await backupService.importGroup(db, file)
     for (const [from, to] of result.renamed) renamed.set(from, to)
+    arrivals.push(...result.arrivals)
   }
   for (const file of files) {
     await recordStatus(db, `member:${groupId}:${current(file.writtenBy, renamed)}`, file.writtenAt)
   }
-  return renamed
+  return { renamed, arrivals }
+}
+
+/** How many of the events a merge brought in were made by someone other than `userId` (ADR-062). */
+function othersEvents(
+  arrivals: { actedBy: string }[],
+  renamed: ReadonlyMap<string, string>,
+  userId: string,
+): number {
+  return arrivals.filter((arrival) => current(arrival.actedBy, renamed) !== userId).length
 }
 
 /** The group's live members who have an email, with their names. */
@@ -130,7 +141,7 @@ export const groupSync = {
     }
 
     const { valid, unreadable } = await readMemberFiles(drive, folder.id, groupId)
-    const renamed = await importFiles(db, groupId, valid)
+    const { renamed, arrivals } = await importFiles(db, groupId, valid)
     const me = current(userId, renamed)
 
     onStep('sending')
@@ -168,6 +179,7 @@ export const groupSync = {
       sharedWith,
       unreadable: await Promise.all(unreadable.map((email) => firstNameByEmail(db, email))),
       renamed,
+      newEvents: othersEvents(arrivals, renamed, me),
     }
   },
 
@@ -183,10 +195,11 @@ export const groupSync = {
     db: Database,
     drive: DriveClient,
     userEmail: string,
-  ): Promise<{ found: FoundGroup[]; renamed: Map<string, string> }> {
+  ): Promise<{ found: FoundGroup[]; renamed: Map<string, string>; newEvents: number }> {
     const known = new Set((await db.select({ id: groups.id }).from(groups)).map((group) => group.id))
     const found: FoundGroup[] = []
     const renamed = new Map<string, string>()
+    const arrivals: { actedBy: string }[] = []
 
     for (const folder of await drive.findAll(DRIVE_ITEM_KINDS.group, 'any')) {
       const groupId = folder.properties?.[GROUP_ID_PROPERTY]
@@ -200,11 +213,14 @@ export const groupSync = {
       })
       if (!includesUser) continue
 
-      for (const [from, to] of await importFiles(db, groupId, valid)) renamed.set(from, to)
+      const imported = await importFiles(db, groupId, valid)
+      for (const [from, to] of imported.renamed) renamed.set(from, to)
+      arrivals.push(...imported.arrivals)
       const [group] = await db.select({ name: groups.name }).from(groups).where(eq(groups.id, groupId))
       if (group) found.push({ groupId, name: group.name })
     }
-    return { found, renamed }
+    const [self] = await db.select({ id: people.id }).from(people).where(eq(people.email, userEmail))
+    return { found, renamed, newEvents: self ? othersEvents(arrivals, renamed, current(self.id, renamed)) : arrivals.length }
   },
 
   /**

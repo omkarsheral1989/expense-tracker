@@ -63,9 +63,11 @@ export function useSync() {
   const { message } = App.useApp()
   const { getDriveToken, forgetDriveToken } = useDriveToken()
   const running = useSyncStore((state) => state.running)
-  const { start, updateStep, addStep, finish, openDialog, setResume, setStopRun } = useSyncStore.getState()
+  const { start, updateStep, addStep, finish, openDialog, setResume, setStopRun, setNewEvents } = useSyncStore.getState()
   // The run going on, offered again as Continue when Drive access runs out.
   const currentRun = useRef<(() => void) | null>(null)
+  // Events by other members the run in progress has brought in (ADR-062).
+  const newEvents = useRef(0)
 
   /** Drive access, or null after telling the user why there is none. Call in the click. */
   function driveAccess(): Promise<string | null> | null {
@@ -188,6 +190,7 @@ export function useSync() {
         return userId
       }
       const me = followRename(userId, result.renamed)
+      newEvents.current += result.newEvents
       const photos = await syncService.syncGroupPhotos(db, drive, me, groupId, photoService.open(user!.datasetId), (direction, { current, total }) =>
         updateStep(key, { detail: `${GROUP_PHOTO_DETAILS[direction]} ${current} of ${total}` }),
       )
@@ -219,7 +222,8 @@ export function useSync() {
    */
   async function findSharedGroups(db: Database, drive: DriveClient, userId: string, email: string) {
     try {
-      const { found, renamed } = await syncService.findSharedGroups(db, drive, email)
+      const { found, renamed, newEvents: arrived } = await syncService.findSharedGroups(db, drive, email)
+      newEvents.current += arrived
       log.info('Looked for shared groups', { found: found.length })
       return { found, userId: followRename(userId, renamed) }
     } catch (error) {
@@ -256,6 +260,7 @@ export function useSync() {
     currentRun.current = sync
     const controller = new AbortController()
     const startedAt = Date.now()
+    newEvents.current = 0
     log.info('Full sync started')
     start('Syncing', [{ key: BACKUP_STEP, label: 'Backup', status: 'running', detail: BACKUP_DETAILS.getting }], { kind: 'all' })
     setStopRun(() => controller.abort())
@@ -286,7 +291,8 @@ export function useSync() {
       // A group stopped the run before the backup was written.
       if (backupPending) updateStep(BACKUP_STEP, { status: 'error', detail: BACKUP_DETAILS.stopped })
     } finally {
-      log.info('Full sync ended', { ms: Date.now() - startedAt })
+      log.info('Full sync ended', { ms: Date.now() - startedAt, newEvents: newEvents.current })
+      setNewEvents(newEvents.current)
       finish()
     }
   }
@@ -300,6 +306,7 @@ export function useSync() {
 
     currentRun.current = () => syncGroup(groupId, name)
     const controller = new AbortController()
+    newEvents.current = 0
     log.info('Group sync started', { groupId })
     start('Syncing', [], { kind: 'group', groupId })
     setStopRun(() => controller.abort())
@@ -308,6 +315,8 @@ export function useSync() {
     } catch (error) {
       if (!(error instanceof RunStopped)) throw error
     } finally {
+      log.info('Group sync ended', { newEvents: newEvents.current })
+      setNewEvents(newEvents.current)
       finish()
     }
   }

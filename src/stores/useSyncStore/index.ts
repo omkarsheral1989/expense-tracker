@@ -16,8 +16,10 @@ export const useSyncStore = create<SyncState>()((set) => ({
   resume: null,
   stopRun: null,
   stopping: false,
+  newEvents: 0,
   dataVersion: 0,
-  start: (title, steps, scope) => set({ running: true, dialogOpen: true, title, steps, scope, resume: null, stopping: false }),
+  start: (title, steps, scope) => set({ running: true, dialogOpen: true, title, steps, scope, resume: null, stopping: false, newEvents: 0 }),
+  setNewEvents: (newEvents) => set({ newEvents }),
   setStopRun: (stopRun) => set({ stopRun }),
   requestStop: () => {
     const { stopRun } = useSyncStore.getState()

@@ -8,6 +8,8 @@ export const ROUTES = {
   members: '/members',
   /** The user's own bank accounts and credit cards (PRD 5.17). */
   accounts: '/accounts',
+  /** What happened to expenses across the user's groups (PRD 5.18). */
+  activity: '/activity',
   newGroup: '/groups/new',
   /** Where the service worker sends the user after a share from another app (PRD 5.11). */
   share: '/share',

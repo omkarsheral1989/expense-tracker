@@ -1,11 +1,13 @@
 import { CreditCardOutlined, LogoutOutlined, TeamOutlined } from '@ant-design/icons'
 import { Button, Dropdown, Flex, Typography } from 'antd'
 import { useAppNavigate } from '../../../../hooks/useAppNavigate'
+import { useUnreadActivity } from '../../../../hooks/useUnreadActivity'
 import { ROUTES } from '../../../../routes.ts'
 import { userService } from '../../../../services/userService'
 import { useAuthStore } from '../../../../stores/useAuthStore'
 import { GoogleLogo } from '../../../GoogleLogo'
 import { ProfileAvatar } from '../../../ProfileAvatar'
+import { activityMenuItem } from '../../activityMenuItem.tsx'
 
 const { Text } = Typography
 
@@ -24,6 +26,7 @@ type Props = {
 export function GuestMenuView({ onSignIn, loading }: Props) {
   const exitGuestMode = useAuthStore((state) => state.signOut)
   const navigate = useAppNavigate()
+  const unread = useUnreadActivity()
 
   return (
     <Dropdown
@@ -43,6 +46,7 @@ export function GuestMenuView({ onSignIn, loading }: Props) {
             style: { cursor: 'default' },
           },
           { type: 'divider' },
+          activityMenuItem(unread, navigate),
           {
             key: 'members',
             icon: <TeamOutlined />,

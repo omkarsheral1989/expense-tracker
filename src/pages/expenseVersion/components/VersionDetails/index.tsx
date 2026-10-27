@@ -1,12 +1,15 @@
 import { UndoOutlined } from '@ant-design/icons'
 import { App, Button, Divider, Flex, Typography } from 'antd'
 import { useState } from 'react'
+import { useLocation } from 'react-router'
 import { useAppNavigate } from '../../../../hooks/useAppNavigate'
 import { ExpenseBody } from '../../../../components/ExpenseBody'
 import { historyHeader, historyLines } from '../../../../components/ExpenseWording'
+import { AppLink } from '../../../../components/AppLink'
 import { HistoryEntry } from '../../../../components/HistoryEntry'
 import { getDb } from '../../../../db/client.ts'
 import { ROUTES } from '../../../../routes.ts'
+import { ACTIVITY_FROM } from '../../../activity/constants.ts'
 import { dateService } from '../../../../services/dateService'
 import { expenseService } from '../../../../services/expenseService'
 import type { ExpenseVersion } from '../../../../services/expenseService/types.ts'
@@ -34,11 +37,14 @@ type Props = {
  */
 export function VersionDetails({ data, datasetId, userId, onChanged }: Props) {
   const navigate = useAppNavigate()
+  const { state: routerState } = useLocation()
   const { message } = App.useApp()
   const [restoring, setRestoring] = useState(false)
   const { event, version } = data
   const noun = data.isPayment ? 'payment' : 'expense'
   const toExpense = ROUTES.expense(data.groupId, data.expenseId)
+  // Opened from the Activity feed, Back returns there (PRD 5.6c); otherwise to the expense.
+  const cameFromActivity = (routerState as { from?: unknown } | null)?.from === ACTIVITY_FROM
   const madeAt = dateService.formatDateTime(event.at, navigator.language)
 
   async function handleRestore() {
@@ -87,7 +93,7 @@ export function VersionDetails({ data, datasetId, userId, onChanged }: Props) {
     <>
       <Flex align="center" justify="space-between" style={{ marginBottom: 16 }}>
         <Flex align="center" gap={8} style={{ minWidth: 0 }}>
-          <BackButton onClick={() => navigate(toExpense, { direction: 'back' })} />
+          <BackButton onClick={() => navigate(cameFromActivity ? ROUTES.activity : toExpense, { direction: 'back' })} />
           <Title level={3} style={HEADER_TITLE_STYLE}>
             Version
           </Title>
@@ -101,6 +107,9 @@ export function VersionDetails({ data, datasetId, userId, onChanged }: Props) {
           lines={historyLines(event, data.people)}
         />
         {renderWhyNot()}
+        <AppLink to={toExpense} style={{ alignSelf: 'flex-start' }}>
+          Open {noun}
+        </AppLink>
       </Flex>
       <Divider style={{ margin: '16px 0' }} />
       <ExpenseBody

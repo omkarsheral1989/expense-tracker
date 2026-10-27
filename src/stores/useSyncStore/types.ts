@@ -32,6 +32,9 @@ export type SyncState = {
    * (the home page, the current user) read it again.
    */
   dataVersion: number
+  /** Events by other members the latest run brought onto the device (ADR-062), for the dialog's line and the message after it. */
+  newEvents: number
+  setNewEvents: (count: number) => void
   /** Cancels the run in flight (the dialog's Stop button); null when nothing runs. */
   stopRun: (() => void) | null
   /** Stop was pressed and the run is ending. */
