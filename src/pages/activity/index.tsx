@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { Button, Empty, Flex, Spin, Typography } from 'antd'
 import { useEffect, useRef } from 'react'
 import { BackButton } from '../../components/BackButton'
@@ -8,9 +9,11 @@ import { getDb } from '../../db/client.ts'
 import { useBatches } from '../../hooks/useBatches'
 import { useAppNavigate } from '../../hooks/useAppNavigate'
 import { useCachedData } from '../../hooks/useCachedData'
+import { PAGE_QUERY_ROOT } from '../../hooks/useCachedData/constants.ts'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
 import { ROUTES } from '../../routes.ts'
 import { activityService } from '../../services/activityService'
+import { ACTIVITY_PAGE_SIZE } from '../../services/activityService/constants.ts'
 import type { ActivityCursor } from '../../services/activityService/types.ts'
 import { useSyncStore } from '../../stores/useSyncStore'
 import { HEADER_TITLE_STYLE } from '../../theme/headerTitle.ts'
@@ -36,12 +39,15 @@ export function ActivityPage() {
   const navigate = useAppNavigate()
   const userId = user?.personId ?? ''
   const dataVersion = useSyncStore((state) => state.dataVersion)
+  const client = useQueryClient()
+  // How many rows are on screen, so reading the page again keeps the list as long as it was (ADR-058).
+  const shown = useRef(0)
 
   // The page and when the user last left it, read together: the highlights keep that time for the whole visit.
   const { state, retry } = useCachedData(
     async () => {
       const db = await getDb()
-      const [page, unread] = await Promise.all([activityService.listActivity(db, userId), activityService.unreadState(db, userId)])
+      const [page, unread] = await Promise.all([activityService.listActivity(db, userId, { limit: Math.max(ACTIVITY_PAGE_SIZE, shown.current) }), activityService.unreadState(db, userId)])
       return { page, seenAt: unread.seenAt }
     },
     'activity', `${userId}:${dataVersion}`,
@@ -56,9 +62,18 @@ export function ActivityPage() {
   useEffect(() => {
     clearTimeout(pendingSeen)
     return () => {
-      pendingSeen = setTimeout(() => void getDb().then((db) => activityService.markSeen(db)), 0)
+      pendingSeen = setTimeout(
+        () =>
+          void getDb()
+            .then((db) => activityService.markSeen(db))
+            // The avatar menu's dot reads it again; the page itself is left as it is, so coming back is instant.
+            .then(() => client.invalidateQueries({ queryKey: [PAGE_QUERY_ROOT, 'activityUnread'] })),
+        0,
+      )
     }
-  }, [])
+  }, [client])
+
+  shown.current = items.length
 
   const end = useRef<HTMLDivElement>(null)
   // Asks for the next batch when the end of the list comes near the view, set up again after each batch.

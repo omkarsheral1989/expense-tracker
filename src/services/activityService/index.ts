@@ -1,6 +1,5 @@
 import { and, desc, eq, gt, inArray, isNull, ne, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
-import { notifyAfter } from '../../db/changes.ts'
 import type { Database } from '../../db/client.ts'
 import { eventArrivals, expenseEvents, groupMembers, groups, people, syncStatus } from '../../db/schema.ts'
 import { shownName } from '../../db/shownName.ts'
@@ -143,10 +142,11 @@ const activityServiceBase = {
   },
 }
 
-/** activityService with one log line per action (ADR-048). */
-export const activityService: typeof activityServiceBase = notifyAfter(
-  logService.logActions(logService.scope('activity'), activityServiceBase, {
-    markSeen: { message: 'Activity marked as seen', params: [] },
-  }),
-  ['markSeen'],
-)
+/**
+ * activityService with one log line per action (ADR-048). `markSeen` does not announce a data change (ADR-051): that
+ * would make the app forget the Activity page the user has just left, so coming back would show its loader. The page
+ * refreshes the avatar menu's dot itself.
+ */
+export const activityService: typeof activityServiceBase = logService.logActions(logService.scope('activity'), activityServiceBase, {
+  markSeen: { message: 'Activity marked as seen', params: [] },
+})
