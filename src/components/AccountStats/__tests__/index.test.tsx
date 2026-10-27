@@ -107,10 +107,22 @@ describe('AccountStats', () => {
     expect(screen.getByText('Credit limit')).toBeInTheDocument()
   })
 
-  it('shows no tile for a card with neither', () => {
-    show(account({ target: null }, { creditLimitMinor: null, spendTargetMinor: null, spendTargetPeriod: null }))
+  it('draws nothing at all for a card with neither, so the card around it adds no empty row', () => {
+    const { container } = show(account({ target: null }, { creditLimitMinor: null, spendTargetMinor: null, spendTargetPeriod: null }))
 
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+    expect(container.querySelector('.ant-flex')).toBeNull()
+  })
+
+  it('draws only the note, with no empty row of tiles, for a card with neither but a skipped expense', () => {
+    const { container } = show(
+      account({ target: null, skipped: 1 }, { creditLimitMinor: null, spendTargetMinor: null, spendTargetPeriod: null }),
+    )
+
+    expect(screen.getByText(/has no charged amount/)).toBeInTheDocument()
+    // The column holds the note alone: no empty tile row above it.
+    expect(container.querySelectorAll('.ant-flex')).toHaveLength(1)
+    expect(container.querySelector('.ant-flex')?.children).toHaveLength(1)
   })
 
   it('says how many expenses it could not count', () => {

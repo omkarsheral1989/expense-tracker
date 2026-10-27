@@ -99,15 +99,15 @@ export function AccountStats({ account }: Props) {
     )
   }
 
-  if (!spend) return null
+  const tiles = [renderTargetTile(), renderLimitTile()].filter(Boolean)
+  const skipped = renderSkipped()
+  // Nothing to show (a card with neither a target nor a limit): draw nothing, so the card's own gap does not add an empty row.
+  if (tiles.length === 0 && !skipped) return null
 
   return (
     <Flex vertical gap={8}>
-      <Flex gap={8}>
-        {renderTargetTile()}
-        {renderLimitTile()}
-      </Flex>
-      {renderSkipped()}
+      {tiles.length > 0 && <Flex gap={8}>{tiles}</Flex>}
+      {skipped}
     </Flex>
   )
 }
