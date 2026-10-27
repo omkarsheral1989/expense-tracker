@@ -5,7 +5,6 @@ import { useLocation } from 'react-router'
 import { useAppNavigate } from '../../../../hooks/useAppNavigate'
 import { ExpenseBody } from '../../../../components/ExpenseBody'
 import { historyHeader, historyLines } from '../../../../components/ExpenseWording'
-import { AppLink } from '../../../../components/AppLink'
 import { HistoryEntry } from '../../../../components/HistoryEntry'
 import { getDb } from '../../../../db/client.ts'
 import { ROUTES } from '../../../../routes.ts'
@@ -107,9 +106,9 @@ export function VersionDetails({ data, datasetId, userId, onChanged }: Props) {
           lines={historyLines(event, data.people)}
         />
         {renderWhyNot()}
-        <AppLink to={toExpense} style={{ alignSelf: 'flex-start' }}>
+        <Button style={{ alignSelf: 'flex-start', borderRadius: PILL_RADIUS }} onClick={() => navigate(toExpense)}>
           Open {noun}
-        </AppLink>
+        </Button>
       </Flex>
       <Divider style={{ margin: '16px 0' }} />
       <ExpenseBody
