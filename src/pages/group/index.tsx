@@ -111,6 +111,7 @@ export function GroupPage() {
     group: GroupDetails,
     balances: PersonBalance[],
     syncedIds: ReadonlySet<string>,
+    hasSpending: boolean,
   ) {
     // What the pages opened from here can show while they load (ADR-054).
     const known: KnownGroup = { id: group.id, name: group.name, type: group.type, defaultCurrency: group.defaultCurrency, memberCount: group.members.length }
@@ -125,7 +126,7 @@ export function GroupPage() {
             centered in all the space below the actions. */}
         <Flex vertical style={{ ...COLUMN_STYLE, flex: 1, paddingBottom: 0 }}>
           <Flex vertical gap={16}>
-            <ActionPills groupId={group.id} group={known} canSettle={group.members.length > 1} />
+            <ActionPills groupId={group.id} group={known} canSettle={group.members.length > 1} canTotal={hasSpending} />
             <BalanceLine balances={balances} />
           </Flex>
           <ExpenseList
@@ -167,7 +168,7 @@ export function GroupPage() {
         return renderError()
       case 'ready':
         return state.data
-          ? renderGroup(state.data.group, state.data.balances, state.data.syncedIds)
+          ? renderGroup(state.data.group, state.data.balances, state.data.syncedIds, state.data.hasSpending)
           : renderNotFound()
     }
   }

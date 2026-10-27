@@ -18,6 +18,8 @@ import {
 } from './helpers.tsx'
 
 vi.mock('../config.ts', () => ({ GOOGLE_CLIENT_ID: '', REQUIRE_INSTALL: false }))
+// Charts have no size in jsdom unless they are given one.
+vi.mock('recharts', async (original) => (await import('../testing/recharts.tsx')).withFixedSize(await original()))
 vi.mock('@electric-sql/pglite', async (original) => (await import('../testing/memoryPglite.ts')).memoryPglite(await original()))
 
 const device = setUpJourneyTests()
@@ -52,6 +54,29 @@ describe('splitting expenses', () => {
     await user.click(screen.getByText('Goa trip'))
     expect(await screen.findByText('Beach shack dinner')).toBeInTheDocument()
     expect(screen.getByText(/Priya owes you/)).toBeInTheDocument()
+  })
+
+  it('opens the group\'s totals from the Totals pill, shows how the spending splits, and goes back', async () => {
+    const { user } = device
+    const { currentPath } = renderApp(ROUTES.getStarted)
+    await continueAsGuest(user)
+    await createGroupWithFriend(user, 'Goa trip', { name: 'Priya Shah', email: 'priya@gmail.com' })
+    await addExpense(user, 'Beach shack dinner', '100')
+    await screen.findByText('Beach shack dinner')
+
+    await user.click(await screen.findByRole('button', { name: /Totals$/ }))
+
+    expect(await screen.findByText('Total spent')).toBeInTheDocument()
+    expect(screen.getAllByText('£100.00').length).toBeGreaterThan(0)
+    expect(currentPath()).toMatch(/\/totals$/)
+    expect(screen.getByRole('heading', { name: 'Shares' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Individual contribution' })).toBeInTheDocument()
+    expect(within(screen.getByRole('list', { name: 'Shares' })).getAllByRole('listitem')).toHaveLength(2)
+    expect(within(screen.getByRole('list', { name: 'Paid' })).getByText('£100.00')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Back' }))
+    expect(await screen.findByText('Beach shack dinner')).toBeInTheDocument()
+    expect(currentPath()).not.toMatch(/totals/)
   })
 
   it('writes the steps of a journey to the log, and nothing personal', async () => {

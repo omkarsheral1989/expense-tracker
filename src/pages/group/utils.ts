@@ -6,6 +6,7 @@ import { expenseService } from '../../services/expenseService'
 import { EXPENSE_PAGE_SIZE } from '../../services/expenseService/constants.ts'
 import { groupService } from '../../services/groupService'
 import { syncService } from '../../services/syncService'
+import { totalsService } from '../../services/totalsService'
 import { useSyncStore } from '../../stores/useSyncStore'
 import type { KnownGroup } from './types.ts'
 
@@ -25,6 +26,8 @@ export async function loadGroupPage(userId: string, groupId: string, limit: numb
     expenses: await expenseService.listExpensesPage(db, userId, groupId, { limit: Math.max(EXPENSE_PAGE_SIZE, limit) }),
     balances: await expenseService.groupBalances(db, userId, groupId),
     syncedIds: await syncService.syncedMembers(db, groupId),
+    // Whether the Totals pill has anything to open (PRD 5.20).
+    hasSpending: await totalsService.hasSpending(db, userId, groupId),
   }
 }
 

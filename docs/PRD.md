@@ -69,7 +69,7 @@ _Last updated: 2026-10-27_
 - Sync shows progress (data, then photos) and handles failures and token expiry. Guests are asked to sign in with Google first.
 
 ### 4.8 Reports and tools
-- Monthly totals by category (personal and per group).
+- Totals per group (5.20): the total spent and who owes and paid how much, as donut charts, drawn with Recharts (ADR-064). Later: monthly totals by category, personal and per group.
 - Search and filters (date range, category, tag, member, currency, amount).
 - Budgets (monthly limits per category).
 - CSV export.
@@ -173,7 +173,7 @@ Route `/groups/<id>`, opened from a group on the home page and after creating a 
   - The sheet's footer has **Cancel** (closes it, adds no one) and **Add** (switched off until someone is ticked). Add adds everyone ticked, then closes the sheet with "Priya added." (one person) or "N members added." (several). The members sheet stays open and shows the new members with the new count, and the "N members" chip and balances behind it update. The sheet starts empty each time it opens.
   - **Rules:** any member can add people (4.2). A person already in the group cannot be added twice ("Priya Shah is already in this group.", for example when another member added them meanwhile); a person who left earlier can be added back. If adding fails, "Couldn't add the member. Please try again." is shown and the ticks stay. Adding counts as activity in the group, so it moves to the top of the home list. A member added without an email cannot be shared the group through Drive until an email is added (4.2).
   - Sheets that open over another one push it up (about 180 px), as Ant Design does by default; the app does not switch this off.
-- **Action pills** under the band, above the balance: a row that scrolls sideways when it does not fit: for now only **Settle up**, which opens the settle-up page (5.7). It is switched off in a group of one, with the tip "You are the only member of this group."
+- **Action pills** under the band, above the balance: a row that scrolls sideways when it does not fit: **Settle up**, which opens the settle-up page (5.7), and **Totals** beside it, which opens the totals page (5.20). It is switched off in a group of one, with the tip "You are the only member of this group."
 - **Balance line** under the action pills: one sentence per other person and currency that is not settled, "Priya owes you ₹14,517.50" (amount in bold green) or "You owe Priya ₹500.00" (amount in bold orange-red), people A to Z and then currencies A to Z. "You're all settled up" when nothing is owed either way.
 - **Expense list:** the group's expenses as described in 5.5. With none, the message "No expenses yet" and "Expenses you add will appear here." with its illustration, centered vertically in a box that runs from the actions ("Settle up") down to 16 px above the floating "Add expense" button.
 - **Add expense:** a floating green pill button at the bottom right of the content. It opens the add-expense page (5.5).
@@ -467,6 +467,20 @@ _Built October 2026 (branch `back-closes-overlays`)._ A bottom sheet, side panel
 - **Forward:** the browser's Forward onto a closed overlay's step reopens nothing and stays on the page.
 - **Motion:** closing by Back plays the overlay's own close animation and no page slide (5.15).
 
+### 5.20 Group totals
+_Built October 2026 (branch `group-totals`)._ Route `/groups/<id>/totals`, opened by a **Totals** pill beside Settle up on the group page (5.4). It shows what the group has spent, and how that splits between its members as shares and as payments.
+- **The pill:** a white pill with round ends like Settle up, with a bar-chart icon and the word "Totals". It works in a group of one member (one slice, 100%). It is switched off with the tip "No expenses yet" while the group has no expense that counts (below).
+- **Header:** like Settle up (5.7): the Back arrow (to the group) and the quiet "TOTALS" heading, then the group's icon and name. No colored band. The tab title is "Totals · OwnLedger".
+- **What counts:** every live expense of the group, **all time**, in one currency at a time. Payments between members (5.7) and deleted expenses are left out: a payment moves money, it is not spending. Amounts are never converted (4.5).
+- **Currency:** a dropdown under the header, shown only when the counted expenses are in more than one currency. It lists those currencies, the group's default first (when it has expenses, else A to Z), the way the currency picker writes them ("USD – US Dollar ($)"). The first one is chosen at the start.
+- **Total spent:** the heading "Total spent" and the sum of the counted expenses in the chosen currency as a large amount ("$500.00").
+- **Shares:** under the heading "Shares", a donut of what each member owes (their shares in the counted expenses). The hole holds the label "Shares" and the total. Under it is a list with one row per member: avatar, name ("You" for the user), amount and percent of the total ("Omkar  $300.00  60%", percent a whole number, so the rows may not add up to exactly 100%). Every member of the group has a row, also with "$0.00" and "0%" and no slice; a person who is no longer a member but has an amount has a row too.
+- **Individual contribution:** under that heading, the same for what each member paid; the hole holds "Paid" and the total.
+- **Order and colors:** the slices and rows are largest amount first, ties by name, each donut on its own. Each member has one color from a small fixed palette (the user first, then the others A to Z), the same in both donuts and in the lists.
+- **On a phone:** the list under each donut is the text version of the chart, so the numbers never depend on a tap; tapping a slice also shows its name and amount in a tooltip. Each row's color dot is 16 px.
+- **Loading and errors:** the usual page states (5.13, "Load errors"): "Loading the totals…", "Couldn't load the totals" with Try again and a Back arrow, and "Group not found" for a group that does not exist, was deleted or that the user is not in. Like the other pages it is remembered when the user comes back (5.14) and slides in and out (5.15).
+- **Not decided yet:** other periods (a month picker, chips), totals by category and per month, a person's own totals across groups, and highlighting a slice from its row (open questions).
+
 ## 6. Open questions
 - Google Cloud setup: the OAuth client ID is not created yet (Drive API, consent screen in Testing mode, authorized origins, test users).
 - Member removal: what happens to a removed member's access and local data (a person who left can already be added back, 5.4).
@@ -479,7 +493,7 @@ _Built October 2026 (branch `back-closes-overlays`)._ A bottom sheet, side panel
 - Several payers for one expense ("Multiple people" is switched off for now).
 - Settle up: suggesting the amount and the person from the balance, editing or deleting a payment (with expenses, below), and simplifying debts across three or more people.
 - Budget details (personal vs group, alerts).
-- Charts library.
+- Charts: periods other than all time (a month picker or chips), totals by category and per month, personal totals, and highlighting a slice from its row.
 - Receipt cleanup rules for deleted expenses, and an optional compression setting.
 - Group ownership transfer / export if the folder owner leaves.
 - App lock or PIN.
