@@ -198,22 +198,22 @@ export const CATEGORY_GROUPS = [
  */
 export const CATEGORY_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
   'entertainment.games': ['playstation', 'xbox', 'steam', 'gaming'],
-  'entertainment.movies': ['cinema', 'pvr', 'inox', 'film'],
+  'entertainment.movies': ['cinema', 'pvr', 'inox', 'film', 'movie', 'multiplex', 'imax', 'matinee', 'popcorn'],
   'entertainment.music': ['spotify', 'gaana', 'jiosaavn', 'apple music'],
-  'entertainment.streaming': ['netflix', 'prime video', 'hotstar', 'jiocinema', 'disney', 'sonyliv', 'zee5', 'youtube premium', 'ott', 'subscription'],
+  'entertainment.streaming': ['netflix', 'prime video', 'hotstar', 'jiocinema', 'disney', 'sonyliv', 'zee5', 'youtube premium', 'youtube', 'ott'],
   'entertainment.hobbies': ['painting', 'drawing', 'craft', 'pottery', 'guitar', 'instrument', 'photography'],
-  'entertainment.events': ['concert', 'bookmyshow', 'theatre', 'ticket', 'show', 'festival'],
-  'entertainment.apps': ['app store', 'play store', 'google one', 'icloud', 'software', 'subscription'],
-  'food.dining_out': ['restaurant', 'cafe', 'lunch', 'dinner', 'breakfast'],
+  'entertainment.events': ['concert', 'bookmyshow', 'theatre', 'ticket', 'show', 'festival', 'match', 'tickets', 'comedy', 'gig'],
+  'entertainment.apps': ['app store', 'play store', 'google one', 'icloud', 'software', 'app subscription', 'google photo', 'google photos'],
+  'food.dining_out': ['restaurant', 'cafe', 'lunch', 'dinner', 'breakfast', 'meal', 'brunch', 'eating out', 'biryani', 'pizza', 'burger', 'thali', 'dhaba', 'buffet', 'dine'],
   'food.delivery': ['swiggy', 'zomato', 'eatsure', 'uber eats', 'takeaway', 'online order'],
-  'food.groceries': ['bigbasket', 'blinkit', 'zepto', 'instamart', 'dmart', 'kirana', 'supermarket', 'daily needs'],
+  'food.groceries': ['bigbasket', 'blinkit', 'zepto', 'instamart', 'dmart', 'kirana', 'supermarket', 'daily needs', 'grocery', 'supermarket', 'provisions'],
   'food.vegetables': ['sabzi', 'fruits', 'veggies', 'market'],
   'food.dairy': ['milk', 'curd', 'paneer', 'amul', 'mother dairy', 'eggs', 'butter'],
   'food.meat_fish': ['chicken', 'mutton', 'fish', 'seafood', 'eggs'],
-  'food.coffee_snacks': ['tea', 'chai', 'starbucks', 'bakery', 'ice cream', 'snacks'],
-  'food.liquor': ['beer', 'wine', 'whisky', 'bar', 'alcohol'],
-  'health.doctor': ['clinic', 'consultation', 'physician', 'specialist', 'practo'],
-  'health.medicines': ['pharmacy', 'chemist', 'apollo', '1mg', 'pharmeasy', 'netmeds', 'medplus', 'tablets'],
+  'food.coffee_snacks': ['tea', 'chai', 'starbucks', 'bakery', 'ice cream', 'snacks', 'coffee', 'juice', 'chaat', 'samosa', 'matcha', 'milkshake', 'shake', 'cake', 'cheesecake', 'dessert', 'sweets', 'mithai', 'chocolate', 'cookies', 'brownie'],
+  'food.liquor': ['beer', 'wine', 'whisky', 'bar', 'alcohol', 'pub', 'brewery', 'drinks'],
+  'health.doctor': ['clinic', 'consultation', 'physician', 'specialist', 'practo', 'doctor', 'appointment'],
+  'health.medicines': ['pharmacy', 'chemist', 'apollo', '1mg', 'pharmeasy', 'netmeds', 'medplus', 'tablets', 'medicine', 'medicines'],
   'health.tests': ['lab', 'blood test', 'scan', 'mri', 'x-ray', 'pathology', 'thyrocare'],
   'life.medical': ['hospital', 'surgery', 'treatment', 'admission'],
   'health.dental_eye': ['dentist', 'glasses', 'lens', 'spectacles', 'optician'],
@@ -223,11 +223,11 @@ export const CATEGORY_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
   'health.wellness': ['massage', 'meditation', 'ayurveda', 'therapy', 'counselling'],
   'home.appliances': ['fridge', 'washing machine', 'ac', 'air conditioner', 'mixer', 'microwave', 'geyser'],
   'home.decor': ['curtains', 'paint', 'art', 'wallpaper', 'furnishing'],
-  'home.domestic_help': ['maid', 'cook', 'driver', 'nanny', 'servant', 'bai'],
+  'home.domestic_help': ['maid', 'cook', 'driver', 'nanny', 'servant', 'bai', 'cleaning maid', 'house help', 'housemaid', 'house maid'],
   'home.electronics': ['tv', 'speaker', 'camera'],
   'home.garden': ['plants', 'gardener', 'pots', 'seeds'],
   'home.pets': ['dog', 'cat', 'vet', 'pet food'],
-  'home.rent': ['landlord', 'lease', 'deposit'],
+  'home.rent': ['landlord', 'lease', 'deposit', 'rent', 'house rent'],
   'home.society': ['maintenance charges', 'association', 'rwa', 'apartment', 'sinking fund'],
   'investments.fd': ['fixed deposit', 'term deposit', 'bank deposit', 'fd'],
   'investments.rd': ['recurring deposit', 'rd'],
@@ -268,24 +268,25 @@ export const CATEGORY_KEYWORDS: Readonly<Record<string, readonly string[]>> = {
   'shopping.jewellery': ['gold', 'silver', 'diamond', 'ring', 'necklace', 'tanishq', 'earrings'],
   'shopping.books': ['kindle', 'magazines', 'novel', 'newspaper', 'library'],
   'shopping.toys': ['lego', 'hamleys', 'kids', 'doll'],
-  'shopping.gadgets': ['phone', 'laptop', 'headphones', 'mobile', 'charger', 'smartwatch'],
+  'shopping.gadgets': ['phone', 'laptop', 'headphones', 'mobile', 'charger', 'smartwatch', 'selfie stick', 'tripod', 'power bank', 'earbuds'],
   'shopping.stationery': ['pens', 'notebook', 'printing', 'office'],
   'life.clothing': ['shirt', 'dress', 'jeans', 'myntra', 'zara', 'tailor', 'saree'],
   'life.gifts': ['present', 'birthday', 'wedding', 'anniversary'],
   'transport.bus_train': ['auto', 'rickshaw', 'irctc', 'metro', 'redbus', 'ticket'],
   'transport.car': ['car wash', 'accessories'],
   'transport.fines': ['challan', 'traffic fine', 'penalty'],
-  'transport.fuel': ['petrol', 'diesel', 'cng', 'ev charging'],
+  'transport.fuel': ['petrol', 'diesel', 'cng', 'ev charging', 'gas station', 'refuel'],
   'transport.hotel': ['stay', 'oyo', 'airbnb', 'booking', 'resort', 'hostel'],
   'transport.plane': ['flight', 'airfare', 'indigo', 'makemytrip', 'airline'],
-  'transport.taxi': ['uber', 'ola', 'rapido', 'cab', 'meru', 'bluesmart'],
+  'transport.taxi': ['uber', 'ola', 'rapido', 'cab', 'meru', 'bluesmart', 'taxi', 'ride', 'auto fare'],
   'transport.toll': ['fastag', 'highway'],
   'transport.vehicle_service': ['garage', 'mechanic', 'puncture', 'tyre', 'servicing', 'repair'],
   'utilities.broadband': ['wifi', 'airtel xstream', 'jiofiber', 'act fibernet'],
   'utilities.dth': ['tata play', 'dish tv', 'cable', 'set top box'],
-  'utilities.electricity': ['light bill', 'power', 'bescom', 'msedcl'],
+  'utilities.electricity': ['light bill', 'power', 'bescom', 'msedcl', 'electricity', 'electric'],
   'utilities.lpg': ['gas cylinder', 'indane', 'bharat gas', 'hp gas'],
-  'utilities.mobile': ['recharge', 'jio', 'airtel', 'vi', 'postpaid', 'prepaid', 'sim'],
+  'utilities.mobile': ['recharge', 'jio', 'airtel', 'vi', 'postpaid', 'prepaid', 'sim', 'mobile bill', 'phone bill'],
+  'home.supplies': ['utensils', 'detergent', 'dishwasher', 'garbage bag', 'bin bag', 'toilet paper', 'tissue', 'soap', 'broom', 'mop'],
   'utilities.tv_phone_internet': ['internet', 'phone', 'tv'],
 }
 
@@ -300,6 +301,9 @@ export const DEFAULT_CATEGORY = 'general'
 
 /** How many recently used currencies the currency picker lists first. */
 export const RECENT_CURRENCY_COUNT = 3
+
+/** How many of the user's latest expenses the add-expense form learns categories from (PRD 5.5). */
+export const PAST_CHOICES_LIMIT = 500
 
 /** How many expenses the group page reads at a time (ADR-058). */
 export const EXPENSE_PAGE_SIZE = 30

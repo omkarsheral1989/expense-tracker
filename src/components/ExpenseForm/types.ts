@@ -17,6 +17,8 @@ export type FormValues = {
   description: string
   /** A category key such as 'food.dining_out'. */
   category: string
+  /** Whether the user picked the category themselves: the description then no longer picks it (PRD 5.5). */
+  categoryChosen?: boolean
   /**
    * The amount as typed, cleaned to digits and one "." ('1234.5'); the field
    * shows it with separators. Empty until the user types.

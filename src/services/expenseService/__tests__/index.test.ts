@@ -525,6 +525,40 @@ describe('recentCurrencies', () => {
   })
 })
 
+describe('pastCategoryChoices', () => {
+  it("lists the user's own expenses' descriptions and categories, newest first, from every group", async () => {
+    const first = await createGroup(omkar)
+    const second = await createGroup(omkar)
+    await addTestExpense(db, omkar.email, first, { description: 'Rapido', category: 'transport.taxi' })
+    await addTestExpense(db, omkar.email, second, { description: 'Netflix', category: 'entertainment.streaming' })
+
+    const choices = await expenseService.pastCategoryChoices(db, await personIdForEmail(omkar.email))
+
+    expect(choices).toEqual([
+      { description: 'Netflix', category: 'entertainment.streaming' },
+      { description: 'Rapido', category: 'transport.taxi' },
+    ])
+  })
+
+  it("leaves out other members' expenses, payments, deleted expenses and those left as General", async () => {
+    const groupId = await createGroup(omkar, [priya.email])
+    const you = await personIdForEmail(omkar.email)
+    await addTestExpense(db, priya.email, groupId, { description: "Priya's", category: 'food.dining_out' })
+    await addTestExpense(db, omkar.email, groupId, { description: 'Nothing chosen', category: 'general' })
+    await addTestSettlement(db, omkar.email, priya.email, groupId)
+    const deleted = await addTestExpense(db, omkar.email, groupId, { description: 'Deleted', category: 'food.dining_out' })
+    await expenseService.deleteExpense(db, you, groupId, deleted)
+    await addTestExpense(db, omkar.email, groupId, { description: 'Kept', category: 'food.dining_out' })
+
+    expect(await expenseService.pastCategoryChoices(db, you)).toEqual([{ description: 'Kept', category: 'food.dining_out' }])
+  })
+
+  it('is empty for someone with no expenses', async () => {
+    await createGroup(omkar)
+    expect(await expenseService.pastCategoryChoices(db, await personIdForEmail(omkar.email))).toEqual([])
+  })
+})
+
 describe('groupBalances', () => {
   it('is empty with no expenses, and for an unknown user', async () => {
     const groupId = await createGroup(omkar, ['priya@gmail.com'])

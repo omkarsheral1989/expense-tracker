@@ -17,6 +17,7 @@ export function carriedOver(draft: ExpenseDraft, defaults: FormValues, group: Gr
     ...defaults,
     description: draft.description,
     category: draft.category,
+    categoryChosen: draft.categoryChosen,
     amount: moneyService.convertInput(draft.amount, currency),
     currency,
     date: draft.date,

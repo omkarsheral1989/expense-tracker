@@ -12,7 +12,7 @@ import { dateService } from '../../../../services/dateService'
 import { accountService } from '../../../../services/accountService'
 import type { AccountSummary, PaymentMethodInput } from '../../../../services/accountService/types.ts'
 import { expenseService } from '../../../../services/expenseService'
-import type { CreateExpenseInput } from '../../../../services/expenseService/types.ts'
+import type { CreateExpenseInput, PastCategoryChoice } from '../../../../services/expenseService/types.ts'
 import type { GroupDetails, GroupSummary } from '../../../../services/groupService/types.ts'
 import type { ExpenseDraft } from './types.ts'
 import { carriedOver } from './utils.ts'
@@ -25,6 +25,8 @@ type Props = {
   userId: string
   /** The currencies of the user's latest expenses, most recent first. */
   recentCurrencies: string[]
+  /** What the user chose before, for picking a category from the description (PRD 5.5). */
+  pastChoices: PastCategoryChoice[]
   /** The user's accounts, for the payment method. */
   accounts: AccountSummary[]
   /** Every group of the user, for moving the expense to another one. */
@@ -38,7 +40,7 @@ type Props = {
  * user paid, split equally) or the fields carried over from another group,
  * and a switcher to move the expense to another group.
  */
-export function AddExpenseForm({ group, datasetId, userId, recentCurrencies, accounts, groups, draft }: Props) {
+export function AddExpenseForm({ group, datasetId, userId, recentCurrencies, pastChoices, accounts, groups, draft }: Props) {
   const navigate = useAppNavigate()
   const queryClient = useQueryClient()
 
@@ -68,6 +70,7 @@ export function AddExpenseForm({ group, datasetId, userId, recentCurrencies, acc
     const carried: ExpenseDraft = {
       description: values.description,
       category: values.category,
+      categoryChosen: values.categoryChosen,
       amount: values.amount,
       currency: values.currency,
       date: values.date,
@@ -106,6 +109,7 @@ export function AddExpenseForm({ group, datasetId, userId, recentCurrencies, acc
       datasetId={datasetId}
       recentCurrencies={recentCurrencies}
       accounts={accounts}
+      pastChoices={pastChoices}
       heading="Add expense"
       initialValues={initialValues}
       startValues={startValues}

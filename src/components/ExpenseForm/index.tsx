@@ -7,7 +7,8 @@ import { useLeaveWarning } from '../../hooks/useLeaveWarning'
 import { accountService } from '../../services/accountService'
 import type { AccountSummary, PaymentMethodInput } from '../../services/accountService/types.ts'
 import { currencyService } from '../../services/currencyService'
-import type { CreateExpenseErrors, CreateExpenseInput } from '../../services/expenseService/types.ts'
+import { expenseService } from '../../services/expenseService'
+import type { CreateExpenseErrors, CreateExpenseInput, PastCategoryChoice } from '../../services/expenseService/types.ts'
 import type { GroupDetails } from '../../services/groupService/types.ts'
 import { moneyService } from '../../services/moneyService'
 import { photoService } from '../../services/photoService'
@@ -47,6 +48,11 @@ type Props = {
   recentCurrencies: string[]
   /** The user's accounts, for the payment method (PRD 4.10); with none the field is left out. */
   accounts: AccountSummary[]
+  /**
+   * What the user chose before; given only when adding. The description then picks the category as it is typed,
+   * until the user picks one themselves (PRD 5.5). Leave out to never pick it.
+   */
+  pastChoices?: PastCategoryChoice[]
   /** The heading, and the title of the browser tab before " · OwnLedger": "Add expense" or "Edit expense". */
   heading: string
   /** What the form has when nothing was entered: leaving asks for confirmation once the form differs from it. */
@@ -80,6 +86,7 @@ export function ExpenseForm({
   datasetId,
   recentCurrencies,
   accounts,
+  pastChoices,
   heading,
   initialValues,
   startValues: carriedValues,
@@ -204,6 +211,15 @@ export function ExpenseForm({
     // The amount keeps to the decimals of the new currency.
     if (changed.currency) {
       form.setFieldValue('amount', moneyService.convertInput(all.amount, changed.currency))
+    }
+
+    // The category follows the description until the user picks one: a similar past choice, else the keywords.
+    // Nothing that fits leaves it as it is; clearing the description puts the default back.
+    if (changed.category !== undefined) {
+      form.setFieldValue('categoryChosen', true)
+    } else if (pastChoices && changed.description !== undefined && !all.categoryChosen) {
+      const suggestion = changed.description.trim() ? expenseService.suggestCategory(changed.description, pastChoices) : expenseService.defaultCategory
+      if (suggestion) form.setFieldValue('category', suggestion)
     }
 
     // The payment method is only for the user's own payments: it starts again if someone else pays and the user takes over.
@@ -335,6 +351,7 @@ export function ExpenseForm({
         </Form.Item>
         {/* Registered, so that the photos the expense already has reach `handleFinish` with the rest of the values. */}
         <Form.Item name="keptReceipts" hidden noStyle />
+        <Form.Item name="categoryChosen" hidden noStyle />
         <Form.Item name="receipts" style={{ marginBottom: 0 }}>
           <ReceiptsField
             stored={keptReceipts}
