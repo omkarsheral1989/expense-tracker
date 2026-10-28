@@ -1,11 +1,4 @@
-import {
-  DisconnectOutlined,
-  EyeInvisibleOutlined,
-  GithubOutlined,
-  KeyOutlined,
-  ShareAltOutlined,
-  StopOutlined,
-} from '@ant-design/icons'
+import { Icon } from '../../../../components/Icon'
 import { Typography } from 'antd'
 import type { ReactNode } from 'react'
 import { REPO_URL } from '../../constants.ts'
@@ -16,32 +9,32 @@ export type PrivacyPoint = { icon: ReactNode; title: string; text: ReactNode }
 
 export const PRIVACY: PrivacyPoint[] = [
   {
-    icon: <DisconnectOutlined />,
+    icon: <Icon name="unlink" />,
     title: 'Offline first',
     text: 'Everything is stored on your device. The app works without a connection.',
   },
   {
-    icon: <StopOutlined />,
+    icon: <Icon name="ban" />,
     title: 'No OwnLedger servers',
     text: 'There is no backend that stores your expenses.',
   },
   {
-    icon: <EyeInvisibleOutlined />,
+    icon: <Icon name="eyeOff" />,
     title: 'Privacy first',
     text: 'No ads and no tracking.',
   },
   {
-    icon: <KeyOutlined />,
+    icon: <Icon name="key" />,
     title: 'You own your data',
     text: 'Back it up to your own Google Drive, export it to CSV, or delete it any time.',
   },
   {
-    icon: <ShareAltOutlined />,
+    icon: <Icon name="share" />,
     title: 'Shared on your terms',
     text: 'Group data is shared through your own Google Drive folder, only with the people you add.',
   },
   {
-    icon: <GithubOutlined />,
+    icon: <Icon name="github" />,
     title: 'Open source',
     text: (
       <>

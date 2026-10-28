@@ -13,4 +13,12 @@ describe('GroupTypeSelector', () => {
       expect(screen.getByRole('img', { name: label }).querySelector('[data-vt="block"]')).not.toBeNull()
     }
   })
+
+  it('draws the icons on the 40 px tiles at 24 px', () => {
+    render(<GroupTypeSelector value="trip" />)
+
+    for (const label of ['Trip', 'Home', 'Couple', 'Other']) {
+      expect(screen.getByRole('img', { name: label })).toHaveStyle({ width: '40px', fontSize: '24px' })
+    }
+  })
 })

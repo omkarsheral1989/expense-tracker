@@ -1,4 +1,4 @@
-import { DownloadOutlined, ExclamationCircleFilled } from '@ant-design/icons'
+import { Icon } from '../../../../components/Icon'
 import { Button, Card, Flex, Steps, theme, Typography } from 'antd'
 import { useColorScheme } from '../../../../hooks/useColorScheme'
 import type { Platform } from '../../../../pwa/platform.ts'
@@ -64,15 +64,10 @@ export function InstallCard({
   // A warning while the install is required, a plain cue when optional.
   function renderIcon() {
     return gated ? (
-      <ExclamationCircleFilled
-        aria-label="Action needed"
-        style={{ color: WARNING_ICON_COLOR[scheme], fontSize: 24 }}
-      />
+      <Icon name="warningCircle" label="Action needed"
+        style={{ color: WARNING_ICON_COLOR[scheme], fontSize: 24 }} />
     ) : (
-      <DownloadOutlined
-        aria-hidden="true"
-        style={{ color: token.colorPrimary, fontSize: 24 }}
-      />
+      <Icon name="download" style={{ color: token.colorPrimary, fontSize: 24 }} />
     )
   }
 
@@ -120,7 +115,7 @@ export function InstallCard({
           <Button
             type="primary"
             size="large"
-            icon={<DownloadOutlined />}
+            icon={<Icon name="download" />}
             onClick={onInstall}
           >
             Install app

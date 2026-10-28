@@ -1,4 +1,4 @@
-import { BankOutlined, CheckOutlined, CreditCardOutlined, PlusOutlined } from '@ant-design/icons'
+import { Icon } from '../../Icon'
 import { Button, Card, Flex, theme, Typography } from 'antd'
 import { useState, type ReactNode } from 'react'
 import { currencyService } from '../../../services/currencyService'
@@ -27,7 +27,7 @@ type Props = {
 
 /** The icon of a kind of account. */
 function KindIcon({ kind }: { kind?: AccountKind }) {
-  return kind === 'bank' ? <BankOutlined /> : <CreditCardOutlined />
+  return kind === 'bank' ? <Icon name="bank" /> : <Icon name="creditCard" />
 }
 
 /**
@@ -72,7 +72,7 @@ export function PaymentMethodField({ id, value, onChange, accounts, userId }: Pr
         <Flex vertical gap={12}>
           <Flex align="center" justify="space-between" gap={12}>
             <div style={{ flex: 1, minWidth: 0 }}>{heading}</div>
-            {selected && <CheckOutlined aria-hidden style={{ fontSize: ICON_ONLY_SIZE, color: token.colorPrimary }} />}
+            {selected && <Icon name="check" style={{ fontSize: ICON_ONLY_SIZE, color: token.colorPrimary }} />}
           </Flex>
           {stats}
         </Flex>
@@ -108,7 +108,7 @@ export function PaymentMethodField({ id, value, onChange, accounts, userId }: Pr
           )}
           <Button
             block
-            icon={<PlusOutlined />}
+            icon={<Icon name="plus" />}
             onClick={() => {
               setOpenings((count) => count + 1)
               setAdding(true)

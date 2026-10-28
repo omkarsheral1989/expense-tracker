@@ -64,7 +64,7 @@ describe('the Totals pill (PRD 5.20)', () => {
     expect(totals()).toBeEnabled()
     expect(totals()).toHaveStyle({ borderRadius: '999px' })
     expect(totals()).toHaveClass('ant-btn-default')
-    expect(totals().querySelector('[aria-label="bar-chart"]')).not.toBeNull()
+    expect(totals().querySelector('.tabler-icon-chart-bar')).not.toBeNull()
     expect(settleUp().compareDocumentPosition(totals()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 

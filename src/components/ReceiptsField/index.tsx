@@ -1,4 +1,4 @@
-import { CameraOutlined } from '@ant-design/icons'
+import { Icon } from '../Icon'
 import { App, Button, Flex, Tooltip } from 'antd'
 import { useRef, type ChangeEvent } from 'react'
 import { MAX_RECEIPTS_PER_EXPENSE } from '../../db/constants.ts'
@@ -74,7 +74,7 @@ export function ReceiptsField({ id, value = [], onChange, stored = [], onStoredC
     <Button
       id={id}
       size="large"
-      icon={<CameraOutlined />}
+      icon={<Icon name="camera" />}
       aria-label="Add receipt photos"
       disabled={full}
       onClick={() => chooser.current?.click()}

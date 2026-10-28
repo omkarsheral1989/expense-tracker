@@ -291,16 +291,25 @@ describe('AddExpensePage', () => {
       expect(groups).toEqual([
         'Entertainment',
         'Food and drink',
+        'Health and personal care',
         'Home',
+        'Investments',
         'Life',
+        'Loans and debt',
+        'Shopping',
         'Transportation',
-        'Uncategorized',
         'Utilities',
+        'Uncategorized',
       ])
       const food = within(within(dialog).getByRole('group', { name: 'Food and drink' })).getAllByRole('button')
       expect(food.map((button) => button.getAttribute('aria-label'))).toEqual([
         'Dining out',
+        'Food delivery',
         'Groceries',
+        'Vegetables and fruit',
+        'Dairy and milk',
+        'Meat and fish',
+        'Coffee and snacks',
         'Liquor',
         'Food and drink: Other',
       ])
@@ -317,6 +326,90 @@ describe('AddExpensePage', () => {
 
       await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Choose a category' })).not.toBeInTheDocument())
       expect(screen.getByRole('button', { name: 'Category: Food and drink: Other' })).toBeInTheDocument()
+    })
+
+    it('draws the chosen category\'s icon at 24 px on the button, and the ones in the picker at 18 px', async () => {
+      const id = await createGroup()
+      renderForm(id)
+      const button = await screen.findByRole('button', { name: /^Category: / })
+      expect(within(button).getByRole('img', { name: 'General' })).toHaveStyle({ width: '40px', fontSize: '24px' })
+
+      const dialog = await openCategories()
+      expect(within(dialog).getByRole('img', { name: 'Groceries' })).toHaveStyle({ width: '32px', fontSize: '18px' })
+    })
+
+    describe('searching', () => {
+      const search = (dialog: HTMLElement, text: string) => user.type(within(dialog).getByRole('textbox', { name: 'Search categories' }), text)
+      const labelsIn = (dialog: HTMLElement) => within(dialog).getAllByRole('button').map((button) => button.getAttribute('aria-label') ?? button.textContent)
+
+      it('finds a category by a brand, under its group, and leaves out the groups with no match', async () => {
+        const id = await createGroup()
+        renderForm(id)
+        const dialog = await openCategories()
+
+        await search(dialog, 'swiggy')
+
+        expect(within(dialog).getAllByRole('group').map((group) => group.getAttribute('aria-label'))).toEqual(['Food and drink'])
+        expect(within(within(dialog).getByRole('group', { name: 'Food and drink' })).getAllByRole('button').map((button) => button.getAttribute('aria-label'))).toEqual(['Food delivery'])
+      })
+
+      it('needs every word, ignores case and finds PPF and a home loan', async () => {
+        const id = await createGroup()
+        renderForm(id)
+        const dialog = await openCategories()
+
+        await search(dialog, 'PPF')
+        expect(within(dialog).getByRole('button', { name: 'PPF' })).toBeInTheDocument()
+        expect(within(dialog).getAllByRole('group').map((group) => group.getAttribute('aria-label'))).toEqual(['Investments'])
+
+        await user.clear(within(dialog).getByRole('textbox', { name: 'Search categories' }))
+        await search(dialog, 'home loan')
+        expect(within(dialog).getByRole('button', { name: 'Home loan' })).toBeInTheDocument()
+        expect(within(dialog).queryByRole('button', { name: 'Rent' })).not.toBeInTheDocument()
+      })
+
+      it('says so when nothing matches, and lists everything again when the search is cleared', async () => {
+        const id = await createGroup()
+        renderForm(id)
+        const dialog = await openCategories()
+        const everything = labelsIn(dialog).length
+
+        await search(dialog, 'zzzz')
+        expect(within(dialog).getByText('No matching category.')).toBeInTheDocument()
+        expect(within(dialog).queryAllByRole('group')).toHaveLength(0)
+
+        await user.clear(within(dialog).getByRole('textbox', { name: 'Search categories' }))
+        expect(within(dialog).queryByText('No matching category.')).not.toBeInTheDocument()
+        expect(labelsIn(dialog)).toHaveLength(everything)
+      })
+
+      it('starts empty again when the picker is closed without picking', async () => {
+        const id = await createGroup()
+        renderForm(id)
+        const dialog = await openCategories()
+        await search(dialog, 'netflix')
+
+        await user.click(within(dialog).getByRole('button', { name: 'Close' }))
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Choose a category' })).not.toBeInTheDocument())
+
+        const again = await openCategories()
+        expect(within(again).getByRole('textbox', { name: 'Search categories' })).toHaveValue('')
+      })
+
+      it('picks a category from the results, and shows the whole list again when the picker is opened next', async () => {
+        const id = await createGroup()
+        renderForm(id)
+        const dialog = await openCategories()
+        await search(dialog, 'netflix')
+
+        await user.click(within(dialog).getByRole('button', { name: 'Streaming and OTT' }))
+
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Choose a category' })).not.toBeInTheDocument())
+        expect(screen.getByRole('button', { name: 'Category: Streaming and OTT' })).toBeInTheDocument()
+        const again = await openCategories()
+        expect(within(again).getByRole('textbox', { name: 'Search categories' })).toHaveValue('')
+        expect(within(again).getAllByRole('group').length).toBeGreaterThan(1)
+      })
     })
   })
 

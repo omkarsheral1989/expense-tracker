@@ -327,7 +327,7 @@ describe('AddExpensePage', () => {
         'the category is changed',
         async () => {
           await user.click(screen.getByRole('button', { name: /^Category: / }))
-          await user.click(within(await screen.findByRole('dialog', { name: 'Choose a category' })).getByRole('button', { name: 'Taxi' }))
+          await user.click(within(await screen.findByRole('dialog', { name: 'Choose a category' })).getByRole('button', { name: 'Taxi and ride-hailing' }))
         },
       ],
     ])('asks "Discard this expense?" once %s', async (_, change) => {

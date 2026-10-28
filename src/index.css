@@ -32,8 +32,31 @@ body {
 body .ant-drawer-close .anticon,
 body .ant-modal-close .anticon,
 body .ant-input-prefix .anticon,
+body .ant-input-prefix .tabler-icon,
 body .ant-dropdown-menu .ant-dropdown-menu-item .ant-dropdown-menu-item-icon {
   font-size: 18px;
+}
+
+/* The app's own icons (ADR-066): they sit on the text's line like Ant Design's, and one that is working turns. */
+.tabler-icon {
+  flex: none;
+  vertical-align: -0.125em;
+}
+
+.icon-spin {
+  animation: icon-spin 1s linear infinite;
+}
+
+@keyframes icon-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .icon-spin {
+    animation-duration: 3s;
+  }
 }
 
 /* The group type options that are not chosen sit on a faint white tile; the chosen one is Ant Design's own white card. */

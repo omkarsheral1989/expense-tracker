@@ -1,4 +1,4 @@
-import { DeleteOutlined, EditOutlined, UndoOutlined } from '@ant-design/icons'
+import { Icon } from '../../../../components/Icon'
 import { useQueryClient } from '@tanstack/react-query'
 import { App, Flex } from 'antd'
 import { refreshGroupPage } from '../../../group/utils.ts'
@@ -95,17 +95,17 @@ export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props)
   // A deleted expense has Restore where a live one has Edit and Delete.
   function renderActions() {
     if (expense.deleted) {
-      return <BandIconButton icon={<UndoOutlined />} label="Restore" loading={restoring} onClick={handleRestore} />
+      return <BandIconButton icon={<Icon name="undo" />} label="Restore" loading={restoring} onClick={handleRestore} />
     }
     return (
       <>
         {/* A payment between members has no edit form yet, so its button is switched off. */}
         <BandIconButton
-          icon={<EditOutlined />}
+          icon={<Icon name="pencil" />}
           label="Edit"
           onClick={isSettlement ? undefined : () => navigate(ROUTES.editExpense(expense.groupId, expense.id))}
         />
-        <BandIconButton icon={<DeleteOutlined />} label="Delete" onClick={confirmDelete} />
+        <BandIconButton icon={<Icon name="trash" />} label="Delete" onClick={confirmDelete} />
       </>
     )
   }

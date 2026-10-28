@@ -1,4 +1,4 @@
-import { CreditCardOutlined, LogoutOutlined, TeamOutlined } from '@ant-design/icons'
+import { Icon } from '../Icon'
 import { Button, Dropdown, Flex, Typography, theme } from 'antd'
 import { useAppNavigate } from '../../hooks/useAppNavigate'
 import { useUnreadActivity } from '../../hooks/useUnreadActivity'
@@ -67,19 +67,19 @@ export function AppHeader() {
             activityMenuItem(unread, navigate),
             {
               key: 'members',
-              icon: <TeamOutlined />,
+              icon: <Icon name="users" />,
               label: 'Group members',
               onClick: () => navigate(ROUTES.members),
             },
             {
               key: 'accounts',
-              icon: <CreditCardOutlined />,
+              icon: <Icon name="creditCard" />,
               label: 'Accounts',
               onClick: () => navigate(ROUTES.accounts),
             },
             {
               key: 'sign-out',
-              icon: <LogoutOutlined />,
+              icon: <Icon name="logout" />,
               label: 'Sign out',
               onClick: signOut,
             },

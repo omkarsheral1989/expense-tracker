@@ -1,4 +1,4 @@
-import { LeftOutlined, RightOutlined } from '@ant-design/icons'
+import { Icon } from '../../Icon'
 import { Button, Flex, Select } from 'antd'
 import { useEffect, useRef, useState, type TouchEvent } from 'react'
 import { DayPicker } from 'react-day-picker'
@@ -70,7 +70,7 @@ export function MonthCalendar({ selected, onSelect }: Props) {
     const years = Array.from({ length: YEARS_EACH_SIDE * 2 + 1 }, (_, index) => shown.getFullYear() - YEARS_EACH_SIDE + index)
     return (
       <Flex gap={8} align="center" style={{ paddingBottom: 12 }}>
-        <Button icon={<LeftOutlined />} aria-label="Previous month" onClick={() => moveMonths(-1)} />
+        <Button icon={<Icon name="chevronLeft" />} aria-label="Previous month" onClick={() => moveMonths(-1)} />
         <Select
           aria-label="Year"
           value={shown.getFullYear()}
@@ -85,7 +85,7 @@ export function MonthCalendar({ selected, onSelect }: Props) {
           onChange={(month) => setShown(new Date(shown.getFullYear(), month, 1))}
           style={{ flex: 1 }}
         />
-        <Button icon={<RightOutlined />} aria-label="Next month" onClick={() => moveMonths(1)} />
+        <Button icon={<Icon name="chevronRight" />} aria-label="Next month" onClick={() => moveMonths(1)} />
       </Flex>
     )
   }

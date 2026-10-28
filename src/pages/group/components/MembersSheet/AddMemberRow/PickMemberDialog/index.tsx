@@ -1,4 +1,4 @@
-import { CheckOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons'
+import { Icon } from '../../../../../../components/Icon'
 import { Button, Flex, Input, theme, Typography } from 'antd'
 import { useState } from 'react'
 import { AdaptiveDialog } from '../../../../../../components/AdaptiveDialog'
@@ -90,7 +90,7 @@ export function PickMemberDialog({ open, onClose, people, loading, onAdd, adding
             )}
           </Flex>
         </Flex>
-        {isTicked && <CheckOutlined style={{ marginInlineStart: 'auto', color: token.colorPrimary, fontSize: ICON_ONLY_SIZE }} />}
+        {isTicked && <Icon name="check" style={{ marginInlineStart: 'auto', color: token.colorPrimary, fontSize: ICON_ONLY_SIZE }} />}
       </Button>
     )
   }
@@ -129,7 +129,7 @@ export function PickMemberDialog({ open, onClose, people, loading, onAdd, adding
         <Input
           aria-label="Search people"
           placeholder="Search people"
-          prefix={<SearchOutlined />}
+          prefix={<Icon name="search" />}
           allowClear
           value={search}
           onChange={(event) => setSearch(event.target.value)}
@@ -137,7 +137,7 @@ export function PickMemberDialog({ open, onClose, people, loading, onAdd, adding
         <Flex vertical role="list" aria-label="People you know">
           {renderPeople()}
         </Flex>
-        <Button block icon={<PlusOutlined />} onClick={() => setNewPersonOpen(true)} style={{ marginTop: 8, borderRadius: PILL_RADIUS }}>
+        <Button block icon={<Icon name="plus" />} onClick={() => setNewPersonOpen(true)} style={{ marginTop: 8, borderRadius: PILL_RADIUS }}>
           Add a new member
         </Button>
       </Flex>

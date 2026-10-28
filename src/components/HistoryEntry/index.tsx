@@ -1,4 +1,4 @@
-import { RightOutlined } from '@ant-design/icons'
+import { Icon } from '../Icon'
 import { Flex, Typography } from 'antd'
 import { AppLink } from '../AppLink'
 import { dateService } from '../../services/dateService'
@@ -54,7 +54,7 @@ export function HistoryEntry({ header, at, lines = [], to }: Props) {
       {to ? (
         <AppLink to={to} style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'inherit' }}>
           {content}
-          <RightOutlined aria-hidden style={{ flex: 'none', fontSize: 12, opacity: 0.45 }} />
+          <Icon name="chevronRight" style={{ flex: 'none', fontSize: 12, opacity: 0.45 }} />
         </AppLink>
       ) : (
         content

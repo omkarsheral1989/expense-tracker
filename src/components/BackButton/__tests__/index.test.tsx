@@ -12,7 +12,7 @@ describe('BackButton', () => {
     render(<BackButton onClick={onClick} />)
 
     const button = screen.getByRole('button', { name: 'Back' })
-    expect(button.querySelector('[data-icon="arrow-left"]')).not.toBeNull()
+    expect(button.querySelector('.tabler-icon-arrow-left')).not.toBeNull()
     expect(onClick).not.toHaveBeenCalled()
     await userEvent.click(button)
     expect(onClick).toHaveBeenCalledTimes(1)

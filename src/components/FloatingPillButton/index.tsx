@@ -1,4 +1,4 @@
-import { PlusOutlined } from '@ant-design/icons'
+import { Icon } from '../Icon'
 import { Button } from 'antd'
 import type { ReactNode } from 'react'
 import { PILL_RADIUS } from '../../theme/radius.ts'
@@ -52,7 +52,7 @@ export function FloatingPillButton({ children, onClick }: Props) {
       >
         {/* The plus and the label, one piece that fades out while the pill grows into Create group's page. */}
         <span data-vt="pillLabel" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-          <PlusOutlined />
+          <Icon name="plus" />
           {children}
         </span>
       </Button>

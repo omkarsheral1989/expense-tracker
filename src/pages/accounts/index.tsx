@@ -1,4 +1,4 @@
-import { PlusOutlined } from '@ant-design/icons'
+import { Icon } from '../../components/Icon'
 import { Button, Empty, Flex, Result, Typography } from 'antd'
 import { useState } from 'react'
 import { BackButton } from '../../components/BackButton'
@@ -95,7 +95,7 @@ export function AccountsPage() {
 
   function renderAddButton(marginTop: number) {
     return (
-      <Button icon={<PlusOutlined />} onClick={() => openDialog(null)} style={{ marginTop, borderRadius: PILL_RADIUS }}>
+      <Button icon={<Icon name="plus" />} onClick={() => openDialog(null)} style={{ marginTop, borderRadius: PILL_RADIUS }}>
         Add account
       </Button>
     )

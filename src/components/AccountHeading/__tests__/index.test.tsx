@@ -21,8 +21,14 @@ describe('AccountHeading', () => {
   it('says "Credit card" for a card, with the card icon', () => {
     render(<AccountHeading account={{ kind: 'card', name: 'HDFC Regalia', currency: 'INR' }} />)
 
-    expect(screen.getByRole('img', { name: 'Credit card' }).querySelector('[data-icon="credit-card"]')).not.toBeNull()
+    expect(screen.getByRole('img', { name: 'Credit card' }).querySelector('.tabler-icon-credit-card')).not.toBeNull()
     expect(screen.getByText('₹ · Credit card')).toBeInTheDocument()
+  })
+
+  it('draws the icon on its 40 px tile at 24 px', () => {
+    render(<AccountHeading account={{ kind: 'bank', name: 'Barclays Savings', currency: 'GBP' }} />)
+
+    expect(screen.getByRole('img', { name: 'Bank account' })).toHaveStyle({ width: '40px', fontSize: '24px' })
   })
 
   it('writes a currency no symbol tells apart as its code', () => {

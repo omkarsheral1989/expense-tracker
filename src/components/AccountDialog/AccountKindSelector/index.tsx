@@ -28,7 +28,7 @@ export function AccountKindSelector({ id, value, onChange, disabled }: Props) {
         value: kind,
         label: (
           <div style={{ padding: '8px 0' }}>
-            <AccountKindIcon kind={kind} size={CONTROL_HEIGHT} withLabel />
+            <AccountKindIcon kind={kind} size={CONTROL_HEIGHT} iconSize={24} withLabel />
           </div>
         ),
       }))}

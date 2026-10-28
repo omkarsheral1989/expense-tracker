@@ -1,4 +1,4 @@
-import { PlusOutlined } from '@ant-design/icons'
+import { Icon } from '../../components/Icon'
 import { Button, Flex, Result, Typography } from 'antd'
 import { useState } from 'react'
 import { useAppNavigate } from '../../hooks/useAppNavigate'
@@ -79,7 +79,7 @@ export function MembersPage() {
             No members yet.
           </Text>
         )}
-        <Button icon={<PlusOutlined />} onClick={() => setAdding(true)} style={{ marginTop: 16, borderRadius: PILL_RADIUS }}>
+        <Button icon={<Icon name="plus" />} onClick={() => setAdding(true)} style={{ marginTop: 16, borderRadius: PILL_RADIUS }}>
           Add member
         </Button>
       </>

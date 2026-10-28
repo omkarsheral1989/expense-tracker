@@ -1,4 +1,4 @@
-import { UndoOutlined } from '@ant-design/icons'
+import { Icon } from '../../../../components/Icon'
 import { App, Button, Divider, Flex, Typography } from 'antd'
 import { useState } from 'react'
 import { useLocation } from 'react-router'
@@ -74,7 +74,7 @@ export function VersionDetails({ data, datasetId, userId, onChanged }: Props) {
   function renderAction() {
     if (data.isPayment || data.isCurrent || data.expenseDeleted) return null
     return (
-      <Button icon={<UndoOutlined />} style={{ borderRadius: PILL_RADIUS }} loading={restoring} onClick={handleRestore}>
+      <Button icon={<Icon name="undo" />} style={{ borderRadius: PILL_RADIUS }} loading={restoring} onClick={handleRestore}>
         Restore this version
       </Button>
     )

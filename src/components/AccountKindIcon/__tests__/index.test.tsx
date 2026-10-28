@@ -11,7 +11,7 @@ describe('AccountKindIcon', () => {
     render(<AccountKindIcon kind="bank" />)
 
     const tile = screen.getByRole('img', { name: 'Bank account' })
-    expect(tile.querySelector('[data-icon="bank"]')).not.toBeNull()
+    expect(tile.querySelector('.tabler-icon-building-bank')).not.toBeNull()
     expect(tile).toHaveStyle({ background: ACCOUNT_KIND_COLORS.bank, color: 'rgb(255, 255, 255)' })
   })
 
@@ -19,7 +19,7 @@ describe('AccountKindIcon', () => {
     render(<AccountKindIcon kind="card" />)
 
     const tile = screen.getByRole('img', { name: 'Credit card' })
-    expect(tile.querySelector('[data-icon="credit-card"]')).not.toBeNull()
+    expect(tile.querySelector('.tabler-icon-credit-card')).not.toBeNull()
     expect(tile).toHaveStyle({ background: ACCOUNT_KIND_COLORS.card })
   })
 
@@ -30,6 +30,14 @@ describe('AccountKindIcon', () => {
 
     render(<AccountKindIcon kind="bank" size={72} />)
     expect(screen.getByRole('img', { name: 'Bank account' })).toHaveStyle({ width: '72px', height: '72px', fontSize: '36px' })
+  })
+
+  it('takes the size of its icon apart from the tile\'s, and draws it at that size', () => {
+    render(<AccountKindIcon kind="card" iconSize={24} />)
+
+    const tile = screen.getByRole('img', { name: 'Credit card' })
+    expect(tile).toHaveStyle({ width: '40px', fontSize: '24px' })
+    expect(tile.querySelector('svg')).toHaveAttribute('width', '1em')
   })
 
   it('writes the kind under the tile only when asked', () => {

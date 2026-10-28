@@ -127,7 +127,7 @@ describe('EditExpensePage', () => {
       const group = screen.getByRole('button', { name: 'Group: Goa trip' })
       expect(group).toBeDisabled()
       expect(group).toHaveClass('ant-btn-block')
-      expect(group.querySelector('[data-icon="down"]')).not.toBeNull()
+      expect(group.querySelector('.tabler-icon-chevron-down')).not.toBeNull()
       // An expense cannot move to another group, so there is no menu.
       expect(screen.queryByRole('button', { name: /Choose another group/ })).not.toBeInTheDocument()
     })
@@ -327,7 +327,7 @@ describe('EditExpensePage', () => {
       ['the description', async () => user.type(descriptionInput(), '!')],
       ['the amount', async () => { await user.clear(amountInput()); await user.type(amountInput(), '10') }],
       ['the notes', async () => user.type(notesInput(), '!')],
-      ['the category', async () => { await user.click(screen.getByRole('button', { name: /^Category: / })); await user.click(within(await screen.findByRole('dialog', { name: 'Choose a category' })).getByRole('button', { name: 'Taxi' })) }],
+      ['the category', async () => { await user.click(screen.getByRole('button', { name: /^Category: / })); await user.click(within(await screen.findByRole('dialog', { name: 'Choose a category' })).getByRole('button', { name: 'Taxi and ride-hailing' })) }],
     ])('asks "Discard your changes?" once %s is changed', async (_, change) => {
       const id = await createGroup()
       const expenseId = await addExpense(id)

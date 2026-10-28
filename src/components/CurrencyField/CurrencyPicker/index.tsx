@@ -1,4 +1,4 @@
-import { CheckOutlined, SearchOutlined } from '@ant-design/icons'
+import { Icon } from '../../Icon'
 import { Button, Empty, Flex, Input, Typography } from 'antd'
 import { useState } from 'react'
 import { AdaptiveDialog } from '../../AdaptiveDialog'
@@ -50,7 +50,7 @@ export function CurrencyPicker({ open, onClose, value, recentCodes, onPick }: Pr
         style={{ justifyContent: 'space-between', height: 'auto', padding: '8px 12px' }}
       >
         <span style={{ whiteSpace: 'normal', textAlign: 'start' }}>{option.label}</span>
-        {selected && <CheckOutlined aria-hidden style={{ fontSize: ICON_ONLY_SIZE }} />}
+        {selected && <Icon name="check" style={{ fontSize: ICON_ONLY_SIZE }} />}
       </Button>
     )
   }
@@ -92,7 +92,7 @@ export function CurrencyPicker({ open, onClose, value, recentCodes, onPick }: Pr
       <Flex vertical gap={16}>
         <Input
           allowClear
-          prefix={<SearchOutlined aria-hidden />}
+          prefix={<Icon name="search" />}
           placeholder="Search by code or name"
           aria-label="Search currencies"
           value={query}

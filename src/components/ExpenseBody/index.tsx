@@ -1,4 +1,4 @@
-import { BankOutlined, CreditCardOutlined } from '@ant-design/icons'
+import { Icon } from '../Icon'
 import { Avatar, Divider, Flex, Typography } from 'antd'
 import type { SplitMethod } from '../../db/types.ts'
 import { accountService } from '../../services/accountService'
@@ -77,12 +77,12 @@ export function ExpenseBody({
   function renderSummary() {
     return (
       <Flex align="flex-start" gap={16}>
-        <CategoryIcon category={category} size={48} />
+        <CategoryIcon category={category} size={40} iconSize={24} />
         <Flex vertical style={{ minWidth: 0 }}>
+          <Text style={{ fontSize: 28, fontWeight: 600, lineHeight: '40px' }}>{moneyService.format(amountMinor, currency)}</Text>
           <Title level={3} style={{ margin: 0, overflowWrap: 'anywhere' }}>
             {expenseService.titleOf({ category, description, shares })}
           </Title>
-          <Text style={{ fontSize: 28, fontWeight: 600 }}>{moneyService.format(amountMinor, currency)}</Text>
           <Text type="secondary">
             {categoryOf.label === 'Other' ? `${categoryOf.groupLabel}: Other` : categoryOf.label} ·{' '}
             {dateService.formatDay(date, dateService.toDay(new Date()))}
@@ -130,7 +130,7 @@ export function ExpenseBody({
         <Avatar
           size={40}
           style={{ flex: 'none', background: ACCOUNT_KIND_COLORS[paymentMethod.accountKind] }}
-          icon={paymentMethod.accountKind === 'bank' ? <BankOutlined /> : <CreditCardOutlined />}
+          icon={paymentMethod.accountKind === 'bank' ? <Icon name="bank" /> : <Icon name="creditCard" />}
         />
         <Flex vertical style={{ minWidth: 0 }}>
           <Text style={{ overflowWrap: 'anywhere' }}>

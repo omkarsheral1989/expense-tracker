@@ -1,4 +1,4 @@
-import { ArrowLeftOutlined, CalendarOutlined } from '@ant-design/icons'
+import { Icon } from '../../../../../components/Icon'
 import { Flex, Typography } from 'antd'
 import type { ReactNode } from 'react'
 import { useLocation } from 'react-router'
@@ -61,7 +61,7 @@ export function ExpenseBand({ expense, title, actions, onEdit, travels }: Props)
     return (
       <Flex align="center" justify="space-between" data-vt={vt('header')}>
         <Flex align="center" gap={8} style={{ minWidth: 0 }}>
-          <BandIconButton icon={<ArrowLeftOutlined />} label="Back" onClick={() => navigate(backPath, { direction: 'back' })} />
+          <BandIconButton icon={<Icon name="arrowLeft" />} label="Back" onClick={() => navigate(backPath, { direction: 'back' })} />
           {/* Still a heading, but quieter than the expense's own title below it. */}
           <Title level={3} style={{ ...HEADER_TITLE_STYLE, color: '#fff' }}>
             {title}
@@ -110,7 +110,7 @@ export function ExpenseBand({ expense, title, actions, onEdit, travels }: Props)
     return (
       // Both chips come in from the right when the expense opens from the group's list (PRD 5.16).
       <Flex wrap gap={8} data-vt={vt('chips')}>
-        <BandChip icon={<CalendarOutlined />} onClick={onEdit}>
+        <BandChip icon={<Icon name="calendar" />} onClick={onEdit}>
           {dateService.formatDay(expense.date, dateService.toDay(new Date()))}
         </BandChip>
         <BandChip icon={CATEGORY_ICONS[category.key]} onClick={onEdit}>

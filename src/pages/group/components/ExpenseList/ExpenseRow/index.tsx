@@ -1,4 +1,4 @@
-import { DeleteOutlined, SwapOutlined } from '@ant-design/icons'
+import { Icon } from '../../../../../components/Icon'
 import { Flex, theme, Typography } from 'antd'
 import type { ReactNode } from 'react'
 import { AppLink } from '../../../../../components/AppLink'
@@ -147,7 +147,7 @@ export function ExpenseRow({ expense, groupId, soloGroup = false }: Props) {
   function renderExpense() {
     return (
       <>
-        <CategoryIcon category={expense.category} size={40} travels />
+        <CategoryIcon category={expense.category} size={40} iconSize={24} travels />
         <Flex vertical style={{ flex: 1, minWidth: 0 }}>
           <Text strong data-vt="name" style={{ overflowWrap: 'anywhere', width: 'fit-content', maxWidth: '100%' }}>
             {expense.description}
@@ -160,14 +160,14 @@ export function ExpenseRow({ expense, groupId, soloGroup = false }: Props) {
   }
 
   function renderBody() {
-    if (expense.deleted) return renderLine(<DeleteOutlined />, 'Deleted', token.colorTextTertiary, deletedText(expense.deleted))
+    if (expense.deleted) return renderLine(<Icon name="trash" />, 'Deleted', token.colorTextTertiary, deletedText(expense.deleted))
     if (settlementSentence) {
       const sentence = (
         <>
           {settlementSentence} {travellingAmount}
         </>
       )
-      return renderLine(<SwapOutlined />, 'Settlement', CATEGORY_GROUP_COLORS.settlement, sentence, true)
+      return renderLine(<Icon name="exchange" />, 'Settlement', CATEGORY_GROUP_COLORS.settlement, sentence, true)
     }
     return renderExpense()
   }

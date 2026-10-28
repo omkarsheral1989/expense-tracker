@@ -20,7 +20,7 @@ export function AccountHeading({ account }: Props) {
 
   return (
     <Flex align="center" gap={12} style={{ minWidth: 0 }}>
-      <AccountKindIcon kind={account.kind} />
+      <AccountKindIcon kind={account.kind} iconSize={24} />
       <Flex vertical flex={1} style={{ minWidth: 0 }}>
         <Text strong ellipsis style={{ lineHeight: '20px' }}>
           {account.name}

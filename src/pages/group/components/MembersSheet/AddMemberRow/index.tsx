@@ -1,4 +1,4 @@
-import { PlusOutlined } from '@ant-design/icons'
+import { Icon } from '../../../../../components/Icon'
 import { App, Button } from 'antd'
 import { useState } from 'react'
 import { getDb } from '../../../../../db/client.ts'
@@ -65,7 +65,7 @@ export function AddMemberRow({ groupId, userId, memberIds, onAdded }: Props) {
 
   return (
     <>
-      <Button block icon={<PlusOutlined />} onClick={openPicker} style={{ marginTop: 16, borderRadius: PILL_RADIUS }}>
+      <Button block icon={<Icon name="plus" />} onClick={openPicker} style={{ marginTop: 16, borderRadius: PILL_RADIUS }}>
         Add member
       </Button>
       <PickMemberDialog

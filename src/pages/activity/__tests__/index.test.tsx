@@ -148,7 +148,7 @@ describe('the Activity page', () => {
     await screen.findByRole('list', { name: 'Activity' })
     for (const row of rows()) {
       const tile = row.querySelector('div[role="img"]') as HTMLElement
-      expect(tile).toHaveStyle({ width: '40px', height: '40px' })
+      expect(tile).toHaveStyle({ width: '40px', height: '40px', fontSize: '24px' })
       const badge = tile.parentElement!.querySelector('.ant-avatar') as HTMLElement
       expect(badge).toHaveStyle({ width: '20px', height: '20px', position: 'absolute', right: '-4px', bottom: '-4px' })
     }

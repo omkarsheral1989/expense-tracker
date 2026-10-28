@@ -1,4 +1,4 @@
-import { DownOutlined } from '@ant-design/icons'
+import { Icon } from '../Icon'
 import { Button, Dropdown } from 'antd'
 import { GroupLabel } from '../GroupLabel'
 import { GROUP_TYPE_CONTENT } from '../GroupTypeIcon/content.tsx'
@@ -49,7 +49,7 @@ export function GroupSwitcher(props: Props) {
           <span style={{ display: 'flex', fontSize: ICON_ONLY_SIZE }}>{icon}</span>
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{group.name}</span>
         </span>
-        <DownOutlined aria-hidden style={{ fontSize: 12 }} />
+        <Icon name="chevronDown" style={{ fontSize: 12 }} />
       </Button>
     )
   }

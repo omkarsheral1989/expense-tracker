@@ -1,4 +1,4 @@
-import { BarChartOutlined } from '@ant-design/icons'
+import { Icon } from '../../../../components/Icon'
 import { Button, Flex, Tooltip } from 'antd'
 import { useAppNavigate } from '../../../../hooks/useAppNavigate'
 import { ROUTES } from '../../../../routes.ts'
@@ -48,7 +48,7 @@ export function ActionPills({ groupId, group, canSettle, loading = false, canTot
   const totals = (
     <Button
       disabled={!canTotal || loading}
-      icon={<BarChartOutlined />}
+      icon={<Icon name="chartBar" />}
       onClick={() => navigate(ROUTES.totals(groupId), { state: group && { group } })}
       style={{ borderRadius: PILL_RADIUS }}
     >

@@ -1,4 +1,4 @@
-import { ArrowLeftOutlined } from '@ant-design/icons'
+import { Icon } from '../Icon'
 import { Button } from 'antd'
 
 type Props = {
@@ -12,5 +12,5 @@ type Props = {
  * the header's controls read as one family.
  */
 export function BackButton({ onClick }: Props) {
-  return <Button shape="circle" icon={<ArrowLeftOutlined />} aria-label="Back" onClick={onClick} />
+  return <Button shape="circle" icon={<Icon name="arrowLeft" />} aria-label="Back" onClick={onClick} />
 }

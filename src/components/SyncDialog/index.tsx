@@ -1,4 +1,4 @@
-import { CheckCircleFilled, ClockCircleOutlined, CloseCircleFilled, LoadingOutlined } from '@ant-design/icons'
+import { Icon } from '../Icon'
 import { App, Button, Flex, Typography, theme } from 'antd'
 import { getDb } from '../../db/client.ts'
 import { useAppNavigate } from '../../hooks/useAppNavigate'
@@ -85,10 +85,10 @@ export function SyncDialog() {
   }
 
   function renderIcon(step: SyncStep) {
-    if (step.status === 'running') return <LoadingOutlined style={{ color: token.colorPrimary }} />
-    if (step.status === 'done') return <CheckCircleFilled style={{ color: token.colorSuccess }} />
-    if (step.status === 'waiting') return <ClockCircleOutlined style={{ color: token.colorTextSecondary }} />
-    return <CloseCircleFilled style={{ color: token.colorError }} />
+    if (step.status === 'running') return <Icon name="loading" style={{ color: token.colorPrimary }} />
+    if (step.status === 'done') return <Icon name="checkCircle" style={{ color: token.colorSuccess }} />
+    if (step.status === 'waiting') return <Icon name="clock" style={{ color: token.colorTextSecondary }} />
+    return <Icon name="closeCircle" style={{ color: token.colorError }} />
   }
 
   function renderStep(step: SyncStep) {

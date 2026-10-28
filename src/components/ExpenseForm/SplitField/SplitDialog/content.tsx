@@ -1,10 +1,4 @@
-import {
-  CalculatorOutlined,
-  PercentageOutlined,
-  PieChartOutlined,
-  PlusCircleOutlined,
-  TeamOutlined,
-} from '@ant-design/icons'
+import { Icon } from '../../../Icon'
 import type { ReactNode } from 'react'
 import type { SplitMethod } from '../../../../db/types.ts'
 
@@ -23,30 +17,30 @@ export const SPLIT_TAB_CONTENT: Record<SplitMethod, TabContent> = {
     tab: 'Equally',
     heading: 'Split equally',
     hint: 'Tick who shares it. Untick anyone it was not for.',
-    icon: <TeamOutlined />,
+    icon: <Icon name="users" />,
   },
   exact: {
     tab: 'Amounts',
     heading: 'Split by exact amounts',
     hint: 'Enter how much each person owes. Together they must make the total.',
-    icon: <CalculatorOutlined />,
+    icon: <Icon name="calculator" />,
   },
   percent: {
     tab: 'Percent',
     heading: 'Split by percentages',
     hint: 'Enter each person\'s share in whole percent. Together they must make 100%.',
-    icon: <PercentageOutlined />,
+    icon: <Icon name="percentage" />,
   },
   shares: {
     tab: 'Shares',
     heading: 'Split by shares',
     hint: 'Give each person a number of shares, for example 2 for a couple and 1 for one person.',
-    icon: <PieChartOutlined />,
+    icon: <Icon name="chartPie" />,
   },
   adjustment: {
     tab: 'Adjust',
     heading: 'Split by adjustment',
     hint: 'Enter anything extra a person owes. The rest is split equally between everyone.',
-    icon: <PlusCircleOutlined />,
+    icon: <Icon name="plusCircle" />,
   },
 }

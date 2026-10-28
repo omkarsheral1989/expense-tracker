@@ -9,6 +9,8 @@ type Props = {
   type: GroupType
   /** Width and height of the tile in pixels. */
   size?: number
+  /** Size of the icon on the tile in pixels; half the tile when left out. */
+  iconSize?: number
   /** Also write the name of the type ("Trip") under the tile. */
   withLabel?: boolean
   /**
@@ -19,9 +21,9 @@ type Props = {
 }
 
 /** The colored tile with the icon that stands for a kind of group. */
-export function GroupTypeIcon({ type, size = 40, withLabel = false, travels }: Props) {
+export function GroupTypeIcon({ type, size = 40, iconSize = size * 0.5, withLabel = false, travels }: Props) {
   const { label, icon, color } = GROUP_TYPE_CONTENT[type]
-  const box = { flex: 'none', width: size, height: size, borderRadius: RADIUS.inner, fontSize: size * 0.5, color: '#fff' } as const
+  const box = { flex: 'none', width: size, height: size, borderRadius: RADIUS.inner, fontSize: iconSize, color: '#fff' } as const
 
   function renderTile() {
     if (!travels) {

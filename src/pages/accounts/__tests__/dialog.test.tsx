@@ -77,6 +77,13 @@ describe('the Add account dialog', () => {
     expect(tiles[0]).toHaveClass('ant-segmented-item-selected')
   })
 
+  it('draws the icons of the two type tiles at 24 px', async () => {
+    const dialog = await openAdd()
+
+    expect(within(dialog).getByRole('img', { name: 'Bank account' })).toHaveStyle({ width: '40px', fontSize: '24px' })
+    expect(within(dialog).getByRole('img', { name: 'Credit card' })).toHaveStyle({ width: '40px', fontSize: '24px' })
+  })
+
   it('keeps the card options folded away, and out of reach, for a bank account', async () => {
     const dialog = await openAdd()
 

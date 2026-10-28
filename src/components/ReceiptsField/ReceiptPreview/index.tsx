@@ -1,4 +1,4 @@
-import { CloseOutlined } from '@ant-design/icons'
+import { Icon } from '../../Icon'
 import { Button } from 'antd'
 import { useObjectUrl } from '../../../hooks/useObjectUrl'
 import { RADIUS } from '../../../theme/radius.ts'
@@ -30,7 +30,7 @@ export function ReceiptPreview({ file, number, onRemove }: Props) {
       <Button
         size="small"
         shape="circle"
-        icon={<CloseOutlined />}
+        icon={<Icon name="close" />}
         aria-label={`Remove receipt photo ${number}`}
         onClick={onRemove}
         // A small badge on the corner of the photo, not a control of its own: it

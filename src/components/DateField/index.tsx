@@ -1,4 +1,4 @@
-import { CalendarOutlined } from '@ant-design/icons'
+import { Icon } from '../Icon'
 import { Button } from 'antd'
 import { useState } from 'react'
 import { AdaptiveDialog } from '../AdaptiveDialog'
@@ -28,7 +28,7 @@ export function DateField({ id, value = dateService.toDay(new Date()), onChange 
       <Button
         id={id}
         block
-        icon={<CalendarOutlined />}
+        icon={<Icon name="calendar" />}
         aria-label={`Date: ${shown}`}
         onClick={() => setOpen(true)}
         // Looks like the text boxes around it: full width, the text at the start.

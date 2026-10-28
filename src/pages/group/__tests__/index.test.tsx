@@ -505,7 +505,9 @@ describe('GroupPage', () => {
       // Each tile is in the color of its category's group (on the square block its rounded frame clips, which travels, PRD 5.16).
       const colorOf = (label: string) => screen.getByRole('img', { name: label }).querySelector('[data-vt="block"]')
       expect(colorOf('Dining out')).toHaveStyle({ background: 'rgb(232, 89, 12)' })
-      expect(colorOf('Taxi')).toHaveStyle({ background: 'rgb(25, 113, 194)' })
+      expect(colorOf('Taxi and ride-hailing')).toHaveStyle({ background: 'rgb(25, 113, 194)' })
+      // The icon on each 40 px tile is 24 px.
+      expect(screen.getByRole('img', { name: 'Dining out' })).toHaveStyle({ width: '40px', fontSize: '24px' })
       expect(screen.queryByText('No expenses yet')).not.toBeInTheDocument()
     })
 

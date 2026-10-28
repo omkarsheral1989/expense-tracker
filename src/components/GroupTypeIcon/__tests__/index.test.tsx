@@ -14,14 +14,23 @@ describe('GroupTypeIcon', () => {
   })
 
   it.each([
-    ['trip', 'car'],
+    ['trip', 'plane'],
     ['home', 'home'],
     ['couple', 'heart'],
-    ['other', 'appstore'],
+    ['other', 'category'],
   ] as const)('shows the %s type with the %s icon', (type, icon) => {
     const { container } = render(<GroupTypeIcon type={type} />)
 
-    expect(container.querySelector(`[data-icon="${icon}"]`)).not.toBeNull()
+    expect(container.querySelector(`.tabler-icon-${icon}`)).not.toBeNull()
+  })
+
+  it('draws its icon at half the tile unless told another size', () => {
+    const { unmount } = render(<GroupTypeIcon type="home" size={48} />)
+    expect(screen.getByRole('img', { name: 'Home' })).toHaveStyle({ fontSize: '24px' })
+    unmount()
+
+    render(<GroupTypeIcon type="home" size={48} iconSize={30} />)
+    expect(screen.getByRole('img', { name: 'Home' })).toHaveStyle({ fontSize: '30px' })
   })
 
   it('is one rounded, colored tile when it does not travel', () => {
@@ -40,6 +49,6 @@ describe('GroupTypeIcon', () => {
     const block = frame.querySelector<HTMLElement>('[data-vt="block"]')
     expect(block).toHaveStyle({ background: 'rgb(8, 145, 178)' })
     expect(block?.style.borderRadius).toBe('')
-    expect(block?.querySelector('[data-vt="icon"] [data-icon="car"]')).not.toBeNull()
+    expect(block?.querySelector('[data-vt="icon"] .tabler-icon-plane')).not.toBeNull()
   })
 })

@@ -1,4 +1,4 @@
-import { CheckOutlined } from '@ant-design/icons'
+import { Icon } from '../../../Icon'
 import { Button, Divider, Flex } from 'antd'
 import { AdaptiveDialog } from '../../../AdaptiveDialog'
 import type { SplitValue } from '../../types.ts'
@@ -31,7 +31,7 @@ export function QuickChoiceDialog({ open, onClose, choices, value, onPick, onMor
         style={{ justifyContent: 'space-between', height: 'auto', padding: '10px 12px' }}
       >
         <span style={{ whiteSpace: 'normal', textAlign: 'start' }}>{choice.label}</span>
-        {selected && <CheckOutlined aria-hidden style={{ fontSize: ICON_ONLY_SIZE }} />}
+        {selected && <Icon name="check" style={{ fontSize: ICON_ONLY_SIZE }} />}
       </Button>
     )
   }

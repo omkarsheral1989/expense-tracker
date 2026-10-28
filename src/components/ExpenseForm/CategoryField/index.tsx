@@ -35,7 +35,7 @@ export function CategoryField({ id, value = expenseService.defaultCategory, onCh
         onClick={() => setOpen(true)}
         style={{ width: 'auto', height: 'auto', padding: 0, border: 0 }}
       >
-        <CategoryIcon category={value} size={CONTROL_HEIGHT} />
+        <CategoryIcon category={value} size={CONTROL_HEIGHT} iconSize={24} />
       </Button>
       <CategoryPicker
         open={open}

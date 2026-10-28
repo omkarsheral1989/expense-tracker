@@ -157,7 +157,7 @@ describe('groups in a full Sync', () => {
 
     expect(await syncAll()).toContain('FlatWaiting for Priya to sync this group first.')
     const line = screen.getAllByRole('listitem').find((item) => item.textContent?.startsWith('Flat'))!
-    expect(line.querySelector('.anticon-clock-circle')).not.toBeNull()
+    expect(line.querySelector('.tabler-icon-clock')).not.toBeNull()
   })
 
   it('brings in a group someone shared, as a new group', async () => {

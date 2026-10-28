@@ -1,4 +1,4 @@
-import { DeleteOutlined, EditOutlined, UndoOutlined } from '@ant-design/icons'
+import { Icon } from '../../../../components/Icon'
 import { Flex } from 'antd'
 import { BandIconButton } from '../../../../components/BandIconButton'
 import { LoadingMessage } from '../../../../components/LoadingMessage'
@@ -31,11 +31,11 @@ export function KnownExpensePage({ expense }: Props) {
   }
 
   function renderActions() {
-    if (expense.deleted) return <BandIconButton icon={<UndoOutlined />} label="Restore" disabled />
+    if (expense.deleted) return <BandIconButton icon={<Icon name="undo" />} label="Restore" disabled />
     return (
       <>
-        <BandIconButton icon={<EditOutlined />} label="Edit" disabled />
-        <BandIconButton icon={<DeleteOutlined />} label="Delete" disabled />
+        <BandIconButton icon={<Icon name="pencil" />} label="Edit" disabled />
+        <BandIconButton icon={<Icon name="trash" />} label="Delete" disabled />
       </>
     )
   }
