@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNull, max, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, isNull, max, ne, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import { displayName } from '../groupService/utils.ts'
 import type { Database } from '../../db/client.ts'
@@ -19,6 +19,7 @@ import type { ExpenseChange, ExpenseEventKind, ExpenseSnapshot } from '../../db/
 import {
   CATEGORY_GROUPS,
   DEFAULT_CATEGORY,
+  PAST_CHOICES_LIMIT,
   RECENT_CURRENCY_COUNT,
   SETTLEMENT_CATEGORY,
   SETTLEMENT_DESCRIPTION,
@@ -39,6 +40,7 @@ import type {
   ExpenseListItem,
   ExpensePayer,
   ExpenseToEdit,
+  PastCategoryChoice,
   PersonBalance,
   ExpenseVersion,
   RestoreExpenseResult,
@@ -59,6 +61,7 @@ import {
   settlementSentence,
   titleOf,
 } from './utils.ts'
+import { suggestCategory } from './suggest.ts'
 import { historyEntryOf, peopleReferredBy } from './history.ts'
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -84,6 +87,12 @@ const expenseServiceBase = {
 
   /** The category with this key; an unknown key reads as the default one. */
   categoryOf,
+
+  /**
+   * The category to pick for a description typed in the add-expense form:
+   * what the user chose before for a similar one, else the keywords. Null when nothing fits.
+   */
+  suggestCategory,
 
   /** Whether a category fits the picker's search (label, group or keyword). */
   categoryMatches,
@@ -971,6 +980,27 @@ const expenseServiceBase = {
       ;(balances[row.groupId] ??= []).push({ currency: row.currency, amountMinor: row.amountMinor })
     }
     return balances
+  },
+
+  /**
+   * The descriptions and categories of the user's own latest expenses, newest
+   * first, for suggesting a category (PRD 5.5). Left out: payments, deleted
+   * expenses and those left in the default category (the user chose nothing).
+   */
+  async pastCategoryChoices(db: Database, userId: string): Promise<PastCategoryChoice[]> {
+    return db
+      .select({ description: expenses.description, category: expenses.category })
+      .from(expenses)
+      .where(
+        and(
+          eq(expenses.createdBy, userId),
+          isNull(expenses.deletedAt),
+          ne(expenses.category, SETTLEMENT_CATEGORY),
+          ne(expenses.category, DEFAULT_CATEGORY),
+        ),
+      )
+      .orderBy(desc(expenses.createdAt), desc(expenses.id))
+      .limit(PAST_CHOICES_LIMIT)
   },
 
   /**

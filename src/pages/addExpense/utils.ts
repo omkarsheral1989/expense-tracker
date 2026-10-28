@@ -17,6 +17,7 @@ export async function loadAddExpense(userId: string, groupId: string) {
   return {
     group,
     recentCurrencies: await expenseService.recentCurrencies(db, userId),
+    pastChoices: await expenseService.pastCategoryChoices(db, userId),
     accounts: await accountService.listAccounts(db, userId),
     groups: await groupService.listGroups(db, userId),
   }

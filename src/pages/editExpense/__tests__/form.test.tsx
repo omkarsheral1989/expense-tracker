@@ -377,3 +377,30 @@ describe('EditExpensePage', () => {
     })
   })
 })
+
+describe('EditExpensePage: the category', () => {
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date(2026, 9, 20, 12, 0))
+    useAuthStore.setState({ profile: me, token: null })
+  })
+  afterEach(() => {
+    cleanup()
+    vi.useRealTimers()
+    vi.restoreAllMocks()
+    vi.mocked(getDb).mockClear()
+  })
+
+  it('is not picked from the description when it is changed (only Add expense does that)', async () => {
+    const user = userEvent.setup()
+    const groupId = await createGroup()
+    const expenseId = await addExpense(groupId, { description: 'Beach shack dinner', category: 'food.dining_out' })
+    renderEdit(groupId, expenseId)
+    await screen.findByRole('heading', { name: 'Edit expense' })
+
+    await user.clear(descriptionInput())
+    await user.type(descriptionInput(), 'Netflix')
+
+    expect(screen.getByRole('button', { name: /^Category: / })).toHaveAccessibleName('Category: Dining out')
+  })
+})

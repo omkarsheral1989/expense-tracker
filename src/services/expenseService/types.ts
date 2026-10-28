@@ -119,6 +119,9 @@ export type ExpenseListItem = {
 }
 
 /** Where the next batch of a group's list starts (ADR-058): the last row's date, creation time (as stored) and id. */
+/** A category the user chose for a description before: what the add-expense form learns from (PRD 5.5). */
+export type PastCategoryChoice = { description: string; category: string }
+
 export type ExpenseCursor = { date: string; createdAt: string; id: string }
 
 /** One batch of a group's list, and the cursor of the batch after it (null when there is none). */
