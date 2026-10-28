@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-_Last updated: 2026-10-27_. Each entry: context, decision, alternatives rejected, consequences. Update an entry (or add a new one) whenever a decision changes.
+_Last updated: 2026-10-28_. Each entry: context, decision, alternatives rejected, consequences. Update an entry (or add a new one) whenever a decision changes.
 
 ## ADR-001: React + Vite, client-only (no Next.js)
 - **Context:** The app stores everything locally and has no server work to do.
@@ -28,7 +28,7 @@ _Last updated: 2026-10-27_. Each entry: context, decision, alternatives rejected
 ## ADR-005: Ant Design only for UI
 - **Decision:** Ant Design 6 and `@ant-design/icons` for all UI. Theme via `ConfigProvider` tokens. Plain CSS or CSS modules for small custom styles (one exception: the date calendar, ADR-033).
 - **Rejected:** Tailwind (style clashes with Ant Design's reset, two styling systems), SCSS (not needed).
-- **Consequences:** Charts are outside Ant Design; the library is chosen later.
+- **Consequences:** Charts are outside Ant Design: they are drawn with Recharts (ADR-064).
 
 ## ADR-006: Receipt photos in IndexedDB via `idb`
 - **Decision:** Photos live in a separate IndexedDB database (blobs, original size) with thumbnails in a separate store. PGlite holds only photo metadata. All access goes through a `PhotoStore` interface.
@@ -716,6 +716,6 @@ _Last updated: 2026-10-27_. Each entry: context, decision, alternatives rejected
 ## ADR-021: Libraries
 - **Runtime (font):** `@fontsource/barlow-condensed` (OFL), self-hosted for the header titles (ADR-030), so the app has no request to Google Fonts and works offline; `woff2` is in the service worker's precache patterns (`vite.config.ts`). Oswald was tried first (a variable font, thinnest weight 200) and dropped for a thinner look.
 - **Runtime (added later):** `react-day-picker` (MIT, with `date-fns`) for the date calendar (ADR-033). `country-to-currency` (MIT, 16 KB, no dependencies) maps a device's region to its currency, to preselect the default currency in create-group. The browser can list currencies but cannot say which one a region uses. Region comes from the browser's locale.
-- **Runtime:** `@electric-sql/pglite`, `@electric-sql/pglite-react`, `@electric-sql/pglite-tools`, `drizzle-orm`, `@react-oauth/google`, `zod`, `idb`, `papaparse`, `zustand`, `@tanstack/react-query` (ADR-051), plus `antd`, `@ant-design/icons`, `react-router`.
+- **Runtime:** `@electric-sql/pglite`, `@electric-sql/pglite-react`, `@electric-sql/pglite-tools`, `drizzle-orm`, `@react-oauth/google`, `zod`, `idb`, `papaparse`, `zustand`, `@tanstack/react-query` (ADR-051), `recharts` (every chart, ADR-064), plus `antd`, `@ant-design/icons`, `react-router`.
 - **Dev:** `drizzle-kit`, `vite-plugin-pwa`, `@vite-pwa/assets-generator`, `vitest`, `jsdom`, `@testing-library/react`, `@testing-library/user-event`, `@testing-library/jest-dom`, `fake-indexeddb`, `@types/papaparse`.
 - **Config:** `vite.config.ts` excludes `@electric-sql/pglite` from pre-bundling and sets up the PWA plugin; `vitest.config.ts` loads `src/testing/setup.ts`, allows 20 seconds per test and 60 seconds per hook, and sets the number of workers (ADR-029). `VITE_GOOGLE_CLIENT_ID` goes in `.env.local` (not committed; see `.env.example`).

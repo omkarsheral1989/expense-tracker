@@ -1,78 +1,32 @@
-# React + TypeScript + Vite
+# OwnLedger
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Client-only, installable PWA for personal and shared (group) expenses. All data is stored on the device; groups are shared through Google Drive. There is no backend, no ads and no tracking. Free and open source (GPL-3.0). Live at https://omkarsheral1989.github.io/ownledger/.
 
-Currently, two official plugins are available:
+- What it does and how each page behaves: [docs/PRD.md](docs/PRD.md)
+- Why it is built this way: [docs/ADR.md](docs/ADR.md)
+- Working notes for contributors and Claude Code: [CLAUDE.md](CLAUDE.md)
+- Manual check of backup and sync on real Google Drive: [docs/DRIVE_TEST.md](docs/DRIVE_TEST.md)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Stack
 
-## React Compiler
+- React 19 + TypeScript + Vite, React Compiler enabled
+- Ant Design 6 for the UI, `react-router`, `react-day-picker` for the date calendar
+- **Recharts** for charts (the group Totals page, ADR-064)
+- PGlite (Postgres in the browser, IndexedDB storage) + Drizzle ORM, `drizzle-kit` for migrations
+- `idb` for receipt photos, `zod` for validation, `zustand` and TanStack Query for app state
+- `@react-oauth/google` for sign-in and the Google Drive REST API for backup and sharing
+- `vite-plugin-pwa`, `vitest` + Testing Library, `papaparse`
+- Package manager: `bun`
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+## Commands
 
-Note: This will impact Vite dev & build performances.
-You can also try [the experimental native React Compiler support in plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md#rust-react-compiler) by using `compiler: true` in the plugin options instead of using the Babel plugin.
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+bun run dev            # dev server at http://localhost:5173/ownledger/
+bun run build          # type-check and build
+bun run lint           # lint
+bun run test           # run the tests (about 30 s)
+bun run preview        # serve the production build at http://localhost:4173/ownledger/ (the service worker only runs there)
+bun run deploy:pages   # build and copy into the omkarsheral1989.github.io repository (never commits or pushes)
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
-```
+Google sign-in needs `VITE_GOOGLE_CLIENT_ID` in `.env.local` (never committed; see `.env.example`).

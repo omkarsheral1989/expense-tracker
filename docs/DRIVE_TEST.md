@@ -1,6 +1,6 @@
 # Testing sync on real Google Drive
 
-_Last updated: 2026-10-21_. A manual check of backup, bringing a backup back, and group sync (PRD 5.8, ADR-044) against real Google Drive with two Google accounts. The automated tests only use a fake Drive, so this is the first run against Google itself. Tick each box, and write down anything that differs (the dialog's text, the browser console, the Network tab).
+_Last updated: 2026-10-28_. A manual check of backup, bringing a backup back, and group sync (PRD 5.8, ADR-044) against real Google Drive with two Google accounts. The automated tests only use a fake Drive, so this is the first run against Google itself. Tick each box, and write down anything that differs (the dialog's text, the browser console, the Network tab).
 
 You need:
 - **Account A** (the group's creator) and **account B** (a member), both `@gmail.com`. A third account **C** is needed only for step 4.6 (a member added later); add it as a test user too.
@@ -105,13 +105,26 @@ There is no Restore button: Sync adds the backup in Drive to the device before w
 
 A full Drive ("Your Google Drive is full…") cannot be set up easily with a real account; the automated tests cover it.
 
-## 7. Deployed site (optional)
+## 7. Activity after a sync (PRD 5.18, ADR-062)
+
+The automated tests cannot sync two real accounts, so this is the first check that other members' changes light the unread dot. Use the **Drive test** group of the steps above, with A1 and B1 signed in and in sync.
+
+1. [ ] On **B1**, open the avatar menu and then **Activity**; leave it again with Back. Expect the menu's dot gone, and nothing highlighted next time (everything seen up to now).
+2. [ ] On **A1**, edit **Dinner** (change its amount and its description) and add an expense **Taxi, £8.00**. Press **Sync** on A1 and wait for it to finish.
+3. [ ] On **B1**, press **Sync**. Expect the dialog to say **"3 new changes in your groups"** ("1 new change" for one) with **Open Activity**. Close it instead of opening Activity: expect a message with **Open** for about 6 seconds.
+4. [ ] On **B1** the avatar has a small red-orange dot, and so does the **Activity** entry in its menu.
+5. [ ] Open **Activity**: A1's events are the newest rows, highlighted with a green tint and a dot; the edit lists everything it changed under its sentence; older rows (and B1's own) are not highlighted. Tapping a row opens that version, and Back returns to Activity with no loader.
+6. [ ] Leave Activity: the dot is gone, and opening it again shows no highlights.
+7. [ ] On **B1**, press Sync again with nothing new: no new-changes line and no message.
+8. [ ] On **A1** (profile A2, account A's second device) sync once: the events it brings in are A's own, so no dot and no new-changes line.
+
+## 8. Deployed site (optional)
 
 1. [ ] Deploy (`bun run deploy:pages`, then commit and push in the Pages repository, ADR-032) with the client ID in `.env.local`.
 2. [ ] Repeat steps 2 and 3 at `https://omkarsheral1989.github.io/ownledger/`.
 3. [ ] On an iPhone, add the app to the Home Screen and sign in and Sync from the installed app. Google sign-in inside an installed iOS app is the risk ADR-014 names; note whether the popup opens and returns.
 
-## 8. Clean up
+## 9. Clean up
 
 1. [ ] Delete `OwnLedger` in both accounts' My Drive, and empty the bin if you want it gone for good.
 2. [ ] At https://myaccount.google.com/permissions remove OwnLedger's access for both accounts.
