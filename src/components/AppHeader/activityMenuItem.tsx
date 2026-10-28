@@ -1,4 +1,4 @@
-import { BellOutlined } from '@ant-design/icons'
+import { Icon } from '../Icon'
 import { Flex } from 'antd'
 import type { MenuProps } from 'antd'
 import { ROUTES } from '../../routes.ts'
@@ -8,7 +8,7 @@ import { UnreadDot } from '../UnreadDot'
 export function activityMenuItem(unread: boolean, open: (path: string) => void): NonNullable<MenuProps['items']>[number] {
   return {
     key: 'activity',
-    icon: <BellOutlined />,
+    icon: <Icon name="bell" />,
     label: (
       <Flex align="center" gap={8}>
         {unread && <UnreadDot />}

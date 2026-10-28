@@ -23,7 +23,7 @@ export function GroupTypeSelector({ value, onChange }: Props) {
         label: (
           <div style={{ padding: '8px 0' }}>
             {/* The chosen tile grows into the new group's band when Create group opens it (PRD 5.16). */}
-            <GroupTypeIcon type={type} size={CONTROL_HEIGHT} withLabel travels />
+            <GroupTypeIcon type={type} size={CONTROL_HEIGHT} iconSize={24} withLabel travels />
           </div>
         ),
       }))}

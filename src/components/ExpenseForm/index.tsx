@@ -1,4 +1,4 @@
-import { CheckOutlined } from '@ant-design/icons'
+import { Icon } from '../Icon'
 import { App, Button, Divider, Flex, Form, Input, Typography } from 'antd'
 import { useState, type ReactNode } from 'react'
 import { useAppNavigate } from '../../hooks/useAppNavigate'
@@ -232,7 +232,7 @@ export function ExpenseForm({
           type="primary"
           shape="circle"
           htmlType="submit"
-          icon={<CheckOutlined />}
+          icon={<Icon name="check" />}
           aria-label="Save"
           loading={submitting}
         />

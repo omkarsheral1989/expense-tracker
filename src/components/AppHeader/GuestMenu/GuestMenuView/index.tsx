@@ -1,4 +1,4 @@
-import { CreditCardOutlined, LogoutOutlined, TeamOutlined } from '@ant-design/icons'
+import { Icon } from '../../../Icon'
 import { Button, Dropdown, Flex, Typography } from 'antd'
 import { useAppNavigate } from '../../../../hooks/useAppNavigate'
 import { useUnreadActivity } from '../../../../hooks/useUnreadActivity'
@@ -49,13 +49,13 @@ export function GuestMenuView({ onSignIn, loading }: Props) {
           activityMenuItem(unread, navigate),
           {
             key: 'members',
-            icon: <TeamOutlined />,
+            icon: <Icon name="users" />,
             label: 'Group members',
             onClick: () => navigate(ROUTES.members),
           },
           {
             key: 'accounts',
-            icon: <CreditCardOutlined />,
+            icon: <Icon name="creditCard" />,
             label: 'Accounts',
             onClick: () => navigate(ROUTES.accounts),
           },
@@ -73,7 +73,7 @@ export function GuestMenuView({ onSignIn, loading }: Props) {
           },
           {
             key: 'exit',
-            icon: <LogoutOutlined />,
+            icon: <Icon name="logout" />,
             label: 'Exit guest mode',
             onClick: exitGuestMode,
           },

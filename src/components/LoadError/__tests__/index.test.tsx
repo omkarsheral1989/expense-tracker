@@ -37,7 +37,7 @@ describe('LoadError', () => {
 
     const back = screen.getByRole('button', { name: 'Back' })
     expect(back).toHaveClass('ant-btn-variant-outlined')
-    expect(back.querySelector('.anticon-arrow-left')).not.toBeNull()
+    expect(back.querySelector('.tabler-icon-arrow-left')).not.toBeNull()
     expect(page.currentPath()).toBe('/start')
 
     await userEvent.click(back)

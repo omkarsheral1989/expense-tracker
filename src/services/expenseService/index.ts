@@ -48,6 +48,7 @@ import type {
 } from './types.ts'
 import {
   CATEGORIES,
+  categoryMatches,
   categoryOf,
   computeShares,
   expenseChanges,
@@ -83,6 +84,9 @@ const expenseServiceBase = {
 
   /** The category with this key; an unknown key reads as the default one. */
   categoryOf,
+
+  /** Whether a category fits the picker's search (label, group or keyword). */
+  categoryMatches,
 
   /**
    * Adds an expense to a group, with who paid and how it is split, all or

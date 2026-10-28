@@ -1,10 +1,4 @@
-import {
-  ArrowLeftOutlined,
-  CalendarOutlined,
-  EditOutlined,
-  SearchOutlined,
-  TeamOutlined,
-} from '@ant-design/icons'
+import { Icon } from '../../../../components/Icon'
 import { Flex, Typography } from 'antd'
 import { useAppNavigate } from '../../../../hooks/useAppNavigate'
 import { GROUP_TYPE_CONTENT } from '../../../../components/GroupTypeIcon/content.tsx'
@@ -46,7 +40,7 @@ export function GroupBand({ group, peopleCount, onOpenMembers }: Props) {
       <Flex justify="space-between" data-vt="header">
         <Flex align="center" gap={8}>
           <BandIconButton
-            icon={<ArrowLeftOutlined />}
+            icon={<Icon name="arrowLeft" />}
             label="Back"
             onClick={() => navigate(ROUTES.home, { direction: 'back' })}
           />
@@ -55,10 +49,10 @@ export function GroupBand({ group, peopleCount, onOpenMembers }: Props) {
           </Title>
         </Flex>
         <Flex gap={12}>
-          <BandIconButton icon={<SearchOutlined />} label="Search" />
+          <BandIconButton icon={<Icon name="search" />} label="Search" />
           <SyncButton group={{ id: group.id, name: group.name }} onBand />
           <BandIconButton
-            icon={<EditOutlined />}
+            icon={<Icon name="pencil" />}
             label="Edit group"
             onClick={() => navigate(ROUTES.editGroup(group.id), { state: editState })}
           />
@@ -116,12 +110,12 @@ export function GroupBand({ group, peopleCount, onOpenMembers }: Props) {
         {/* An empty 0 x 0 px piece between the chips, centered on them, that the dot of a group's row shrinks into (PRD 5.16).
             The negative margins take back the gap it adds, so the chips stay 8 px apart with the piece halfway between them. */}
         <span data-vt="dot" style={{ width: 0, height: 0, alignSelf: 'center', margin: '0 -4px' }} />
-        <BandChip icon={<TeamOutlined />} onClick={onOpenMembers} disabled={!onOpenMembers} vt="people">
+        <BandChip icon={<Icon name="users" />} onClick={onOpenMembers} disabled={!onOpenMembers} vt="people">
           {peopleCount} {peopleCount === 1 ? 'member' : 'members'}
         </BandChip>
         {/* Comes in from the right when a group opens from the list (PRD 5.16). */}
         <span data-vt="dates" style={{ display: 'inline-flex' }}>
-          <BandChip icon={<CalendarOutlined />} comingSoon>
+          <BandChip icon={<Icon name="calendar" />} comingSoon>
             Add trip dates
           </BandChip>
         </span>

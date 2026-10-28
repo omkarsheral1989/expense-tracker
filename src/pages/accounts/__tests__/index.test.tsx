@@ -70,9 +70,9 @@ describe('the Accounts page', () => {
       expect(title.compareDocumentPosition(add) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
       // The picture: a bank tile and a credit card tile.
       const picture = title.closest('.ant-empty') as HTMLElement
-      expect(picture.querySelector('[data-icon="bank"]')).not.toBeNull()
-      expect(picture.querySelector('[data-icon="credit-card"]')).not.toBeNull()
-      expect(picture.querySelector('.ant-empty-image img, .ant-empty-image svg:not([data-icon])')).toBeNull()
+      expect(picture.querySelector('.tabler-icon-building-bank')).not.toBeNull()
+      expect(picture.querySelector('.tabler-icon-credit-card')).not.toBeNull()
+      expect(picture.querySelector('.ant-empty-image img, .ant-empty-image svg:not(.tabler-icon)')).toBeNull()
     })
 
     it('centers the picture in the space the page has', async () => {
@@ -119,10 +119,10 @@ describe('the Accounts page', () => {
 
       const bank = await screen.findByRole('button', { name: 'Edit Barclays' })
       expect(within(bank).getByText('£ · Bank account')).toBeInTheDocument()
-      expect(bank.querySelector('[data-icon="bank"]')).not.toBeNull()
+      expect(bank.querySelector('.tabler-icon-building-bank')).not.toBeNull()
       const credit = card('HDFC Regalia')
       expect(within(credit).getByText('₹ · Credit card')).toBeInTheDocument()
-      expect(credit.querySelector('[data-icon="credit-card"]')).not.toBeNull()
+      expect(credit.querySelector('.tabler-icon-credit-card')).not.toBeNull()
     })
 
     it('writes a currency with no symbol as its code', async () => {

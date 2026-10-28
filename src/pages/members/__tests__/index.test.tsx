@@ -122,7 +122,7 @@ describe('the Group members page', () => {
     await screen.findByRole('button', { name: 'Edit Sam' })
     expect(within(card('Sam')).getByText('Pending')).toBeInTheDocument()
     expect(within(card('Priya')).queryByText('Pending')).not.toBeInTheDocument()
-    expect(document.querySelector('.anticon-edit')).toBeNull()
+    expect(document.querySelector('.tabler-icon-pencil')).toBeNull()
     // The user's own card, Sam and Priya.
     expect(document.querySelectorAll('.ant-card')).toHaveLength(3)
   })

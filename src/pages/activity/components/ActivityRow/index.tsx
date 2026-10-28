@@ -51,7 +51,7 @@ export function ActivityRow({ item, isNew }: Props) {
   function renderTile() {
     return (
       <div style={{ position: 'relative', flex: 'none', width: TILE_SIZE, height: TILE_SIZE }}>
-        <CategoryIcon category={item.category} size={TILE_SIZE} />
+        <CategoryIcon category={item.category} size={TILE_SIZE} iconSize={24} />
         <PersonAvatar
           name={groupService.shortName(item.by)}
           picture={item.by.picture}

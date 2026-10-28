@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { CATEGORY_GROUPS, DEFAULT_CATEGORY, SETTLEMENT_CATEGORY } from '../constants.ts'
+import { CATEGORY_GROUPS, CATEGORY_KEYWORDS, DEFAULT_CATEGORY, SETTLEMENT_CATEGORY } from '../constants.ts'
 import type { ExpenseSnapshot, SplitMethod } from '../../../db/types.ts'
 import { expenseService } from '../index.ts'
-import { CATEGORIES, categoryOf, computeShares, debtsOf, expenseChanges, isCategoryKey, pairBalances, payerOf, sameSnapshot, sameSplitInput, settlementSentence, SPLIT_DOES_NOT_ADD_UP, titleOf } from '../utils.ts'
+import { CATEGORIES, categoryMatches, categoryOf, computeShares, debtsOf, expenseChanges, isCategoryKey, pairBalances, payerOf, sameSnapshot, sameSplitInput, settlementSentence, SPLIT_DOES_NOT_ADD_UP, titleOf } from '../utils.ts'
 
 const MEMBERS = ['me', 'priya', 'sam']
 
@@ -164,29 +164,56 @@ describe('computeShares', () => {
 })
 
 describe('categories', () => {
-  it('has unique keys, each starting with its group (except the default)', () => {
+  it('has unique keys, each with one dot or none', () => {
     const keys = CATEGORIES.map((category) => category.key)
     expect(new Set(keys).size).toBe(keys.length)
-    for (const category of CATEGORIES) {
-      if (category.key === DEFAULT_CATEGORY || category.key === SETTLEMENT_CATEGORY) continue
-      expect(category.key.startsWith(`${category.group}.`)).toBe(true)
-    }
+    for (const key of keys) expect(key.split('.').length).toBeLessThanOrEqual(2)
   })
 
-  it('lists the groups in order, about 45 categories in all', () => {
+  it('lists the groups in order, Uncategorized last of those the picker offers, about 115 categories in all', () => {
     expect(CATEGORY_GROUPS.map((group) => group.label)).toEqual([
       'Entertainment',
       'Food and drink',
+      'Health and personal care',
       'Home',
+      'Investments',
       'Life',
+      'Loans and debt',
+      'Shopping',
       'Transportation',
-      'Uncategorized',
       'Utilities',
+      'Uncategorized',
       // Only given to a payment between two members; the picker leaves it out.
       'Settlement',
     ])
-    expect(CATEGORIES.length).toBeGreaterThanOrEqual(40)
-    expect(CATEGORIES.length).toBeLessThanOrEqual(50)
+    expect(CATEGORIES.length).toBeGreaterThanOrEqual(105)
+    expect(CATEGORIES.length).toBeLessThanOrEqual(125)
+  })
+
+  it('keeps every key that was ever saved, listing a few under their new group with their new label (ADR-065)', () => {
+    // A category's group is where it is listed, not its key's prefix, so moving a group never touches saved expenses.
+    expect(categoryOf('home.mortgage')).toMatchObject({ label: 'Home loan', group: 'loans' })
+    expect(categoryOf('life.medical')).toMatchObject({ label: 'Medical expenses', group: 'health' })
+    expect(categoryOf('life.clothing')).toMatchObject({ label: 'Clothing', group: 'shopping' })
+    expect(categoryOf('life.gifts')).toMatchObject({ label: 'Gifts', group: 'shopping' })
+    expect(categoryOf('transport.taxi').label).toBe('Taxi and ride-hailing')
+    expect(categoryOf('transport.bus_train').label).toBe('Bus, train or metro')
+    for (const key of ['entertainment.games', 'food.dining_out', 'food.groceries', 'home.rent', 'life.insurance', 'transport.fuel', 'utilities.water', 'general']) {
+      expect(isCategoryKey(key)).toBe(true)
+    }
+  })
+
+  it('has the investment and loan kinds, with PPF and a home loan among them', () => {
+    const labelsOf = (group: string) => CATEGORIES.filter((category) => category.group === group).map((category) => category.label)
+    expect(labelsOf('investments')).toEqual(expect.arrayContaining(['Fixed deposit', 'Recurring deposit', 'Mutual fund or SIP', 'PPF', 'NPS', 'Gold']))
+    expect(labelsOf('loans')).toEqual(expect.arrayContaining(['Home loan', 'Personal loan', 'Car loan', 'Education loan', 'Gold loan', 'Credit card bill']))
+  })
+
+  it('gives keywords only to categories that exist', () => {
+    for (const key of Object.keys(CATEGORY_KEYWORDS)) expect(isCategoryKey(key)).toBe(true)
+    for (const words of Object.values(CATEGORY_KEYWORDS)) {
+      for (const word of words) expect(word).toBe(word.toLowerCase())
+    }
   })
 
   it('keeps the settlement category out of the picker\'s groups but knows it', () => {
@@ -465,5 +492,45 @@ describe('sameSnapshot', () => {
   ])('is false when %s differs', (_name, change) => {
     const base = { ...SNAPSHOT, photos: [{ id: 'a', position: 0, mimeType: 'image/jpeg', sizeBytes: 5 }, { id: 'b', position: 1, mimeType: 'image/jpeg', sizeBytes: 5 }] }
     expect(sameSnapshot(base, { ...base, ...change })).toBe(false)
+  })
+})
+
+describe('categoryMatches', () => {
+  const find = (search: string) => CATEGORIES.filter((category) => categoryMatches(category, search)).map((category) => category.key)
+
+  it('finds everything for an empty search, and ignores case and spaces around the words', () => {
+    expect(find('')).toHaveLength(CATEGORIES.length)
+    expect(find('   ')).toHaveLength(CATEGORIES.length)
+    expect(find('  NETFLIX ')).toEqual(['entertainment.streaming'])
+  })
+
+  it('finds a category by its label, its group or a brand', () => {
+    expect(find('dining')).toContain('food.dining_out')
+    expect(find('investments')).toContain('investments.ppf')
+    expect(find('swiggy')).toEqual(['food.delivery'])
+    expect(find('zomato')).toEqual(['food.delivery'])
+    expect(find('rapido')).toEqual(['transport.taxi'])
+    expect(find('uber')).toEqual(['food.delivery', 'transport.taxi'])
+    expect(find('ola')).toContain('transport.taxi')
+    expect(find('sip')).toEqual(['investments.mutual_fund'])
+    expect(find('fastag')).toEqual(['transport.toll'])
+  })
+
+  it('needs every typed word to start a word of the category', () => {
+    expect(find('home loan')).toContain('home.mortgage')
+    expect(find('home loan')).not.toContain('home.rent')
+    expect(find('fixed dep')).toEqual(['investments.fd'])
+    expect(find('netflix zomato')).toEqual([])
+  })
+
+  it('matches from the start of a word, not inside it', () => {
+    // "chemist" and "premium" contain "emi", which is the start of no word.
+    expect(find('emi')).not.toContain('health.medicines')
+    expect(find('emi')).not.toContain('entertainment.streaming')
+    expect(find('emi')).toEqual(expect.arrayContaining(['loans.personal', 'loans.emi', 'home.mortgage']))
+  })
+
+  it('finds nothing for a word that starts none', () => {
+    expect(find('zzzz')).toEqual([])
   })
 })

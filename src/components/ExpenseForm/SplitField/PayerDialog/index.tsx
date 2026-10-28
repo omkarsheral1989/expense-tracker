@@ -1,4 +1,4 @@
-import { CheckOutlined } from '@ant-design/icons'
+import { Icon } from '../../../Icon'
 import { Button, Flex } from 'antd'
 import { AdaptiveDialog } from '../../../AdaptiveDialog'
 import { ComingSoon } from '../../../ComingSoon'
@@ -29,7 +29,7 @@ export function PayerDialog({ open, onClose, members, value, onPick }: Props) {
         style={{ justifyContent: 'space-between', height: 'auto', padding: '10px 12px' }}
       >
         <span>{member.isYou ? 'You' : (member.name ?? member.email)}</span>
-        {selected && <CheckOutlined aria-hidden style={{ fontSize: ICON_ONLY_SIZE }} />}
+        {selected && <Icon name="check" style={{ fontSize: ICON_ONLY_SIZE }} />}
       </Button>
     )
   }

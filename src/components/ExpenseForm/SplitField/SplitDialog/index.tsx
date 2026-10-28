@@ -1,4 +1,5 @@
-import { CheckOutlined } from '@ant-design/icons'
+import { Icon } from '../../../Icon'
+import { ICON_ONLY_SIZE } from '../../../../theme/controlHeight.ts'
 import { Button, Checkbox, Flex, Input, Select, Tabs, Typography } from 'antd'
 import { useState } from 'react'
 import { AdaptiveDialog } from '../../../AdaptiveDialog'
@@ -131,7 +132,7 @@ export function SplitDialog({ open, onClose, members, value, amountMinor, curren
       children: (
         <Flex vertical gap={8}>
           <Flex align="center" gap={8}>
-            <span style={{ fontSize: 20 }} aria-hidden>
+            <span style={{ fontSize: ICON_ONLY_SIZE, display: 'flex' }} aria-hidden>
               {icon}
             </span>
             <Title level={5} style={{ margin: 0 }}>
@@ -155,7 +156,7 @@ export function SplitDialog({ open, onClose, members, value, amountMinor, curren
               <Text type={BALANCE_TEXT_TYPE[summary.balance.kind]}>{summary.balance.text}</Text>
             )}
           </Flex>
-          <Button type="primary" icon={<CheckOutlined />} aria-label="Done" onClick={handleDone} />
+          <Button type="primary" icon={<Icon name="check" />} aria-label="Done" onClick={handleDone} />
         </Flex>
         {problem && (
           <Text type="danger" role="alert">

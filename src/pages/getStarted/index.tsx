@@ -1,4 +1,4 @@
-import { ArrowLeftOutlined } from '@ant-design/icons'
+import { Icon } from '../../components/Icon'
 import { Button, Divider, Flex, Typography } from 'antd'
 import { Navigate } from 'react-router'
 import { AppLink } from '../../components/AppLink'
@@ -35,7 +35,7 @@ export function GetStartedPage() {
       <title>Open OwnLedger</title>
       <Flex style={{ width: '100%', maxWidth: 400 }}>
         <AppLink direction="back" to={ROUTES.welcome}>
-          <Button type="text" icon={<ArrowLeftOutlined />}>
+          <Button type="text" icon={<Icon name="arrowLeft" />}>
             Back
           </Button>
         </AppLink>

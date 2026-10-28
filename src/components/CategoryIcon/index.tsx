@@ -1,6 +1,7 @@
 import { Flex } from 'antd'
 import { expenseService } from '../../services/expenseService'
 import { CATEGORY_GROUP_COLORS } from '../../theme/categoryColors.ts'
+import { ICON_ONLY_SIZE } from '../../theme/controlHeight.ts'
 import { RADIUS } from '../../theme/radius.ts'
 import { CATEGORY_ICONS } from './content.tsx'
 
@@ -9,6 +10,8 @@ type Props = {
   category: string
   /** Width and height of the tile in pixels. */
   size?: number
+  /** Size of the icon on the tile in pixels; the shared icon size (`ICON_ONLY_SIZE`) when left out. */
+  iconSize?: number
   /** Marks the tile and its icon as pieces that travel into the band of the expense's page when the expense opens from the group's list (PRD 5.16); left out elsewhere. */
   travels?: boolean
 }
@@ -17,11 +20,11 @@ type Props = {
  * The colored tile with the icon of an expense's category, in the color of its
  * group. Screen readers read the category's name ("Food and drink: Dining out").
  */
-export function CategoryIcon({ category, size = 40, travels }: Props) {
+export function CategoryIcon({ category, size = 40, iconSize = ICON_ONLY_SIZE, travels }: Props) {
   const { key, label, group, groupLabel } = expenseService.categoryOf(category)
 
   const ariaLabel = label === 'Other' ? `${groupLabel}: Other` : label
-  const tile = { flex: 'none', width: size, height: size, borderRadius: RADIUS.inner, fontSize: size * 0.5, color: '#fff' } as const
+  const tile = { flex: 'none', width: size, height: size, borderRadius: RADIUS.inner, fontSize: iconSize, color: '#fff' } as const
 
   // A travelling tile is drawn as a square block clipped round by its frame, like a group's block in its card: the browser takes a
   // named piece's picture without its parents' clipping, so the block's picture is square, and the transition rounds it with a clip

@@ -1,4 +1,4 @@
-import { PlusOutlined } from '@ant-design/icons'
+import { Icon } from '../Icon'
 import { Button, Divider, Flex, Select, Typography } from 'antd'
 import { useState } from 'react'
 import { groupService } from '../../services/groupService'
@@ -56,7 +56,7 @@ export function MemberSelect({
       <>
         {menu}
         <Divider style={{ margin: 0 }} />
-        <Button type="text" block icon={<PlusOutlined />} onClick={openDialog} style={{ justifyContent: 'flex-start', borderRadius: 0 }}>
+        <Button type="text" block icon={<Icon name="plus" />} onClick={openDialog} style={{ justifyContent: 'flex-start', borderRadius: 0 }}>
           Add a new member
         </Button>
       </>

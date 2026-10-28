@@ -77,6 +77,17 @@ describe('ExpenseVersionPage', () => {
       expect(screen.getByText('Card')).toBeInTheDocument()
     })
 
+    it('puts the amount above the description, on a line of 40 px, beside a 40 px category tile with a 24 px icon', async () => {
+      const { groupId, expenseId, added } = await editedExpense()
+      renderVersion(groupId, expenseId, added.id)
+
+      const title = await screen.findByRole('heading', { name: 'Beach shack dinner' })
+      const amount = screen.getByText('£9.00')
+      expect(amount.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      expect(amount).toHaveStyle({ fontSize: '28px', fontWeight: '600', lineHeight: '40px' })
+      expect(screen.getByRole('img', { name: 'Dining out' })).toHaveStyle({ width: '40px', height: '40px', fontSize: '24px' })
+    })
+
     it('shows the later version with its own values', async () => {
       const { groupId, expenseId, edited } = await editedExpense()
       renderVersion(groupId, expenseId, edited.id)

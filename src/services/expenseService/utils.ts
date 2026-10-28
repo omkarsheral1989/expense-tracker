@@ -1,6 +1,6 @@
 import type { ExpenseChange, ExpenseSnapshot } from '../../db/types.ts'
 import { shortName } from '../groupService/utils.ts'
-import { CATEGORY_GROUPS, DEFAULT_CATEGORY, SETTLEMENT_CATEGORY } from './constants.ts'
+import { CATEGORY_GROUPS, CATEGORY_KEYWORDS, DEFAULT_CATEGORY, SETTLEMENT_CATEGORY } from './constants.ts'
 import type { Category, CategoryKey, ExpenseDetails, SplitInput, SplitResult } from './types.ts'
 
 /** Most shares one person can be given with the "shares" method. */
@@ -96,6 +96,19 @@ export const CATEGORIES: readonly Category[] = CATEGORY_GROUPS.flatMap((group) =
     groupLabel: group.label,
   })),
 )
+
+/**
+ * Whether a category fits what the user typed in the picker's search: every
+ * word of the search starts a word of the category's label, its group's name
+ * or one of its keywords (brands and common names), ignoring case ("emi" finds
+ * "EMI" but not "chemist"). An empty search fits all.
+ */
+export function categoryMatches(category: Category, search: string): boolean {
+  const words = search.toLowerCase().split(/\s+/).filter(Boolean)
+  const text = [category.label, category.groupLabel, ...(CATEGORY_KEYWORDS[category.key] ?? [])].join(' ').toLowerCase()
+  const tokens = text.split(/[^a-z0-9]+/)
+  return words.every((word) => tokens.some((token) => token.startsWith(word)))
+}
 
 /** Whether `key` is one of the app's categories. */
 export function isCategoryKey(key: string): key is CategoryKey {

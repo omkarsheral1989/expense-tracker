@@ -7,8 +7,12 @@ import type { CategoryGroupKey } from '../services/expenseService/types.ts'
 export const CATEGORY_GROUP_COLORS: Record<CategoryGroupKey, string> = {
   entertainment: '#7048e8',
   food: '#e8590c',
+  health: '#099268',
   home: '#2f9e44',
+  investments: '#e67700',
   life: '#c2255c',
+  loans: '#c92a2a',
+  shopping: '#ae3ec9',
   transport: '#1971c2',
   uncategorized: '#868e96',
   settlement: '#0ca678',

@@ -6,7 +6,7 @@ Details: @docs/PRD.md (features, pages, open questions) and @docs/ADR.md (archit
 
 ## Stack
 - React 19 + TypeScript + Vite, React Compiler enabled
-- Ant Design 6 (`antd`, `@ant-design/icons`), `react-router`, `react-day-picker` (the date calendar only, ADR-033), `recharts` (every chart, ADR-064)
+- Ant Design 6 (`antd`), `react-router`, `react-day-picker` (the date calendar only, ADR-033), `recharts` (every chart, ADR-064), `@tabler/icons-react` (the app's own icons through `src/components/Icon`, ADR-066; Ant Design's built-in icons stay inside its components)
 - PGlite (Postgres in the browser, IndexedDB storage) + Drizzle ORM, `drizzle-kit` for migrations
 - `idb` for the receipt photo store (IndexedDB), `zod` for validation, `zustand` for app state
 - `@react-oauth/google` for sign-in, Google Drive REST API via `fetch`

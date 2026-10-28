@@ -102,7 +102,7 @@ describe('the payment method on the expense page (PRD 5.6, 4.10)', () => {
     const row = screen.getByText('Paid from Barclays Savings account')
     expect(paid.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(row.compareDocumentPosition(screen.getByText('Split equally')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(row.parentElement?.parentElement?.querySelector('[data-icon="bank"]')).not.toBeNull()
+    expect(row.parentElement?.parentElement?.querySelector('.tabler-icon-building-bank')).not.toBeNull()
   })
 
   it('shows what the account was charged, and the rate both ways on a line of its own, when the currencies differ', async () => {

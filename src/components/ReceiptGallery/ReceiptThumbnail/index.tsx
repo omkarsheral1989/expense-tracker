@@ -1,4 +1,4 @@
-import { PictureOutlined } from '@ant-design/icons'
+import { Icon } from '../../Icon'
 import { Flex, Image, Skeleton, theme, Typography } from 'antd'
 import { useAsyncData } from '../../../hooks/useAsyncData'
 import { useObjectUrl } from '../../../hooks/useObjectUrl'
@@ -45,7 +45,7 @@ export function ReceiptThumbnail({ photoId, number, store }: Props) {
         aria-label={`Receipt photo ${number}, not on this device`}
         style={{ ...square, background: token.colorFillTertiary, padding: 6, textAlign: 'center' }}
       >
-        <PictureOutlined style={{ fontSize: 20, color: token.colorTextTertiary }} />
+        <Icon name="picture" style={{ fontSize: 20, color: token.colorTextTertiary }} />
         <Text type="secondary" style={{ fontSize: 11, lineHeight: 1.2 }}>
           Not on this device
         </Text>

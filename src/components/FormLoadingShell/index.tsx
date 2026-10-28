@@ -1,4 +1,4 @@
-import { CheckOutlined } from '@ant-design/icons'
+import { Icon } from '../Icon'
 import { Button, Flex, Typography } from 'antd'
 import { useAppNavigate } from '../../hooks/useAppNavigate'
 import { HEADER_TITLE_STYLE } from '../../theme/headerTitle.ts'
@@ -43,7 +43,7 @@ export function FormLoadingShell({ heading, backTo, label, group }: Props) {
             {heading}
           </Title>
         </Flex>
-        <Button type="primary" shape="circle" icon={<CheckOutlined />} aria-label="Save" disabled />
+        <Button type="primary" shape="circle" icon={<Icon name="check" />} aria-label="Save" disabled />
       </Flex>
       {group && <GroupLabel group={group} />}
       <LoadingMessage label={label} />

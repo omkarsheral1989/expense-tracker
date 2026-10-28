@@ -1,4 +1,4 @@
-import { SyncOutlined } from '@ant-design/icons'
+import { Icon } from '../../Icon'
 import { Button, Tooltip } from 'antd'
 
 type Props = {
@@ -18,7 +18,7 @@ export function SyncIconButton({ tip, spinning = false, onBand = false, onClick 
       <Button
         shape="circle"
         aria-label="Sync"
-        icon={<SyncOutlined spin={spinning} />}
+        icon={<Icon name="sync" spin={spinning} />}
         onClick={onClick}
         style={onBand ? { background: '#fff', color: '#262626', border: 'none' } : undefined}
       />
