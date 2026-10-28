@@ -1,10 +1,10 @@
 import { and, eq, inArray, isNull, ne, sql } from 'drizzle-orm'
 import type { Database } from '../../db/client.ts'
-import { expenseShares, expenses, people } from '../../db/schema.ts'
+import { expenseShares, expenses, groupMembers, groups, people } from '../../db/schema.ts'
 import { shownName } from '../../db/shownName.ts'
 import { SETTLEMENT_CATEGORY } from '../expenseService/constants.ts'
 import { groupService } from '../groupService'
-import type { CurrencyTotals, GroupTotals, TotalsRow } from './types.ts'
+import type { CurrencyTotals, GroupTotals, SpentInCurrency, TotalsRow } from './types.ts'
 import { orderCurrencies, sortRows } from './utils.ts'
 
 /** The expenses that count as spending: live ones, payments between members left out (PRD 5.20). */
@@ -78,5 +78,24 @@ export const totalsService = {
     if (!(await groupService.getGroup(db, userId, groupId))) return false
     const [found] = await db.select({ id: expenses.id }).from(expenses).where(counted(groupId)).limit(1)
     return Boolean(found)
+  },
+
+  /**
+   * What each of the user's groups has spent, per currency, for the home page's row of a group of one (PRD 5.2): the same sums as
+   * `groupTotals`' totals (payments and deleted expenses left out), for every group the user is in, keyed by group id. A group with
+   * nothing that counts has no entry.
+   */
+  async spentByGroup(db: Database, userId: string): Promise<Record<string, SpentInCurrency[]>> {
+    const rows = await db
+      .select({ groupId: expenses.groupId, currency: expenses.currency, totalMinor: sql<string>`sum(${expenses.amountMinor})` })
+      .from(expenses)
+      .innerJoin(groups, and(eq(groups.id, expenses.groupId), isNull(groups.deletedAt)))
+      .innerJoin(groupMembers, and(eq(groupMembers.groupId, expenses.groupId), eq(groupMembers.personId, userId), isNull(groupMembers.deletedAt)))
+      .where(and(isNull(expenses.deletedAt), ne(expenses.category, SETTLEMENT_CATEGORY)))
+      .groupBy(expenses.groupId, expenses.currency)
+    const spent: Record<string, SpentInCurrency[]> = {}
+    for (const row of rows) (spent[row.groupId] ??= []).push({ currency: row.currency, totalMinor: Number(row.totalMinor) })
+    for (const list of Object.values(spent)) list.sort((a, b) => a.currency.localeCompare(b.currency))
+    return spent
   },
 }

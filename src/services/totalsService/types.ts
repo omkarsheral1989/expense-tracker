@@ -28,3 +28,6 @@ export type GroupTotals = {
   /** Empty while no expense counts. */
   currencies: CurrencyTotals[]
 }
+
+/** What a group has spent in one currency (integer minor units). */
+export type SpentInCurrency = { currency: string; totalMinor: number }

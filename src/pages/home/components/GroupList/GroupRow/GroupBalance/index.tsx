@@ -2,6 +2,7 @@ import { Flex, Typography } from 'antd'
 import { useColorScheme } from '../../../../../../hooks/useColorScheme'
 import type { CurrencyBalance } from '../../../../../../services/expenseService/types.ts'
 import { moneyService } from '../../../../../../services/moneyService'
+import type { SpentInCurrency } from '../../../../../../services/totalsService/types.ts'
 import { OWED_TO_YOU_COLOR, YOU_OWE_COLOR } from '../../../../../../theme/balanceColors.ts'
 
 const { Text } = Typography
@@ -9,6 +10,11 @@ const { Text } = Typography
 type Props = {
   /** The user's overall balance in the group, one entry per currency not settled. */
   balances: CurrencyBalance[]
+  /**
+   * Given for a group of one, where nobody can owe anybody: what the group has spent, per currency, shown as plain amounts in place
+   * of a balance ("Settled up" while nothing was spent). Left out for any other group.
+   */
+  spent?: SpentInCurrency[]
 }
 
 /**
@@ -16,7 +22,7 @@ type Props = {
  * over "£12.00" in green, or "you owe" over "₹500.00" in orange-red, once per
  * currency, or "Settled up" when nothing is owed either way.
  */
-export function GroupBalance({ balances }: Props) {
+export function GroupBalance({ balances, spent }: Props) {
   const scheme = useColorScheme()
 
   function renderBalance(balance: CurrencyBalance) {
@@ -32,6 +38,18 @@ export function GroupBalance({ balances }: Props) {
         <strong style={{ whiteSpace: 'nowrap' }}>
           {moneyService.format(Math.abs(balance.amountMinor), balance.currency)}
         </strong>
+      </Flex>
+    )
+  }
+
+  if (spent && spent.length > 0) {
+    return (
+      <Flex vertical align="flex-end" gap={6} style={{ flex: 'none', textAlign: 'end' }}>
+        {spent.map((one) => (
+          <strong key={one.currency} style={{ whiteSpace: 'nowrap' }}>
+            {moneyService.format(one.totalMinor, one.currency)}
+          </strong>
+        ))}
       </Flex>
     )
   }

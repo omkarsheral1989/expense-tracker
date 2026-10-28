@@ -717,12 +717,22 @@ describe('GroupPage', () => {
       expect(lent).toHaveStyle({ color: 'rgb(47, 158, 68)' })
     })
 
-    it('says "no balance" for an expense you paid for yourself alone', async () => {
+    it('says "no balance" for an expense you paid for yourself alone, in a group of several', async () => {
+      const id = await createGroup(me, { name: 'Goa trip', memberEmails: ['priya@gmail.com'] })
+      const meId = await personIdOf(testDb.db, me.email)
+      const priyaId = await personIdOf(testDb.db, priya.email)
+      await addExpense(me.email, id, { split: { method: 'equal', values: { [meId]: 1, [priyaId]: 0 } } })
+      renderGroup(id)
+
+      expect(await expenseRows()).toEqual(['Oct | 8 | Dinner | You paid £30.00 | no balance'])
+    })
+
+    it('shows just the amount for an expense in a group where you are the only member', async () => {
       const id = await createGroup(me, { name: 'Solo' })
       await addExpense(me.email, id)
       renderGroup(id)
 
-      expect(await expenseRows()).toEqual(['Oct | 8 | Dinner | You paid £30.00 | no balance'])
+      expect(await expenseRows()).toEqual(['Oct | 8 | Dinner | You paid £30.00 | £30.00'])
     })
 
     it('says "not involved" for an expense you have no part in', async () => {

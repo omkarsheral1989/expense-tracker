@@ -1,5 +1,5 @@
 import { PGlite } from '@electric-sql/pglite'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createDatabase, type Database } from '../../../db/client.ts'
 import { groupMembers, groups, people } from '../../../db/schema.ts'
@@ -218,5 +218,64 @@ describe('totalsService.hasSpending', () => {
 
     expect(await totalsService.hasSpending(db, dev, groupId)).toBe(false)
     expect(await totalsService.hasSpending(db, dev, crypto.randomUUID())).toBe(false)
+  })
+})
+
+describe('totalsService.spentByGroup', () => {
+  async function otherGroup(name = 'Other', memberEmails: string[] = []) {
+    const group = await createTestGroup(db, omkar, { name, type: 'home', defaultCurrency: 'GBP', memberEmails })
+    if (!group.ok) throw new Error('group')
+    return group.groupId
+  }
+
+  it('adds up what each of the user\'s groups spent, per currency, A to Z', async () => {
+    const { groupId, omkarId } = await setUp()
+    const solo = await otherGroup()
+    await addTestExpense(db, omkar.email, groupId, { amountMinor: 3000, currency: 'GBP' })
+    await addTestExpense(db, omkar.email, groupId, { amountMinor: 500, currency: 'GBP' })
+    await addTestExpense(db, omkar.email, groupId, { amountMinor: 700, currency: 'EUR' })
+    await addTestExpense(db, omkar.email, solo, { amountMinor: 1250, currency: 'USD' })
+
+    const spent = await totalsService.spentByGroup(db, omkarId)
+
+    expect(spent[groupId]).toEqual([{ currency: 'EUR', totalMinor: 700 }, { currency: 'GBP', totalMinor: 3500 }])
+    expect(spent[solo]).toEqual([{ currency: 'USD', totalMinor: 1250 }])
+  })
+
+  it('leaves out payments between members and deleted expenses, and has no entry for a group with nothing that counts', async () => {
+    const { groupId, omkarId } = await setUp()
+    const quiet = await otherGroup('Quiet')
+    await addTestSettlement(db, 'priya@gmail.com', omkar.email, groupId, { amountMinor: 900 })
+    const gone = await addTestExpense(db, omkar.email, groupId, { amountMinor: 400 })
+    await expenseService.deleteExpense(db, omkarId, groupId, gone)
+
+    const spent = await totalsService.spentByGroup(db, omkarId)
+
+    expect(spent[groupId]).toBeUndefined()
+    expect(spent[quiet]).toBeUndefined()
+  })
+
+  it('counts only groups the user is in and that are not deleted', async () => {
+    const { groupId, omkarId, priyaId } = await setUp()
+    const mine = await otherGroup('Mine')
+    const left = await otherGroup('Left', ['priya@gmail.com'])
+    await addTestExpense(db, omkar.email, groupId, { amountMinor: 100 })
+    await addTestExpense(db, omkar.email, mine, { amountMinor: 200 })
+    await addTestExpense(db, omkar.email, left, { amountMinor: 300 })
+    await db.update(groupMembers).set({ deletedAt: new Date() }).where(and(eq(groupMembers.groupId, left), eq(groupMembers.personId, omkarId)))
+    await db.update(groups).set({ deletedAt: new Date() }).where(eq(groups.id, mine))
+
+    const asOmkar = await totalsService.spentByGroup(db, omkarId)
+    const asPriya = await totalsService.spentByGroup(db, priyaId)
+
+    expect(Object.keys(asOmkar)).toEqual([groupId])
+    expect(Object.keys(asPriya).sort()).toEqual([groupId, left].sort())
+    expect(asPriya[left]).toEqual([{ currency: 'GBP', totalMinor: 300 }])
+  })
+
+  it('is empty for someone with no groups', async () => {
+    await setUp()
+
+    expect(await totalsService.spentByGroup(db, crypto.randomUUID())).toEqual({})
   })
 })

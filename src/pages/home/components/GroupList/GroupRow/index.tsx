@@ -6,6 +6,7 @@ import { ROUTES } from '../../../../../routes.ts'
 import type { CurrencyBalance } from '../../../../../services/expenseService/types.ts'
 import type { GroupSummary } from '../../../../../services/groupService/types.ts'
 import type { GroupPageState } from '../../../../group/types.ts'
+import type { SpentInCurrency } from '../../../../../services/totalsService/types.ts'
 import { GroupBalance } from './GroupBalance'
 
 const { Text } = Typography
@@ -20,10 +21,12 @@ type Props = {
   group: GroupSummary
   /** The user's balance in the group, one entry per currency not settled. */
   balances: CurrencyBalance[]
+  /** What the group has spent per currency: shown instead of the balance when the user is its only member. */
+  spent: SpentInCurrency[]
 }
 
 /** One group in the list. The whole row is a link to the group's page. */
-export function GroupRow({ group, balances }: Props) {
+export function GroupRow({ group, balances, spent }: Props) {
   const members = `${group.memberCount} ${group.memberCount === 1 ? 'member' : 'members'}`
   const { label, icon, color } = GROUP_TYPE_CONTENT[group.type]
   // The currency as the group page's chip shows it ("US$", "₹"), or its code where no symbol tells it apart.
@@ -79,7 +82,7 @@ export function GroupRow({ group, balances }: Props) {
                 </span>
               </Text>
             </Flex>
-            <GroupBalance balances={balances} />
+            <GroupBalance balances={balances} spent={group.memberCount === 1 ? spent : undefined} />
           </Flex>
         </Flex>
       </Card>

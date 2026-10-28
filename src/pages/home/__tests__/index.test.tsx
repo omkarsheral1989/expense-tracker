@@ -10,7 +10,8 @@ import { ROUTES } from '../../../routes.ts'
 import { useAuthStore } from '../../../stores/useAuthStore'
 import { useSyncStore } from '../../../stores/useSyncStore'
 import { setUpTestDatabase } from '../../../testing/database.ts'
-import { addTestExpense } from '../../../testing/expenses.ts'
+import { expenseService } from '../../../services/expenseService'
+import { addTestExpense, personIdOf } from '../../../testing/expenses.ts'
 import { renderPage } from '../../../testing/render.tsx'
 import { useLocation } from 'react-router'
 import { HomePage } from '../index.tsx'
@@ -199,6 +200,35 @@ describe('HomePage', () => {
       expect(owed).toHaveStyle({ color: 'rgb(47, 158, 68)' })
       const owe = screen.getByText('€5.00').parentElement as HTMLElement
       expect(owe).toHaveStyle({ color: 'rgb(232, 89, 12)' })
+    })
+
+    it('shows a group of one what it spent, per currency, instead of a balance, and leaves other groups as they were', async () => {
+      const solo = await createGroup(me, { name: 'Solo' })
+      const goa = await createGroup(me, { name: 'Goa trip', memberEmails: ['priya@gmail.com'] })
+      await createGroup(me, { name: 'Quiet' })
+      await addExpense(me.email, solo, 5500, 'GBP')
+      await addExpense(me.email, solo, 500, 'GBP')
+      await addExpense(me.email, solo, 1001, 'EUR')
+      await addExpense(me.email, goa, 3000, 'GBP')
+      renderHome()
+
+      await screen.findByText('Solo')
+      expect(balanceOf('Solo')).toBe('€10.01£60.00')
+      expect(screen.getByText('£60.00').tagName).toBe('STRONG')
+      // A group of two still shows a balance, and a group of one with nothing spent still says it is settled.
+      expect(balanceOf('Goa trip')).toBe('you are owed£15.00')
+      expect(balanceOf('Quiet')).toBe('Settled up')
+    })
+
+    it('leaves payments and deleted expenses out of what a group of one spent', async () => {
+      const solo = await createGroup(me, { name: 'Solo' })
+      await addExpense(me.email, solo, 4000, 'GBP')
+      const gone = await addTestExpense(testDb.db, me.email, solo, { amountMinor: 900, currency: 'GBP' })
+      await expenseService.deleteExpense(testDb.db, await personIdOf(testDb.db, me.email), solo, gone)
+      renderHome()
+
+      await screen.findByText('Solo')
+      expect(balanceOf('Solo')).toBe('£40.00')
     })
 
     it('shows the icon of each group\'s type', async () => {
