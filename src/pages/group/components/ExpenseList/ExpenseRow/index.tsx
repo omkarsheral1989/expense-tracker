@@ -20,6 +20,8 @@ type Props = {
   expense: ExpenseListItem
   /** The group the expense is in, for the link to its details. */
   groupId: string
+  /** The user is the group's only member, so nobody can owe anybody: the right side shows the amount instead of a balance. */
+  soloGroup?: boolean
 }
 
 /**
@@ -29,7 +31,7 @@ type Props = {
  * and a deleted expense are one line each instead. The whole row opens the
  * expense's details.
  */
-export function ExpenseRow({ expense, groupId }: Props) {
+export function ExpenseRow({ expense, groupId, soloGroup = false }: Props) {
   const scheme = useColorScheme()
   const { token } = theme.useToken()
   const { month, day } = dateParts(expense.date)
@@ -89,6 +91,7 @@ export function ExpenseRow({ expense, groupId }: Props) {
   }
 
   function renderStatus() {
+    if (soloGroup) return <strong>{moneyService.format(amountMinor, currency)}</strong>
     if (status.kind === 'notInvolved' || status.kind === 'even') {
       return (
         <Text type="secondary" style={{ fontSize: 13 }}>

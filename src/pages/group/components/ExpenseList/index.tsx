@@ -13,6 +13,8 @@ type Props = {
   /** Newest day first, as the service returns them. */
   expenses: ExpenseListItem[]
   groupId: string
+  /** The user is the group's only member (the rows show amounts, not balances). */
+  soloGroup?: boolean
   /** Whether there are more expenses after the last one in `expenses` (ADR-058). */
   hasMore: boolean
   /** The next batch is being read: a small spinner shows under the list. */
@@ -35,7 +37,7 @@ const LOAD_MORE_MARGIN = '600px'
  * bottom, so that would look off.) The space between the actions and the list
  * belongs to the list, not to the page, so the box starts right under the actions.
  */
-export function ExpenseList({ expenses, groupId, hasMore, loadingMore, loadMoreFailed, onLoadMore }: Props) {
+export function ExpenseList({ expenses, groupId, soloGroup, hasMore, loadingMore, loadMoreFailed, onLoadMore }: Props) {
   const end = useRef<HTMLDivElement>(null)
 
   // Asks for the next batch when the end of the list comes near the view. Set up again after each
@@ -51,7 +53,7 @@ export function ExpenseList({ expenses, groupId, hasMore, loadingMore, loadMoreF
   }, [hasMore, loadingMore, onLoadMore, expenses.length])
 
   function renderExpense(expense: ExpenseListItem) {
-    return <ExpenseRow key={expense.id} expense={expense} groupId={groupId} />
+    return <ExpenseRow key={expense.id} expense={expense} groupId={groupId} soloGroup={soloGroup} />
   }
 
   function renderMonth({ month, expenses }: MonthOfExpenses) {
