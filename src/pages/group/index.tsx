@@ -132,6 +132,7 @@ export function GroupPage() {
           <ExpenseList
             expenses={batches.items}
             groupId={group.id}
+            soloGroup={group.members.length === 1}
             hasMore={batches.hasMore}
             loadingMore={batches.loading}
             loadMoreFailed={batches.failed}

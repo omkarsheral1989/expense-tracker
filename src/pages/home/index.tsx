@@ -9,6 +9,7 @@ import { ABOVE_FLOATING_BUTTON, FLOATING_BUTTON_ROOM } from '../../components/Fl
 import { useCachedData } from '../../hooks/useCachedData'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
 import { ROUTES } from '../../routes.ts'
+import { totalsService } from '../../services/totalsService'
 import { expenseService } from '../../services/expenseService'
 import { groupService } from '../../services/groupService'
 import { useSyncStore } from '../../stores/useSyncStore'
@@ -32,6 +33,8 @@ export function HomePage() {
     return {
       groups: await groupService.listGroups(db, userId),
       balances: await expenseService.balancesByGroup(db, userId),
+      // What a group of one shows instead of a balance (PRD 5.2).
+      spent: await totalsService.spentByGroup(db, userId),
     }
   }, 'home', `${userId}:${dataVersion}`, { keepPrevious: true })
 
@@ -80,7 +83,7 @@ export function HomePage() {
           <EmptyGroups />
         ) : (
           <div style={{ paddingBottom: aboveScreenEdge(FLOATING_BUTTON_ROOM) }}>
-            <GroupList groups={state.data.groups} balances={state.data.balances} />
+            <GroupList groups={state.data.groups} balances={state.data.balances} spent={state.data.spent} />
           </div>
         )
     }
