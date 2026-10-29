@@ -5,12 +5,16 @@ import { PersonAvatar } from '../../../../components/PersonAvatar'
 import { useColorScheme } from '../../../../hooks/useColorScheme'
 import type { BalanceMember } from '../../../../services/balancesService/types.ts'
 import { groupService } from '../../../../services/groupService'
+import { CONTROL_HEIGHT, ICON_ONLY_SIZE } from '../../../../theme/controlHeight.ts'
 import { OWED_TO_YOU_COLOR, YOU_OWE_COLOR } from '../../../../theme/balanceColors.ts'
 import { PILL_RADIUS, RADIUS } from '../../../../theme/radius.ts'
 import type { BalanceLine, PersonTotal, SettlePrefill } from '../../types.ts'
 import { lineText, prefillOf, summarySegments, type SummarySegment } from '../../utils.ts'
 
 const { Text } = Typography
+
+/** The gap between the avatar and the sentence. */
+const AVATAR_GAP = 12
 
 type Props = {
   member: BalanceMember
@@ -35,20 +39,22 @@ export function BalanceRow({ member, totals, lines, members, onSettle }: Props) 
   function renderSegment(segment: SummarySegment, index: number) {
     if (typeof segment === 'string') return segment
     return (
-      <Text key={index} strong style={{ color: toneColor[segment.tone] }}>
+      // A plain element, not Typography's Text, which sets its own line height and would stretch the 20 px lines.
+      <strong key={index} style={{ color: toneColor[segment.tone] }}>
         {segment.amount}
-      </Text>
+      </strong>
     )
   }
 
   function renderHeading() {
     const content = (
-      <Flex align="center" gap={12} style={{ width: '100%' }}>
+      <Flex align="center" gap={AVATAR_GAP} style={{ width: '100%' }}>
         <PersonAvatar name={groupService.displayName(member)} picture={member.picture} />
-        <Text type={settled ? 'secondary' : undefined} style={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>
+        <Text type={settled ? 'secondary' : undefined} style={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere', lineHeight: '20px' }}>
           {summarySegments(member, totals).map(renderSegment)}
         </Text>
-        {!settled && <Icon name={open ? 'chevronDown' : 'chevronRight'} />}
+        {/* One chevron that turns: pointing right when shut, down when open (`.balance-chevron`). */}
+        {!settled && <Icon name="chevronDown" size={ICON_ONLY_SIZE} className="balance-chevron" style={{ flex: 'none', transform: open ? 'none' : 'rotate(-90deg)' }} />}
       </Flex>
     )
     if (settled) return content
@@ -84,7 +90,8 @@ export function BalanceRow({ member, totals, lines, members, onSettle }: Props) 
       {/* Always in the page and folded shut with a height transition (`.balance-lines`); inert while shut, so it cannot be focused. */}
       <div className="balance-lines" data-open={open}>
         <div inert={!open}>
-          <Flex vertical gap={12} style={{ paddingTop: 12 }}>
+          {/* Indented by the avatar and its gap, so the lines start under the sentence above them. */}
+          <Flex vertical gap={12} style={{ paddingTop: 12, paddingLeft: CONTROL_HEIGHT + AVATAR_GAP }}>
             {lines.map(renderLine)}
           </Flex>
         </div>

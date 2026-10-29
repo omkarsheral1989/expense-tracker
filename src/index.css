@@ -474,8 +474,12 @@ body .ant-modal-container {
   min-height: 0;
   overflow: hidden;
 }
+.balance-chevron {
+  transition: transform 300ms ease;
+}
 @media (prefers-reduced-motion: reduce) {
-  .balance-lines {
+  .balance-lines,
+  .balance-chevron {
     transition: none;
   }
 }

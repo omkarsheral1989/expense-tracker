@@ -56,7 +56,7 @@ export type SummarySegment = string | { amount: string; tone: 'owed' | 'owes' }
 
 /**
  * The sentence of a collapsed row, in pieces so the amounts can be colored: "Omkar gets back $22 in total", "Priya owes $11 in
- * total", or, with balances in several currencies, "Omkar gets back $22 and owes ₹100 in total". "Rima is settled up" with nothing owed.
+ * total", or, with balances in several currencies, "Omkar gets back $22, £5 and owes ₹100 in total" (amounts of one kind are separated by commas). "Rima is settled up" with nothing owed.
  */
 export function summarySegments(member: BalanceMember, totals: readonly PersonTotal[]): SummarySegment[] {
   const name = subjectName(member)
@@ -65,7 +65,7 @@ export function summarySegments(member: BalanceMember, totals: readonly PersonTo
     totals
       .filter((total) => total.netMinor > 0 === (tone === 'owed'))
       .flatMap((total, index): SummarySegment[] => [
-        ...(index > 0 ? [' and '] : []),
+        ...(index > 0 ? [', '] : []),
         { amount: moneyService.format(Math.abs(total.netMinor), total.currency), tone },
       ])
   const gets = amounts('owed')

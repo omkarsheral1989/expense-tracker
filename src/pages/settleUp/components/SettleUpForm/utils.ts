@@ -32,8 +32,9 @@ export function hasUnsavedInput(values: Partial<FormValues> | undefined, initial
 
   return (
     values.payerId !== initial.payerId ||
-    values.recipientId !== undefined ||
-    (values.amount ?? '') !== '' ||
+    // Compared with the opening values, not with empty ones: a payment the balances page filled in is not input yet.
+    values.recipientId !== initial.recipientId ||
+    (values.amount ?? '') !== initial.amount ||
     (values.notes ?? '').trim() !== '' ||
     values.currency !== initial.currency ||
     values.date !== initial.date ||

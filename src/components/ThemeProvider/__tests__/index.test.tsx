@@ -41,6 +41,11 @@ describe('ThemeProvider', () => {
     expect(CARD_PADDING).toBe(10)
   })
 
+  it('has two card radii: the usual 20 px and the larger 30 px a roomy card takes (the balance rows)', () => {
+    expect(RADIUS.card).toBe(20)
+    expect(RADIUS.cardLarge).toBe(30)
+  })
+
   it('keeps the small corner radius at 10 px and the container one at 24 px, and the controls on the small one', () => {
     const config = themeFor('light')
 
