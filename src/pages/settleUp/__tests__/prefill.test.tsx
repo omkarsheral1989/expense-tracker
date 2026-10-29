@@ -40,7 +40,8 @@ function renderSettleUp(groupId: string, state?: unknown) {
 const payerSelect = () => screen.getByRole('combobox', { name: 'Who paid?' })
 const recipientSelect = () => screen.getByRole('combobox', { name: 'Who received it?' })
 const amountInput = () => screen.getByRole('textbox', { name: 'Amount' })
-const sentence = () => screen.queryByRole('heading', { level: 4 })?.textContent ?? null
+/** Who paid whom, as the payment row below the dropdowns says it to assistive technology ("You paid Priya"); null until a recipient is chosen. */
+const sentence = () => screen.queryByRole('group', { name: /paid/ })?.getAttribute('aria-label') ?? null
 
 /** What the balances page hands Settle up: Sam pays Priya 12.50 US dollars. */
 async function samPaysPriya(overrides: Record<string, unknown> = {}) {

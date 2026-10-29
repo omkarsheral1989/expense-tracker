@@ -55,7 +55,8 @@ const recipientSelect = () => screen.getByRole('combobox', { name: 'Who received
 const amountInput = () => screen.getByRole('textbox', { name: 'Amount' })
 const notesInput = () => screen.getByRole('textbox', { name: 'Notes' })
 const saveButton = () => screen.getByRole('button', { name: 'Save' })
-const sentence = () => screen.queryByRole('heading', { level: 4 })?.textContent ?? null
+/** Who paid whom, as the payment row below the dropdowns says it to assistive technology ("You paid Priya"); null until a recipient is chosen. */
+const sentence = () => screen.queryByRole('group', { name: /paid/ })?.getAttribute('aria-label') ?? null
 
 /** The dropdown that is open now (a closed one stays in the page, hidden). */
 function openDropdown() {
@@ -226,6 +227,34 @@ describe('SettleUpPage', () => {
       await pick(payerSelect(), 'sam@gmail.com')
 
       expect(sentence()).toBe('Sam paid Priya')
+    })
+
+    it('draws it as the payment page does: avatars, first names and an arrow, in place of a big sentence', async () => {
+      const id = await createGroup()
+      renderSettleUp(id)
+      await screen.findByRole('heading', { name: 'Settle up' })
+
+      await pick(recipientSelect(), 'Priya Shah')
+
+      const row = screen.getByRole('group', { name: 'You paid Priya' })
+      expect(row.querySelectorAll('.ant-avatar')).toHaveLength(2)
+      // Each side is its avatar's initial and then its first name ("You" for the user).
+      expect(row.textContent).toBe('YYoupaidPPriya')
+      expect(screen.getByText('paid').parentElement).toHaveAttribute('aria-hidden', 'true')
+      // No sentence in large type any more, and the row keeps the spacing the sentence had.
+      expect(screen.queryByRole('heading', { level: 4 })).not.toBeInTheDocument()
+      expect(row).toHaveStyle({ marginTop: '8px', marginBottom: '16px' })
+    })
+
+    it('shows the recipient\'s Google picture in the row when they have one', async () => {
+      const id = await createGroup()
+      await testDb.db.update(people).set({ picture: 'https://example.com/priya.png' }).where(eq(people.email, 'priya@gmail.com'))
+      renderSettleUp(id)
+      await screen.findByRole('heading', { name: 'Settle up' })
+
+      await pick(recipientSelect(), 'Priya Shah')
+
+      expect(screen.getByRole('group', { name: 'You paid Priya' }).querySelector('img')).toHaveAttribute('src', 'https://example.com/priya.png')
     })
   })
 

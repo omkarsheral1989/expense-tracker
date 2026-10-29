@@ -1,5 +1,5 @@
 import { Icon } from '../../Icon'
-import { Button } from 'antd'
+import { Button, Image } from 'antd'
 import { useObjectUrl } from '../../../hooks/useObjectUrl'
 import { RADIUS } from '../../../theme/radius.ts'
 
@@ -9,22 +9,28 @@ const PREVIEW_SIZE = 64
 type Props = {
   /** The picture to show; null shows an empty square (a stored photo that is not on this device). */
   file: Blob | null
+  /** The photo at full size, shown in the viewer when the square is pressed; the square's own picture when left out (a chosen photo is its own full size). */
+  full?: Blob | null
   /** Its place among the chosen photos, from 1, for screen readers. */
   number: number
   onRemove: () => void
 }
 
-/** A chosen photo as a small square, with an x to take it out again. */
-export function ReceiptPreview({ file, number, onRemove }: Props) {
+/** A chosen photo as a small square, with an x to take it out again; pressing the photo opens it in the viewer. */
+export function ReceiptPreview({ file, full, number, onRemove }: Props) {
   const url = useObjectUrl(file)
+  const fullUrl = useObjectUrl(full ?? file)
 
   return (
     <div style={{ position: 'relative', width: PREVIEW_SIZE, height: PREVIEW_SIZE, flex: 'none' }}>
       {url && (
-        <img
+        <Image
           src={url}
           alt={`Receipt photo ${number}`}
-          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: RADIUS.inner }}
+          width={PREVIEW_SIZE}
+          height={PREVIEW_SIZE}
+          preview={{ src: fullUrl ?? url }}
+          style={{ objectFit: 'cover', borderRadius: RADIUS.inner }}
         />
       )}
       <Button

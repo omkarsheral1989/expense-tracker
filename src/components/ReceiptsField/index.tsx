@@ -1,10 +1,10 @@
 import { Icon } from '../Icon'
-import { App, Button, Flex, Tooltip } from 'antd'
+import { App, Button, Flex, Image, Tooltip } from 'antd'
 import { useRef, type ChangeEvent } from 'react'
 import { MAX_RECEIPTS_PER_EXPENSE } from '../../db/constants.ts'
+import { useStoredPhotos } from '../../hooks/useStoredPhotos'
 import type { PhotoStore, ReceiptInput } from '../../services/photoService/types.ts'
 import { ReceiptPreview } from './ReceiptPreview'
-import { StoredReceiptPreview } from './StoredReceiptPreview'
 
 type Props = {
   /** Given by the form item, so that its messages are tied to the button. */
@@ -34,6 +34,10 @@ export function ReceiptsField({ id, value = [], onChange, stored = [], onStoredC
   const chooser = useRef<HTMLInputElement>(null)
   const count = stored.length + value.length
   const full = count >= MAX_RECEIPTS_PER_EXPENSE
+  // All the stored photos are read together, so their thumbnails join the viewer in the order shown (`useStoredPhotos`).
+  const storedPhotos = useStoredPhotos(photoStore, stored.map((photo) => photo.id))
+  // Chosen photos wait for the stored ones, so every thumbnail appears in the same step and the viewer keeps the order shown.
+  const storedReady = stored.length === 0 || storedPhotos !== null
 
   function handleChosen(event: ChangeEvent<HTMLInputElement>) {
     const pictures = [...(event.target.files ?? [])].filter((file) => file.type.startsWith('image/'))
@@ -48,11 +52,13 @@ export function ReceiptsField({ id, value = [], onChange, stored = [], onStoredC
 
   function renderStored(photo: ReceiptInput, index: number) {
     if (!photoStore) return null
+    // Until they are read, or when the photo is not on this device, an empty square that can still be taken off.
+    const read = storedPhotos?.find((one) => one.id === photo.id)
     return (
-      <StoredReceiptPreview
+      <ReceiptPreview
         key={photo.id}
-        photoId={photo.id}
-        store={photoStore}
+        file={read?.thumbnail ?? null}
+        full={read?.photo ?? null}
         number={index + 1}
         onRemove={() => onStoredChange?.(stored.filter((other) => other.id !== photo.id))}
       />
@@ -63,7 +69,7 @@ export function ReceiptsField({ id, value = [], onChange, stored = [], onStoredC
     return (
       <ReceiptPreview
         key={`${index}-${file.name}-${file.size}`}
-        file={file}
+        file={storedReady ? file : null}
         number={stored.length + index + 1}
         onRemove={() => onChange?.(value.filter((_, other) => other !== index))}
       />
@@ -83,26 +89,29 @@ export function ReceiptsField({ id, value = [], onChange, stored = [], onStoredC
   )
 
   return (
-    <Flex wrap gap={12} align="center">
-      {full ? (
-        <Tooltip title={`Up to ${MAX_RECEIPTS_PER_EXPENSE} photos.`}>
-          <span style={{ display: 'inline-flex' }}>{button}</span>
-        </Tooltip>
-      ) : (
-        button
-      )}
-      <input
-        ref={chooser}
-        type="file"
-        accept="image/*"
-        multiple
-        // The `hidden` attribute loses to the input styles of the page, so it is hidden here.
-        style={{ display: 'none' }}
-        data-testid="receipt-chooser"
-        onChange={handleChosen}
-      />
-      {stored.map(renderStored)}
-      {value.map(renderPreview)}
-    </Flex>
+    // One viewer for all the photos, so they can be swiped through.
+    <Image.PreviewGroup>
+      <Flex wrap gap={12} align="center">
+        {full ? (
+          <Tooltip title={`Up to ${MAX_RECEIPTS_PER_EXPENSE} photos.`}>
+            <span style={{ display: 'inline-flex' }}>{button}</span>
+          </Tooltip>
+        ) : (
+          button
+        )}
+        <input
+          ref={chooser}
+          type="file"
+          accept="image/*"
+          multiple
+          // The `hidden` attribute loses to the input styles of the page, so it is hidden here.
+          style={{ display: 'none' }}
+          data-testid="receipt-chooser"
+          onChange={handleChosen}
+        />
+        {stored.map(renderStored)}
+        {value.map(renderPreview)}
+      </Flex>
+    </Image.PreviewGroup>
   )
 }

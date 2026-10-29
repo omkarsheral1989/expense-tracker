@@ -1,6 +1,7 @@
 import { Flex, Typography } from 'antd'
-import { PersonAvatar } from '../../../../components/PersonAvatar'
-import { CATEGORY_GROUP_COLORS } from '../../../../theme/categoryColors.ts'
+import type { CSSProperties } from 'react'
+import { CATEGORY_GROUP_COLORS } from '../../theme/categoryColors.ts'
+import { PersonAvatar } from '../PersonAvatar'
 
 const { Text } = Typography
 
@@ -18,13 +19,16 @@ type Props = {
   recipient: PaymentSide
   /** The payment as a sentence ("You paid Priya"), for assistive technology. */
   label: string
+  /** Spacing around the row, which the page that shows it decides. */
+  style?: CSSProperties
 }
 
 /**
- * Who paid whom, below the band of a payment's page: the payer's avatar and name,
- * an arrow with "paid" under it, and the recipient's avatar and name.
+ * Who paid whom: the payer's avatar and name, an arrow with "paid" in it, and the
+ * recipient's avatar and name. Below the band of a payment's page, and in place of
+ * the sentence on the settle-up form.
  */
-export function PaymentRow({ payer, recipient, label }: Props) {
+export function PaymentRow({ payer, recipient, label, style }: Props) {
   function renderSide(side: PaymentSide, align: 'flex-start' | 'flex-end') {
     return (
       <Flex align="center" gap={12} style={{ flex: '0 1 auto', minWidth: 0, justifyContent: align }}>
@@ -50,7 +54,7 @@ export function PaymentRow({ payer, recipient, label }: Props) {
   }
 
   return (
-    <Flex align="center" gap={24} role="group" aria-label={label} style={{ marginBottom: 20 }}>
+    <Flex align="center" gap={24} role="group" aria-label={label} style={style}>
       {renderSide(payer, 'flex-start')}
       {renderArrow()}
       {renderSide(recipient, 'flex-end')}

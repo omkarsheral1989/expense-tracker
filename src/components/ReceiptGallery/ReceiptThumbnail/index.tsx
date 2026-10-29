@@ -1,20 +1,19 @@
 import { Icon } from '../../Icon'
-import { Flex, Image, Skeleton, theme, Typography } from 'antd'
-import { useAsyncData } from '../../../hooks/useAsyncData'
+import { Flex, Image, theme, Typography } from 'antd'
 import { useObjectUrl } from '../../../hooks/useObjectUrl'
-import type { PhotoStore } from '../../../services/photoService/types.ts'
 import { RADIUS } from '../../../theme/radius.ts'
 
 const { Text } = Typography
 
 /** Width and height of a thumbnail on the details page, in pixels. */
-const THUMBNAIL_SIZE = 88
+export const THUMBNAIL_SIZE = 88
 
 type Props = {
-  photoId: string
+  /** The photo's thumbnail and full-size picture; null when it is not on this device. */
+  thumbnail: Blob | null
+  photo: Blob | null
   /** Its place among the expense's photos, from 1, for screen readers. */
   number: number
-  store: PhotoStore
 }
 
 /**
@@ -22,17 +21,11 @@ type Props = {
  * A photo that is not on this device (for example one another member added,
  * before it is synced) shows a grey square saying so.
  */
-export function ReceiptThumbnail({ photoId, number, store }: Props) {
+export function ReceiptThumbnail({ thumbnail, photo, number }: Props) {
   const { token } = theme.useToken()
-  const { state } = useAsyncData(
-    async () => ({ thumbnail: await store.getThumbnail(photoId), photo: await store.getPhoto(photoId) }),
-    photoId,
-  )
-  const thumbnailUrl = useObjectUrl(state.status === 'ready' ? state.data.thumbnail : null)
-  const photoUrl = useObjectUrl(state.status === 'ready' ? state.data.photo : null)
+  const thumbnailUrl = useObjectUrl(thumbnail)
+  const photoUrl = useObjectUrl(photo)
   const square = { width: THUMBNAIL_SIZE, height: THUMBNAIL_SIZE, borderRadius: RADIUS.inner }
-
-  if (state.status === 'loading') return <Skeleton.Image active style={square} />
 
   if (!thumbnailUrl || !photoUrl) {
     return (

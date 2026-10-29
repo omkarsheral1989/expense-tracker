@@ -106,9 +106,12 @@ export function VersionDetails({ data, datasetId, userId, onChanged }: Props) {
           lines={historyLines(event, data.people)}
         />
         {renderWhyNot()}
-        <Button style={{ alignSelf: 'flex-start', borderRadius: PILL_RADIUS }} onClick={() => navigate(toExpense, { state: { backTo: ROUTES.expenseVersion(data.groupId, data.expenseId, event.id) } })}>
-          Open {noun}
-        </Button>
+        {/* Only for people who came from Activity: from the expense's own History its Back arrow already leads there. */}
+        {cameFromActivity && (
+          <Button style={{ alignSelf: 'flex-start', borderRadius: PILL_RADIUS }} onClick={() => navigate(toExpense, { state: { backTo: ROUTES.expenseVersion(data.groupId, data.expenseId, event.id) } })}>
+            Open {noun}
+          </Button>
+        )}
       </Flex>
       <Divider style={{ margin: '16px 0' }} />
       <ExpenseBody
