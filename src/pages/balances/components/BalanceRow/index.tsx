@@ -6,6 +6,7 @@ import { useColorScheme } from '../../../../hooks/useColorScheme'
 import type { BalanceMember } from '../../../../services/balancesService/types.ts'
 import { groupService } from '../../../../services/groupService'
 import { OWED_TO_YOU_COLOR, YOU_OWE_COLOR } from '../../../../theme/balanceColors.ts'
+import { PILL_RADIUS } from '../../../../theme/radius.ts'
 import type { BalanceLine, PersonTotal, SettlePrefill } from '../../types.ts'
 import { lineText, prefillOf, summarySegments, type SummarySegment } from '../../utils.ts'
 
@@ -69,13 +70,16 @@ export function BalanceRow({ member, totals, lines, members, onSettle }: Props) 
     return (
       <Flex key={`${line.currency}|${line.kind}|${line.otherId}`} align="center" justify="space-between" gap={12}>
         <Text style={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>{lineText(member, other, line)}</Text>
-        <Button onClick={() => onSettle(prefillOf(member, line))}>Settle up</Button>
+        <Button onClick={() => onSettle(prefillOf(member, line))} style={{ borderRadius: PILL_RADIUS }}>
+          Settle up
+        </Button>
       </Flex>
     )
   }
 
   return (
-    <Card>
+    // A 30 px corner, rounder than the theme's card radius (PRD 5.21); the card keeps its border and padding from the theme.
+    <Card style={{ borderRadius: 30 }}>
       {renderHeading()}
       {open && (
         <Flex vertical gap={12} style={{ marginTop: 12 }}>
