@@ -12,6 +12,7 @@ import { slide } from '../../hooks/useAppNavigate/utils.ts'
 import { GroupNotFound } from '../../components/GroupNotFound'
 import { useCachedData } from '../../hooks/useCachedData'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
+import { settlePrefillFrom } from '../balances/utils.ts'
 import { loadSettleUp, SETTLE_UP_PAGE, settleUpKey } from './utils.ts'
 import { aboveScreenEdge, belowStatusBar, HEADER_TOP_PADDING } from '../../theme/safeArea.ts'
 import { SettleUpForm } from './components/SettleUpForm'
@@ -24,7 +25,8 @@ export function SettleUpPage() {
   const user = useCurrentUser()
   const { id = '' } = useParams()
   // What the group's page knew when it opened this one, if it did (ADR-054).
-  const known = knownGroupFrom(useLocation().state, id)
+  const location = useLocation()
+  const known = knownGroupFrom(location.state, id)
 
   const userId = user?.personId ?? ''
   const datasetId = user?.datasetId ?? ''
@@ -73,6 +75,11 @@ export function SettleUpPage() {
             datasetId={datasetId}
             userId={userId}
             recentCurrencies={state.data.recentCurrencies}
+            // The balances page opens this with a payment filled in (PRD 5.21).
+            prefill={settlePrefillFrom(
+              location.state,
+              state.data.group.members.map((member) => member.personId),
+            )}
           />
         )
     }

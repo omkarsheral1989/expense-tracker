@@ -23,6 +23,7 @@ import { HEADER_TITLE_STYLE } from '../../../../theme/headerTitle.ts'
 import { BackButton } from '../../../../components/BackButton'
 import { dialogLayer } from '../../../../components/DialogLayer'
 import { useQueryClient } from '@tanstack/react-query'
+import type { SettlePrefill } from '../../../balances/types.ts'
 import { refreshGroupPage } from '../../../group/utils.ts'
 import { useConfirm } from '../../../../hooks/useConfirm'
 
@@ -39,13 +40,15 @@ type Props = {
   userId: string
   /** The currencies of the user's latest expenses, most recent first. */
   recentCurrencies: string[]
+  /** A payment to start from, handed over by the balances page (PRD 5.21); a plain form without it. */
+  prefill?: SettlePrefill | null
 }
 
 /**
  * Records a payment between two members of a group: who paid, who received it,
  * how much, and when. Saved with the tick in the header.
  */
-export function SettleUpForm({ group, datasetId, userId, recentCurrencies }: Props) {
+export function SettleUpForm({ group, datasetId, userId, recentCurrencies, prefill }: Props) {
   const [form] = Form.useForm<FormValues>()
   const { message } = App.useApp()
   const confirm = useConfirm()
@@ -54,10 +57,10 @@ export function SettleUpForm({ group, datasetId, userId, recentCurrencies }: Pro
   const [submitting, setSubmitting] = useState(false)
 
   const [initialValues] = useState<FormValues>(() => ({
-    payerId: userId,
-    recipientId: undefined,
-    amount: '',
-    currency: group.defaultCurrency,
+    payerId: prefill?.payerId ?? userId,
+    recipientId: prefill?.recipientId,
+    amount: prefill ? moneyService.fromMinor(prefill.amountMinor, prefill.currency) : '',
+    currency: prefill?.currency ?? group.defaultCurrency,
     date: dateService.toDay(new Date()),
     notes: '',
     receipts: [],

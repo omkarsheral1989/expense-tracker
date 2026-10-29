@@ -21,7 +21,7 @@ type Props = {
  * The row of actions under the balance. It scrolls sideways when it does not
  * fit, so more pills can be added without wrapping. "Settle up" opens the page that
  * records a payment between two members and is switched off in a group of one;
- * "Totals" opens the totals page and is switched off while the group has no expenses.
+ * "Balances" opens the balances page and is switched off in a group of one; "Totals" opens the totals page and is switched off while the group has no expenses.
  */
 export function ActionPills({ groupId, group, canSettle, loading = false, canTotal = false }: Props) {
   const navigate = useAppNavigate()
@@ -56,6 +56,18 @@ export function ActionPills({ groupId, group, canSettle, loading = false, canTot
     </Button>
   )
 
+  // The same white pill with round ends; it opens the balances page and, like Settle up, needs someone besides the user.
+  const balances = (
+    <Button
+      disabled={!canSettle || loading}
+      icon={<Icon name="scale" />}
+      onClick={() => navigate(ROUTES.balances(groupId), { state: group && { group } })}
+      style={{ borderRadius: PILL_RADIUS }}
+    >
+      Balances
+    </Button>
+  )
+
   return (
     <Flex gap={8} style={{ overflowX: 'auto', paddingBottom: 4 }}>
       {canSettle || loading ? (
@@ -64,6 +76,13 @@ export function ActionPills({ groupId, group, canSettle, loading = false, canTot
         // A disabled button gets no pointer events, so the tip hangs on a wrapper.
         <Tooltip title="You are the only member of this group.">
           <span style={{ flex: 'none' }}>{settleUp}</span>
+        </Tooltip>
+      )}
+      {canSettle || loading ? (
+        <span style={{ flex: 'none' }}>{balances}</span>
+      ) : (
+        <Tooltip title="You are the only member of this group.">
+          <span style={{ flex: 'none' }}>{balances}</span>
         </Tooltip>
       )}
       {canTotal || loading ? (
