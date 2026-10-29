@@ -7,7 +7,7 @@ import type { BalanceMember } from '../../../../services/balancesService/types.t
 import { groupService } from '../../../../services/groupService'
 import { OWED_TO_YOU_COLOR, YOU_OWE_COLOR } from '../../../../theme/balanceColors.ts'
 import type { BalanceLine, PersonTotal, SettlePrefill } from '../../types.ts'
-import { lineText, prefillOf, summaryOf } from '../../utils.ts'
+import { lineText, prefillOf, summarySegments, type SummarySegment } from '../../utils.ts'
 
 const { Text } = Typography
 
@@ -28,17 +28,24 @@ export function BalanceRow({ member, totals, lines, members, onSettle }: Props) 
   const scheme = useColorScheme()
   const [open, setOpen] = useState(false)
   const settled = totals.length === 0
-  const owes = totals.some((total) => total.netMinor < 0)
-  const getsBack = totals.some((total) => total.netMinor > 0)
-  // Green for someone who is only owed, orange-red for someone who only owes; a mix keeps the normal text color.
-  const color = getsBack && !owes ? OWED_TO_YOU_COLOR[scheme] : owes && !getsBack ? YOU_OWE_COLOR[scheme] : undefined
+  const toneColor = { owed: OWED_TO_YOU_COLOR[scheme], owes: YOU_OWE_COLOR[scheme] }
+
+  // Only the amounts are colored: green when owed to them, orange-red when they owe.
+  function renderSegment(segment: SummarySegment, index: number) {
+    if (typeof segment === 'string') return segment
+    return (
+      <Text key={index} strong style={{ color: toneColor[segment.tone] }}>
+        {segment.amount}
+      </Text>
+    )
+  }
 
   function renderHeading() {
     const content = (
       <Flex align="center" gap={12} style={{ width: '100%' }}>
         <PersonAvatar name={groupService.displayName(member)} picture={member.picture} />
-        <Text strong={!settled} type={settled ? 'secondary' : undefined} style={{ flex: 1, minWidth: 0, color, overflowWrap: 'anywhere' }}>
-          {summaryOf(member, totals)}
+        <Text type={settled ? 'secondary' : undefined} style={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>
+          {summarySegments(member, totals).map(renderSegment)}
         </Text>
         {!settled && <Icon name={open ? 'chevronDown' : 'chevronRight'} />}
       </Flex>

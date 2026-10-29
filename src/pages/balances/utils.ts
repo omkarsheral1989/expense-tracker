@@ -51,24 +51,38 @@ export function linesOf(balances: GroupBalances, personId: string): BalanceLine[
   )
 }
 
+/** A piece of a row's sentence: plain words, or an amount drawn in a color (green: owed to them, orange-red: they owe). */
+export type SummarySegment = string | { amount: string; tone: 'owed' | 'owes' }
+
 /**
- * The sentence of a collapsed row: "Omkar gets back $22 in total", "Priya owes $11 in total", or, with balances in several
- * currencies, "Omkar gets back $22 and owes ₹100 in total". "Rima is settled up" with nothing owed.
+ * The sentence of a collapsed row, in pieces so the amounts can be colored: "Omkar gets back $22 in total", "Priya owes $11 in
+ * total", or, with balances in several currencies, "Omkar gets back $22 and owes ₹100 in total". "Rima is settled up" with nothing owed.
  */
-export function summaryOf(member: BalanceMember, totals: readonly PersonTotal[]): string {
+export function summarySegments(member: BalanceMember, totals: readonly PersonTotal[]): SummarySegment[] {
   const name = subjectName(member)
-  if (totals.length === 0) return `${name} ${member.isYou ? 'are' : 'is'} settled up`
-  const amounts = (positive: boolean) =>
+  if (totals.length === 0) return [`${name} ${member.isYou ? 'are' : 'is'} settled up`]
+  const amounts = (tone: 'owed' | 'owes'): SummarySegment[] =>
     totals
-      .filter((total) => total.netMinor > 0 === positive)
-      .map((total) => moneyService.format(Math.abs(total.netMinor), total.currency))
-      .join(' and ')
-  const gets = amounts(true)
-  const owes = amounts(false)
-  const getsBack = member.isYou ? 'get back' : 'gets back'
-  const owe = member.isYou ? 'owe' : 'owes'
-  const parts = [gets && `${getsBack} ${gets}`, owes && `${owe} ${owes}`].filter(Boolean)
-  return `${name} ${parts.join(' and ')} in total`
+      .filter((total) => total.netMinor > 0 === (tone === 'owed'))
+      .flatMap((total, index): SummarySegment[] => [
+        ...(index > 0 ? [' and '] : []),
+        { amount: moneyService.format(Math.abs(total.netMinor), total.currency), tone },
+      ])
+  const gets = amounts('owed')
+  const owes = amounts('owes')
+  const segments: SummarySegment[] = [`${name} `]
+  if (gets.length > 0) segments.push(member.isYou ? 'get back ' : 'gets back ', ...gets)
+  if (gets.length > 0 && owes.length > 0) segments.push(' and ')
+  if (owes.length > 0) segments.push(member.isYou ? 'owe ' : 'owes ', ...owes)
+  segments.push(' in total')
+  return segments
+}
+
+/** The same sentence as plain text. */
+export function summaryOf(member: BalanceMember, totals: readonly PersonTotal[]): string {
+  return summarySegments(member, totals)
+    .map((segment) => (typeof segment === 'string' ? segment : segment.amount))
+    .join('')
 }
 
 /** One line of an open row: "Omkar gets back $11 from Priya", "Omkar owes $1 to Rima" ("You owe $1 to Rima"). */
