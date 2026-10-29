@@ -34,6 +34,18 @@ describe('ActionPills', () => {
     expect(settleUp()).toHaveStyle({ borderRadius: '0px' })
   })
 
+  it('has an 18 px arrows icon before its label, inside the label so both fade together when the pill grows into the page', () => {
+    renderPills({ canSettle: true })
+
+    const icon = settleUp().querySelector('.tabler-icon-arrows-exchange') as SVGElement
+    expect(icon).not.toBeNull()
+    expect(icon).toHaveAttribute('width', '18')
+    const label = settleUp().querySelector('[data-vt="pillLabel"]') as HTMLElement
+    expect(label).toContainElement(icon)
+    expect(label).toHaveTextContent('Settle up')
+    expect(label).toHaveStyle({ gap: '8px' })
+  })
+
   it('switches Settle up off, with a tip, in a group of one', async () => {
     renderPills({ canSettle: false })
     expect(settleUp()).toBeDisabled()

@@ -37,7 +37,8 @@ export function BalancesPage() {
   if (!user) return null
 
   function handleSettle(settle: SettlePrefill) {
-    navigate(ROUTES.settleUp(id), { state: { settle } })
+    // `from` makes Settle up's Back lead here instead of to the group.
+    navigate(ROUTES.settleUp(id), { state: { settle, from: 'balances' } })
   }
 
   function renderBalances(balances: GroupBalances) {

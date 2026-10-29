@@ -2,6 +2,7 @@ import { Icon } from '../../../../components/Icon'
 import { Button, Flex, Tooltip } from 'antd'
 import { useAppNavigate } from '../../../../hooks/useAppNavigate'
 import { ROUTES } from '../../../../routes.ts'
+import { ICON_ONLY_SIZE } from '../../../../theme/controlHeight.ts'
 import { PILL_RADIUS } from '../../../../theme/radius.ts'
 import type { KnownGroup } from '../../types.ts'
 
@@ -39,7 +40,11 @@ export function ActionPills({ groupId, group, canSettle, loading = false, canTot
         data-vt="block"
         style={{ borderRadius: 0, border: 'none' }}
       >
-        <span data-vt="pillLabel">Settle up</span>
+        {/* The icon is part of the label, so both fade together when the pill grows into the settle-up page (PRD 5.16). */}
+        <span data-vt="pillLabel" style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <Icon name="exchange" size={ICON_ONLY_SIZE} />
+          Settle up
+        </span>
       </Button>
     </span>
   )

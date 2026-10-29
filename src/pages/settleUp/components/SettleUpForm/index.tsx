@@ -24,6 +24,7 @@ import { BackButton } from '../../../../components/BackButton'
 import { dialogLayer } from '../../../../components/DialogLayer'
 import { useQueryClient } from '@tanstack/react-query'
 import type { SettlePrefill } from '../../../balances/types.ts'
+import { refreshBalancesPage } from '../../../balances/utils.ts'
 import { refreshGroupPage } from '../../../group/utils.ts'
 import { useConfirm } from '../../../../hooks/useConfirm'
 
@@ -40,6 +41,8 @@ type Props = {
   userId: string
   /** The currencies of the user's latest expenses, most recent first. */
   recentCurrencies: string[]
+  /** Where Back, Discard and a saved payment lead: the page the user came from (the group page, or the balances page that opened this one, PRD 5.21). */
+  backTo: string
   /** A payment to start from, handed over by the balances page (PRD 5.21); a plain form without it. */
   prefill?: SettlePrefill | null
 }
@@ -48,7 +51,7 @@ type Props = {
  * Records a payment between two members of a group: who paid, who received it,
  * how much, and when. Saved with the tick in the header.
  */
-export function SettleUpForm({ group, datasetId, userId, recentCurrencies, prefill }: Props) {
+export function SettleUpForm({ group, datasetId, userId, recentCurrencies, backTo, prefill }: Props) {
   const [form] = Form.useForm<FormValues>()
   const { message } = App.useApp()
   const confirm = useConfirm()
@@ -75,13 +78,13 @@ export function SettleUpForm({ group, datasetId, userId, recentCurrencies, prefi
   const payer = group.members.find((member) => member.personId === payerId)
   const recipient = group.members.find((member) => member.personId === recipientId)
 
-  function leave() {
-    navigate(ROUTES.group(group.id), { direction: 'back' })
+  function goBack() {
+    navigate(backTo, { direction: 'back' })
   }
 
   function handleLeave() {
     if (!hasInput) {
-      leave()
+      goBack()
       return
     }
     confirm({
@@ -92,7 +95,7 @@ export function SettleUpForm({ group, datasetId, userId, recentCurrencies, prefi
       okText: 'Discard',
       okButtonProps: { danger: true },
       cancelText: 'Keep editing',
-      onOk: leave,
+      onOk: goBack,
     })
   }
 
@@ -123,8 +126,10 @@ export function SettleUpForm({ group, datasetId, userId, recentCurrencies, prefi
 
       // The group page comes back with the payment already on it, so the way back is not cut short (PRD 5.16).
       await refreshGroupPage(queryClient, userId, group.id)
+      // The balances page it came from is read again too, so it comes back with the payment and no loader (PRD 5.21).
+      if (backTo !== ROUTES.group(group.id)) await refreshBalancesPage(queryClient, userId, group.id)
       message.success('Payment recorded.')
-      leave()
+      goBack()
     } catch {
       await photoService
         .removeReceipts(photos, receipts.map((receipt) => receipt.id))

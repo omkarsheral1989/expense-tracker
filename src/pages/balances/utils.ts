@@ -1,4 +1,6 @@
+import type { QueryClient } from '@tanstack/react-query'
 import { getDb } from '../../db/client.ts'
+import { prefetchCachedData } from '../../hooks/useCachedData'
 import { balancesService } from '../../services/balancesService'
 import type { BalanceMember, GroupBalances } from '../../services/balancesService/types.ts'
 import { groupService } from '../../services/groupService'
@@ -14,6 +16,14 @@ export const balancesKey = (userId: string, groupId: string) => `${userId}:${gro
 /** What the balances page shows; null when the user cannot see the group. */
 export async function loadBalances(userId: string, groupId: string) {
   return balancesService.groupBalances(await getDb(), userId, groupId)
+}
+
+/**
+ * Reads the balances page's data again after a payment recorded from it, and waits for it. A change makes the app forget what the
+ * page remembered (ADR-051), so without this it would come back with its loader.
+ */
+export function refreshBalancesPage(client: QueryClient, userId: string, groupId: string) {
+  return prefetchCachedData(client, () => loadBalances(userId, groupId), BALANCES_PAGE, balancesKey(userId, groupId))
 }
 
 /** How a member heads their sentence: "You", or their first name. */
@@ -85,12 +95,19 @@ export function summaryOf(member: BalanceMember, totals: readonly PersonTotal[])
     .join('')
 }
 
-/** One line of an open row: "Omkar gets back $11 from Priya", "Omkar owes $1 to Rima" ("You owe $1 to Rima"). */
-export function lineText(member: BalanceMember, other: BalanceMember, line: BalanceLine): string {
+/** One line of an open row, in pieces so its amount can be colored: "Omkar gets back $11 from Priya", "Omkar owes $1 to Rima" ("You owe $1 to Rima"). */
+export function lineSegments(member: BalanceMember, other: BalanceMember, line: BalanceLine): SummarySegment[] {
   const amount = moneyService.format(line.amountMinor, line.currency)
   const name = subjectName(member)
-  if (line.kind === 'getsBack') return `${name} ${member.isYou ? 'get back' : 'gets back'} ${amount} from ${objectName(other)}`
-  return `${name} ${member.isYou ? 'owe' : 'owes'} ${amount} to ${objectName(other)}`
+  if (line.kind === 'getsBack') return [`${name} ${member.isYou ? 'get back' : 'gets back'} `, { amount, tone: 'owed' }, ` from ${objectName(other)}`]
+  return [`${name} ${member.isYou ? 'owe' : 'owes'} `, { amount, tone: 'owes' }, ` to ${objectName(other)}`]
+}
+
+/** The same line as plain text. */
+export function lineText(member: BalanceMember, other: BalanceMember, line: BalanceLine): string {
+  return lineSegments(member, other, line)
+    .map((segment) => (typeof segment === 'string' ? segment : segment.amount))
+    .join('')
 }
 
 /** The payment that would settle a line: whoever owes pays the other. */

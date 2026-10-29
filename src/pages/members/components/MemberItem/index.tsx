@@ -2,6 +2,7 @@ import { Card, Flex, Tag, Typography } from 'antd'
 import { PersonAvatar } from '../../../../components/PersonAvatar'
 import { groupService } from '../../../../services/groupService'
 import type { ManagedPerson } from '../../../../services/personService/types.ts'
+import { RADIUS } from '../../../../theme/radius.ts'
 
 const { Text } = Typography
 
@@ -25,6 +26,8 @@ export function MemberItem({ person, onEdit }: Props) {
   return (
     <Card
       hoverable
+      // The larger card radius, like the balance rows (PRD 5.9, 5.21).
+      style={{ borderRadius: RADIUS.cardLarge }}
       role="button"
       tabIndex={0}
       aria-label={`Edit ${label}`}
@@ -39,11 +42,12 @@ export function MemberItem({ person, onEdit }: Props) {
       <Flex align="center" gap={12}>
         <PersonAvatar name={label} picture={person.picture} />
         <Flex vertical flex={1} style={{ minWidth: 0 }}>
-          <Text strong ellipsis>
+          {/* Two 20 px lines, so the text is as high as the 40 px avatar. */}
+          <Text strong ellipsis style={{ lineHeight: '20px' }}>
             {label}
           </Text>
           {name && (
-            <Text type="secondary" ellipsis>
+            <Text type="secondary" ellipsis style={{ lineHeight: '20px' }}>
               {person.email ?? 'No email'}
             </Text>
           )}

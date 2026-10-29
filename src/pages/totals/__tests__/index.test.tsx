@@ -85,14 +85,14 @@ describe('the Totals page', () => {
     expect(container.querySelector('[aria-label="car"]')).toBeNull()
   })
 
-  it('shows the total spent, in large type', async () => {
+  it('shows the total spent, in 24 px type on 32 px lines', async () => {
     const groupId = await createGroup()
     await addTestExpense(testDb.db, me.email, groupId, { amountMinor: 30000 })
     await addTestExpense(testDb.db, me.email, groupId, { amountMinor: 20000 })
     renderTotals(groupId)
 
     expect(await screen.findByText('Total spent')).toBeInTheDocument()
-    expect(screen.getAllByText('£500.00')[0]).toHaveStyle({ fontSize: '32px' })
+    expect(screen.getAllByText('£500.00')[0]).toHaveStyle({ fontSize: '24px', lineHeight: '32px' })
   })
 
   it('has a heading for each section: Shares, then Individual contribution', async () => {
@@ -175,6 +175,100 @@ describe('the Totals page', () => {
   })
 })
 
+/** The block with the "Total spent" caption and the amounts. */
+const totalSpent = () => screen.getByText('Total spent').parentElement as HTMLElement
+const amountsOfTotal = () => [...totalSpent().querySelectorAll('strong')].map((one) => one.textContent)
+
+describe('the total spent, in every currency', () => {
+  async function setUpThreeCurrencies() {
+    const groupId = await createGroup('GBP')
+    await addTestExpense(testDb.db, me.email, groupId, { amountMinor: 20000, currency: 'GBP' })
+    await addTestExpense(testDb.db, me.email, groupId, { amountMinor: 50000, currency: 'USD' })
+    await addTestExpense(testDb.db, me.email, groupId, { amountMinor: 1200, currency: 'EUR' })
+    return groupId
+  }
+
+  it('lists every currency\'s total, the group\'s default first and the others A to Z, never added together', async () => {
+    renderTotals(await setUpThreeCurrencies())
+
+    await screen.findByText('Total spent')
+    expect(amountsOfTotal()).toEqual(['£200.00', '€12.00', '$500.00'])
+  })
+
+  it('draws every amount the same size, 24 px on 32 px lines', async () => {
+    renderTotals(await setUpThreeCurrencies())
+
+    await screen.findByText('Total spent')
+    const amounts = [...totalSpent().querySelectorAll('strong')]
+    expect(amounts).toHaveLength(3)
+    for (const amount of amounts) expect(amount.parentElement).toHaveStyle({ fontSize: '24px', lineHeight: '32px' })
+  })
+
+  it('sits above the currency dropdown, with a thin line under the amounts', async () => {
+    renderTotals(await setUpThreeCurrencies())
+
+    const select = await screen.findByRole('combobox', { name: 'Currency' })
+    const line = document.querySelector('.ant-divider') as HTMLElement
+    expect(totalSpent().compareDocumentPosition(line) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(line.compareDocumentPosition(select) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('stays the same when another currency is chosen for the breakdown', async () => {
+    renderTotals(await setUpThreeCurrencies())
+    await screen.findByText('Total spent')
+
+    await userEvent.click(screen.getByRole('combobox', { name: 'Currency' }))
+    await userEvent.click(await screen.findByText(/EUR/, { selector: '.ant-select-item-option-content' }))
+
+    await waitFor(() => expect(rowsOf('Paid')[0]).toHaveTextContent('You€12.00'))
+    expect(amountsOfTotal()).toEqual(['£200.00', '€12.00', '$500.00'])
+  })
+
+  it('is one amount, with no dropdown, caption or space under the line, for a group with one currency', async () => {
+    const groupId = await createGroup('GBP')
+    await addTestExpense(testDb.db, me.email, groupId, { amountMinor: 20000 })
+    renderTotals(groupId)
+
+    await screen.findByText('Total spent')
+    expect(amountsOfTotal()).toEqual(['£200.00'])
+    expect(screen.queryByRole('combobox', { name: 'Currency' })).not.toBeInTheDocument()
+    expect(screen.queryByText('Select the currency for the breakdown')).not.toBeInTheDocument()
+    expect(document.querySelector('.ant-divider')).toHaveStyle({ marginBottom: '0px' })
+  })
+})
+
+describe('the currency dropdown\'s caption and spacing', () => {
+  async function setUpTwoCurrencies() {
+    const groupId = await createGroup('GBP')
+    await addTestExpense(testDb.db, me.email, groupId, { amountMinor: 20000, currency: 'GBP' })
+    await addTestExpense(testDb.db, me.email, groupId, { amountMinor: 50000, currency: 'USD' })
+    return groupId
+  }
+
+  it('says what the dropdown chooses, in a grey caption right above it', async () => {
+    renderTotals(await setUpTwoCurrencies())
+
+    const caption = await screen.findByText('Select the currency for the breakdown')
+    const select = screen.getByRole('combobox', { name: 'Currency' })
+    expect(caption).toHaveClass('ant-typography-secondary')
+    expect(caption.compareDocumentPosition(select) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(caption.parentElement).toHaveStyle({ gap: '4px' })
+  })
+
+  it('has 24 px between the line and the caption, and every section starts 24 px under what is above it', async () => {
+    renderTotals(await setUpTwoCurrencies())
+
+    await screen.findByText('Select the currency for the breakdown')
+    expect(document.querySelector('.ant-divider')).toHaveStyle({ marginBottom: '24px' })
+    // The dropdown's own block has no bottom margin, so the gap to "Shares" is the section's 24 px, as between the sections.
+    const caption = screen.getByText('Select the currency for the breakdown')
+    expect((caption.parentElement as HTMLElement).style.marginBottom).toBe('')
+    for (const heading of screen.getAllByRole('heading', { level: 4 })) {
+      expect(heading.parentElement).toHaveStyle({ marginTop: '24px' })
+    }
+  })
+})
+
 describe('the currency dropdown', () => {
   async function setUpTwoCurrencies() {
     const groupId = await createGroup('GBP')
@@ -206,9 +300,11 @@ describe('the currency dropdown', () => {
     await userEvent.click(await screen.findByRole('combobox', { name: 'Currency' }))
     await userEvent.click(await screen.findByText(/USD/, { selector: '.ant-select-item-option-content' }))
 
-    await waitFor(() => expect(screen.getAllByText(/\$500\.00/).length).toBeGreaterThan(0))
-    expect(screen.queryByText('£200.00')).not.toBeInTheDocument()
-    expect(rowsOf('Paid')[0]).toHaveTextContent('You$500.00')
+    await waitFor(() => expect(rowsOf('Paid')[0]).toHaveTextContent('You$500.00'))
+    // The breakdown follows the choice, so nothing of the other currency is in its lists; the total above still has both.
+    expect(rowsOf('Paid')[0]).not.toHaveTextContent('£')
+    expect(within(totalSpent()).getByText('£200.00')).toBeInTheDocument()
+    expect(within(totalSpent()).getByText('$500.00')).toBeInTheDocument()
   })
 
   it('starts with the first currency A to Z when the default has no expenses', async () => {

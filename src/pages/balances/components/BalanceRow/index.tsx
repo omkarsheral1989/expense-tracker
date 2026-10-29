@@ -9,7 +9,7 @@ import { CONTROL_HEIGHT, ICON_ONLY_SIZE } from '../../../../theme/controlHeight.
 import { OWED_TO_YOU_COLOR, YOU_OWE_COLOR } from '../../../../theme/balanceColors.ts'
 import { PILL_RADIUS, RADIUS } from '../../../../theme/radius.ts'
 import type { BalanceLine, PersonTotal, SettlePrefill } from '../../types.ts'
-import { lineText, prefillOf, summarySegments, type SummarySegment } from '../../utils.ts'
+import { lineSegments, prefillOf, summarySegments, type SummarySegment } from '../../utils.ts'
 
 const { Text } = Typography
 
@@ -75,7 +75,7 @@ export function BalanceRow({ member, totals, lines, members, onSettle }: Props) 
     if (!other) return null
     return (
       <Flex key={`${line.currency}|${line.kind}|${line.otherId}`} align="center" justify="space-between" gap={12}>
-        <Text style={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>{lineText(member, other, line)}</Text>
+        <Text style={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>{lineSegments(member, other, line).map(renderSegment)}</Text>
         <Button onClick={() => onSettle(prefillOf(member, line))} style={{ borderRadius: PILL_RADIUS }}>
           Settle up
         </Button>
