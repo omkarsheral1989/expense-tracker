@@ -6,7 +6,7 @@ import { useColorScheme } from '../../../../hooks/useColorScheme'
 import type { BalanceMember } from '../../../../services/balancesService/types.ts'
 import { groupService } from '../../../../services/groupService'
 import { OWED_TO_YOU_COLOR, YOU_OWE_COLOR } from '../../../../theme/balanceColors.ts'
-import { PILL_RADIUS } from '../../../../theme/radius.ts'
+import { PILL_RADIUS, RADIUS } from '../../../../theme/radius.ts'
 import type { BalanceLine, PersonTotal, SettlePrefill } from '../../types.ts'
 import { lineText, prefillOf, summarySegments, type SummarySegment } from '../../utils.ts'
 
@@ -78,14 +78,17 @@ export function BalanceRow({ member, totals, lines, members, onSettle }: Props) 
   }
 
   return (
-    // A 30 px corner, rounder than the theme's card radius (PRD 5.21); the card keeps its border and padding from the theme.
-    <Card style={{ borderRadius: 30 }}>
+    // The larger card radius (PRD 5.21); the card keeps its border and padding from the theme.
+    <Card style={{ borderRadius: RADIUS.cardLarge }}>
       {renderHeading()}
-      {open && (
-        <Flex vertical gap={12} style={{ marginTop: 12 }}>
-          {lines.map(renderLine)}
-        </Flex>
-      )}
+      {/* Always in the page and folded shut with a height transition (`.balance-lines`); inert while shut, so it cannot be focused. */}
+      <div className="balance-lines" data-open={open}>
+        <div inert={!open}>
+          <Flex vertical gap={12} style={{ paddingTop: 12 }}>
+            {lines.map(renderLine)}
+          </Flex>
+        </div>
+      </div>
     </Card>
   )
 }
