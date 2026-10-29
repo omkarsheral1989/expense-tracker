@@ -6,6 +6,7 @@ import { AmountInput } from '../../../../components/AmountInput'
 import { CurrencyField } from '../../../../components/CurrencyField'
 import { DateField } from '../../../../components/DateField'
 import { GroupTypeIcon } from '../../../../components/GroupTypeIcon'
+import { PaymentRow } from '../../../../components/PaymentRow'
 import { ReceiptsField } from '../../../../components/ReceiptsField'
 import { getDb } from '../../../../db/client.ts'
 import { EXPENSE_NOTES_MAX_LENGTH } from '../../../../db/constants.ts'
@@ -13,7 +14,8 @@ import { useLeaveWarning } from '../../../../hooks/useLeaveWarning'
 import { ROUTES } from '../../../../routes.ts'
 import { dateService } from '../../../../services/dateService'
 import { expenseService } from '../../../../services/expenseService'
-import type { GroupDetails } from '../../../../services/groupService/types.ts'
+import { groupService } from '../../../../services/groupService'
+import type { GroupDetails, GroupMember } from '../../../../services/groupService/types.ts'
 import { moneyService } from '../../../../services/moneyService'
 import { photoService } from '../../../../services/photoService'
 import type { ReceiptInput } from '../../../../services/photoService/types.ts'
@@ -212,15 +214,17 @@ export function SettleUpForm({ group, datasetId, userId, recentCurrencies, backT
     )
   }
 
-  function renderSentence() {
+  // Who paid whom, drawn as on the payment's own page (PRD 5.7): avatars, names and a long arrow.
+  function renderPayment() {
     if (!payer || !recipient) return null
+    const sideOf = (member: GroupMember) => ({ name: member.isYou ? 'You' : groupService.shortName(member), picture: member.picture })
     return (
-      <Title
-        level={4}
-        style={{ textAlign: 'center', margin: '8px 0 16px', overflowWrap: 'anywhere' }}
-      >
-        {expenseService.settlementSentence(payer, recipient)}
-      </Title>
+      <PaymentRow
+        payer={sideOf(payer)}
+        recipient={sideOf(recipient)}
+        label={expenseService.settlementSentence(payer, recipient)}
+        style={{ margin: '8px 0 16px' }}
+      />
     )
   }
 
@@ -277,7 +281,7 @@ export function SettleUpForm({ group, datasetId, userId, recentCurrencies, backT
         {renderHeader()}
         {renderGroup()}
         {renderWho()}
-        {renderSentence()}
+        {renderPayment()}
         {renderAmount()}
         <Divider style={{ margin: '0 0 16px' }} />
         {renderDetails()}

@@ -12,7 +12,7 @@ import { expenseService } from '../../../../services/expenseService'
 import { groupService } from '../../../../services/groupService'
 import type { ExpenseWithPayment } from '../../types.ts'
 import { aboveScreenEdge, UNDER_BAND_PADDING } from '../../../../theme/safeArea.ts'
-import { PaymentRow } from '../PaymentRow'
+import { PaymentRow } from '../../../../components/PaymentRow'
 import { ExpenseBand } from './ExpenseBand'
 import { History } from './History'
 import { dialogLayer } from '../../../../components/DialogLayer'
@@ -126,6 +126,7 @@ export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props)
         payer={{ name: payer.isYou ? 'You' : groupService.shortName(payer), picture: payer.picture }}
         recipient={{ name: recipient.isYou ? 'You' : groupService.shortName(recipient), picture: recipient.picture }}
         label={expenseService.titleOf(expense)}
+        style={{ marginBottom: 20 }}
       />
     )
   }

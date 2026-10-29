@@ -7,7 +7,7 @@ import { groupService } from '../../../../services/groupService'
 import { aboveScreenEdge, UNDER_BAND_PADDING } from '../../../../theme/safeArea.ts'
 import type { KnownExpense } from '../../types.ts'
 import { knownTitle } from '../../utils.ts'
-import { PaymentRow, type PaymentSide } from '../PaymentRow'
+import { PaymentRow, type PaymentSide } from '../../../../components/PaymentRow'
 import { ExpenseBand } from '../ExpenseDetails/ExpenseBand'
 
 type Props = {
@@ -47,7 +47,7 @@ export function KnownExpensePage({ expense }: Props) {
   // A payment shows who paid whom below the band at once, as the full page does.
   function renderPayment() {
     if (!expense.payer || !expense.recipient) return null
-    return <PaymentRow payer={sideOf(expense.payer)} recipient={sideOf(expense.recipient)} label={knownTitle(expense)} />
+    return <PaymentRow payer={sideOf(expense.payer)} recipient={sideOf(expense.recipient)} label={knownTitle(expense)} style={{ marginBottom: 20 }} />
   }
 
   return (
