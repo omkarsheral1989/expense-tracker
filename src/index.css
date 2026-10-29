@@ -461,6 +461,29 @@ body .ant-modal-container {
   }
 }
 
+/* A balance row's payments fold open and shut, so the card changes height smoothly (PRD 5.21). The vertical padding is inside the clipped box, so a closed row takes no room. */
+.balance-lines {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 300ms ease;
+}
+.balance-lines[data-open='true'] {
+  grid-template-rows: 1fr;
+}
+.balance-lines > div {
+  min-height: 0;
+  overflow: hidden;
+}
+.balance-chevron {
+  transition: transform 300ms ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .balance-lines,
+  .balance-chevron {
+    transition: none;
+  }
+}
+
 /* A bottom sheet stays within the screen: its body scrolls and its buttons stay in view. */
 body .ant-drawer-bottom .ant-drawer-section {
   max-height: 85vh;

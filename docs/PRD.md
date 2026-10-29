@@ -1,6 +1,6 @@
 # Product Requirements: OwnLedger
 
-_Last updated: 2026-10-28_
+_Last updated: 2026-10-29_
 
 ## 1. Overview
 **OwnLedger** is an installable, offline-capable web app (PWA) for tracking personal expenses and expenses shared in groups (trips, home, couples, others). Everything is stored locally on the user's device. Groups are shared between members through a Google Drive folder. There is no backend.
@@ -49,7 +49,7 @@ _Last updated: 2026-10-28_
 - Rounding: money is whole minor units, so a split that does not divide evenly leaves a few minor units over. The payer absorbs them, even when the payer is not part of the split.
 
 ### 4.5 Balances and settle-up
-- Per group balances: who owes whom, per currency. Balances are pairwise (each person against each other person), one line per person per currency, for example "Priya owes you ₹14,517.50".
+- Per group balances: who owes whom, per currency. Debts are simplified (5.21): each person's total is netted and the fewest payments settle the group, so a person who is owed overall is not also told what they owe. On the group page one line per person per currency, for example "Priya owes you ₹14,517.50"; the Balances page (5.21) shows everyone's totals and payments.
 - On the home page a group row shows the user's net balance per currency.
 - Record settlement payments between members (5.7): who paid whom, how much and when, saved as a payment that counts against what they owe each other.
 - Multi-currency without conversion: each currency is tracked separately.
@@ -95,7 +95,7 @@ _Last updated: 2026-10-28_
 
 **Sheets and the screen's corners:** a bottom sheet (every picker and dialog on a phone, and the members sheet) pads its footer, or its last row when it has no footer, by the device's bottom safe-area inset, so its buttons are not cut off by the rounded corners or the home indicator of an iPhone in the installed app (0 on other screens, and on a wide screen). The same inset is kept at the bottom of every page's content, below the floating buttons (Add expense, Create group) and the messages centered above them, at the end of the welcome page, and under the "update available" notification. A phone's members sheet is 420 px of content plus the inset, so the inset does not take the room the list needs.
 
-**Cards, sheets and corners:** every card (the home list's rows, the account and member cards, the welcome page's cards) has the border a button has, a 20 px corner radius and 10 px of padding (the home rows have none, since their colored block runs to the card's edge), set once in the theme (`src/theme/radius.ts`, `src/theme/cardPadding.ts`). Small things inside others (buttons, inputs, selects, icon tiles) have a 10 px radius, containers 24 px. Every bottom sheet and dialog has the page's own light grey background, so white fields and cards stand out on it as on a page. The Add member and Add account buttons (the members page, the members sheet, the Add a member sheet, the accounts page and the payment method picker) are white buttons with round ends.
+**Cards, sheets and corners:** every card (the home list's rows, the account and member cards, the welcome page's cards) has the border a button has, a 20 px corner radius (a card can also have a 30 px one, as the balance rows do, 5.21) and 10 px of padding (the home rows have none, since their colored block runs to the card's edge), set once in the theme (`src/theme/radius.ts`, `src/theme/cardPadding.ts`). Small things inside others (buttons, inputs, selects, icon tiles) have a 10 px radius, containers 24 px. Every bottom sheet and dialog has the page's own light grey background, so white fields and cards stand out on it as on a page. The Add member and Add account buttons (the members page, the members sheet, the Add a member sheet, the accounts page and the payment method picker) are white buttons with round ends.
 
 **Browser tab titles:** each signed-in page sets the tab's title: "Your groups · OwnLedger" (home), the group's name followed by " · OwnLedger" (group page), "Create a group · OwnLedger", "Add expense · OwnLedger" and the expense's description followed by " · OwnLedger" (expense details; "Expense not found · OwnLedger" for a missing one).
 
@@ -174,8 +174,8 @@ Route `/groups/<id>`, opened from a group on the home page and after creating a 
   - The sheet's footer has **Cancel** (closes it, adds no one) and **Add** (switched off until someone is ticked). Add adds everyone ticked, then closes the sheet with "Priya added." (one person) or "N members added." (several). The members sheet stays open and shows the new members with the new count, and the "N members" chip and balances behind it update. The sheet starts empty each time it opens.
   - **Rules:** any member can add people (4.2). A person already in the group cannot be added twice ("Priya Shah is already in this group.", for example when another member added them meanwhile); a person who left earlier can be added back. If adding fails, "Couldn't add the member. Please try again." is shown and the ticks stay. Adding counts as activity in the group, so it moves to the top of the home list. A member added without an email cannot be shared the group through Drive until an email is added (4.2).
   - Sheets that open over another one push it up (about 180 px), as Ant Design does by default; the app does not switch this off.
-- **Action pills** under the band, above the balance: a row that scrolls sideways when it does not fit: **Settle up**, which opens the settle-up page (5.7), and **Totals** beside it, which opens the totals page (5.20). It is switched off in a group of one, with the tip "You are the only member of this group."
-- **Balance line** under the action pills: one sentence per other person and currency that is not settled, "Priya owes you ₹14,517.50" (amount in bold green) or "You owe Priya ₹500.00" (amount in bold orange-red), people A to Z and then currencies A to Z. "You're all settled up" when nothing is owed either way.
+- **Action pills** under the band, above the balance: a row that scrolls sideways when it does not fit: **Settle up**, which opens the settle-up page (5.7), **Balances** beside it, which opens the balances page (5.21; switched off in a group of one with the same tip as Settle up), and **Totals** beside that, which opens the totals page (5.20). It is switched off in a group of one, with the tip "You are the only member of this group."
+- **Balance line** under the action pills (simplified like the balances page, 5.21, so a person who is owed overall is not also told what they owe): one sentence per other person and currency that is not settled, "Priya owes you ₹14,517.50" (amount in bold green) or "You owe Priya ₹500.00" (amount in bold orange-red), people A to Z and then currencies A to Z. "You're all settled up" when nothing is owed either way.
 - **Expense list:** the group's expenses as described in 5.5. With none, the message "No expenses yet" and "Expenses you add will appear here." with its illustration, centered vertically in a box that runs from the actions ("Settle up") down to 16 px above the floating "Add expense" button.
 - **Add expense:** a floating green pill button at the bottom right of the content. It opens the add-expense page (5.5).
 - **Wide screens:** the band stretches edge to edge; the content below it sits in one centered column about 720 px wide, as on the other pages. The band starts at the very top of the screen (no app header above it), below the device's status bar or notch.
@@ -236,7 +236,7 @@ Route `/groups/<id>/expenses/new`, opened from the group page's "Add expense" bu
 - Tapping a row opens the expense's details page (5.6).
 
 **Balance line (group page)**
-- One line per person per currency: "Priya owes you …" with the amount in bold green, or "You owe Priya …" with the amount in bold orange-red; "You're all settled up" when there is nothing owed. Debts between two other members are not shown.
+- One line per person per currency, from the simplified payments (5.21): "Priya owes you …" with the amount in bold green, or "You owe Priya …" with the amount in bold orange-red; "You're all settled up" when the user has no payment to make or receive. Payments between two other members are not shown here (the Balances page shows them).
 
 **Phases** (each with tests and break-checks, a browser check, and a UX review by the user). All five are built (October 2026, PR #1); the user's UX review of phases 2 to 5 is still to come.
 1. A simple expense (equal split, you paid) saved and listed.
@@ -484,6 +484,17 @@ _Built October 2026 (branch `group-totals`)._ Route `/groups/<id>/totals`, opene
 - **Loading and errors:** the usual page states (5.13, "Load errors"): "Loading the totals…", "Couldn't load the totals" with Try again and a Back arrow, and "Group not found" for a group that does not exist, was deleted or that the user is not in. Like the other pages it is remembered when the user comes back (5.14) and slides in and out (5.15).
 - **Not decided yet:** other periods (a month picker, chips), totals by category and per month, a person's own totals across groups, and highlighting a slice from its row (open questions).
 
+### 5.21 Balances
+_Built and reviewed October 2026 (branch `balances`)._ Route `/groups/<id>/balances`, opened by the **Balances** pill on the group page (5.4). It shows what each member is owed or owes in total and the fewest payments that settle the group.
+- **Header:** Back (to the group) and the quiet "BALANCES" heading, as on Totals (5.20). No band. Tab title "Balances · OwnLedger".
+- **Debts are simplified:** each person's net in a currency is what they paid minus their shares over the group's live expenses, payments between members included. The biggest debtor pays the biggest creditor as much as they can, and so on (ties by person id), so nobody both pays and receives within a currency. This can name two members who never shared an expense; the group page's balance sentences (5.4) show the user's own payments from the same result, so the two always agree.
+- **Rows:** the user first, then the others A to Z, each a card with the avatar, a sentence and a chevron: "Omkar gets back $22 in total", "Priya owes $11 in total", "You get back …", "You owe …", with only the amounts bold and colored: green when owed to them, orange-red when they owe. With balances in several currencies, one row: "Omkar gets back $22 and owes ₹100 in total", with commas between amounts of one kind ("gets back $22, £5 and owes ₹100 in total"). Nothing is converted. The sentence has a 20 px line, so two lines fit the avatar's 40 px. A member with nothing owed reads "Rima is settled up" (grey, no chevron).
+- **Corners:** the rows have a 30 px corner radius, the second card radius next to the usual 20 px (`RADIUS.cardLarge`).
+- **Open row:** pressing a row opens one line per payment that involves them, from their point of view ("Omkar gets back $11 from Priya", "Priya owes $11 to Omkar", "You owe $1 to Rima"), grouped by currency in the order of the currencies (the group's default first). The lines are indented to start under the sentence, not under the avatar. Rows open independently, and the card's height animates as it opens and shuts (about 0.3 s, none for people who asked for less motion) while the 18 px chevron turns from pointing right to pointing down.
+- **Settle up button:** each line has a pill-shaped one (round ends, like the group page's pills); it opens Settle up (5.7) with the payer, recipient, amount and currency filled in (the debtor pays the creditor), all editable. The prefill is read from the router state and ignored unless valid (members, different people, a positive amount). A prefilled form does not count as unsaved input: Back leaves without asking until the user changes something.
+- **States:** the usual ones (5.13): "Loading the balances…", "Couldn't load the balances" with Try again and Back, "Group not found".
+- **Not decided:** ordering by amount, a "last settled" note, marking pending members.
+
 ## 6. Open questions
 - Google Cloud setup: the OAuth client ID is not created yet (Drive API, consent screen in Testing mode, authorized origins, test users).
 - Member removal: what happens to a removed member's access and local data (a person who left can already be added back, 5.4).
@@ -496,7 +507,7 @@ _Built October 2026 (branch `group-totals`)._ Route `/groups/<id>/totals`, opene
 - Activity (5.18): group events (created, renamed, member added) need recording before the page can list them; filters by group and by member.
 - Editing a payment between members (and so going back to a version of one).
 - Several payers for one expense ("Multiple people" is switched off for now).
-- Settle up: suggesting the amount and the person from the balance, editing or deleting a payment (with expenses, below), and simplifying debts across three or more people.
+- Settle up: suggesting the amount and the person from the balance, and editing or deleting a payment (with expenses, below).
 - Budget details (personal vs group, alerts).
 - Charts: periods other than all time (a month picker or chips), totals by category and per month, personal totals, and highlighting a slice from its row.
 - Receipt cleanup rules for deleted expenses, and an optional compression setting.

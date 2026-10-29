@@ -14,7 +14,7 @@ const settleUp = () => screen.getByRole('button', { name: 'Settle up' })
 const TIP = 'You are the only member of this group.'
 
 function renderPills(props: { canSettle: boolean; loading?: boolean; canTotal?: boolean }) {
-  return renderPage(<ActionPills groupId={GROUP} {...props} />, { path: '/pills', routes: [ROUTES.settleUp(GROUP), ROUTES.totals(GROUP)] })
+  return renderPage(<ActionPills groupId={GROUP} {...props} />, { path: '/pills', routes: [ROUTES.settleUp(GROUP), ROUTES.totals(GROUP), ROUTES.balances(GROUP)] })
 }
 
 describe('ActionPills', () => {
@@ -119,5 +119,57 @@ describe('the Totals pill (PRD 5.20)', () => {
     renderPills({ canSettle: true })
 
     expect(totals()).toBeDisabled()
+  })
+})
+
+describe('the Balances pill (PRD 5.21)', () => {
+  const balances = () => screen.getByRole('button', { name: /Balances$/ })
+
+  it('sits between Settle up and Totals as a white pill with round ends and a scale icon', () => {
+    renderPills({ canSettle: true, canTotal: true })
+
+    expect(balances()).toBeEnabled()
+    expect(balances()).toHaveStyle({ borderRadius: '999px' })
+    expect(balances()).toHaveClass('ant-btn-default')
+    expect(balances().querySelector('.tabler-icon-scale')).not.toBeNull()
+    expect(settleUp().compareDocumentPosition(balances()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(balances().compareDocumentPosition(screen.getByRole('button', { name: /Totals$/ })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('opens the balances page', async () => {
+    const page = renderPills({ canSettle: true })
+
+    await userEvent.click(balances())
+
+    await waitFor(() => expect(page.currentPath()).toBe(ROUTES.balances(GROUP)))
+  })
+
+  it('hands the page the group it knows, so the next page has it', async () => {
+    const group = { id: GROUP, name: 'Goa trip', type: 'trip' as const, defaultCurrency: 'GBP', memberCount: 3 }
+    function Next() {
+      return <p>{JSON.stringify(useLocation().state)}</p>
+    }
+    renderPage(<ActionPills groupId={GROUP} group={group} canSettle />, { path: '/pills', extra: [{ path: ROUTES.balances(GROUP), element: <Next /> }] })
+
+    await userEvent.click(balances())
+
+    expect(await screen.findByText(JSON.stringify({ group }))).toBeInTheDocument()
+  })
+
+  it('is switched off, with the tip about being the only member, in a group of one', async () => {
+    renderPills({ canSettle: false, canTotal: true })
+
+    expect(balances()).toBeDisabled()
+    await userEvent.hover(balances().parentElement as HTMLElement)
+    expect(await screen.findByText(TIP)).toBeInTheDocument()
+  })
+
+  it('is switched off, without a tip, while the members are still loading', async () => {
+    renderPills({ canSettle: true, loading: true })
+
+    expect(balances()).toBeDisabled()
+    await userEvent.hover(balances())
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    expect(screen.queryByText(TIP)).not.toBeInTheDocument()
   })
 })

@@ -27,6 +27,10 @@ export const ROUTES = {
   totals: (groupId: string) => `/groups/${groupId}/totals`,
   /** The same address as a pattern for the router, with the group's id as a parameter. */
   totalsPattern: '/groups/:id/totals',
+  /** What each member of a group is owed or owes, and the payments that settle it (PRD 5.21). */
+  balances: (groupId: string) => `/groups/${groupId}/balances`,
+  /** The same address as a pattern for the router, with the group's id as a parameter. */
+  balancesPattern: '/groups/:id/balances',
   /** Where a payment between two members of a group is recorded. */
   settleUp: (groupId: string) => `/groups/${groupId}/settle`,
   /** The same address as a pattern for the router, with the group's id as a parameter. */

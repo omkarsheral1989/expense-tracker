@@ -9,6 +9,8 @@ export const RADIUS = {
   outer: 24,
   /** Every card: the list rows, the account and member cards, the welcome page's cards. */
   card: 20,
+  /** The other radius a card may take, for a roomy card such as the balance rows (PRD 5.21, ADR-068). */
+  cardLarge: 30,
 } as const
 
 /**
