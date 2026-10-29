@@ -13,11 +13,12 @@ type Props = {
 
 /**
  * A photo the expense already has, as a small square with an x, like a chosen
- * one. Its thumbnail comes from the photo store; a photo that is not on this
+ * one; pressing it opens the photo at full size. Its thumbnail and photo come from the photo store; a photo that is not on this
  * device (for example one another member added, before it is synced) shows an
  * empty square, and can still be taken off.
  */
 export function StoredReceiptPreview({ photoId, store, number, onRemove }: Props) {
-  const { state } = useAsyncData(() => store.getThumbnail(photoId), photoId)
-  return <ReceiptPreview file={state.status === 'ready' ? state.data : null} number={number} onRemove={onRemove} />
+  const { state } = useAsyncData(async () => ({ thumbnail: await store.getThumbnail(photoId), photo: await store.getPhoto(photoId) }), photoId)
+  const ready = state.status === 'ready' ? state.data : null
+  return <ReceiptPreview file={ready?.thumbnail ?? null} full={ready?.photo ?? null} number={number} onRemove={onRemove} />
 }

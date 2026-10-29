@@ -1,5 +1,5 @@
 import { Icon } from '../Icon'
-import { App, Button, Flex, Tooltip } from 'antd'
+import { App, Button, Flex, Image, Tooltip } from 'antd'
 import { useRef, type ChangeEvent } from 'react'
 import { MAX_RECEIPTS_PER_EXPENSE } from '../../db/constants.ts'
 import type { PhotoStore, ReceiptInput } from '../../services/photoService/types.ts'
@@ -83,26 +83,29 @@ export function ReceiptsField({ id, value = [], onChange, stored = [], onStoredC
   )
 
   return (
-    <Flex wrap gap={12} align="center">
-      {full ? (
-        <Tooltip title={`Up to ${MAX_RECEIPTS_PER_EXPENSE} photos.`}>
-          <span style={{ display: 'inline-flex' }}>{button}</span>
-        </Tooltip>
-      ) : (
-        button
-      )}
-      <input
-        ref={chooser}
-        type="file"
-        accept="image/*"
-        multiple
-        // The `hidden` attribute loses to the input styles of the page, so it is hidden here.
-        style={{ display: 'none' }}
-        data-testid="receipt-chooser"
-        onChange={handleChosen}
-      />
-      {stored.map(renderStored)}
-      {value.map(renderPreview)}
-    </Flex>
+    // One viewer for all the photos, so they can be swiped through.
+    <Image.PreviewGroup>
+      <Flex wrap gap={12} align="center">
+        {full ? (
+          <Tooltip title={`Up to ${MAX_RECEIPTS_PER_EXPENSE} photos.`}>
+            <span style={{ display: 'inline-flex' }}>{button}</span>
+          </Tooltip>
+        ) : (
+          button
+        )}
+        <input
+          ref={chooser}
+          type="file"
+          accept="image/*"
+          multiple
+          // The `hidden` attribute loses to the input styles of the page, so it is hidden here.
+          style={{ display: 'none' }}
+          data-testid="receipt-chooser"
+          onChange={handleChosen}
+        />
+        {stored.map(renderStored)}
+        {value.map(renderPreview)}
+      </Flex>
+    </Image.PreviewGroup>
   )
 }
