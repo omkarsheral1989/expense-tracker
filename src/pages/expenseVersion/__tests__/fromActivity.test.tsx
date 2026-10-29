@@ -59,7 +59,7 @@ describe('the version page opened from Activity (PRD 5.6c, 5.18)', () => {
 describe('the Open expense button of the version page', () => {
   it('is a white pill button that opens the expense', async () => {
     const { groupId, expenseId, eventId } = await setUp()
-    const page = renderVersion(groupId, expenseId, eventId)
+    const page = renderVersion(groupId, expenseId, eventId, { from: ACTIVITY_FROM })
 
     const button = await screen.findByRole('button', { name: named('Open expense') })
     expect(button).toHaveStyle({ borderRadius: '999px' })
@@ -77,6 +77,7 @@ describe('the Open expense button of the version page', () => {
     renderPage(<ExpenseVersionPage />, {
       path: ROUTES.expenseVersion(groupId, expenseId, eventId),
       pattern: ROUTES.expenseVersionPattern,
+      state: { from: ACTIVITY_FROM },
       extra: [{ path: ROUTES.expensePattern, element: <ShowState /> }],
     })
 
@@ -89,8 +90,31 @@ describe('the Open expense button of the version page', () => {
     const groupId = await createGroup()
     const paymentId = await addTestSettlement(testDb.db, 'priya@gmail.com', me.email, groupId)
     const [added] = await eventsOf(paymentId)
-    renderVersion(groupId, paymentId, added.id)
+    renderVersion(groupId, paymentId, added.id, { from: ACTIVITY_FROM })
 
     expect(await screen.findByRole('button', { name: named('Open payment') })).toBeInTheDocument()
+  })
+})
+
+describe('the Open expense button is only for people who came from Activity (PRD 5.6c)', () => {
+  it('is not shown when the version was opened from the expense\'s own History, by its address, or with a state it does not know', async () => {
+    const { groupId, expenseId, eventId } = await setUp()
+    for (const state of [undefined, {}, { from: 'somewhere' }, { from: 42 }, { backTo: '/x' }]) {
+      renderVersion(groupId, expenseId, eventId, state)
+
+      await screen.findByRole('button', { name: 'Back' })
+      expect(screen.queryByRole('button', { name: named('Open expense') })).not.toBeInTheDocument()
+      cleanup()
+    }
+  })
+
+  it('is not shown for a payment either, unless it came from Activity', async () => {
+    const groupId = await createGroup()
+    const paymentId = await addTestSettlement(testDb.db, 'priya@gmail.com', me.email, groupId)
+    const [added] = await eventsOf(paymentId)
+    renderVersion(groupId, paymentId, added.id)
+
+    await screen.findByRole('button', { name: 'Back' })
+    expect(screen.queryByRole('button', { name: named('Open payment') })).not.toBeInTheDocument()
   })
 })

@@ -36,6 +36,8 @@ export function ReceiptsField({ id, value = [], onChange, stored = [], onStoredC
   const full = count >= MAX_RECEIPTS_PER_EXPENSE
   // All the stored photos are read together, so their thumbnails join the viewer in the order shown (`useStoredPhotos`).
   const storedPhotos = useStoredPhotos(photoStore, stored.map((photo) => photo.id))
+  // Chosen photos wait for the stored ones, so every thumbnail appears in the same step and the viewer keeps the order shown.
+  const storedReady = stored.length === 0 || storedPhotos !== null
 
   function handleChosen(event: ChangeEvent<HTMLInputElement>) {
     const pictures = [...(event.target.files ?? [])].filter((file) => file.type.startsWith('image/'))
@@ -67,7 +69,7 @@ export function ReceiptsField({ id, value = [], onChange, stored = [], onStoredC
     return (
       <ReceiptPreview
         key={`${index}-${file.name}-${file.size}`}
-        file={file}
+        file={storedReady ? file : null}
         number={stored.length + index + 1}
         onRemove={() => onChange?.(value.filter((_, other) => other !== index))}
       />
