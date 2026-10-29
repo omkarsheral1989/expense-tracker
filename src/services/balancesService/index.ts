@@ -2,6 +2,7 @@ import { and, eq, inArray, isNull, sql } from 'drizzle-orm'
 import type { Database } from '../../db/client.ts'
 import { expenseShares, expenses, people } from '../../db/schema.ts'
 import { shownName } from '../../db/shownName.ts'
+import type { PersonBalance } from '../expenseService/types.ts'
 import { groupService } from '../groupService'
 import type { BalanceMember, CurrencyBalances, GroupBalances } from './types.ts'
 import { simplifyDebts } from './utils.ts'
@@ -52,5 +53,27 @@ export const balancesService = {
       .filter((one) => one.nets.length > 0)
 
     return { groupId: group.id, members, currencies }
+  },
+
+  /**
+   * What the user and each other member owe each other after simplifying (PRD 5.4, 5.21): the payments of `groupBalances` that
+   * involve the user, one entry per person and currency, in the order of the people's names and then currency codes. Positive
+   * amounts are owed to the user. Empty for a group the user cannot see.
+   */
+  async userBalances(db: Database, userId: string, groupId: string): Promise<PersonBalance[]> {
+    const balances = await this.groupBalances(db, userId, groupId)
+    if (!balances) return []
+    const byId = new Map(balances.members.map((member) => [member.personId, member]))
+    const label = (person: { name: string | null; email: string | null }) => groupService.displayName(person).toLowerCase()
+    return balances.currencies
+      .flatMap(({ currency, transfers }) =>
+        transfers.flatMap((transfer): PersonBalance[] => {
+          const sign = transfer.toId === userId ? 1 : transfer.fromId === userId ? -1 : 0
+          const other = byId.get(sign === 1 ? transfer.fromId : transfer.toId)
+          if (sign === 0 || !other) return []
+          return [{ personId: other.personId, email: other.email, name: other.name, currency, amountMinor: sign * transfer.amountMinor }]
+        }),
+      )
+      .sort((a, b) => label(a).localeCompare(label(b)) || a.personId.localeCompare(b.personId) || a.currency.localeCompare(b.currency))
   },
 }

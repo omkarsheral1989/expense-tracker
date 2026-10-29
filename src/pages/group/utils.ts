@@ -2,6 +2,7 @@ import type { QueryClient } from '@tanstack/react-query'
 import { getDb } from '../../db/client.ts'
 import { GROUP_TYPES } from '../../db/constants.ts'
 import { prefetchCachedData } from '../../hooks/useCachedData'
+import { balancesService } from '../../services/balancesService'
 import { expenseService } from '../../services/expenseService'
 import { EXPENSE_PAGE_SIZE } from '../../services/expenseService/constants.ts'
 import { groupService } from '../../services/groupService'
@@ -24,7 +25,8 @@ export async function loadGroupPage(userId: string, groupId: string, limit: numb
   return {
     group,
     expenses: await expenseService.listExpensesPage(db, userId, groupId, { limit: Math.max(EXPENSE_PAGE_SIZE, limit) }),
-    balances: await expenseService.groupBalances(db, userId, groupId),
+    // Simplified, like the balances page (PRD 5.4, 5.21).
+    balances: await balancesService.userBalances(db, userId, groupId),
     syncedIds: await syncService.syncedMembers(db, groupId),
     // Whether the Totals pill has anything to open (PRD 5.20).
     hasSpending: await totalsService.hasSpending(db, userId, groupId),
