@@ -2,9 +2,9 @@ import { Icon } from '../Icon'
 import { App, Button, Flex, Image, Tooltip } from 'antd'
 import { useRef, type ChangeEvent } from 'react'
 import { MAX_RECEIPTS_PER_EXPENSE } from '../../db/constants.ts'
+import { useStoredPhotos } from '../../hooks/useStoredPhotos'
 import type { PhotoStore, ReceiptInput } from '../../services/photoService/types.ts'
 import { ReceiptPreview } from './ReceiptPreview'
-import { StoredReceiptPreview } from './StoredReceiptPreview'
 
 type Props = {
   /** Given by the form item, so that its messages are tied to the button. */
@@ -34,6 +34,8 @@ export function ReceiptsField({ id, value = [], onChange, stored = [], onStoredC
   const chooser = useRef<HTMLInputElement>(null)
   const count = stored.length + value.length
   const full = count >= MAX_RECEIPTS_PER_EXPENSE
+  // All the stored photos are read together, so their thumbnails join the viewer in the order shown (`useStoredPhotos`).
+  const storedPhotos = useStoredPhotos(photoStore, stored.map((photo) => photo.id))
 
   function handleChosen(event: ChangeEvent<HTMLInputElement>) {
     const pictures = [...(event.target.files ?? [])].filter((file) => file.type.startsWith('image/'))
@@ -48,11 +50,13 @@ export function ReceiptsField({ id, value = [], onChange, stored = [], onStoredC
 
   function renderStored(photo: ReceiptInput, index: number) {
     if (!photoStore) return null
+    // Until they are read, or when the photo is not on this device, an empty square that can still be taken off.
+    const read = storedPhotos?.find((one) => one.id === photo.id)
     return (
-      <StoredReceiptPreview
+      <ReceiptPreview
         key={photo.id}
-        photoId={photo.id}
-        store={photoStore}
+        file={read?.thumbnail ?? null}
+        full={read?.photo ?? null}
         number={index + 1}
         onRemove={() => onStoredChange?.(stored.filter((other) => other.id !== photo.id))}
       />
