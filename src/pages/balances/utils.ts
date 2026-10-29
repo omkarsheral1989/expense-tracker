@@ -85,12 +85,19 @@ export function summaryOf(member: BalanceMember, totals: readonly PersonTotal[])
     .join('')
 }
 
-/** One line of an open row: "Omkar gets back $11 from Priya", "Omkar owes $1 to Rima" ("You owe $1 to Rima"). */
-export function lineText(member: BalanceMember, other: BalanceMember, line: BalanceLine): string {
+/** One line of an open row, in pieces so its amount can be colored: "Omkar gets back $11 from Priya", "Omkar owes $1 to Rima" ("You owe $1 to Rima"). */
+export function lineSegments(member: BalanceMember, other: BalanceMember, line: BalanceLine): SummarySegment[] {
   const amount = moneyService.format(line.amountMinor, line.currency)
   const name = subjectName(member)
-  if (line.kind === 'getsBack') return `${name} ${member.isYou ? 'get back' : 'gets back'} ${amount} from ${objectName(other)}`
-  return `${name} ${member.isYou ? 'owe' : 'owes'} ${amount} to ${objectName(other)}`
+  if (line.kind === 'getsBack') return [`${name} ${member.isYou ? 'get back' : 'gets back'} `, { amount, tone: 'owed' }, ` from ${objectName(other)}`]
+  return [`${name} ${member.isYou ? 'owe' : 'owes'} `, { amount, tone: 'owes' }, ` to ${objectName(other)}`]
+}
+
+/** The same line as plain text. */
+export function lineText(member: BalanceMember, other: BalanceMember, line: BalanceLine): string {
+  return lineSegments(member, other, line)
+    .map((segment) => (typeof segment === 'string' ? segment : segment.amount))
+    .join('')
 }
 
 /** The payment that would settle a line: whoever owes pays the other. */

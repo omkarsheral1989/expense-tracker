@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { BalanceMember, GroupBalances } from '../../../services/balancesService/types.ts'
 import { moneyService } from '../../../services/moneyService'
-import { lineText, linesOf, objectName, orderedMembers, prefillOf, settlePrefillFrom, subjectName, summaryOf, summarySegments, totalsOf } from '../utils.ts'
+import { lineSegments, lineText, linesOf, objectName, orderedMembers, prefillOf, settlePrefillFrom, subjectName, summaryOf, summarySegments, totalsOf } from '../utils.ts'
 
 const member = (personId: string, name: string | null, overrides: Partial<BalanceMember> = {}): BalanceMember => ({
   personId,
@@ -158,6 +158,24 @@ describe('lineText', () => {
     expect(lineText(rima, you, { ...owes, otherId: 'omkar' })).toBe(`Rima owes ${gbp(100)} to you`)
     expect(lineText(you, rima, owes)).toBe(`You owe ${gbp(100)} to Rima`)
     expect(lineText(priya, you, { ...getsBack, otherId: 'omkar' })).toBe(`Priya gets back ${gbp(1100)} from you`)
+  })
+})
+
+describe('lineSegments', () => {
+  const getsBack = { currency: 'GBP', kind: 'getsBack' as const, otherId: 'priya', amountMinor: 1100 }
+  const owes = { currency: 'GBP', kind: 'owes' as const, otherId: 'rima', amountMinor: 100 }
+
+  it('marks only the amount of a line: green when the person gets it back, orange-red when they owe it', () => {
+    expect(lineSegments(you, priya, getsBack)).toEqual(['You get back ', { amount: gbp(1100), tone: 'owed' }, ' from Priya'])
+    expect(lineSegments(you, rima, owes)).toEqual(['You owe ', { amount: gbp(100), tone: 'owes' }, ' to Rima'])
+  })
+
+  it('reads as the same text as lineText', () => {
+    const text = lineSegments(rima, you, { ...owes, otherId: 'omkar' })
+      .map((segment) => (typeof segment === 'string' ? segment : segment.amount))
+      .join('')
+
+    expect(text).toBe(lineText(rima, you, { ...owes, otherId: 'omkar' }))
   })
 })
 

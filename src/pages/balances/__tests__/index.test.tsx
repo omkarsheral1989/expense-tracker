@@ -65,6 +65,9 @@ function renderBalances(groupId: string, state?: unknown) {
 /** The button that opens the row whose sentence starts with `start` (a line under an open row can start the same way). */
 const rowButton = (start: string) =>
   [...document.querySelectorAll<HTMLElement>('button[aria-expanded]')].find((button) => button.querySelector('.ant-typography')?.textContent?.startsWith(start)) as HTMLElement
+/** The line of an open row with this whole text (its amount is a bold piece of its own, so the text is split). */
+const lineWith = (container: HTMLElement, text: string) =>
+  within(container).getByText((_, element) => element?.classList.contains('ant-typography') === true && element.textContent === text)
 const cardOf = (button: HTMLElement) => button.closest('.ant-card') as HTMLElement
 
 describe('the Balances page while it loads', () => {
@@ -172,7 +175,7 @@ describe('opening a row', () => {
     const lines = cardOf(button).querySelector('.balance-lines') as HTMLElement
     expect(lines).toHaveAttribute('data-open', 'true')
     expect(lines.firstElementChild).not.toHaveAttribute('inert')
-    expect(within(lines).getByText(`You get back ${gbp(800)} from Sam`)).toBeInTheDocument()
+    expect(lineWith(lines, `You get back ${gbp(800)} from Sam`)).toBeInTheDocument()
     // Sam's 2.00 goes to Priya, so it is not one of the user's payments.
     expect(within(lines).queryByText(/Priya/)).toBeNull()
   })
@@ -184,8 +187,8 @@ describe('opening a row', () => {
     await userEvent.click(rowButton('Sam owes'))
 
     const lines = cardOf(rowButton('Sam owes')).querySelector('.balance-lines') as HTMLElement
-    expect(within(lines).getByText(`Sam owes ${gbp(800)} to you`)).toBeInTheDocument()
-    expect(within(lines).getByText(`Sam owes ${gbp(200)} to Priya`)).toBeInTheDocument()
+    expect(lineWith(lines, `Sam owes ${gbp(800)} to you`)).toBeInTheDocument()
+    expect(lineWith(lines, `Sam owes ${gbp(200)} to Priya`)).toBeInTheDocument()
   })
 
   it('shuts again on a second press, and rows open on their own', async () => {
@@ -200,6 +203,24 @@ describe('opening a row', () => {
     await userEvent.click(rowButton('You get back'))
     expect(rowButton('You get back')).toHaveAttribute('aria-expanded', 'false')
     expect(rowButton('Sam owes')).toHaveAttribute('aria-expanded', 'true')
+  })
+
+  it('colors only the amount of each line, green when the person gets it back and orange-red when they owe it', async () => {
+    renderBalances(await createGroup())
+    await screen.findByRole('heading', { name: 'Balances' })
+
+    await userEvent.click(rowButton('You get back'))
+    await userEvent.click(rowButton('Sam owes'))
+
+    const amountIn = (button: HTMLElement) => {
+      const line = cardOf(button).querySelector('.balance-lines .ant-typography') as HTMLElement
+      expect(line.querySelectorAll('strong')).toHaveLength(1)
+      expect(line.style.color).toBe('')
+      return line.querySelector('strong') as HTMLElement
+    }
+    expect(amountIn(rowButton('You get back'))).toHaveStyle({ color: OWED_TO_YOU_COLOR.light })
+    expect(amountIn(rowButton('Sam owes'))).toHaveStyle({ color: YOU_OWE_COLOR.light })
+    expect(amountIn(rowButton('Sam owes')).textContent).toBe(gbp(800))
   })
 
   it('indents the lines to start under the sentence, not under the avatar, and gives each a pill-shaped Settle up button', async () => {
