@@ -11,6 +11,7 @@ import { setUpTestDatabase } from '../../../testing/database.ts'
 import { personIdOf } from '../../../testing/expenses.ts'
 import { createTestGroup, ensurePersonId } from '../../../testing/groups.ts'
 import { renderPage } from '../../../testing/render.tsx'
+import { BalancesPage } from '../../balances/index.tsx'
 import { SettleUpPage } from '../index.tsx'
 
 vi.mock('../../../db/client.ts', async (importOriginal) => {
@@ -33,7 +34,7 @@ async function createGroup() {
 }
 
 function renderSettleUp(groupId: string, state?: unknown) {
-  return renderPage(<SettleUpPage />, { path: ROUTES.settleUp(groupId), pattern: ROUTES.settleUpPattern, routes: [ROUTES.groupPattern, ROUTES.home], state })
+  return renderPage(<SettleUpPage />, { path: ROUTES.settleUp(groupId), pattern: ROUTES.settleUpPattern, routes: [ROUTES.groupPattern, ROUTES.home], extra: [{ path: ROUTES.balancesPattern, element: <BalancesPage /> }], state })
 }
 
 const payerSelect = () => screen.getByRole('combobox', { name: 'Who paid?' })
@@ -130,5 +131,76 @@ describe('Settle up opened with a payment from the balances page (PRD 5.21)', ()
 
     await screen.findByRole('heading', { name: 'Settle up' })
     expect(amountInput()).toHaveValue('')
+  })
+})
+
+describe('where Settle up leads back to (PRD 5.7, 5.21)', () => {
+  async function fromBalances() {
+    return { ...(await samPaysPriya()), from: 'balances' }
+  }
+
+  it('goes back to the balances page with Back when the balances page opened it', async () => {
+    const groupId = await createGroup()
+    const page = renderSettleUp(groupId, await fromBalances())
+    await screen.findByRole('heading', { name: 'Settle up' })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Back' }))
+
+    await waitFor(() => expect(page.currentPath()).toBe(ROUTES.balances(groupId)))
+  })
+
+  it('goes back to the balances page with Discard, after the filled-in payment was changed', async () => {
+    const groupId = await createGroup()
+    const page = renderSettleUp(groupId, await fromBalances())
+    await screen.findByRole('heading', { name: 'Settle up' })
+    await userEvent.clear(amountInput())
+    await userEvent.type(amountInput(), '9')
+    await userEvent.click(screen.getByRole('button', { name: 'Back' }))
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Discard' }))
+
+    await waitFor(() => expect(page.currentPath()).toBe(ROUTES.balances(groupId)))
+  })
+
+  it('goes to the balances page after the payment is saved', async () => {
+    const groupId = await createGroup()
+    const page = renderSettleUp(groupId, await fromBalances())
+    await screen.findByRole('heading', { name: 'Settle up' })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(page.currentPath()).toBe(ROUTES.balances(groupId)))
+    expect(await testDb.db.select().from(expenses)).toHaveLength(1)
+  })
+
+  it('reads the balances again after Save, so the balances page comes back with the payment and no loader', async () => {
+    const groupId = await createGroup()
+    const page = renderSettleUp(groupId, await fromBalances())
+    await screen.findByRole('heading', { name: 'Settle up' })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(page.currentPath()).toBe(ROUTES.balances(groupId)))
+    expect(screen.queryByRole('status', { name: 'Loading the balances' })).not.toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Balances' })).toBeInTheDocument()
+  })
+
+  it('goes to the group page with Back when the balances page did not open it', async () => {
+    const groupId = await createGroup()
+    const page = renderSettleUp(groupId, await samPaysPriya())
+    await screen.findByRole('heading', { name: 'Settle up' })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Back' }))
+    await waitFor(() => expect(page.currentPath()).toBe(ROUTES.group(groupId)))
+  })
+
+  it('goes to the group page after Save when the balances page did not open it', async () => {
+    const groupId = await createGroup()
+    const page = renderSettleUp(groupId, await samPaysPriya())
+    await screen.findByRole('heading', { name: 'Settle up' })
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(page.currentPath()).toBe(ROUTES.group(groupId)))
   })
 })

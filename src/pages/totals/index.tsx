@@ -1,4 +1,4 @@
-import { Flex, Select, Typography } from 'antd'
+import { Divider, Flex, Select, Typography } from 'antd'
 import { useState } from 'react'
 import { useParams } from 'react-router'
 import { BackButton } from '../../components/BackButton'
@@ -54,13 +54,37 @@ export function TotalsPage() {
   function renderCurrencySelect(totals: GroupTotals, current: CurrencyTotals) {
     if (totals.currencies.length < 2) return null
     return (
-      <Select
-        aria-label="Currency"
-        style={{ width: '100%', marginBottom: 16 }}
-        value={current.currency}
-        onChange={setChosen}
-        options={totals.currencies.map(({ currency }) => ({ value: currency, label: currencyService.label(currency, navigator.language) }))}
-      />
+      <Flex vertical gap={4}>
+        <Text type="secondary">Select the currency for the breakdown</Text>
+        <Select
+          aria-label="Currency"
+          style={{ width: '100%' }}
+          value={current.currency}
+          onChange={setChosen}
+          options={totals.currencies.map(({ currency }) => ({ value: currency, label: currencyService.label(currency, navigator.language) }))}
+        />
+      </Flex>
+    )
+  }
+
+  /** What the group spent in every currency, the group's default first, all the same size; nothing is converted. */
+  function renderTotalSpent(totals: GroupTotals) {
+    function renderAmount(one: CurrencyTotals) {
+      return (
+        <Text key={one.currency} strong style={{ fontSize: 24, lineHeight: '32px' }}>
+          {moneyService.format(one.totalMinor, one.currency)}
+        </Text>
+      )
+    }
+    return (
+      <>
+        <Flex vertical>
+          <Text type="secondary">Total spent</Text>
+          {totals.currencies.map(renderAmount)}
+        </Flex>
+        {/* The sections below start 24 px under whatever is above them, so the line has no room of its own below when no dropdown follows. */}
+        <Divider style={{ margin: totals.currencies.length > 1 ? '16px 0 24px' : '16px 0 0' }} />
+      </>
     )
   }
 
@@ -99,13 +123,8 @@ export function TotalsPage() {
       <Flex vertical style={COLUMN_STYLE}>
         <title>Totals · OwnLedger</title>
         {renderHeader()}
+        {renderTotalSpent(totals)}
         {renderCurrencySelect(totals, current)}
-        <Flex vertical>
-          <Text type="secondary">Total spent</Text>
-          <Text strong style={{ fontSize: 32, lineHeight: '40px' }}>
-            {moneyService.format(current.totalMinor, current.currency)}
-          </Text>
-        </Flex>
         {renderSplit('Shares', 'Shares', current.shares, current, colors)}
         {renderSplit('Individual contribution', 'Paid', current.paid, current, colors)}
       </Flex>

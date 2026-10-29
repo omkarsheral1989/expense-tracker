@@ -248,7 +248,7 @@ describe('the Settle up button of a line', () => {
     await waitFor(() => expect(page.currentPath()).toBe(ROUTES.settleUp(groupId)))
     const samId = await personIdOf(testDb.db, 'sam@gmail.com')
     const omkarId = await personIdOf(testDb.db, me.email)
-    expect(await screen.findByText(`Settle: ${JSON.stringify({ settle: { payerId: samId, recipientId: omkarId, amountMinor: 800, currency: 'GBP' } })}`)).toBeInTheDocument()
+    expect(await screen.findByText(`Settle: ${JSON.stringify({ settle: { payerId: samId, recipientId: omkarId, amountMinor: 800, currency: 'GBP' }, from: 'balances' })}`)).toBeInTheDocument()
   })
 
   it('works for a payment between two other members, too', async () => {
@@ -261,7 +261,7 @@ describe('the Settle up button of a line', () => {
 
     const samId = await personIdOf(testDb.db, 'sam@gmail.com')
     const priyaId = await personIdOf(testDb.db, 'priya@gmail.com')
-    expect(await screen.findByText(`Settle: ${JSON.stringify({ settle: { payerId: samId, recipientId: priyaId, amountMinor: 200, currency: 'GBP' } })}`)).toBeInTheDocument()
+    expect(await screen.findByText(`Settle: ${JSON.stringify({ settle: { payerId: samId, recipientId: priyaId, amountMinor: 200, currency: 'GBP' }, from: 'balances' })}`)).toBeInTheDocument()
   })
 })
 

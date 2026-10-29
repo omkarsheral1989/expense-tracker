@@ -6,14 +6,13 @@ import { FormLoadingShell } from '../../components/FormLoadingShell'
 import { knownGroupFrom } from '../group/utils.ts'
 import { LoadingMessage } from '../../components/LoadingMessage'
 import { LoadError } from '../../components/LoadError'
-import { ROUTES } from '../../routes.ts'
 import { TintedPageBackground } from '../../components/TintedPageBackground'
 import { slide } from '../../hooks/useAppNavigate/utils.ts'
 import { GroupNotFound } from '../../components/GroupNotFound'
 import { useCachedData } from '../../hooks/useCachedData'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
 import { settlePrefillFrom } from '../balances/utils.ts'
-import { loadSettleUp, SETTLE_UP_PAGE, settleUpKey } from './utils.ts'
+import { loadSettleUp, SETTLE_UP_PAGE, settleBackTo, settleUpKey } from './utils.ts'
 import { aboveScreenEdge, belowStatusBar, HEADER_TOP_PADDING } from '../../theme/safeArea.ts'
 import { SettleUpForm } from './components/SettleUpForm'
 
@@ -27,6 +26,7 @@ export function SettleUpPage() {
   // What the group's page knew when it opened this one, if it did (ADR-054).
   const location = useLocation()
   const known = knownGroupFrom(location.state, id)
+  const backTo = settleBackTo(location.state, id)
 
   const userId = user?.personId ?? ''
   const datasetId = user?.datasetId ?? ''
@@ -57,7 +57,7 @@ export function SettleUpPage() {
         return null
       case 'error':
         return (
-          <LoadError title="Couldn't load this group" onRetry={retry} error={state.status === 'error' ? state.error : undefined} backTo={ROUTES.group(id)} />
+          <LoadError title="Couldn't load this group" onRetry={retry} error={state.status === 'error' ? state.error : undefined} backTo={backTo} />
         )
       case 'ready':
         if (!state.data) {
@@ -75,6 +75,7 @@ export function SettleUpPage() {
             datasetId={datasetId}
             userId={userId}
             recentCurrencies={state.data.recentCurrencies}
+            backTo={backTo}
             // The balances page opens this with a payment filled in (PRD 5.21).
             prefill={settlePrefillFrom(
               location.state,
@@ -92,7 +93,7 @@ export function SettleUpPage() {
         {/* The plain page background the group page's pill grows into (PRD 5.16). */}
         <TintedPageBackground color={undefined} />
         <title>Settle up · OwnLedger</title>
-        <FormLoadingShell heading="Settle up" backTo={ROUTES.group(id)} label="Loading the group" group={known} />
+        <FormLoadingShell heading="Settle up" backTo={backTo} label="Loading the group" group={known} />
       </>
     )
   }

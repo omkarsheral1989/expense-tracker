@@ -127,6 +127,17 @@ describe('the Group members page', () => {
     expect(document.querySelectorAll('.ant-card')).toHaveLength(3)
   })
 
+  it('draws each card with the larger 30 px corner radius and 20 px lines, so its content is as high as the 40 px avatar', async () => {
+    await addTestPerson(testDb.db, me, { name: 'Sam' })
+    renderMembers()
+
+    await screen.findByRole('button', { name: 'Edit Sam' })
+    for (const one of document.querySelectorAll<HTMLElement>('.ant-card')) expect(one).toHaveStyle({ borderRadius: '30px' })
+    const lines = within(card('Sam')).getAllByText(/^(Sam|No email)$/)
+    expect(lines).toHaveLength(2)
+    for (const line of lines) expect(line.closest('.ant-typography')).toHaveStyle({ lineHeight: '20px' })
+  })
+
   it('shows a Google picture where a person has one and the initial where not', async () => {
     const sam = await addTestPerson(testDb.db, me, { name: 'Sam' })
     await testDb.db.update(people).set({ picture: 'https://example.com/sam.png' }).where(eq(people.id, sam))
