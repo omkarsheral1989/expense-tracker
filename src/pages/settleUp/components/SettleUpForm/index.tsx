@@ -4,7 +4,7 @@ import { useAppNavigate } from '../../../../hooks/useAppNavigate'
 import { AmountInput } from '../../../../components/AmountInput'
 import { CurrencyField } from '../../../../components/CurrencyField'
 import { DateField } from '../../../../components/DateField'
-import { GroupTypeIcon } from '../../../../components/GroupTypeIcon'
+import { GroupSwitcher } from '../../../../components/GroupSwitcher'
 import { PaymentRow } from '../../../../components/PaymentRow'
 import { ReceiptsField } from '../../../../components/ReceiptsField'
 import { getDb } from '../../../../db/client.ts'
@@ -29,7 +29,7 @@ import { refreshBalancesPage } from '../../../balances/utils.ts'
 import { refreshGroupPage } from '../../../group/utils.ts'
 import { useConfirm } from '../../../../hooks/useConfirm'
 
-const { Text, Title } = Typography
+const { Title } = Typography
 
 /** The notes box shows how many characters are used once this many are typed. */
 const NOTES_COUNTER_FROM = 900
@@ -182,13 +182,11 @@ export function SettleUpForm({ group, datasetId, userId, recentCurrencies, backT
   }
 
   function renderGroup() {
+    // The payment stays in its group: the same pill as Edit expense, switched off, with no menu.
     return (
-      <Flex align="center" gap={8} style={{ marginBottom: 16 }}>
-        <GroupTypeIcon type={group.type} size={24} />
-        <Text type="secondary" style={{ overflowWrap: 'anywhere' }}>
-          {group.name}
-        </Text>
-      </Flex>
+      <div style={{ marginBottom: 16 }}>
+        <GroupSwitcher group={group} disabled />
+      </div>
     )
   }
 
