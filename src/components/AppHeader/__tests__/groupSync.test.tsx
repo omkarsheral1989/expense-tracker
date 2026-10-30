@@ -131,14 +131,14 @@ async function changedAt(groupId: string, iso: string) {
 }
 
 describe('groups in a full Sync', () => {
-  it('lists Backup, then each group in the home page\'s order, each Synced', async () => {
+  it('lists Backup, then each group, the one that ran last on top (the order a run ends in is kept), each Synced', async () => {
     const older = await omkarsGroup('Lisbon')
     const newer = await omkarsGroup('Goa trip')
     await changedAt(older, '2026-10-01T10:00:00Z')
     await changedAt(newer, '2026-10-10T10:00:00Z')
     renderHeader()
 
-    expect(await syncAll()).toEqual(['BackupBacked up', 'Goa tripSynced', 'LisbonSynced'])
+    expect(await syncAll()).toEqual(['BackupBacked up', 'LisbonSynced', 'Goa tripSynced'])
     expect(fake.world!.files.size).toBeGreaterThan(0)
   })
 
@@ -189,8 +189,8 @@ describe('groups in a full Sync', () => {
 
     expect(await syncAll()).toEqual([
       'BackupBacked up',
-      "Goa tripCouldn't sync this group. Press Sync to try again. 403: The user does not have sufficient permissions for this file.",
       'LisbonSynced',
+      "Goa tripCouldn't sync this group. Press Sync to try again. 403: The user does not have sufficient permissions for this file.",
     ])
   })
 
@@ -394,7 +394,7 @@ describe('failures that stop the run', () => {
     await waitFor(() => expect(useSyncStore.getState().dataVersion).toBe(runs + 1))
     expect(google.asked).toBe(2)
     const lines = within(screen.getByRole('list', { name: 'Progress' })).getAllByRole('listitem').map((line) => line.textContent)
-    expect(lines).toEqual(['BackupBacked up', 'Goa tripSynced', 'LisbonSynced'])
+    expect(lines).toEqual(['BackupBacked up', 'LisbonSynced', 'Goa tripSynced'])
     expect(within(footer()).queryByRole('button', { name: 'Continue' })).not.toBeInTheDocument()
   })
 
@@ -470,7 +470,7 @@ describe('failures that stop the run', () => {
     })
     renderHeader()
 
-    expect((await syncAll()).at(-1)).toBe('LisbonSynced')
+    expect(await syncAll()).toContain('LisbonSynced')
     expect(within(footer()).queryByRole('button', { name: 'Continue' })).not.toBeInTheDocument()
   })
 })

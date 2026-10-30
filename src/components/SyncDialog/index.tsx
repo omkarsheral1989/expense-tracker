@@ -42,7 +42,10 @@ export function SyncDialog() {
   useLeaveWarning(running)
   // The line that is working moves up under the backup, and the order the run ended in is kept.
   const [lineOrder, setLineOrder] = useState<LineOrder>(EMPTY_ORDER)
-  const wanted = nextOrder(lineOrder, steps)
+  const [wasRunning, setWasRunning] = useState(false)
+  // A run that starts takes the lines in their own order again.
+  if (running !== wasRunning) setWasRunning(running)
+  const wanted = nextOrder(running && !wasRunning ? EMPTY_ORDER : lineOrder, steps)
   if (!sameOrder(wanted, lineOrder)) setLineOrder(wanted)
   const register = useSlideReorder(wanted.keys, wanted.promoted)
   const orderedSteps = wanted.keys.flatMap((key) => steps.filter((step) => step.key === key))
