@@ -1,6 +1,6 @@
 import { Icon } from '../../../../components/Icon'
 import { useQueryClient } from '@tanstack/react-query'
-import { App, Flex } from 'antd'
+import { App, Divider, Flex, Typography } from 'antd'
 import { refreshGroupPage } from '../../../group/utils.ts'
 import { useState } from 'react'
 import { useAppNavigate } from '../../../../hooks/useAppNavigate'
@@ -14,9 +14,13 @@ import type { ExpenseWithPayment } from '../../types.ts'
 import { aboveScreenEdge, UNDER_BAND_PADDING } from '../../../../theme/safeArea.ts'
 import { PaymentRow } from '../../../../components/PaymentRow'
 import { ExpenseBand } from './ExpenseBand'
+import { GroupCard } from '../GroupCard'
+import { RestoreButton } from '../RestoreButton'
 import { History } from './History'
 import { dialogLayer } from '../../../../components/DialogLayer'
 import { useConfirm } from '../../../../hooks/useConfirm'
+
+const { Text } = Typography
 
 type Props = {
   expense: ExpenseWithPayment
@@ -26,6 +30,8 @@ type Props = {
   userId: string
   /** Called after the expense was changed here (restored), so the page reads it again. */
   onChanged: () => void
+  /** Shows the group's icon and name above the History: for an expense not opened from its group's list (Activity, a version, an address), where the page would not say which group it is in. */
+  showGroup?: boolean
 }
 
 /**
@@ -34,7 +40,7 @@ type Props = {
  * the edit page (not for a payment); Delete asks first and then removes the expense or payment.
  * A deleted expense is shown read-only, with Restore in place of Edit and Delete; its history says who deleted it and when.
  */
-export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props) {
+export function ExpenseDetails({ expense, datasetId, userId, onChanged, showGroup = false }: Props) {
   const navigate = useAppNavigate()
   const queryClient = useQueryClient()
   const { message } = App.useApp()
@@ -95,7 +101,7 @@ export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props)
   // A deleted expense has Restore where a live one has Edit and Delete.
   function renderActions() {
     if (expense.deleted) {
-      return <BandIconButton icon={<Icon name="undo" />} label="Restore" loading={restoring} onClick={handleRestore} />
+      return <RestoreButton loading={restoring} onClick={handleRestore} />
     }
     return (
       <>
@@ -139,6 +145,7 @@ export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props)
         actions={renderActions()}
         onEdit={expense.deleted || isSettlement ? undefined : () => navigate(ROUTES.editExpense(expense.groupId, expense.id))}
         travels={!expense.deleted}
+        deleted={Boolean(expense.deleted)}
       />
       {/* Below the band, in a column about 560 px wide. */}
       <Flex vertical style={{ width: '100%', maxWidth: 560, margin: '0 auto', padding: `${UNDER_BAND_PADDING}px 16px ${aboveScreenEdge(24)}` }}>
@@ -157,6 +164,15 @@ export function ExpenseDetails({ expense, datasetId, userId, onChanged }: Props)
           receipts={expense.receipts}
           datasetId={datasetId}
         />
+        {showGroup && (
+          <>
+            <Divider style={{ margin: '16px 0' }} />
+            <Text strong style={{ display: 'block', marginBottom: 12 }}>
+              Group
+            </Text>
+            <GroupCard group={expense.group} backTo={ROUTES.expense(expense.groupId, expense.id)} />
+          </>
+        )}
         <History expense={expense} />
       </Flex>
     </>

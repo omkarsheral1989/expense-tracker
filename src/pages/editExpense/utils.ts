@@ -17,7 +17,8 @@ export const editExpenseKey = (userId: string, groupId: string, expenseId: strin
 export async function loadExpenseToEdit(userId: string, groupId: string, expenseId: string) {
   const db = await getDb()
   const [group, expense] = await Promise.all([
-    groupService.getGroup(db, userId, groupId),
+    // A deleted group's expense can be edited, which brings the group back (PRD 5.22).
+    groupService.getGroup(db, userId, groupId, { includeDeleted: true }),
     expenseService.getExpenseToEdit(db, userId, groupId, expenseId),
   ])
   if (!group || !expense) return null

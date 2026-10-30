@@ -3,10 +3,11 @@ import { eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createDatabase, type Database } from '../../../db/client.ts'
 import { eventArrivals, expenseEvents, groupDeletions, groupMembers, groups, people } from '../../../db/schema.ts'
-import { addTestExpense, addTestSettlement, personIdOf } from '../../../testing/expenses.ts'
+import { addTestExpense, addTestSettlement, expenseInput, personIdOf } from '../../../testing/expenses.ts'
 import { addTestPerson, createTestGroup } from '../../../testing/groups.ts'
 import { activityService } from '../../activityService'
 import { balancesService } from '../../balancesService'
+import { expenseService } from '../../expenseService'
 import { groupService } from '../../groupService'
 import { totalsService } from '../../totalsService'
 import { groupDeletionService } from '../index.ts'
@@ -166,7 +167,7 @@ describe('what a deleted group is hidden from, and what can still read it', () =
     expect(await totalsService.hasSpending(db, omkarId, groupId)).toBe(true)
   })
 
-  it('leaves its events out of the activity feed and out of what is unread', async () => {
+  it('keeps its events in the activity feed and in what is unread', async () => {
     const { groupId, omkarId, priyaId } = await setUp()
     // Priya paid 10.00 and Omkar settled his 5.00 share, so the group is settled; Priya's event reached the device.
     await addTestExpense(db, 'priya@gmail.com', groupId, { amountMinor: 1000, paidBy: priyaId })
@@ -178,10 +179,37 @@ describe('what a deleted group is hidden from, and what can still read it', () =
 
     await groupDeletionService.deleteGroup(db, omkarId, groupId)
 
-    expect((await activityService.listActivity(db, omkarId)).items).toEqual([])
-    expect((await activityService.unreadState(db, omkarId)).hasUnread).toBe(false)
-    await groupDeletionService.restoreGroup(db, omkarId, groupId)
     expect((await activityService.listActivity(db, omkarId)).items).toHaveLength(2)
+    expect((await activityService.unreadState(db, omkarId)).hasUnread).toBe(true)
+  })
+
+  it('comes back when the user edits, deletes or restores one of its expenses', async () => {
+    const { groupId, omkarId } = await setUp()
+    // Paid by Omkar and owed by Omkar alone, so the group stays settled.
+    const alone = { method: 'equal' as const, values: { [omkarId]: 1 } }
+    const expenseId = await addTestExpense(db, omkar.email, groupId, { amountMinor: 1000, paidBy: omkarId, split: alone })
+
+    for (const change of [
+      async () => expenseService.updateExpense(db, omkarId, groupId, expenseId, await expenseInput(db, omkar.email, groupId, { description: 'Lunch', amountMinor: 1000, split: alone })),
+      async () => expenseService.deleteExpense(db, omkarId, groupId, expenseId),
+      async () => {
+        await expenseService.restoreExpense(db, omkarId, groupId, expenseId)
+      },
+    ]) {
+      expect(await groupDeletionService.deleteGroup(db, omkarId, groupId)).toEqual({ ok: true })
+      expect(await live(omkarId)).toEqual([])
+      await change()
+      expect(await live(omkarId)).toEqual(['Goa trip'])
+    }
+  })
+
+  it('stays deleted when the user only reads one of its expenses', async () => {
+    const { groupId, omkarId } = await setUp()
+    const expenseId = await addTestExpense(db, omkar.email, groupId, { amountMinor: 1000, paidBy: omkarId, split: { method: 'equal', values: { [omkarId]: 1 } } })
+    await groupDeletionService.deleteGroup(db, omkarId, groupId)
+
+    expect(await expenseService.getExpenseToEdit(db, omkarId, groupId, expenseId)).not.toBeNull()
+    expect(await live(omkarId)).toEqual([])
   })
 
   it('keeps its name taken: a new group or a rename to that name is refused until it is restored', async () => {

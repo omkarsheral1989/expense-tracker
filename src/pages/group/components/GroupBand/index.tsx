@@ -1,5 +1,6 @@
 import { Icon } from '../../../../components/Icon'
-import { Flex, Typography } from 'antd'
+import { Button, Dropdown, Flex, Typography } from 'antd'
+import type { MenuProps } from 'antd'
 import { useAppNavigate } from '../../../../hooks/useAppNavigate'
 import { GROUP_TYPE_CONTENT } from '../../../../components/GroupTypeIcon/content.tsx'
 import { SyncButton } from '../../../../components/SyncButton'
@@ -23,6 +24,8 @@ type Props = {
   peopleCount: number
   /** Opens the list of members; left out while the members are still loading, which switches the chip off. */
   onOpenMembers?: () => void
+  /** Where Back leads when the page was opened from another page of the group (an expense); the home page without it. */
+  backTo?: string
   /** The user deleted the group on this device (PRD 5.23): Edit group and Sync are switched off and a Restore button comes in place of Edit group. */
   deleted?: boolean
   /** Asks to delete the group (PRD 5.22): the bin button beside Edit group; left out, there is none (the feature is off, or the page is still loading). */
@@ -36,10 +39,22 @@ type Props = {
  * type: back, search, sync (this group only) and edit buttons, the group's icon and name, and a row
  * of chips with a fact or an action each.
  */
-export function GroupBand({ group, peopleCount, onOpenMembers, deleted = false, onDelete, onRestore }: Props) {
+export function GroupBand({ group, peopleCount, onOpenMembers, backTo, deleted = false, onDelete, onRestore }: Props) {
   const navigate = useAppNavigate()
   // What the edit page can show while it loads (ADR-054).
   const editState = { group: { id: group.id, name: group.name, type: group.type, defaultCurrency: group.defaultCurrency, memberCount: peopleCount } }
+
+  // Everything but Sync sits in the three-dots menu.
+  function menuItems(): NonNullable<MenuProps['items']> {
+    const items: NonNullable<MenuProps['items']> = [{ key: 'search', icon: <Icon name="search" />, label: 'Search (coming soon)', disabled: true }]
+    if (deleted) {
+      items.push({ key: 'restore', icon: <Icon name="undo" />, label: 'Restore group', disabled: !onRestore, onClick: onRestore })
+      return items
+    }
+    items.push({ key: 'edit', icon: <Icon name="pencil" />, label: 'Edit group', onClick: () => navigate(ROUTES.editGroup(group.id), { state: editState }) })
+    if (onDelete) items.push({ key: 'delete', icon: <Icon name="trash" />, label: 'Delete group', danger: true, onClick: onDelete })
+    return items
+  }
 
   function renderButtons() {
     return (
@@ -48,29 +63,26 @@ export function GroupBand({ group, peopleCount, onOpenMembers, deleted = false, 
           <BandIconButton
             icon={<Icon name="arrowLeft" />}
             label="Back"
-            onClick={() => navigate(ROUTES.home, { direction: 'back' })}
+            onClick={() => navigate(backTo ?? ROUTES.home, { direction: 'back' })}
           />
           <Title level={3} style={{ ...HEADER_TITLE_STYLE, color: '#fff' }}>
             Group
           </Title>
         </Flex>
         <Flex gap={12}>
-          <BandIconButton icon={<Icon name="search" />} label="Search" />
           {deleted ? (
             <BandIconButton icon={<Icon name="sync" />} label="Sync" disabled />
           ) : (
             <SyncButton group={{ id: group.id, name: group.name }} onBand />
           )}
-          {deleted ? (
-            <BandIconButton icon={<Icon name="undo" />} label="Restore group" onClick={onRestore} disabled={!onRestore} />
-          ) : (
-            <BandIconButton
-              icon={<Icon name="pencil" />}
-              label="Edit group"
-              onClick={() => navigate(ROUTES.editGroup(group.id), { state: editState })}
+          <Dropdown menu={{ items: menuItems() }} trigger={['click']} placement="bottomRight" classNames={{ root: 'roomy-menu' }}>
+            <Button
+              shape="circle"
+              icon={<Icon name="more" />}
+              aria-label="More options"
+              style={{ background: '#fff', color: '#262626', border: 'none' }}
             />
-          )}
-          {onDelete && !deleted && <BandIconButton icon={<Icon name="trash" />} label="Delete group" onClick={onDelete} />}
+          </Dropdown>
         </Flex>
       </Flex>
     )

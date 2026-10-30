@@ -110,7 +110,7 @@ describe('the expense page while it loads, opened from the group list', () => {
 
     expect(screen.getByRole('button', { name: 'Edit' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled()
-    expect(screen.queryByRole('button', { name: 'Restore' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Restore$/ })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Delete' }).parentElement?.tagName).toBe('DIV')
 
     await user.click(screen.getByRole('button', { name: 'Back' }))
@@ -197,9 +197,9 @@ describe('a deleted expense while it loads, opened from the group list', () => {
     expect(screen.getByRole('heading', { name: 'Deleted expense', level: 3 })).toBeInTheDocument()
     // The band says nothing of who deleted it: the history does, once it is read.
     expect(screen.queryByText(/^Deleted by/)).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Restore' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /Restore$/ })).toBeDisabled()
     // Switched off for loading, not "Coming soon": no tip wrapper.
-    expect(screen.getByRole('button', { name: 'Restore' }).parentElement?.tagName).toBe('DIV')
+    expect(screen.getByRole('button', { name: /Restore$/ }).parentElement?.tagName).toBe('DIV')
     expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
   })

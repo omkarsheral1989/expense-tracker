@@ -33,6 +33,7 @@ export function GuestMenuView({ onSignIn, loading }: Props) {
     <Dropdown
       trigger={['click']}
       placement="bottomRight"
+      classNames={{ root: 'roomy-menu' }}
       menu={{
         items: [
           {

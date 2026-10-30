@@ -115,7 +115,8 @@ describe('Edit group, opened from the group page', () => {
     await new Promise((resolve) => setTimeout(resolve, 300))
     stopReadingTheDatabase()
 
-    await userEvent.click(screen.getByRole('button', { name: 'Edit group' }))
+    await userEvent.click(screen.getByRole('button', { name: 'More options' }))
+    await userEvent.click(await screen.findByRole('menuitem', { name: /Edit group/ }))
 
     await waitFor(() => expect(page.currentPath()).toBe(ROUTES.editGroup(group)))
     expect(screen.queryByRole('status', { name: 'Loading the group' })).not.toBeInTheDocument()

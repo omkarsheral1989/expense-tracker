@@ -1,7 +1,6 @@
-import { and, desc, eq, gt, inArray, isNull, ne, not, sql } from 'drizzle-orm'
+import { and, desc, eq, gt, inArray, isNull, ne, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import type { Database } from '../../db/client.ts'
-import { deletedHere } from '../../db/groupDeleted.ts'
 import { eventArrivals, expenseEvents, groupMembers, groups, people, syncStatus } from '../../db/schema.ts'
 import { shownName } from '../../db/shownName.ts'
 import { SETTLEMENT_CATEGORY } from '../expenseService/constants.ts'
@@ -18,7 +17,7 @@ function userGroups(db: Pick<Database, 'select'>, userId: string) {
     .from(groupMembers)
     .innerJoin(groups, and(eq(groups.id, groupMembers.groupId), isNull(groups.deletedAt)))
     // Groups the user deleted on this device have nothing in the feed and nothing unread; a change by another member brings them back (ADR-069).
-    .where(and(eq(groupMembers.personId, userId), isNull(groupMembers.deletedAt), not(deletedHere(groups.id))))
+    .where(and(eq(groupMembers.personId, userId), isNull(groupMembers.deletedAt)))
 }
 
 const activityServiceBase = {

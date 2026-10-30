@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { knownGroupFrom } from '../utils.ts'
+import { ROUTES } from '../../../routes.ts'
+import { backToFrom, knownGroupFrom } from '../utils.ts'
 
 const ID = '3f2a6c1e-8b7d-4e5f-9a10-b2c3d4e5f607'
 const group = { id: ID, name: 'Goa trip', type: 'trip', defaultCurrency: 'INR', memberCount: 3 }
@@ -31,5 +32,26 @@ describe('knownGroupFrom', () => {
     ['no type', { group: { ...group, type: undefined } }],
   ])('gives nothing for %s', (_name, state) => {
     expect(knownGroupFrom(state, ID)).toBeNull()
+  })
+})
+
+describe('backToFrom', () => {
+  it('accepts an address inside the group and the Deleted groups page', () => {
+    expect(backToFrom({ backTo: `/groups/${ID}/expenses/abc` }, ID)).toBe(`/groups/${ID}/expenses/abc`)
+    expect(backToFrom({ backTo: ROUTES.deletedGroups }, ID)).toBe(ROUTES.deletedGroups)
+  })
+
+  it.each([
+    ['another group', '/groups/other-id/expenses/abc'],
+    ['another page', '/members'],
+    ['an outside address', 'https://example.com/groups'],
+    ['not a string', 42],
+  ])('ignores %s, so Back goes home', (_label, backTo) => {
+    expect(backToFrom({ backTo }, ID)).toBeNull()
+  })
+
+  it('gives nothing without a state', () => {
+    expect(backToFrom(null, ID)).toBeNull()
+    expect(backToFrom({}, ID)).toBeNull()
   })
 })

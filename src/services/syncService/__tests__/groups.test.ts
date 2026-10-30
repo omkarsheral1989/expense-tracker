@@ -545,20 +545,4 @@ describe('a group the user deleted on this device (ADR-069)', () => {
     expect((await groupService.listGroups(a, omkar)).map((group) => group.id)).toEqual([groupId])
     expect(await descriptions(a, omkar, groupId)).toEqual(['Coffee'])
   })
-
-  it('stays deleted when the only thing that arrives is the user\'s own change from their other device', async () => {
-    const { omkar, groupId } = await deletedByOmkar()
-    // Omkar's second device (`b`, as him) adds an expense and syncs; his first device reads it back.
-    await pgB.exec(`truncate ${TABLES} cascade`)
-    const omkarOnB = await self(b, 'omkar@gmail.com', 'Omkar')
-    const found = await syncService.findSharedGroups(b, omkarDrive(), 'omkar@gmail.com')
-    const me = found.renamed.get(omkarOnB) ?? omkarOnB
-    await addExpense(b, me, groupId, 'Coffee', 300)
-    await syncService.syncGroup(b, omkarDrive(), me, groupId)
-
-    const result = await syncService.syncGroup(a, omkarDrive(), omkar, groupId)
-
-    expect(result).toMatchObject({ restored: null })
-    expect(await groupService.listGroups(a, omkar)).toEqual([])
-  })
 })

@@ -1,5 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query'
 import { getDb } from '../../db/client.ts'
+import { ROUTES } from '../../routes.ts'
 import { GROUP_TYPES } from '../../db/constants.ts'
 import { prefetchCachedData } from '../../hooks/useCachedData'
 import { balancesService } from '../../services/balancesService'
@@ -46,6 +47,15 @@ export async function loadGroupPage(userId: string, groupId: string, limit: numb
 export function refreshGroupPage(client: QueryClient, userId: string, groupId: string) {
   const key = groupPageKey(userId, groupId, useSyncStore.getState().dataVersion)
   return prefetchCachedData(client, () => loadGroupPage(userId, groupId, EXPENSE_PAGE_SIZE), GROUP_PAGE, key).catch(() => undefined)
+}
+
+/**
+ * Where the group page's Back arrow leads when the page was opened from one of the group's own pages (`location.state.backTo`, set
+ * by an expense's group card), else null for the home page. Only an address inside this group, or the Deleted groups page, is accepted.
+ */
+export function backToFrom(state: unknown, groupId: string): string | null {
+  const backTo = (state as { backTo?: unknown } | null)?.backTo
+  return typeof backTo === 'string' && (backTo.startsWith(`/groups/${groupId}/`) || backTo === ROUTES.deletedGroups) ? backTo : null
 }
 
 /**

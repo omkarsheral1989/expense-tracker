@@ -1,3 +1,4 @@
+import { undeleteGroup } from '../../db/groupDeleted.ts'
 import { and, asc, desc, eq, inArray, isNull, max, ne, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import { displayName } from '../groupService/utils.ts'
@@ -1163,7 +1164,7 @@ export const expenseService: typeof expenseServiceBase = notifyAfter(logService.
 
 /** What the helpers below need of a database or a transaction. */
 type Reader = Pick<Database, 'select'>
-type Writer = Pick<Database, 'select' | 'insert'>
+type Writer = Pick<Database, 'select' | 'insert' | 'update'>
 
 /**
  * The expense as it is stored now, with its live shares and photos, whether or
@@ -1240,6 +1241,8 @@ async function recordEvent(
     updatedBy: event.userId,
     updatedAt: event.at,
   })
+  // Changing an expense of a group deleted on this device brings the group back (PRD 5.22).
+  await undeleteGroup(tx, event.groupId, event.userId, event.at)
 }
 
 /**

@@ -7,7 +7,7 @@ import { useAuthStore } from '../../../stores/useAuthStore'
 import { renderPage } from '../../../testing/render.tsx'
 import { AppHeader } from '../index.tsx'
 
-// The "Deleted groups" entry of the avatar menu exists only with the feature turned on (PRD 5.1a, 5.22).
+// The "Deleted groups" entry of the avatar menu is there whatever the flag says: it only hides the Delete button (PRD 5.1a, 5.22).
 const flag = vi.hoisted(() => ({ on: true }))
 vi.mock('../../../config.ts', () => ({ GOOGLE_CLIENT_ID: '', REQUIRE_INSTALL: true }))
 vi.mock('../../../features.ts', () => ({
@@ -29,7 +29,7 @@ describe('the Deleted groups menu entry', () => {
   })
   afterEach(cleanup)
 
-  it('opens the Deleted groups page, below Accounts, when the feature is on', async () => {
+  it('opens the Deleted groups page, below Accounts', async () => {
     const page = renderHeader()
     await userEvent.click(screen.getByRole('button', { name: 'Account menu' }))
     const menu = await screen.findByRole('menu')
@@ -40,11 +40,10 @@ describe('the Deleted groups menu entry', () => {
     expect(page.currentPath()).toBe(ROUTES.deletedGroups)
   })
 
-  it('is not in the menu when the feature is off', async () => {
+  it('is still in the menu when the feature is off', async () => {
     flag.on = false
     renderHeader()
     await userEvent.click(screen.getByRole('button', { name: 'Account menu' }))
-    await within(await screen.findByRole('menu')).findByText('Accounts')
-    expect(screen.queryByText('Deleted groups')).not.toBeInTheDocument()
+    expect(await within(await screen.findByRole('menu')).findByText('Deleted groups')).toBeInTheDocument()
   })
 })

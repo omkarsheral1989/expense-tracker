@@ -8,4 +8,8 @@ import type { GroupSummary } from '../../services/groupService/types.ts'
 export type KnownGroup = Pick<GroupSummary, 'id' | 'name' | 'type' | 'defaultCurrency' | 'memberCount'>
 
 /** The router state the home list gives the group page. */
-export type GroupPageState = { group: KnownGroup }
+export type GroupPageState = {
+  group: KnownGroup
+  /** Where the page's Back arrow leads instead of the home page: set by the expense page's group card and the Deleted groups page's cards, so Back returns there. */
+  backTo?: string
+}
