@@ -2,7 +2,7 @@ import { PGlite } from '@electric-sql/pglite'
 import { and, eq } from 'drizzle-orm'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createDatabase, type Database } from '../../../db/client.ts'
-import { accounts, expenseEvents, expensePhotos, expenseShares, groupMembers, groups, people } from '../../../db/schema.ts'
+import { accounts, expenseEvents, expensePhotos, expenseShares, groupDeletions, groupMembers, groups, people } from '../../../db/schema.ts'
 import { addTestExpense, addTestSettlement, expenseInput, personIdOf } from '../../../testing/expenses.ts'
 import { addTestPerson, createTestGroup } from '../../../testing/groups.ts'
 import { accountService } from '../../accountService'
@@ -25,10 +25,10 @@ import type { BackupRows } from '../types.ts'
 const NOT_BACKED_UP = ['ownledger_migrations', 'sync_status', 'expense_revisions', 'event_arrivals']
 
 /**
- * The tables that are in a backup but never in a group's file, because they are private to their user (ADR-061): a
+ * The tables that are in a backup but never in a group's file, because they are private to their user (ADR-061, ADR-069): a
  * member's file carries them as empty lists, and importing one never changes them.
  */
-const PRIVATE_TABLES = ['accounts', 'expense_payments']
+const PRIVATE_TABLES = ['accounts', 'expense_payments', 'group_deletions']
 
 let sourcePg: PGlite
 let targetPg: PGlite
@@ -90,7 +90,7 @@ const omkar = { email: 'omkar@gmail.com', name: 'Omkar' }
  * notes, an edit, a deletion, a version restored, a payment, photos (one
  * removed), a deleted group and a person who is in no group; and the user's own
  * accounts (a card with every option, a bank account, a deleted one) with the
- * payment method of two expenses, one cleared.
+ * payment method of two expenses, one cleared, and two groups deleted on this device, one restored.
  */
 async function everything() {
   const trip = await createTestGroup(source, omkar, {
@@ -162,6 +162,15 @@ async function everything() {
   const flat = await createTestGroup(source, omkar, { name: 'Old flat', type: 'home', defaultCurrency: 'INR' })
   if (!flat.ok) throw new Error('group not created')
   await source.update(groups).set({ deletedAt: new Date() }).where(eq(groups.id, flat.groupId))
+
+  // Groups the user deleted on this device (ADR-069): one still deleted, one restored (the row's own `deleted_at`).
+  const done = await createTestGroup(source, omkar, { name: 'Done trip', type: 'other', defaultCurrency: 'GBP' })
+  const back = await createTestGroup(source, omkar, { name: 'Back trip', type: 'other', defaultCurrency: 'GBP' })
+  if (!done.ok || !back.ok) throw new Error('group not created')
+  await source.insert(groupDeletions).values([
+    { groupId: done.groupId, since: new Date(), updatedBy: userId },
+    { groupId: back.groupId, since: new Date(), updatedBy: userId, deletedAt: new Date() },
+  ])
 
   return { groupId, userId, alone }
 }

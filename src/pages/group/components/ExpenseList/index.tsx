@@ -23,6 +23,8 @@ type Props = {
   loadMoreFailed: boolean
   /** Reads the next batch; called when the end of the list nears the view, and by Try again. */
   onLoadMore: () => void
+  /** The group is deleted on this device (PRD 5.23): the rows are shown but do not open. */
+  readOnly?: boolean
 }
 
 /** How far before the end of the list the next batch is asked for: about a screen. */
@@ -37,7 +39,7 @@ const LOAD_MORE_MARGIN = '600px'
  * bottom, so that would look off.) The space between the actions and the list
  * belongs to the list, not to the page, so the box starts right under the actions.
  */
-export function ExpenseList({ expenses, groupId, soloGroup, hasMore, loadingMore, loadMoreFailed, onLoadMore }: Props) {
+export function ExpenseList({ expenses, groupId, soloGroup, hasMore, loadingMore, loadMoreFailed, onLoadMore, readOnly }: Props) {
   const end = useRef<HTMLDivElement>(null)
 
   // Asks for the next batch when the end of the list comes near the view. Set up again after each
@@ -53,7 +55,7 @@ export function ExpenseList({ expenses, groupId, soloGroup, hasMore, loadingMore
   }, [hasMore, loadingMore, onLoadMore, expenses.length])
 
   function renderExpense(expense: ExpenseListItem) {
-    return <ExpenseRow key={expense.id} expense={expense} groupId={groupId} soloGroup={soloGroup} />
+    return <ExpenseRow key={expense.id} expense={expense} groupId={groupId} soloGroup={soloGroup} readOnly={readOnly} />
   }
 
   function renderMonth({ month, expenses }: MonthOfExpenses) {

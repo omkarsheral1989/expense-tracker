@@ -10,6 +10,8 @@ export const ROUTES = {
   accounts: '/accounts',
   /** What happened to expenses across the user's groups (PRD 5.18). */
   activity: '/activity',
+  /** The groups the user deleted on this device (PRD 5.23); only with the feature on. */
+  deletedGroups: '/deleted-groups',
   newGroup: '/groups/new',
   /** Where the service worker sends the user after a share from another app (PRD 5.11). */
   share: '/share',

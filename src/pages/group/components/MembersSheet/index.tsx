@@ -17,13 +17,15 @@ type Props = {
   userId: string
   /** Called once a member has been added, so the group can be read again. */
   onMemberAdded: () => void
+  /** The group is deleted on this device (PRD 5.23): people cannot be added. */
+  readOnly?: boolean
 }
 
 /**
  * The members of the group: a sheet that slides up from the bottom on phones
  * and in from the right on wider screens. Its last row adds a member.
  */
-export function MembersSheet({ open, onClose, members, syncedIds, groupId, userId, onMemberAdded }: Props) {
+export function MembersSheet({ open, onClose, members, syncedIds, groupId, userId, onMemberAdded, readOnly = false }: Props) {
   const screens = Grid.useBreakpoint()
   // The browser's Back closes it (PRD 5.19).
   useCloseOnBack(open, onClose)
@@ -39,12 +41,14 @@ export function MembersSheet({ open, onClose, members, syncedIds, groupId, userI
       styles={{ body: { paddingBottom: aboveScreenEdge(24) } }}
     >
       <MemberList members={members} syncedIds={syncedIds} />
-      <AddMemberRow
-        groupId={groupId}
-        userId={userId}
-        memberIds={members.map((member) => member.personId)}
-        onAdded={onMemberAdded}
-      />
+      {!readOnly && (
+        <AddMemberRow
+          groupId={groupId}
+          userId={userId}
+          memberIds={members.map((member) => member.personId)}
+          onAdded={onMemberAdded}
+        />
+      )}
     </Drawer>
   )
 }

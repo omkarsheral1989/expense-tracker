@@ -204,7 +204,9 @@ export function useSync() {
       if (problems.length) {
         updateStep(key, { status: 'error', detail: problems.join(' ') })
       } else {
-        const detail = result.sharedWith.length ? `Shared with ${joinNames(result.sharedWith)}` : GROUP_STEP_DETAILS.synced
+        // A group deleted on this device that another member changed is on the list again: the line says so.
+        const back = result.restored ? `Back on your list${result.restored.changedBy ? `: ${result.restored.changedBy} changed it` : ''}.` : null
+        const detail = back ?? (result.sharedWith.length ? `Shared with ${joinNames(result.sharedWith)}` : GROUP_STEP_DETAILS.synced)
         updateStep(key, { status: 'done', detail })
       }
       return me
@@ -273,7 +275,7 @@ export function useSync() {
       // A backup that could not be merged is not written over (its line already says why).
       backupPending = backup.merged
       let userId = backup.userId
-      for (const group of await groupService.listGroups(db, userId)) {
+      for (const group of await groupService.listGroups(db, userId, 'all')) {
         userId = await syncGroupLine(db, drive, userId, group.id, group.name)
       }
       if (user.email) {

@@ -26,4 +26,6 @@ export type GroupBalances = {
   /** Every live member, plus anyone else who has a balance. */
   members: BalanceMember[]
   currencies: CurrencyBalances[]
+  /** The user deleted the group on this device (ADR-069): its balances can be read, not settled. */
+  deleted: boolean
 }

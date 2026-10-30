@@ -12,6 +12,8 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
+    // Tests do not depend on a developer's .env.local: the delete-group feature is off unless a test turns it on.
+    env: { VITE_ENABLE_DELETE_GROUP: 'false' },
     include: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.ts'],
     setupFiles: ['./src/testing/setup.ts'],
     // Page tests type and click through Ant Design in jsdom, which is slow,

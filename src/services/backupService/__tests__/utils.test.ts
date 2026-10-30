@@ -78,6 +78,7 @@ describe('rowsOfGroup', () => {
       { ...sync(crypto.randomUUID()), kind: 'card' as const, name: 'Card', currency: 'GBP', statementDay: 15, creditLimitMinor: 100, spendTargetMinor: 50, spendTargetPeriod: 'month' as const },
     ],
     expensePayments: [{ ...sync(crypto.randomUUID()), expenseId: E1, accountId: crypto.randomUUID(), chargedMinor: null }],
+    groupDeletions: [{ ...sync(crypto.randomUUID()), groupId: G, since: at }],
   }
 
   it('keeps only the group, its memberships and expenses, and their shares and photos', () => {
@@ -95,6 +96,7 @@ describe('rowsOfGroup', () => {
 
     expect(kept.accounts).toEqual([])
     expect(kept.expensePayments).toEqual([])
+    expect(kept.groupDeletions).toEqual([])
   })
 
   it('keeps only the people those rows name', () => {

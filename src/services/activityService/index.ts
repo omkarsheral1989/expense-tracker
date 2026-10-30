@@ -1,6 +1,7 @@
-import { and, desc, eq, gt, inArray, isNull, ne, sql } from 'drizzle-orm'
+import { and, desc, eq, gt, inArray, isNull, ne, not, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import type { Database } from '../../db/client.ts'
+import { deletedHere } from '../../db/groupDeleted.ts'
 import { eventArrivals, expenseEvents, groupMembers, groups, people, syncStatus } from '../../db/schema.ts'
 import { shownName } from '../../db/shownName.ts'
 import { SETTLEMENT_CATEGORY } from '../expenseService/constants.ts'
@@ -16,14 +17,15 @@ function userGroups(db: Pick<Database, 'select'>, userId: string) {
     .select({ id: groups.id, name: groups.name })
     .from(groupMembers)
     .innerJoin(groups, and(eq(groups.id, groupMembers.groupId), isNull(groups.deletedAt)))
-    .where(and(eq(groupMembers.personId, userId), isNull(groupMembers.deletedAt)))
+    // Groups the user deleted on this device have nothing in the feed and nothing unread; a change by another member brings them back (ADR-069).
+    .where(and(eq(groupMembers.personId, userId), isNull(groupMembers.deletedAt), not(deletedHere(groups.id))))
 }
 
 const activityServiceBase = {
   /**
    * The events of expenses and payments in the user's groups, newest first, one
    * batch at a time (`after` is the previous batch's `next`). Events of groups the
-   * user left or that were deleted are left out (ADR-062).
+   * user left, that were deleted, or that the user deleted on this device (ADR-069) are left out (ADR-062).
    */
   async listActivity(
     db: Database,

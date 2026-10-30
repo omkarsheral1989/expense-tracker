@@ -8,6 +8,7 @@ import { useAuthStore } from '../../../../stores/useAuthStore'
 import { GoogleLogo } from '../../../GoogleLogo'
 import { ProfileAvatar } from '../../../ProfileAvatar'
 import { activityMenuItem } from '../../activityMenuItem.tsx'
+import { deletedGroupsMenuItems } from '../../deletedGroupsMenuItem.tsx'
 
 const { Text } = Typography
 
@@ -59,6 +60,7 @@ export function GuestMenuView({ onSignIn, loading }: Props) {
             label: 'Accounts',
             onClick: () => navigate(ROUTES.accounts),
           },
+            ...deletedGroupsMenuItems(navigate),
           {
             key: 'sign-in',
             // Wrapped like an Ant Design icon, so the menu spaces it from the text.

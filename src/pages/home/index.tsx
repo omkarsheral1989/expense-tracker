@@ -1,6 +1,5 @@
 import { Button, Flex, Result, Typography, theme } from 'antd'
 import { useAppNavigate } from '../../hooks/useAppNavigate'
-import { getDb } from '../../db/client.ts'
 import { CenteredMessage } from '../../components/CenteredMessage'
 import { LoadingMessage } from '../../components/LoadingMessage'
 import { TintedPageBackground } from '../../components/TintedPageBackground'
@@ -9,12 +8,10 @@ import { ABOVE_FLOATING_BUTTON, FLOATING_BUTTON_ROOM } from '../../components/Fl
 import { useCachedData } from '../../hooks/useCachedData'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
 import { ROUTES } from '../../routes.ts'
-import { totalsService } from '../../services/totalsService'
-import { expenseService } from '../../services/expenseService'
-import { groupService } from '../../services/groupService'
 import { useSyncStore } from '../../stores/useSyncStore'
 import { EmptyGroups } from './components/EmptyGroups'
 import { GroupList } from './components/GroupList'
+import { HOME_PAGE, homeKey, loadHome } from './utils.ts'
 import { aboveScreenEdge } from '../../theme/safeArea.ts'
 
 const { Title } = Typography
@@ -28,15 +25,7 @@ export function HomePage() {
   const userId = user?.personId ?? ''
   // Read again after a sync, which may bring in groups.
   const dataVersion = useSyncStore((syncState) => syncState.dataVersion)
-  const { state, retry } = useCachedData(async () => {
-    const db = await getDb()
-    return {
-      groups: await groupService.listGroups(db, userId),
-      balances: await expenseService.balancesByGroup(db, userId),
-      // What a group of one shows instead of a balance (PRD 5.2).
-      spent: await totalsService.spentByGroup(db, userId),
-    }
-  }, 'home', `${userId}:${dataVersion}`, { keepPrevious: true })
+  const { state, retry } = useCachedData(() => loadHome(userId), HOME_PAGE, homeKey(userId, dataVersion), { keepPrevious: true })
 
   // Visitors who are not in the app are sent away by `RequireAuth` before this matters.
   if (!user) return null

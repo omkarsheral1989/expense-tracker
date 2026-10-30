@@ -61,6 +61,7 @@ export function BalancesPage() {
               lines={linesOf(balances, member.personId)}
               members={byId}
               onSettle={handleSettle}
+              deleted={balances.deleted}
             />
           ))}
         </Flex>

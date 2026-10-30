@@ -34,6 +34,8 @@ export type GroupSyncResult =
       renamed: Map<string, string>
       /** Events by other members this sync brought onto the device (ADR-062). */
       newEvents: number
+      /** Set when the group was deleted on this device and a change by another member brought it back (ADR-069); null otherwise. */
+      restored: { changedBy: string | null } | null
     }
   /** The group's folder does not exist yet, and only its creator makes it (ADR-044). */
   | { status: 'waiting'; creatorName: string }

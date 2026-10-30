@@ -1,9 +1,17 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { Flex } from 'antd'
+import { App, Flex } from 'antd'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useParams } from 'react-router'
 import { getDb } from '../../db/client.ts'
 import { prefetchCachedData, useCachedData } from '../../hooks/useCachedData'
+import { useAppNavigate } from '../../hooks/useAppNavigate'
+import { useConfirm } from '../../hooks/useConfirm'
+import { DELETE_GROUP_ENABLED } from '../../features.ts'
+import { groupDeletionService } from '../../services/groupDeletionService'
+import { dateService } from '../../services/dateService'
+import { lineText, linesOf, orderedMembers } from '../balances/utils.ts'
+import { refreshHomePage } from '../home/utils.ts'
+import { Typography } from 'antd'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
 import { expenseService } from '../../services/expenseService'
 import { EXPENSE_PAGE_SIZE } from '../../services/expenseService/constants.ts'
@@ -47,6 +55,10 @@ export function GroupPage() {
   const known = knownGroupFrom(useLocation().state, id)
 
   const userId = user?.personId ?? ''
+  const navigate = useAppNavigate()
+  const confirm = useConfirm()
+  const { message } = App.useApp()
+  const queryClient = useQueryClient()
   // Read again after a sync, which may bring in other members' changes.
   const dataVersion = useSyncStore((syncState) => syncState.dataVersion)
   // `keepPrevious`: reading the group again (after a member is added, or a sync)
@@ -68,10 +80,9 @@ export function GroupPage() {
   }, [batches.items.length])
 
   // Read what Edit group, Add expense and Settle up will need while the group is on screen, so their forms open at once (ADR-055).
-  const queryClient = useQueryClient()
   const loaded = state.status === 'ready' ? state.data : null
   useEffect(() => {
-    if (!loaded) return
+    if (!loaded || loaded.group.deletedSince) return
     void prefetchCachedData(queryClient, () => loadGroupToEdit(userId, id), EDIT_GROUP_PAGE, editGroupKey(userId, id))
     void prefetchCachedData(queryClient, () => loadAddExpense(userId, id), ADD_EXPENSE_PAGE, addExpenseKey(userId, id))
     void prefetchCachedData(queryClient, () => loadSettleUp(userId, id), SETTLE_UP_PAGE, settleUpKey(userId, id))
@@ -114,6 +125,7 @@ export function GroupPage() {
     hasSpending: boolean,
   ) {
     // What the pages opened from here can show while they load (ADR-054).
+    const deleted = group.deletedSince !== null && group.deletedSince !== undefined
     const known: KnownGroup = { id: group.id, name: group.name, type: group.type, defaultCurrency: group.defaultCurrency, memberCount: group.members.length }
     return (
       <Flex vertical style={{ flex: 1 }}>
@@ -121,12 +133,20 @@ export function GroupPage() {
           group={group}
           peopleCount={group.members.length}
           onOpenMembers={() => setMembersOpen(true)}
+          deleted={deleted}
+          onDelete={DELETE_GROUP_ENABLED && !deleted ? handleDelete : undefined}
+          onRestore={handleRestore}
         />
         {/* No room at the bottom here: the list adds it, so an empty list can be
             centered in all the space below the actions. */}
         <Flex vertical style={{ ...COLUMN_STYLE, flex: 1, paddingBottom: 0 }}>
           <Flex vertical gap={16}>
-            <ActionPills groupId={group.id} group={known} canSettle={group.members.length > 1} canTotal={hasSpending} />
+            {deleted && group.deletedSince && (
+              <Typography.Text type="secondary">
+                You deleted this group on {dateService.formatDate(group.deletedSince.toISOString().slice(0, 10))}. It comes back if someone changes it.
+              </Typography.Text>
+            )}
+            <ActionPills groupId={group.id} group={known} canSettle={group.members.length > 1} canTotal={hasSpending} readOnly={deleted} />
             <BalanceLine balances={balances} />
           </Flex>
           <ExpenseList
@@ -137,9 +157,10 @@ export function GroupPage() {
             loadingMore={batches.loading}
             loadMoreFailed={batches.failed}
             onLoadMore={batches.loadMore}
+            readOnly={deleted}
           />
         </Flex>
-        <AddExpenseButton groupId={group.id} group={known} />
+        {!deleted && <AddExpenseButton groupId={group.id} group={known} />}
         <MembersSheet
           open={membersOpen}
           onClose={() => setMembersOpen(false)}
@@ -148,9 +169,84 @@ export function GroupPage() {
           groupId={group.id}
           userId={userId}
           onMemberAdded={retry}
+          readOnly={deleted}
         />
       </Flex>
     )
+  }
+
+  function showUnsettled(unsettled: NonNullable<typeof loaded>['unsettled'] & object) {
+    const byId = new Map(unsettled.members.map((member) => [member.personId, member]))
+    const payments = orderedMembers(unsettled.members).flatMap((member) =>
+      linesOf(unsettled, member.personId)
+        .filter((line) => line.kind === 'owes')
+        .map((line) => lineText(member, byId.get(line.otherId) ?? member, line)),
+    )
+    confirm({
+      title: "This group isn't settled up yet",
+      content: (
+        <Flex vertical gap={4}>
+          <span>Settle up first, then delete it. Still to be paid:</span>
+          <ul style={{ margin: 0, paddingLeft: 20 }}>
+            {payments.map((payment) => (
+              <li key={payment}>{payment}</li>
+            ))}
+          </ul>
+        </Flex>
+      ),
+      okText: 'Open balances',
+      cancelText: 'Cancel',
+      onOk: () => navigate(ROUTES.balances(id)),
+    })
+  }
+
+  function handleDelete() {
+    if (loaded?.unsettled) {
+      showUnsettled(loaded.unsettled)
+      return
+    }
+    confirm({
+      title: 'Delete this group?',
+      content: 'It will be hidden on this device only. Other members keep it, and it comes back if someone changes it.',
+      okText: 'Delete',
+      okButtonProps: { danger: true },
+      cancelText: 'Cancel',
+      onOk: async () => {
+        try {
+          const result = await groupDeletionService.deleteGroup(await getDb(), userId, id)
+          if (result.ok) {
+            message.success('Group deleted.')
+            await refreshHomePage(queryClient, userId)
+            navigate(ROUTES.home, { direction: 'back' })
+          } else if (result.notSettled) {
+            retry()
+            showUnsettled(result.balances)
+          } else {
+            message.error('This group is no longer available.')
+            navigate(ROUTES.home, { direction: 'back' })
+          }
+        } catch {
+          message.error("Couldn't delete the group. Please try again.")
+        }
+      },
+    })
+  }
+
+  async function handleRestore() {
+    try {
+      const result = await groupDeletionService.restoreGroup(await getDb(), userId, id)
+      if (result.ok) {
+        message.success('Group restored.')
+        retry()
+      } else if (result.message) {
+        message.error(result.message)
+      } else {
+        message.error('This group is no longer available.')
+        retry()
+      }
+    } catch {
+      message.error("Couldn't restore the group. Please try again.")
+    }
   }
 
   function renderNotFound() {

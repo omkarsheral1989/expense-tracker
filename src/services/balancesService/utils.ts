@@ -1,4 +1,6 @@
-import type { Transfer } from './types.ts'
+import type { PersonBalance } from '../expenseService/types.ts'
+import { displayName } from '../groupService/utils.ts'
+import type { GroupBalances, Transfer } from './types.ts'
 
 /**
  * The payments that settle a group's debts, from each person's net (positive: owed, negative: owes). The biggest debtor pays the
@@ -26,4 +28,23 @@ export function simplifyDebts(nets: readonly { personId: string; netMinor: numbe
     debtors.sort(bigFirst)
   }
   return transfers
+}
+
+/**
+ * The payments of `balances` that involve the user, one entry per person and currency, in the order of the people's names and then
+ * currency codes. Positive amounts are owed to the user.
+ */
+export function userBalancesFrom(balances: GroupBalances, userId: string): PersonBalance[] {
+  const byId = new Map(balances.members.map((member) => [member.personId, member]))
+  const label = (person: { name: string | null; email: string | null }) => displayName(person).toLowerCase()
+  return balances.currencies
+    .flatMap(({ currency, transfers }) =>
+      transfers.flatMap((transfer): PersonBalance[] => {
+        const sign = transfer.toId === userId ? 1 : transfer.fromId === userId ? -1 : 0
+        const other = byId.get(sign === 1 ? transfer.fromId : transfer.toId)
+        if (sign === 0 || !other) return []
+        return [{ personId: other.personId, email: other.email, name: other.name, currency, amountMinor: sign * transfer.amountMinor }]
+      }),
+    )
+    .sort((a, b) => label(a).localeCompare(label(b)) || a.personId.localeCompare(b.personId) || a.currency.localeCompare(b.currency))
 }

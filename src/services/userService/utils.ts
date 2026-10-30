@@ -3,6 +3,7 @@ import {
   accounts,
   expenseEvents,
   expensePayments,
+  groupDeletions,
   expensePhotos,
   expenseRevisions,
   expenseShares,
@@ -64,6 +65,7 @@ export async function mergePeople(tx: Transaction, fromId: string, intoId: strin
     expenseRevisions,
     accounts,
     expensePayments,
+    groupDeletions,
   ]) {
     await tx.update(table).set({ updatedBy: intoId }).where(eq(table.updatedBy, fromId))
   }

@@ -17,7 +17,7 @@ export const totalsService = {
    * the group (unknown, deleted or not theirs, as `getGroup`). Amounts are never converted.
    */
   async groupTotals(db: Database, userId: string, groupId: string): Promise<GroupTotals | null> {
-    const group = await groupService.getGroup(db, userId, groupId)
+    const group = await groupService.getGroup(db, userId, groupId, { includeDeleted: true })
     if (!group) return null
 
     const totals = await db
@@ -75,7 +75,7 @@ export const totalsService = {
 
   /** Whether the group has an expense that counts, which the group page's Totals pill needs. False for a group the user cannot see. */
   async hasSpending(db: Database, userId: string, groupId: string): Promise<boolean> {
-    if (!(await groupService.getGroup(db, userId, groupId))) return false
+    if (!(await groupService.getGroup(db, userId, groupId, { includeDeleted: true }))) return false
     const [found] = await db.select({ id: expenses.id }).from(expenses).where(counted(groupId)).limit(1)
     return Boolean(found)
   },

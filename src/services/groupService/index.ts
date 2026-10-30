@@ -1,9 +1,9 @@
-import { and, asc, desc, eq, inArray, isNull, ne, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, isNotNull, isNull, ne, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import type { Database } from '../../db/client.ts'
 import { notifyAfter } from '../../db/changes.ts'
 import { logService } from '../logService'
-import { expenses, groupMembers, groups, people } from '../../db/schema.ts'
+import { expenses, groupDeletions, groupMembers, groups, people } from '../../db/schema.ts'
 import { shownName } from '../../db/shownName.ts'
 import type { KnownPerson } from '../personService/types.ts'
 import { createGroupSchema, toFieldErrors, updateGroupSchema } from './schemas.ts'
@@ -14,6 +14,7 @@ import type {
   CreateGroupResult,
   GroupDetails,
   GroupMember,
+  GroupScope,
   GroupSummary,
   UpdateGroupInput,
   UpdateGroupResult,
@@ -248,10 +249,12 @@ const groupServiceBase = {
 
   /**
    * The groups this user belongs to, most recently active first (ties by
-   * name): a group's activity is the latest change to it or its expenses. Deleted groups, groups the user has left, and groups they were
-   * never in are left out.
+   * name): a group's activity is the latest change to it or its expenses. Groups the user has left, groups they were never in and
+   * groups deleted for everyone are left out. `scope` says what to do with the groups the user deleted on this device (ADR-069):
+   * 'live' (the default, the home list) leaves them out, 'deleted' gives only them (most recently deleted first), and 'all'
+   * gives both, for sync, which must carry on for them.
    */
-  async listGroups(db: Database, userId: string): Promise<GroupSummary[]> {
+  async listGroups(db: Database, userId: string, scope: GroupScope = 'live'): Promise<GroupSummary[]> {
     const myMembership = alias(groupMembers, 'my_membership')
     // The latest change to the group or to any of its expenses (deleted ones
     // too: deleting is a change).
@@ -270,6 +273,7 @@ const groupServiceBase = {
           select count(*) from ${groupMembers}
           where ${groupMembers.groupId} = ${groups.id} and ${groupMembers.deletedAt} is null
         )`.mapWith(Number),
+        deletedSince: groupDeletions.since,
       })
       .from(groups)
       .innerJoin(
@@ -280,20 +284,33 @@ const groupServiceBase = {
           isNull(myMembership.deletedAt),
         ),
       )
-      .where(isNull(groups.deletedAt))
-      .orderBy(desc(lastActivityAt), asc(groups.name), asc(groups.id))
+      .leftJoin(groupDeletions, and(eq(groupDeletions.groupId, groups.id), isNull(groupDeletions.deletedAt)))
+      .where(
+        and(
+          isNull(groups.deletedAt),
+          scope === 'live' ? isNull(groupDeletions.id) : scope === 'deleted' ? isNotNull(groupDeletions.id) : undefined,
+        ),
+      )
+      .orderBy(
+        ...(scope === 'deleted' ? [desc(groupDeletions.since)] : [desc(lastActivityAt)]),
+        asc(groups.name),
+        asc(groups.id),
+      )
   },
 
   /**
    * One group with its members, for the group page. Null when there is no such
    * group for this user: an unknown id, a deleted group, or one they are not in
    * (or have left). The three cases look the same on purpose, so the page does
-   * not reveal whether a group exists.
+   * not reveal whether a group exists. A group the user deleted on this device
+   * (ADR-069) counts as missing too, so no form opens for it, unless
+   * `includeDeleted` is set (the group page's read-only view, the balances and totals).
    */
   async getGroup(
     db: Database,
     userId: string,
     groupId: string,
+    { includeDeleted = false }: { includeDeleted?: boolean } = {},
   ): Promise<GroupDetails | null> {
     if (!UUID.test(groupId)) return null
 
@@ -307,6 +324,11 @@ const groupServiceBase = {
       .from(groups)
       .where(and(eq(groups.id, groupId), isNull(groups.deletedAt)))
     if (!group) return null
+    const [deletion] = await db
+      .select({ since: groupDeletions.since })
+      .from(groupDeletions)
+      .where(and(eq(groupDeletions.groupId, groupId), isNull(groupDeletions.deletedAt)))
+    if (deletion && !includeDeleted) return null
 
     const rows = await db
       .select({ personId: people.id, email: people.email, name: shownName(people), picture: people.picture })
@@ -325,7 +347,7 @@ const groupServiceBase = {
       (a, b) => Number(b.isYou) - Number(a.isYou) || label(a).localeCompare(label(b)),
     )
 
-    return { ...group, members }
+    return { ...group, members, deletedSince: deletion?.since ?? null }
   },
 }
 

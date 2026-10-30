@@ -3,6 +3,7 @@ import { getDb } from '../../db/client.ts'
 import { GROUP_TYPES } from '../../db/constants.ts'
 import { prefetchCachedData } from '../../hooks/useCachedData'
 import { balancesService } from '../../services/balancesService'
+import { userBalancesFrom } from '../../services/balancesService/utils.ts'
 import { expenseService } from '../../services/expenseService'
 import { EXPENSE_PAGE_SIZE } from '../../services/expenseService/constants.ts'
 import { groupService } from '../../services/groupService'
@@ -20,13 +21,17 @@ export const groupPageKey = (userId: string, groupId: string, dataVersion: numbe
 /** What the group page shows, with the first `limit` expenses; null when the user cannot see the group. */
 export async function loadGroupPage(userId: string, groupId: string, limit: number) {
   const db = await getDb()
-  const group = await groupService.getGroup(db, userId, groupId)
+  // A deleted group opens read-only here (PRD 5.23); the form pages get no group for it.
+  const group = await groupService.getGroup(db, userId, groupId, { includeDeleted: true })
   if (!group) return null
+  const everyone = await balancesService.groupBalances(db, userId, groupId)
   return {
     group,
     expenses: await expenseService.listExpensesPage(db, userId, groupId, { limit: Math.max(EXPENSE_PAGE_SIZE, limit) }),
     // Simplified, like the balances page (PRD 5.4, 5.21).
-    balances: await balancesService.userBalances(db, userId, groupId),
+    balances: everyone ? userBalancesFrom(everyone, userId) : [],
+    // What is still owed, for the Delete group dialog (PRD 5.22); null when the group is settled up.
+    unsettled: everyone && everyone.currencies.length > 0 ? everyone : null,
     syncedIds: await syncService.syncedMembers(db, groupId),
     // Whether the Totals pill has anything to open (PRD 5.20).
     hasSpending: await totalsService.hasSpending(db, userId, groupId),

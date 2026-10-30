@@ -152,6 +152,16 @@ export const backupRowsSchema = z.object({
       }),
     )
     .default([]),
+  /** Which groups the user deleted on this device (ADR-069). Only in the backup, like the accounts. */
+  groupDeletions: z
+    .array(
+      z.object({
+        ...syncColumns,
+        groupId: z.uuid(),
+        since: timestamp,
+      }),
+    )
+    .default([]),
 })
 
 export const backupFileSchema = z.object({
