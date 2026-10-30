@@ -57,9 +57,11 @@ function chosenMembers() {
  * `option` roles are a hidden copy for screen readers that shows only values.)
  */
 function visibleOptions() {
-  return [...document.querySelectorAll('.ant-select-item-option-content')].map(
-    (option) => option.textContent ?? '',
-  )
+  // The texts of a row; for a person the name and the email, without the initial in their picture.
+  return [...document.querySelectorAll('.ant-select-item-option-content')].map((option) => {
+    const texts = [...option.querySelectorAll('.ant-typography')]
+    return texts.length > 0 ? texts.map((text) => text.textContent).join('') : (option.textContent ?? '')
+  })
 }
 
 /** Opens the Members list. */
@@ -242,6 +244,22 @@ describe('CreateGroupPage', () => {
       expect(listed).toContain('priya@gmail.com')
       expect(listed).toContain('sam@gmail.com')
       expect(listed).not.toContain('omkar@gmail.com')
+    })
+
+    it('shows each person with their Google picture, or their initial when they have none', async () => {
+      await saveSomePeople()
+      await testDb.db.update(people).set({ picture: 'https://example.com/priya.png' }).where(eq(people.email, 'priya@gmail.com'))
+      renderForm()
+
+      await openMembers(user)
+
+      const options = [...document.querySelectorAll('.ant-select-item-option-content')]
+      const priya = options.find((option) => option.textContent?.includes('Priya Shah'))!
+      const sam = options.find((option) => option.textContent?.includes('sam@gmail.com'))!
+      expect(priya.querySelector('img')).toHaveAttribute('src', 'https://example.com/priya.png')
+      expect(sam.querySelector('img')).toBeNull()
+      expect(sam.querySelector('.ant-avatar')).toHaveTextContent('S')
+      expect(sam.querySelector('.ant-avatar')).toHaveStyle({ width: '40px', height: '40px' })
     })
 
     it('shows "No email" for a person saved without one', async () => {

@@ -214,7 +214,7 @@ describe('the payment method on the edit-expense page (PRD 5.6a, 4.10)', () => {
 
     await user.click(screen.getByRole('button', { name: 'you' }))
     const dialog = await screen.findByRole('dialog', { name: 'Who paid?' })
-    await user.click(within(dialog).getByRole('button', { name: 'Priya Shah' }))
+    await user.click(within(dialog).getByRole('button', { name: /Priya Shah/ }))
     await waitFor(() => expect(screen.queryByRole('button', { name: /^Payment method/ })).not.toBeInTheDocument())
 
     await user.click(saveButton())

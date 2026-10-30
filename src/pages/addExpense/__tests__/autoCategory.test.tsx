@@ -163,7 +163,7 @@ describe('AddExpensePage: the category follows the description', () => {
 
     async function switchToFlat() {
       await user.click(await screen.findByRole('button', { name: /^Group: .*Choose another group$/ }))
-      await user.click(await screen.findByRole('menuitem', { name: /Flat 4B$/ }))
+      await user.click(await screen.findByRole('menuitem', { name: /Flat 4B/ }))
       await screen.findByRole('button', { name: /^Group: Flat 4B/ })
     }
 

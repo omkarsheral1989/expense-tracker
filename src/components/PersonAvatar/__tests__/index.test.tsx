@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react'
+import { theme } from 'antd'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { renderPage } from '../../../testing/render.tsx'
+import { PRIMARY } from '../../ThemeProvider/utils.ts'
 import { PersonAvatar } from '../index.tsx'
 
 const ADDRESS = 'https://lh3.googleusercontent.com/a/priya'
@@ -27,6 +29,15 @@ describe('PersonAvatar', () => {
 
     expect(screen.getByText('P')).toBeInTheDocument()
     expect(document.querySelector('img')).toBeNull()
+  })
+
+  it('puts the letter on the stronger shade of the primary background, so it stands out on a row washed with the plain one', () => {
+    renderAvatar(undefined)
+
+    const { colorPrimaryBg, colorPrimaryBgHover, colorPrimary } = theme.getDesignToken({ token: { colorPrimary: PRIMARY } })
+    const avatar = document.querySelector('.ant-avatar') as HTMLElement
+    expect(avatar).toHaveStyle({ background: colorPrimaryBgHover, color: colorPrimary })
+    expect(avatar).not.toHaveStyle({ background: colorPrimaryBg })
   })
 
   it('shows the letter when the picture is null', () => {

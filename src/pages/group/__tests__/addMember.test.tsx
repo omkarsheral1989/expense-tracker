@@ -134,7 +134,7 @@ describe('adding a member from the members sheet', () => {
   })
 
   describe('the members sheet', () => {
-    it('has the button as a white one with round ends, with no divider above it', async () => {
+    it('has the button as a white one with round ends', async () => {
       const id = await createGroup(['priya@gmail.com'])
       renderGroup(id)
 
@@ -145,8 +145,33 @@ describe('adding a member from the members sheet', () => {
       expect(button).toHaveStyle({ borderRadius: '999px' })
       expect(button).toHaveClass('ant-btn-default')
       expect(button).not.toHaveClass('ant-btn-text')
-      // The members are told apart by lines, but none sits between them and the button.
-      expect(button.previousElementSibling?.classList.contains('ant-divider')).toBe(false)
+    })
+
+    it('tells the members apart by lines, with one after the last member, above the button', async () => {
+      const id = await createGroup(['priya@gmail.com', 'sam@gmail.com'])
+      renderGroup(id)
+
+      await user.click(await screen.findByRole('button', { name: named('3 members') }))
+      const sheet = await screen.findByRole('dialog', { name: 'Members (3)' })
+
+      const button = within(sheet).getByRole('button', { name: named('Add member') })
+      const list = button.previousElementSibling as HTMLElement
+      // Three members: a line between each (two) and one after the last.
+      expect(list.querySelectorAll('.ant-divider')).toHaveLength(3)
+      const last = list.lastElementChild as HTMLElement
+      expect(last.lastElementChild?.classList.contains('ant-divider')).toBe(true)
+      expect(within(last).getByText(/Sam|sam/)).toBeInTheDocument()
+    })
+
+    it('has a line after the only member of a group of one, too', async () => {
+      const id = await createGroup([])
+      renderGroup(id)
+
+      await user.click(await screen.findByRole('button', { name: named('1 member') }))
+      const sheet = await screen.findByRole('dialog', { name: 'Members (1)' })
+
+      const list = within(sheet).getByRole('button', { name: named('Add member') }).previousElementSibling as HTMLElement
+      expect(list.querySelectorAll('.ant-divider')).toHaveLength(1)
     })
 
     it('ends with an "Add member" button and has no people picker of its own', async () => {
@@ -294,6 +319,31 @@ describe('adding a member from the members sheet', () => {
 
       await user.click(personButton(picker, 'Ana Ruiz'))
       expect(addButton(picker)).toBeDisabled()
+    })
+
+    it('washes a ticked person with the primary color and leaves the others plain', async () => {
+      const id = await createGroup()
+      await addTestPerson(testDb.db, me, { name: 'Sam Lee' })
+      await addTestPerson(testDb.db, me, { name: 'Ana Ruiz' })
+      renderGroup(id)
+      const picker = await openPicker(1)
+
+      await user.click(personButton(picker, 'Sam Lee'))
+
+      expect(personButton(picker, 'Sam Lee')).toHaveStyle({ background: 'var(--ant-color-primary-bg)' })
+      expect(personButton(picker, 'Ana Ruiz')).not.toHaveStyle({ background: 'var(--ant-color-primary-bg)' })
+      await user.click(personButton(picker, 'Sam Lee'))
+      expect(personButton(picker, 'Sam Lee')).not.toHaveStyle({ background: 'var(--ant-color-primary-bg)' })
+    })
+
+    it('puts 8 px between the people, so ticked rows do not touch', async () => {
+      const id = await createGroup()
+      await addTestPerson(testDb.db, me, { name: 'Sam Lee' })
+      await addTestPerson(testDb.db, me, { name: 'Ana Ruiz' })
+      renderGroup(id)
+      const picker = await openPicker(1)
+
+      expect(within(picker).getByRole('list', { name: 'People you know' })).toHaveStyle({ gap: '8px' })
     })
 
     it('keeps a ticked person ticked while the search narrows the list', async () => {
