@@ -22,10 +22,10 @@ function renderShell(withGroup: boolean) {
 }
 
 describe('FormLoadingShell', () => {
-  it('has the form header: Back, the heading, and Save switched off', () => {
+  it('has the form header: Back and the heading, and no Save button', () => {
     renderShell(true)
     expect(screen.getByRole('heading', { name: 'Add expense', level: 3 })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument()
   })
 
   it('shows the spinner with its label', () => {

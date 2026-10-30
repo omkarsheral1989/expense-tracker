@@ -89,7 +89,7 @@ describe('back to the group after a change', () => {
     await user.type(await screen.findByRole('textbox', { name: 'Description' }), 'Lunch')
     await user.type(screen.getByRole('textbox', { name: 'Amount' }), '20')
 
-    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await user.click(screen.getByRole('button', { name: 'Add expense' }))
 
     expect((await arrivedAtGroup(page, groupId)).loader).toBeNull()
     expect(screen.getByText('Lunch')).toBeInTheDocument()

@@ -81,7 +81,7 @@ export async function addExpense(user: User, description: string, amount: string
   await user.click(await screen.findByRole('button', { name: /Add expense/ }))
   await user.type(await screen.findByRole('textbox', { name: 'Description' }), description)
   await user.type(screen.getByRole('textbox', { name: 'Amount' }), amount)
-  await user.click(screen.getByRole('button', { name: 'Save' }))
+  await user.click(screen.getByRole('button', { name: 'Add expense' }))
   await screen.findByText('Expense added.')
 }
 
