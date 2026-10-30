@@ -78,6 +78,7 @@ export function EditExpenseForm({ group, expense, datasetId, userId, recentCurre
       discardPrompt={{ title: 'Discard your changes?', content: 'What you changed will be lost.' }}
       leaveTo={expensePage}
       failureMessage="Couldn't save the changes. Please try again."
+      saveLabel="Save"
       onSave={save}
     />
   )

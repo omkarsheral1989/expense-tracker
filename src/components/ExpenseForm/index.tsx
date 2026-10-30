@@ -1,4 +1,3 @@
-import { Icon } from '../Icon'
 import { App, Button, Divider, Flex, Form, Input, Typography } from 'antd'
 import { useState, type ReactNode } from 'react'
 import { useAppNavigate } from '../../hooks/useAppNavigate'
@@ -63,6 +62,8 @@ type Props = {
   renderGroupPicker: (readValues: () => FormValues) => ReactNode
   /** What "Back" asks when something was entered: its title and text. */
   discardPrompt: { title: string; content: string }
+  /** What the Save button at the bottom says ("Add expense", "Save"). */
+  saveLabel: string
   /** Where the user goes after saving and when they leave. */
   leaveTo: string
   /** Shown when saving fails unexpectedly. */
@@ -78,7 +79,7 @@ type Props = {
 /**
  * The expense form, for adding an expense and for editing one: what it was
  * for, how much, and when, who paid and how it is split, notes and receipt
- * photos. Saved with the tick in the header. What differs between the two
+ * photos. Saved with the button under the receipts. What differs between the two
  * pages (opening values, group picker, wording, the save itself) is passed in.
  */
 export function ExpenseForm({
@@ -94,6 +95,7 @@ export function ExpenseForm({
   discardPrompt,
   leaveTo,
   failureMessage,
+  saveLabel,
   onSave,
 }: Props) {
   const [form] = Form.useForm<FormValues>()
@@ -237,21 +239,22 @@ export function ExpenseForm({
   function renderHeader() {
     return (
       // Comes in from the top when the page opens from the group page's pill (PRD 5.16).
-      <Flex align="center" justify="space-between" gap={8} data-vt="header" style={{ marginBottom: 16 }}>
-        <Flex align="center" gap={8}>
-          <BackButton onClick={handleLeave} />
-          <Title level={3} style={HEADER_TITLE_STYLE}>
-            {heading}
-          </Title>
-        </Flex>
-        <Button
-          type="primary"
-          shape="circle"
-          htmlType="submit"
-          icon={<Icon name="check" />}
-          aria-label="Save"
-          loading={submitting}
-        />
+      <Flex align="center" gap={8} data-vt="header" style={{ marginBottom: 16 }}>
+        <BackButton onClick={handleLeave} />
+        <Title level={3} style={HEADER_TITLE_STYLE}>
+          {heading}
+        </Title>
+      </Flex>
+    )
+  }
+
+  function renderActions() {
+    return (
+      <Flex justify="flex-end" gap={8} style={{ marginTop: 16 }}>
+        <Button onClick={handleLeave}>Cancel</Button>
+        <Button type="primary" htmlType="submit" loading={submitting}>
+          {saveLabel}
+        </Button>
       </Flex>
     )
   }
@@ -388,6 +391,7 @@ export function ExpenseForm({
         </Form.Item>
         <Divider style={{ margin: '16px 0' }} />
         {renderDetails()}
+        {renderActions()}
       </Form>
     </>
   )

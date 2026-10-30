@@ -1,4 +1,3 @@
-import { Icon } from '../../../../components/Icon'
 import { App, Button, Divider, Flex, Form, Input, Select, Typography } from 'antd'
 import { useState } from 'react'
 import { useAppNavigate } from '../../../../hooks/useAppNavigate'
@@ -51,7 +50,7 @@ type Props = {
 
 /**
  * Records a payment between two members of a group: who paid, who received it,
- * how much, and when. Saved with the tick in the header.
+ * how much, and when. Saved with the button under the receipts.
  */
 export function SettleUpForm({ group, datasetId, userId, recentCurrencies, backTo, prefill }: Props) {
   const [form] = Form.useForm<FormValues>()
@@ -162,21 +161,22 @@ export function SettleUpForm({ group, datasetId, userId, recentCurrencies, backT
   function renderHeader() {
     return (
       // Comes in from the top when the page opens from the group page's pill (PRD 5.16).
-      <Flex align="center" justify="space-between" gap={8} data-vt="header" style={{ marginBottom: 16 }}>
-        <Flex align="center" gap={8}>
-          <BackButton onClick={handleLeave} />
-          <Title level={3} style={HEADER_TITLE_STYLE}>
-            Settle up
-          </Title>
-        </Flex>
-        <Button
-          type="primary"
-          shape="circle"
-          htmlType="submit"
-          icon={<Icon name="check" />}
-          aria-label="Save"
-          loading={submitting}
-        />
+      <Flex align="center" gap={8} data-vt="header" style={{ marginBottom: 16 }}>
+        <BackButton onClick={handleLeave} />
+        <Title level={3} style={HEADER_TITLE_STYLE}>
+          Settle up
+        </Title>
+      </Flex>
+    )
+  }
+
+  function renderActions() {
+    return (
+      <Flex justify="flex-end" gap={8} style={{ marginTop: 16 }}>
+        <Button onClick={handleLeave}>Cancel</Button>
+        <Button type="primary" htmlType="submit" loading={submitting}>
+          Save
+        </Button>
       </Flex>
     )
   }
@@ -285,6 +285,7 @@ export function SettleUpForm({ group, datasetId, userId, recentCurrencies, backT
         {renderAmount()}
         <Divider style={{ margin: '0 0 16px' }} />
         {renderDetails()}
+        {renderActions()}
       </Form>
     </>
   )

@@ -119,6 +119,7 @@ export function AddExpenseForm({ group, datasetId, userId, recentCurrencies, pas
       discardPrompt={{ title: 'Discard this expense?', content: 'What you entered will be lost.' }}
       leaveTo={ROUTES.group(group.id)}
       failureMessage="Couldn't add the expense. Please try again."
+      saveLabel="Add expense"
       onSave={save}
     />
   )
