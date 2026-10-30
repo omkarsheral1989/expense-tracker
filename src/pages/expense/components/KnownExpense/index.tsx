@@ -1,3 +1,4 @@
+import { RestoreButton } from '../RestoreButton'
 import { Icon } from '../../../../components/Icon'
 import { Flex } from 'antd'
 import { BandIconButton } from '../../../../components/BandIconButton'
@@ -31,7 +32,7 @@ export function KnownExpensePage({ expense }: Props) {
   }
 
   function renderActions() {
-    if (expense.deleted) return <BandIconButton icon={<Icon name="undo" />} label="Restore" disabled />
+    if (expense.deleted) return <RestoreButton disabled />
     return (
       <>
         <BandIconButton icon={<Icon name="pencil" />} label="Edit" disabled />
@@ -57,6 +58,7 @@ export function KnownExpensePage({ expense }: Props) {
         title={renderTitle()}
         actions={renderActions()}
         travels={!expense.deleted}
+        deleted={Boolean(expense.deleted)}
       />
       <Flex vertical style={{ flex: 1, width: '100%', maxWidth: 560, margin: '0 auto', padding: `${UNDER_BAND_PADDING}px 16px ${aboveScreenEdge(24)}` }}>
         {renderPayment()}

@@ -1,6 +1,7 @@
 import { getDb } from '../../db/client.ts'
 import { accountService } from '../../services/accountService'
 import { expenseService } from '../../services/expenseService'
+import { groupService } from '../../services/groupService'
 import type { ExpenseWithPayment, KnownExpense, KnownPerson } from './types.ts'
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/
@@ -66,5 +67,8 @@ export async function loadExpensePage(userId: string, groupId: string, expenseId
   const db = await getDb()
   const expense = await expenseService.getExpense(db, userId, groupId, expenseId)
   if (!expense) return null
-  return { ...expense, paymentMethod: await accountService.getPaymentMethod(db, expenseId) }
+  // A deleted group's expense is still shown (PRD 5.22).
+  const group = await groupService.getGroup(db, userId, groupId, { includeDeleted: true })
+  if (!group) return null
+  return { ...expense, paymentMethod: await accountService.getPaymentMethod(db, expenseId), group: { id: group.id, name: group.name, type: group.type, defaultCurrency: group.defaultCurrency, memberCount: group.members.length } }
 }

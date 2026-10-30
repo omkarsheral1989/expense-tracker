@@ -11,7 +11,7 @@ import { expenseService } from '../../../../../services/expenseService'
 import type { ExpenseDetails } from '../../../../../services/expenseService/types.ts'
 import { moneyService } from '../../../../../services/moneyService'
 import { bandBackground } from '../../../../../theme/bandBackground.ts'
-import { CATEGORY_GROUP_COLORS } from '../../../../../theme/categoryColors.ts'
+import { CATEGORY_GROUP_COLORS, DELETED_BAND_COLOR } from '../../../../../theme/categoryColors.ts'
 import { HEADER_TITLE_STYLE } from '../../../../../theme/headerTitle.ts'
 import { BAND_BOTTOM_PADDING, belowStatusBar, HEADER_TOP_PADDING } from '../../../../../theme/safeArea.ts'
 import { useAppNavigate } from '../../../../../hooks/useAppNavigate'
@@ -39,6 +39,8 @@ type Props = {
    * expense or payment; false for a deleted one, whose row is a plain line that keeps the ordinary slide.
    */
   travels: boolean
+  /** The expense is deleted: the band is red and shows a bin in place of the category's icon (PRD 5.6). */
+  deleted?: boolean
 }
 
 /**
@@ -47,7 +49,7 @@ type Props = {
  * amount and the description in white, and the day and category as chips. Who
  * paid, who added it and who deleted it are below it and in the history.
  */
-export function ExpenseBand({ expense, title, actions, onEdit, travels }: Props) {
+export function ExpenseBand({ expense, title, actions, onEdit, travels, deleted = false }: Props) {
   const navigate = useAppNavigate()
   // Opened from a version page (its Open expense button), Back returns there; otherwise to the group.
   const backTo = (useLocation().state as { backTo?: unknown } | null)?.backTo
@@ -77,12 +79,12 @@ export function ExpenseBand({ expense, title, actions, onEdit, travels }: Props)
       <Flex align="flex-start" gap={16}>
         <span
           role="img"
-          aria-label={category.label === 'Other' ? `${category.groupLabel}: Other` : category.label}
+          aria-label={deleted ? 'Deleted' : category.label === 'Other' ? `${category.groupLabel}: Other` : category.label}
           data-vt={vt('icon')}
           // The category's icon alone, 40 px and white on the band, beside the description.
           style={{ display: 'flex', flex: 'none', fontSize: 40, lineHeight: '40px', color: '#fff', filter: 'drop-shadow(0 2px 6px rgba(0, 0, 0, 0.35))' }}
         >
-          {CATEGORY_ICONS[category.key]}
+          {deleted ? <Icon name="trash" /> : CATEGORY_ICONS[category.key]}
         </span>
         <Flex vertical style={{ minWidth: 0 }}>
           {/* A 40 px line, the height of the icon beside it, so the two line up. */}
@@ -125,7 +127,7 @@ export function ExpenseBand({ expense, title, actions, onEdit, travels }: Props)
       // The band, which the expense's row in the group's list morphs into and out of (PRD 5.16).
       data-expense-band={travels ? '' : undefined}
       data-vt={vt('block')}
-      style={{ padding: `${belowStatusBar(HEADER_TOP_PADDING)} 16px ${BAND_BOTTOM_PADDING}px`, background: bandBackground(CATEGORY_GROUP_COLORS[category.group]) }}
+      style={{ padding: `${belowStatusBar(HEADER_TOP_PADDING)} 16px ${BAND_BOTTOM_PADDING}px`, background: bandBackground(deleted ? DELETED_BAND_COLOR : CATEGORY_GROUP_COLORS[category.group]) }}
     >
       <Flex vertical gap={20} style={{ maxWidth: 560, margin: '0 auto' }}>
         {renderHeader()}

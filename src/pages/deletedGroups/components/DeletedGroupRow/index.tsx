@@ -27,7 +27,8 @@ export function DeletedGroupRow({ group }: Props) {
   const members = `${group.memberCount} ${group.memberCount === 1 ? 'member' : 'members'}`
   const currency = currencyService.symbol(group.defaultCurrency, navigator.language) ?? group.defaultCurrency
   const { id, name, type, defaultCurrency, memberCount } = group
-  const opened = { group: { id, name, type, defaultCurrency, memberCount } }
+  // Back from the group leads here, not to the home page.
+  const opened = { group: { id, name, type, defaultCurrency, memberCount }, backTo: ROUTES.deletedGroups }
 
   return (
     <AppLink to={ROUTES.group(group.id)} state={opened satisfies GroupPageState} style={{ display: 'block' }}>

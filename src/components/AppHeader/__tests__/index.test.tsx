@@ -79,6 +79,7 @@ describe('AppHeader', () => {
       expect.stringMatching(/Activity$/),
       expect.stringMatching(/Group members$/),
       expect.stringMatching(/Accounts$/),
+      expect.stringMatching(/Deleted groups$/),
       expect.stringMatching(/Sign out$/),
     ])
 
@@ -145,6 +146,7 @@ describe('AppHeader', () => {
         expect.stringMatching(/Activity$/),
         expect.stringMatching(/Group members$/),
         expect.stringMatching(/Accounts$/),
+        expect.stringMatching(/Deleted groups$/),
         expect.stringMatching(/Sign in with Google$/),
         expect.stringMatching(/Exit guest mode$/),
       ])

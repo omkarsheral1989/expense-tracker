@@ -48,24 +48,31 @@ async function renderGroup() {
   return { groupId: created.groupId, userId, page }
 }
 
-describe('Delete group button', () => {
+/** Opens the band's three-dots menu and returns its entry with this label (null while the menu has none). */
+async function menuEntry(label: string) {
+  await userEvent.click(await screen.findByRole('button', { name: 'More options' }))
+  const menu = await screen.findByRole('menu')
+  return within(menu).queryByRole('menuitem', { name: new RegExp(label) })
+}
+
+describe('Delete group entry of the three-dots menu', () => {
   it('is on the band when the feature is on', async () => {
     await renderGroup()
-    expect(await screen.findByRole('button', { name: named('Delete group') })).toBeInTheDocument()
+    expect(await menuEntry('Delete group')).toBeInTheDocument()
   })
 
   it('is not there when the feature is off', async () => {
     flag.on = false
     await renderGroup()
-    await screen.findByRole('button', { name: named('Edit group') })
-    expect(screen.queryByRole('button', { name: named('Delete group') })).not.toBeInTheDocument()
+    expect(await menuEntry('Edit group')).toBeInTheDocument()
+    expect(within(screen.getByRole('menu')).queryByRole('menuitem', { name: /Delete group/ })).not.toBeInTheDocument()
   })
 })
 
 describe('deleting a settled group', () => {
   it('asks first, and Cancel changes nothing', async () => {
     const { groupId, userId } = await renderGroup()
-    await userEvent.click(await screen.findByRole('button', { name: named('Delete group') }))
+    await userEvent.click((await menuEntry('Delete group'))!)
     const dialog = await screen.findByRole('dialog')
     expect((await screen.findAllByText('Delete this group?')).length).toBeGreaterThan(0)
     expect(within(dialog).getByText(/hidden on this device only/)).toBeInTheDocument()
@@ -75,7 +82,7 @@ describe('deleting a settled group', () => {
 
   it('Delete hides it on this device and goes to the home page', async () => {
     const { groupId, userId, page } = await renderGroup()
-    await userEvent.click(await screen.findByRole('button', { name: named('Delete group') }))
+    await userEvent.click((await menuEntry('Delete group'))!)
     await userEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Delete' }))
 
     await waitFor(() => expect(page.currentPath()).toBe(ROUTES.home))
@@ -88,7 +95,7 @@ describe('an unsettled group', () => {
   it('lists who still owes whom and offers Open balances instead of deleting', async () => {
     const { groupId, userId } = await renderGroup()
     await addTestExpense(testDb.db, me.email, groupId)
-    await userEvent.click(await screen.findByRole('button', { name: named('Delete group') }))
+    await userEvent.click((await menuEntry('Delete group'))!)
     const dialog = await screen.findByRole('dialog')
     expect((await screen.findAllByText("This group isn't settled up yet")).length).toBeGreaterThan(0)
     expect(within(dialog).getByText(/Priya owes £5\.00 to you/)).toBeInTheDocument()
@@ -108,10 +115,11 @@ describe('a deleted group', () => {
 
   it('opens read-only: Restore instead of Edit and Delete, no Add expense, Settle up off', async () => {
     await renderDeleted()
-    expect(await screen.findByRole('button', { name: named('Restore group') })).toBeInTheDocument()
+    expect(await menuEntry('Restore group')).toBeInTheDocument()
     expect(screen.getByText(/You deleted this group on/)).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: named('Edit group') })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: named('Delete group') })).not.toBeInTheDocument()
+    const menu = within(screen.getByRole('menu'))
+    expect(menu.queryByRole('menuitem', { name: /Edit group/ })).not.toBeInTheDocument()
+    expect(menu.queryByRole('menuitem', { name: /Delete group/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: named('Add expense') })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: named('Settle up') })).toBeDisabled()
   })
@@ -119,13 +127,13 @@ describe('a deleted group', () => {
   it('stays read-only when the feature is turned off', async () => {
     flag.on = false
     await renderDeleted()
-    expect(await screen.findByRole('button', { name: named('Restore group') })).toBeInTheDocument()
+    expect(await menuEntry('Restore group')).toBeInTheDocument()
   })
 
   it('Restore brings it back on the list', async () => {
     const { userId } = await renderDeleted()
-    await userEvent.click(await screen.findByRole('button', { name: named('Restore group') }))
-    expect(await screen.findByRole('button', { name: named('Edit group') })).toBeInTheDocument()
+    await userEvent.click((await menuEntry('Restore group'))!)
+    expect(await menuEntry('Edit group')).toBeInTheDocument()
     expect((await groupService.listGroups(testDb.db, userId)).map((group) => group.name)).toEqual(['Goa trip'])
   })
 })

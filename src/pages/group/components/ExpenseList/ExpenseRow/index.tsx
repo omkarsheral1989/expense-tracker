@@ -1,5 +1,5 @@
 import { Icon } from '../../../../../components/Icon'
-import { Flex, theme, Typography } from 'antd'
+import { Flex, Typography } from 'antd'
 import type { ReactNode } from 'react'
 import { AppLink } from '../../../../../components/AppLink'
 import { CategoryIcon } from '../../../../../components/CategoryIcon'
@@ -10,7 +10,7 @@ import { groupService } from '../../../../../services/groupService'
 import type { ExpenseListItem, ExpensePayer } from '../../../../../services/expenseService/types.ts'
 import { moneyService } from '../../../../../services/moneyService'
 import { OWED_TO_YOU_COLOR, YOU_OWE_COLOR } from '../../../../../theme/balanceColors.ts'
-import { CATEGORY_GROUP_COLORS } from '../../../../../theme/categoryColors.ts'
+import { CATEGORY_GROUP_COLORS, DELETED_BAND_COLOR } from '../../../../../theme/categoryColors.ts'
 import type { ExpensePageState } from '../../../../expense/types.ts'
 import { dateParts, expenseStatus } from './utils.ts'
 
@@ -35,7 +35,6 @@ type Props = {
  */
 export function ExpenseRow({ expense, groupId, soloGroup = false, readOnly = false }: Props) {
   const scheme = useColorScheme()
-  const { token } = theme.useToken()
   const { month, day } = dateParts(expense.date)
   const status = expenseStatus(expense)
   const { id, description, category, amountMinor, currency, date, payer, recipient, deleted } = expense
@@ -162,7 +161,7 @@ export function ExpenseRow({ expense, groupId, soloGroup = false, readOnly = fal
   }
 
   function renderBody() {
-    if (expense.deleted) return renderLine(<Icon name="trash" />, 'Deleted', token.colorTextTertiary, deletedText(expense.deleted))
+    if (expense.deleted) return renderLine(<Icon name="trash" />, 'Deleted', DELETED_BAND_COLOR, deletedText(expense.deleted))
     if (settlementSentence) {
       const sentence = (
         <>

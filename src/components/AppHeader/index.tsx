@@ -51,6 +51,7 @@ export function AppHeader() {
       <Dropdown
         trigger={['click']}
         placement="bottomRight"
+      classNames={{ root: 'roomy-menu' }}
         menu={{
           items: [
             {

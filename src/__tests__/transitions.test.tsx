@@ -92,7 +92,8 @@ describe('page transitions', () => {
     await screen.findByText('Goa trip')
     slides()
 
-    await user.click(screen.getByRole('button', { name: 'Edit group' }))
+    await user.click(screen.getByRole('button', { name: 'More options' }))
+    await user.click(await screen.findByRole('menuitem', { name: /Edit group/ }))
     await screen.findByRole('heading', { name: 'Edit group' })
     expect(slides()).toEqual(['forward'])
     await user.click(screen.getByRole('button', { name: 'Back' }))

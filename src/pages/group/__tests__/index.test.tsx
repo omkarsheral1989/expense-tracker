@@ -50,8 +50,9 @@ async function createGroup(
   return result.groupId
 }
 
-function renderGroup(groupId: string) {
+function renderGroup(groupId: string, state?: unknown) {
   return renderPage(<GroupPage />, {
+    state,
     path: ROUTES.group(groupId),
     pattern: ROUTES.groupPattern,
     routes: [ROUTES.home, ROUTES.editGroupPattern, ROUTES.newExpensePattern, ROUTES.expensePattern],
@@ -310,31 +311,55 @@ describe('GroupPage', () => {
     })
   })
 
+  describe('the Back arrow', () => {
+    it('leads to the home page by default', async () => {
+      const id = await createGroup(me, { name: 'Goa trip' })
+      const page = renderGroup(id)
+
+      await userEvent.click(await screen.findByRole('button', { name: 'Back' }))
+
+      expect(page.currentPath()).toBe(ROUTES.home)
+    })
+
+    it('leads back to the expense or the Deleted groups page the group was opened from', async () => {
+      const id = await createGroup(me, { name: 'Goa trip' })
+      const expensePath = ROUTES.expense(id, '3f2a6c1e-8b7d-4e5f-9a10-b2c3d4e5f607')
+      const page = renderGroup(id, { backTo: expensePath })
+
+      await userEvent.click(await screen.findByRole('button', { name: 'Back' }))
+
+      expect(page.currentPath()).toBe(expensePath)
+    })
+  })
+
   describe('what is switched off for now', () => {
-    it.each([
-      ['button', 'Search'],
-      ['button', 'Add trip dates'],
-    ] as const)('switches off the %s "%s"', async (role, name) => {
+    it('switches off the button "Add trip dates"', async () => {
       const id = await createGroup(me, { name: 'Goa trip' })
       renderGroup(id)
 
-      expect(await screen.findByRole(role, { name: named(name) })).toBeDisabled()
+      expect(await screen.findByRole('button', { name: named('Add trip dates') })).toBeDisabled()
     })
 
-    it.each(['Search', 'Add trip dates'])(
-      'says "Coming soon" when the pointer rests on "%s"',
-      async (name) => {
-        const id = await createGroup(me, { name: 'Goa trip' })
-        renderGroup(id)
+    it('says "Coming soon" when the pointer rests on "Add trip dates"', async () => {
+      const id = await createGroup(me, { name: 'Goa trip' })
+      renderGroup(id)
 
-        const button = await screen.findByRole('button', { name: named(name) })
-        expect(screen.queryByText('Coming soon')).not.toBeInTheDocument()
-        // A disabled button gets no pointer events, so the tip hangs on its wrapper.
-        await userEvent.hover(button.parentElement as HTMLElement)
+      const button = await screen.findByRole('button', { name: named('Add trip dates') })
+      expect(screen.queryByText('Coming soon')).not.toBeInTheDocument()
+      // A disabled button gets no pointer events, so the tip hangs on its wrapper.
+      await userEvent.hover(button.parentElement as HTMLElement)
 
-        expect(await screen.findByText('Coming soon')).toBeInTheDocument()
-      },
-    )
+      expect(await screen.findByText('Coming soon')).toBeInTheDocument()
+    })
+
+    it('has Search switched off in the three-dots menu', async () => {
+      const id = await createGroup(me, { name: 'Goa trip' })
+      renderGroup(id)
+
+      await userEvent.click(await screen.findByRole('button', { name: 'More options' }))
+
+      expect(await screen.findByRole('menuitem', { name: /Search/ })).toHaveAttribute('aria-disabled', 'true')
+    })
 
     it('keeps the working controls switched on, with no "Coming soon" tip', async () => {
       const id = await createGroup(me, { name: 'Goa trip' })
@@ -342,21 +367,22 @@ describe('GroupPage', () => {
       await screen.findByRole('heading', { name: 'Goa trip' })
 
       expect(screen.getByRole('button', { name: 'Back' })).toBeEnabled()
-      expect(screen.getByRole('button', { name: 'Edit group' })).toBeEnabled()
+      expect(screen.getByRole('button', { name: 'More options' })).toBeEnabled()
       expect(screen.getByRole('button', { name: named('1 member') })).toBeEnabled()
       expect(screen.getByRole('button', { name: named('Add expense') })).toBeEnabled()
       await userEvent.hover(screen.getByRole('button', { name: 'Back' }))
-      await userEvent.hover(screen.getByRole('button', { name: 'Edit group' }))
+      await userEvent.hover(screen.getByRole('button', { name: 'More options' }))
       await userEvent.hover(screen.getByRole('button', { name: named('1 member') }))
       await userEvent.hover(screen.getByRole('button', { name: named('Add expense') }))
       expect(screen.queryByText('Coming soon')).not.toBeInTheDocument()
     })
 
-    it('opens the edit page of this group from the Edit group button', async () => {
+    it('opens the edit page of this group from the Edit group entry of the three-dots menu', async () => {
       const id = await createGroup(me, { name: 'Goa trip' })
       const page = renderGroup(id)
 
-      await userEvent.click(await screen.findByRole('button', { name: 'Edit group' }))
+      await userEvent.click(await screen.findByRole('button', { name: 'More options' }))
+      await userEvent.click(await screen.findByRole('menuitem', { name: /Edit group/ }))
 
       expect(page.currentPath()).toBe(ROUTES.editGroup(id))
     })
@@ -504,8 +530,8 @@ describe('GroupPage', () => {
       ])
       // Each tile is in the color of its category's group (on the square block its rounded frame clips, which travels, PRD 5.16).
       const colorOf = (label: string) => screen.getByRole('img', { name: label }).querySelector('[data-vt="block"]')
-      expect(colorOf('Dining out')).toHaveStyle({ background: 'rgb(232, 89, 12)' })
-      expect(colorOf('Taxi and ride-hailing')).toHaveStyle({ background: 'rgb(25, 113, 194)' })
+      expect(colorOf('Dining out')).toHaveStyle({ background: 'rgb(239, 108, 0)' })
+      expect(colorOf('Taxi and ride-hailing')).toHaveStyle({ background: 'rgb(25, 118, 210)' })
       // The icon on each 40 px tile is 24 px.
       expect(screen.getByRole('img', { name: 'Dining out' })).toHaveStyle({ width: '40px', fontSize: '24px' })
       expect(screen.queryByText('No expenses yet')).not.toBeInTheDocument()
@@ -525,8 +551,8 @@ describe('GroupPage', () => {
       ])
       // A payment's icon has no colored tile behind it, unlike a category's.
       const [icon] = screen.getAllByRole('img', { name: 'Settlement' })
-      expect(icon).not.toHaveStyle({ background: 'rgb(12, 166, 120)' })
-      expect(icon).toHaveStyle({ color: 'rgb(12, 166, 120)' })
+      expect(icon).not.toHaveStyle({ background: 'rgb(104, 159, 56)' })
+      expect(icon).toHaveStyle({ color: 'rgb(104, 159, 56)' })
       expect(screen.queryByText('Payment')).not.toBeInTheDocument()
     })
 

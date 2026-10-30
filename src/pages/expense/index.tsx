@@ -76,7 +76,7 @@ export function ExpensePage() {
         )
       case 'ready':
         return state.data ? (
-          <ExpenseDetails expense={state.data} datasetId={datasetId} userId={userId} onChanged={retry} />
+          <ExpenseDetails expense={state.data} datasetId={datasetId} userId={userId} onChanged={retry} showGroup={!known} />
         ) : (
           <ExpenseNotFound groupId={id} />
         )

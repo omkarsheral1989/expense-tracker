@@ -42,8 +42,9 @@ async function createGroup(creator: { email: string; name: string } = me, member
   return result.groupId
 }
 
-function renderExpense(groupId: string, expenseId: string) {
+function renderExpense(groupId: string, expenseId: string, state?: unknown) {
   return renderPage(<ExpensePage />, {
+    state,
     path: ROUTES.expense(groupId, expenseId),
     pattern: ROUTES.expensePattern,
     routes: [ROUTES.groupPattern, ROUTES.editExpensePattern],
@@ -326,7 +327,7 @@ describe('ExpensePage', () => {
       renderExpense(id, dinner)
       await screen.findByRole('heading', { name: 'Expense', level: 3 })
       // Food and drink is orange.
-      expect(band().style.background).toContain('rgb(232, 89, 12)')
+      expect(band().style.background).toContain('rgb(239, 108, 0)')
       expect(band()).toContainElement(screen.getByRole('button', { name: 'Back' }))
       expect(band()).toContainElement(screen.getByRole('button', { name: 'Edit' }))
       expect(band()).toContainElement(screen.getByRole('button', { name: 'Delete' }))
@@ -334,7 +335,7 @@ describe('ExpensePage', () => {
 
       renderExpense(id, general)
       await screen.findByRole('heading', { name: 'Expense', level: 3 })
-      expect(band().style.background).toContain('rgb(134, 142, 150)')
+      expect(band().style.background).toContain('rgb(96, 125, 139)')
     })
 
     it('has round white buttons for Back, Edit and Delete', async () => {
@@ -446,10 +447,48 @@ describe('ExpensePage', () => {
       await expenseService.deleteExpense(testDb.db, await personIdOf(testDb.db, me.email), id, expenseId)
       renderExpense(id, expenseId)
 
-      const restore = await screen.findByRole('button', { name: 'Restore' })
-      expect(restore).toHaveClass('ant-btn-circle')
+      // A white pill with the word, not a bare round icon.
+      const restore = await screen.findByRole('button', { name: /Restore$/ })
+      expect(restore).toHaveTextContent('Restore')
+      expect(restore).not.toHaveClass('ant-btn-circle')
+      expect(restore).toHaveStyle({ background: '#fff' })
       expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
       expect(screen.queryByRole('button', { name: 'Delete' })).not.toBeInTheDocument()
+    })
+
+    it('is red, with a bin in place of the category icon, on a deleted expense', async () => {
+      const id = await createGroup()
+      const expenseId = await addExpense(id)
+      await expenseService.deleteExpense(testDb.db, await personIdOf(testDb.db, me.email), id, expenseId)
+      renderExpense(id, expenseId)
+
+      const heading = await screen.findByRole('heading', { name: 'Deleted expense', level: 3 })
+      const deletedBand = heading.closest('div[style*="gradient"]') as HTMLElement
+      expect(deletedBand.style.background).toContain('rgb(201, 42, 42)')
+      expect(deletedBand.querySelector('.tabler-icon-trash')).not.toBeNull()
+      expect(within(deletedBand).getByRole('img', { name: 'Deleted' })).toBeInTheDocument()
+    })
+  })
+
+  describe('the group card above the history', () => {
+    it('shows the group, with its currency and members, when the page is not opened from the group list', async () => {
+      const id = await createGroup()
+      const expenseId = await addExpense(id)
+      renderExpense(id, expenseId)
+
+      expect(await screen.findByText('Group')).toBeInTheDocument()
+      const card = screen.getByText('Goa trip').closest('a') as HTMLElement
+      expect(card).toHaveTextContent('£ · 3 members')
+      expect(card).toHaveAttribute('href', expect.stringContaining(ROUTES.group(id)))
+    })
+
+    it('is left out when the page is opened from the group list', async () => {
+      const id = await createGroup()
+      const expenseId = await addExpense(id)
+      renderExpense(id, expenseId, { expense: { id: expenseId, groupId: id, description: 'Beach shack dinner', category: 'food.dining_out', amountMinor: 900, currency: 'GBP', date: '2026-10-05' } })
+
+      await screen.findByText('History')
+      expect(screen.queryByText('Group')).not.toBeInTheDocument()
     })
   })
 

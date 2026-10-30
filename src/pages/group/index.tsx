@@ -12,6 +12,7 @@ import { dateService } from '../../services/dateService'
 import { lineText, linesOf, orderedMembers } from '../balances/utils.ts'
 import { refreshHomePage } from '../home/utils.ts'
 import { Typography } from 'antd'
+import { DELETED_BAND_COLOR } from '../../theme/categoryColors.ts'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
 import { expenseService } from '../../services/expenseService'
 import { EXPENSE_PAGE_SIZE } from '../../services/expenseService/constants.ts'
@@ -30,7 +31,7 @@ import { CenteredMessage } from '../../components/CenteredMessage'
 import { LoadingMessage } from '../../components/LoadingMessage'
 import { LoadError } from '../../components/LoadError'
 import { ROUTES } from '../../routes.ts'
-import { GROUP_PAGE, groupPageKey, knownGroupFrom, loadGroupPage } from './utils.ts'
+import { backToFrom, GROUP_PAGE, groupPageKey, knownGroupFrom, loadGroupPage } from './utils.ts'
 import { EDIT_GROUP_PAGE, editGroupKey, loadGroupToEdit } from '../editGroup/utils.ts'
 import { ADD_EXPENSE_PAGE, addExpenseKey, loadAddExpense } from '../addExpense/utils.ts'
 import { loadSettleUp, SETTLE_UP_PAGE, settleUpKey } from '../settleUp/utils.ts'
@@ -52,7 +53,9 @@ export function GroupPage() {
   const [membersOpen, setMembersOpen] = useState(false)
   const { id = '' } = useParams()
   // What the home list knew about this group when its row was opened, if it was (ADR-052).
-  const known = knownGroupFrom(useLocation().state, id)
+  const { state: locationState } = useLocation()
+  const known = knownGroupFrom(locationState, id)
+  const backTo = backToFrom(locationState, id) ?? undefined
 
   const userId = user?.personId ?? ''
   const navigate = useAppNavigate()
@@ -100,7 +103,7 @@ export function GroupPage() {
   function renderKnown(group: KnownGroup) {
     return (
       <Flex vertical style={{ flex: 1 }}>
-        <GroupBand group={group} peopleCount={group.memberCount} />
+        <GroupBand group={group} peopleCount={group.memberCount} backTo={backTo} />
         <Flex vertical style={{ ...COLUMN_STYLE, flex: 1, paddingBottom: 0 }}>
           <ActionPills groupId={group.id} group={group} canSettle={false} loading />
           <LoadingMessage label="Loading the group" roomBelow={ABOVE_FLOATING_BUTTON} />
@@ -133,6 +136,7 @@ export function GroupPage() {
           group={group}
           peopleCount={group.members.length}
           onOpenMembers={() => setMembersOpen(true)}
+          backTo={backTo}
           deleted={deleted}
           onDelete={DELETE_GROUP_ENABLED && !deleted ? handleDelete : undefined}
           onRestore={handleRestore}
@@ -142,7 +146,7 @@ export function GroupPage() {
         <Flex vertical style={{ ...COLUMN_STYLE, flex: 1, paddingBottom: 0 }}>
           <Flex vertical gap={16}>
             {deleted && group.deletedSince && (
-              <Typography.Text type="secondary">
+              <Typography.Text style={{ color: DELETED_BAND_COLOR }}>
                 You deleted this group on {dateService.formatDate(group.deletedSince.toISOString().slice(0, 10))}. It comes back if someone changes it.
               </Typography.Text>
             )}

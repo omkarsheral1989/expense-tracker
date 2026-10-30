@@ -1,5 +1,4 @@
 import { Navigate, Route, Routes } from 'react-router'
-import { DELETE_GROUP_ENABLED } from './features.ts'
 import { PageTransitions } from './components/PageTransitions'
 import { PwaUpdatePrompt } from './components/PwaUpdatePrompt'
 import { RequireAuth } from './components/RequireAuth'
@@ -54,7 +53,7 @@ function App() {
           <Route path={ROUTES.members} element={<MembersPage />} />
           <Route path={ROUTES.activity} element={<ActivityPage />} />
           <Route path={ROUTES.accounts} element={<AccountsPage />} />
-          <Route path={ROUTES.deletedGroups} element={DELETE_GROUP_ENABLED ? <DeletedGroupsPage /> : <Navigate to={ROUTES.home} replace />} />
+          <Route path={ROUTES.deletedGroups} element={<DeletedGroupsPage />} />
           <Route path={ROUTES.newGroup} element={<CreateGroupPage />} />
           <Route path={ROUTES.share} element={<SharePage />} />
           <Route path={ROUTES.groupPattern} element={<GroupPage />} />

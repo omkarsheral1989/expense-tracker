@@ -104,7 +104,8 @@ describe('the group page while it loads, opened from the home list', () => {
     expect(screen.getByRole('button', { name: /Add expense/ })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Back' })).toBeEnabled()
     expect(screen.getByRole('button', { name: 'Sync' })).toBeEnabled()
-    await user.click(screen.getByRole('button', { name: 'Edit group' }))
+    await user.click(screen.getByRole('button', { name: 'More options' }))
+    await user.click(await screen.findByRole('menuitem', { name: /Edit group/ }))
     await waitFor(() => expect(page.currentPath()).toBe(ROUTES.editGroup(id)))
   })
 
@@ -185,11 +186,12 @@ describe('the pages the group page opens', () => {
   }
 
   /** Renders the loaded group page and opens a control; returns the state the next page was given. */
-  async function openFrom(control: () => HTMLElement, route: string) {
+  async function openFrom(control: () => HTMLElement, route: string, then?: () => Promise<HTMLElement>) {
     const id = await createGroup()
     renderPage(<GroupPage />, { path: ROUTES.group(id), pattern: ROUTES.groupPattern, routes: [ROUTES.home], extra: [{ path: route, element: <StateProbe /> }] })
     await screen.findByRole('heading', { name: 'Goa trip', level: 2 })
     await user.click(control())
+    if (then) await user.click(await then())
     return { id, state: JSON.parse((await screen.findByTestId('state')).textContent ?? 'null') }
   }
 
@@ -206,7 +208,7 @@ describe('the pages the group page opens', () => {
   })
 
   it('hands Edit group the group', async () => {
-    const { id, state } = await openFrom(() => screen.getByRole('button', { name: 'Edit group' }), ROUTES.editGroupPattern)
+    const { id, state } = await openFrom(() => screen.getByRole('button', { name: 'More options' }), ROUTES.editGroupPattern, () => screen.findByRole('menuitem', { name: /Edit group/ }))
     expect(state).toEqual(known(id))
   })
 })
