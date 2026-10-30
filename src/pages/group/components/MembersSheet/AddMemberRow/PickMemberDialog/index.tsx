@@ -75,7 +75,13 @@ export function PickMemberDialog({ open, onClose, people, loading, onAdd, adding
         block
         aria-pressed={isTicked}
         onClick={() => toggle(person)}
-        style={{ height: 'auto', padding: '8px 4px', justifyContent: 'flex-start' }}
+        style={{
+          height: 'auto',
+          padding: '8px 10px',
+          justifyContent: 'flex-start',
+          // A ticked person has a faint wash of the primary color behind them, as the chosen payer has.
+          background: isTicked ? 'var(--ant-color-primary-bg)' : undefined,
+        }}
       >
         <Flex align="center" gap={12} style={{ minWidth: 0 }}>
           <PersonAvatar name={label} picture={person.picture} style={{ flex: 'none' }} />
@@ -134,7 +140,7 @@ export function PickMemberDialog({ open, onClose, people, loading, onAdd, adding
           value={search}
           onChange={(event) => setSearch(event.target.value)}
         />
-        <Flex vertical role="list" aria-label="People you know">
+        <Flex vertical gap={8} role="list" aria-label="People you know">
           {renderPeople()}
         </Flex>
         <Button block icon={<Icon name="plus" />} onClick={() => setNewPersonOpen(true)} style={{ marginTop: 8, borderRadius: PILL_RADIUS }}>
