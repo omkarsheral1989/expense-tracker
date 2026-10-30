@@ -22,6 +22,8 @@ type Props = {
   groupId: string
   /** The user is the group's only member, so nobody can owe anybody: the right side shows the amount instead of a balance. */
   soloGroup?: boolean
+  /** The group is deleted on this device (PRD 5.23): the row is shown but does not open the expense. */
+  readOnly?: boolean
 }
 
 /**
@@ -31,7 +33,7 @@ type Props = {
  * and a deleted expense are one line each instead. The whole row opens the
  * expense's details.
  */
-export function ExpenseRow({ expense, groupId, soloGroup = false }: Props) {
+export function ExpenseRow({ expense, groupId, soloGroup = false, readOnly = false }: Props) {
   const scheme = useColorScheme()
   const { token } = theme.useToken()
   const { month, day } = dateParts(expense.date)
@@ -170,6 +172,15 @@ export function ExpenseRow({ expense, groupId, soloGroup = false }: Props) {
       return renderLine(<Icon name="exchange" />, 'Settlement', CATEGORY_GROUP_COLORS.settlement, sentence, true)
     }
     return renderExpense()
+  }
+
+  if (readOnly) {
+    return (
+      <div role="listitem" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0' }}>
+        {renderDate()}
+        {renderBody()}
+      </div>
+    )
   }
 
   return (

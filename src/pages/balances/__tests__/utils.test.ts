@@ -19,6 +19,7 @@ const usd = (minor: number) => moneyService.format(minor, 'USD')
 
 const balances: GroupBalances = {
   groupId: 'g',
+  deleted: false,
   members: [you, priya, rima],
   currencies: [
     {

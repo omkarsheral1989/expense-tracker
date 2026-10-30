@@ -51,7 +51,12 @@ export type GroupSummary = {
    * list is ordered by it, newest first.
    */
   lastActivityAt: Date
+  /** When the user deleted it on this device (ADR-069); null for a group on the list. */
+  deletedSince: Date | null
 }
+
+/** Which groups `listGroups` gives: the ones on the home list, every one (for sync), or only the deleted ones. */
+export type GroupScope = 'live' | 'all' | 'deleted'
 
 /** A person in a group, as the group page shows them. */
 export type GroupMember = {
@@ -73,6 +78,8 @@ export type GroupDetails = {
   defaultCurrency: string
   /** The user first, then the others A to Z by name (or email when there is no name). */
   members: GroupMember[]
+  /** When the user deleted it on this device; null unless the group was read with `includeDeleted` (ADR-069). */
+  deletedSince: Date | null
 }
 
 /** A database transaction, which has the same query methods as the database. */

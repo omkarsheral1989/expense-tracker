@@ -16,6 +16,8 @@ type Props = {
   loading?: boolean
   /** The group has an expense that counts as spending, so there are totals to show (PRD 5.20); false switches the Totals pill off. */
   canTotal?: boolean
+  /** The group is deleted on this device (PRD 5.23): Settle up is switched off, with a tip; Balances and Totals can still be read. */
+  readOnly?: boolean
 }
 
 /**
@@ -24,7 +26,7 @@ type Props = {
  * records a payment between two members and is switched off in a group of one;
  * "Balances" opens the balances page and is switched off in a group of one; "Totals" opens the totals page and is switched off while the group has no expenses.
  */
-export function ActionPills({ groupId, group, canSettle, loading = false, canTotal = false }: Props) {
+export function ActionPills({ groupId, group, canSettle, loading = false, canTotal = false, readOnly = false }: Props) {
   const navigate = useAppNavigate()
   // The frame rounds the pill and draws its border; the button inside is square, so a picture of it alone is square (the browser
   // leaves out its parents' clipping), which the settle-up page grows out of (PRD 5.16, ADR-060).
@@ -35,7 +37,7 @@ export function ActionPills({ groupId, group, canSettle, loading = false, canTot
       style={{ display: 'flex', flex: 'none', borderRadius: PILL_RADIUS, overflow: 'hidden' }}
     >
       <Button
-        disabled={!canSettle || loading}
+        disabled={!canSettle || loading || readOnly}
         onClick={() => navigate(ROUTES.settleUp(groupId), { state: group && { group } })}
         data-vt="block"
         style={{ borderRadius: 0, border: 'none' }}
@@ -75,7 +77,11 @@ export function ActionPills({ groupId, group, canSettle, loading = false, canTot
 
   return (
     <Flex gap={8} style={{ overflowX: 'auto', paddingBottom: 4 }}>
-      {canSettle || loading ? (
+      {readOnly ? (
+        <Tooltip title="This group is deleted.">
+          <span style={{ flex: 'none' }}>{settleUp}</span>
+        </Tooltip>
+      ) : canSettle || loading ? (
         settleUp
       ) : (
         // A disabled button gets no pointer events, so the tip hangs on a wrapper.

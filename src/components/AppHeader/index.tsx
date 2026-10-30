@@ -10,6 +10,7 @@ import { ProfileAvatar } from '../ProfileAvatar'
 import { SyncButton } from '../SyncButton'
 import { UnreadDot } from '../UnreadDot'
 import { activityMenuItem } from './activityMenuItem.tsx'
+import { deletedGroupsMenuItems } from './deletedGroupsMenuItem.tsx'
 import { GuestMenu } from './GuestMenu'
 
 const { Text } = Typography
@@ -77,6 +78,7 @@ export function AppHeader() {
               label: 'Accounts',
               onClick: () => navigate(ROUTES.accounts),
             },
+            ...deletedGroupsMenuItems(navigate),
             {
               key: 'sign-out',
               icon: <Icon name="logout" />,

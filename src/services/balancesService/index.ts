@@ -5,7 +5,7 @@ import { shownName } from '../../db/shownName.ts'
 import type { PersonBalance } from '../expenseService/types.ts'
 import { groupService } from '../groupService'
 import type { BalanceMember, CurrencyBalances, GroupBalances } from './types.ts'
-import { simplifyDebts } from './utils.ts'
+import { simplifyDebts, userBalancesFrom } from './utils.ts'
 
 export const balancesService = {
   /**
@@ -14,7 +14,8 @@ export const balancesService = {
    * between members included, and never converted between currencies.
    */
   async groupBalances(db: Database, userId: string, groupId: string): Promise<GroupBalances | null> {
-    const group = await groupService.getGroup(db, userId, groupId)
+    // A group the user deleted on this device can still be read here (its page is read-only, ADR-069).
+    const group = await groupService.getGroup(db, userId, groupId, { includeDeleted: true })
     if (!group) return null
 
     const rows = await db
@@ -52,7 +53,7 @@ export const balancesService = {
       })
       .filter((one) => one.nets.length > 0)
 
-    return { groupId: group.id, members, currencies }
+    return { groupId: group.id, members, currencies, deleted: group.deletedSince !== null }
   },
 
   /**
@@ -62,18 +63,6 @@ export const balancesService = {
    */
   async userBalances(db: Database, userId: string, groupId: string): Promise<PersonBalance[]> {
     const balances = await this.groupBalances(db, userId, groupId)
-    if (!balances) return []
-    const byId = new Map(balances.members.map((member) => [member.personId, member]))
-    const label = (person: { name: string | null; email: string | null }) => groupService.displayName(person).toLowerCase()
-    return balances.currencies
-      .flatMap(({ currency, transfers }) =>
-        transfers.flatMap((transfer): PersonBalance[] => {
-          const sign = transfer.toId === userId ? 1 : transfer.fromId === userId ? -1 : 0
-          const other = byId.get(sign === 1 ? transfer.fromId : transfer.toId)
-          if (sign === 0 || !other) return []
-          return [{ personId: other.personId, email: other.email, name: other.name, currency, amountMinor: sign * transfer.amountMinor }]
-        }),
-      )
-      .sort((a, b) => label(a).localeCompare(label(b)) || a.personId.localeCompare(b.personId) || a.currency.localeCompare(b.currency))
+    return balances ? userBalancesFrom(balances, userId) : []
   },
 }

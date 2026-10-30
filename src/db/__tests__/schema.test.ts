@@ -51,7 +51,7 @@ describe('migrations', () => {
   it('can run again without changing anything', async () => {
     await runMigrations(pg)
     const { rows } = await pg.query('select name from ownledger_migrations')
-    expect(rows).toHaveLength(14)
+    expect(rows).toHaveLength(15)
   })
 
   it('logs nothing when every migration has run, and each migration it applies', async () => {
@@ -293,6 +293,42 @@ describe('migration 0013, which adds when events reached the device', () => {
     expect(rows.map((row) => row.event_id).sort()).toEqual([...events].sort())
     for (const row of rows) expect(row.arrived_at.getTime()).toBeGreaterThanOrEqual(before - 1000)
     await old.close()
+  })
+})
+
+describe('migration 0014, which adds the groups a user deleted on this device', () => {
+  const all = import.meta.glob('../migrations/*.sql', {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  }) as Record<string, string>
+
+  it('starts empty, so no group that already exists is hidden', async () => {
+    const old = new PGlite()
+    const names = Object.keys(all).sort()
+    const last = names.find((name) => name.endsWith('0014_group_deletions.sql')) as string
+    await runMigrations(old, Object.fromEntries(names.filter((name) => name < last).map((name) => [name, all[name]])))
+    const [omkar, group] = [crypto.randomUUID(), crypto.randomUUID()]
+    await old.query('insert into people (id, email, updated_by) values ($1, $2, $1)', [omkar, 'omkar@gmail.com'])
+    await old.query("insert into groups (id, name, type, default_currency, created_by, updated_by) values ($1, 'G', 'trip', 'INR', $2, $2)", [group, omkar])
+
+    await runMigrations(old, all)
+
+    expect((await old.query('select count(*)::int as n from group_deletions')).rows).toEqual([{ n: 0 }])
+    expect((await old.query('select count(*)::int as n from groups')).rows).toEqual([{ n: 1 }])
+    await old.close()
+  })
+
+  it('keeps one row per group', async () => {
+    const pg = new PGlite()
+    await runMigrations(pg, all)
+    const [omkar, group] = [crypto.randomUUID(), crypto.randomUUID()]
+    await pg.query('insert into people (id, email, updated_by) values ($1, $2, $1)', [omkar, 'omkar@gmail.com'])
+    await pg.query("insert into groups (id, name, type, default_currency, created_by, updated_by) values ($1, 'G', 'trip', 'INR', $2, $2)", [group, omkar])
+    await pg.query('insert into group_deletions (group_id, since, updated_by) values ($1, now(), $2)', [group, omkar])
+
+    await expect(pg.query('insert into group_deletions (group_id, since, updated_by) values ($1, now(), $2)', [group, omkar])).rejects.toThrow()
+    await pg.close()
   })
 })
 

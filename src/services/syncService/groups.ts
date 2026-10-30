@@ -15,6 +15,7 @@ import {
   ROOT_FOLDER_NAME,
 } from '../driveService/constants.ts'
 import type { DriveClient, DriveFile, DriveItemKind } from '../driveService/types.ts'
+import { groupDeletionService } from '../groupDeletionService'
 import { groupService } from '../groupService'
 import type { PhotoStore } from '../photoService/types.ts'
 import { downloadPhotos, photosIn, uploadPhotos } from './photos.ts'
@@ -143,6 +144,8 @@ export const groupSync = {
     const { valid, unreadable } = await readMemberFiles(drive, folder.id, groupId)
     const { renamed, arrivals } = await importFiles(db, groupId, valid)
     const me = current(userId, renamed)
+    // A group the user deleted here still syncs, and comes back when another member changed it (ADR-069).
+    const back = await groupDeletionService.restoreIfChanged(db, me, groupId)
 
     onStep('sending')
     const content = await backupService.exportGroup(db, groupId, me)
@@ -180,6 +183,7 @@ export const groupSync = {
       unreadable: await Promise.all(unreadable.map((email) => firstNameByEmail(db, email))),
       renamed,
       newEvents: othersEvents(arrivals, renamed, me),
+      restored: back.restored ? { changedBy: back.changedBy } : null,
     }
   },
 

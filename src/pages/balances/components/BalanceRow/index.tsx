@@ -23,13 +23,15 @@ type Props = {
   /** Everyone in the group, to name the other person on each line. */
   members: ReadonlyMap<string, BalanceMember>
   onSettle: (prefill: SettlePrefill) => void
+  /** The group is deleted on this device (PRD 5.23): the Settle up buttons are switched off. */
+  deleted?: boolean
 }
 
 /**
  * One member's row: their avatar and what they are owed or owe in total. A row with something owed opens to the payments that
  * settle it, each with a Settle up button; a settled-up member's row only says so.
  */
-export function BalanceRow({ member, totals, lines, members, onSettle }: Props) {
+export function BalanceRow({ member, totals, lines, members, onSettle, deleted = false }: Props) {
   const scheme = useColorScheme()
   const [open, setOpen] = useState(false)
   const settled = totals.length === 0
@@ -76,7 +78,7 @@ export function BalanceRow({ member, totals, lines, members, onSettle }: Props) 
     return (
       <Flex key={`${line.currency}|${line.kind}|${line.otherId}`} align="center" justify="space-between" gap={12}>
         <Text style={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>{lineSegments(member, other, line).map(renderSegment)}</Text>
-        <Button onClick={() => onSettle(prefillOf(member, line))} style={{ borderRadius: PILL_RADIUS }}>
+        <Button disabled={deleted} onClick={() => onSettle(prefillOf(member, line))} style={{ borderRadius: PILL_RADIUS }}>
           Settle up
         </Button>
       </Flex>

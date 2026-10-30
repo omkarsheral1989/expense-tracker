@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router'
+import { DELETE_GROUP_ENABLED } from './features.ts'
 import { PageTransitions } from './components/PageTransitions'
 import { PwaUpdatePrompt } from './components/PwaUpdatePrompt'
 import { RequireAuth } from './components/RequireAuth'
@@ -21,6 +22,7 @@ import { SharePage } from './pages/share'
 import { ShareTestPage } from './pages/shareTest'
 import { SettleUpPage } from './pages/settleUp'
 import { BalancesPage } from './pages/balances'
+import { DeletedGroupsPage } from './pages/deletedGroups'
 import { TotalsPage } from './pages/totals'
 import { WelcomePage } from './pages/welcome'
 import { ROUTES } from './routes.ts'
@@ -52,6 +54,7 @@ function App() {
           <Route path={ROUTES.members} element={<MembersPage />} />
           <Route path={ROUTES.activity} element={<ActivityPage />} />
           <Route path={ROUTES.accounts} element={<AccountsPage />} />
+          <Route path={ROUTES.deletedGroups} element={DELETE_GROUP_ENABLED ? <DeletedGroupsPage /> : <Navigate to={ROUTES.home} replace />} />
           <Route path={ROUTES.newGroup} element={<CreateGroupPage />} />
           <Route path={ROUTES.share} element={<SharePage />} />
           <Route path={ROUTES.groupPattern} element={<GroupPage />} />

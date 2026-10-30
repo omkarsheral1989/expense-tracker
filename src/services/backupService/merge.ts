@@ -5,6 +5,7 @@ import {
   eventArrivals,
   expenseEvents,
   expensePayments,
+  groupDeletions,
   expensePhotos,
   expenseShares,
   expenses,
@@ -173,6 +174,8 @@ export async function mergeBackupRows(
   // The user's own accounts, then the payment method of each expense (ADR-061).
   await mergeRows(tx, accounts, incoming.accounts)
   await mergeRows(tx, expensePayments, incoming.expensePayments, (row) => row.expenseId)
+  // Which groups the user deleted on this device, one row per group (ADR-069).
+  await mergeRows(tx, groupDeletions, incoming.groupDeletions, (row) => row.groupId)
 
   return { renamed, arrivals }
 }

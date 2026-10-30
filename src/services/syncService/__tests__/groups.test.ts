@@ -5,6 +5,7 @@ import { createDatabase, type Database } from '../../../db/client.ts'
 import { groups, people } from '../../../db/schema.ts'
 import { createFakeDriveWorld } from '../../../testing/fakeDrive.ts'
 import { expenseService } from '../../expenseService'
+import { groupDeletionService } from '../../groupDeletionService'
 import { groupService } from '../../groupService'
 import { personService } from '../../personService'
 import { userService } from '../../userService'
@@ -498,5 +499,66 @@ describe('syncService.findSharedGroups', () => {
     expect((await syncService.findSharedGroups(b, priyaDrive(), 'priya@gmail.com')).found).toHaveLength(1)
 
     expect((await syncService.findSharedGroups(b, priyaDrive(), 'priya@gmail.com')).found).toEqual([])
+  })
+})
+
+describe('a group the user deleted on this device (ADR-069)', () => {
+  /** Omkar and Priya share a settled group, both devices synced; Omkar then deletes it on his device. */
+  async function deletedByOmkar() {
+    const omkar = await self(a, 'omkar@gmail.com', 'Omkar')
+    const priya = await addPerson(a, omkar, 'Priya Shah', 'priya@gmail.com')
+    const group = await groupService.createGroup(a, omkar, { name: 'Goa trip', type: 'trip', defaultCurrency: 'GBP', memberIds: [priya] })
+    if (!group.ok) throw new Error('group not created')
+    await syncService.syncGroup(a, omkarDrive(), omkar, group.groupId)
+    const priyaId = await self(b, 'priya@gmail.com', 'Priya Shah')
+    const found = await syncService.findSharedGroups(b, priyaDrive(), 'priya@gmail.com')
+    const priyaOnB = found.renamed.get(priyaId) ?? priyaId
+    await syncService.syncGroup(b, priyaDrive(), priyaOnB, group.groupId)
+    expect(await groupDeletionService.deleteGroup(a, omkar, group.groupId)).toEqual({ ok: true })
+    return { omkar, priyaOnB, groupId: group.groupId }
+  }
+
+  it('is not deleted for the other members: Priya still has it', async () => {
+    const { groupId, priyaOnB } = await deletedByOmkar()
+
+    expect((await groupService.listGroups(b, priyaOnB)).map((group) => group.id)).toEqual([groupId])
+  })
+
+  it('still syncs, and stays deleted when nobody changed anything', async () => {
+    const { omkar, groupId } = await deletedByOmkar()
+
+    const result = await syncService.syncGroup(a, omkarDrive(), omkar, groupId)
+
+    expect(result).toMatchObject({ status: 'synced', restored: null })
+    expect(await groupService.listGroups(a, omkar)).toEqual([])
+    expect((await groupService.listGroups(a, omkar, 'deleted')).map((group) => group.id)).toEqual([groupId])
+  })
+
+  it('is on the list again after another member adds an expense, and the sync says who', async () => {
+    const { omkar, groupId, priyaOnB } = await deletedByOmkar()
+    await addExpense(b, priyaOnB, groupId, 'Coffee', 300)
+    await syncService.syncGroup(b, priyaDrive(), priyaOnB, groupId)
+
+    const result = await syncService.syncGroup(a, omkarDrive(), omkar, groupId)
+
+    expect(result).toMatchObject({ status: 'synced', restored: { changedBy: 'Priya' }, newEvents: 1 })
+    expect((await groupService.listGroups(a, omkar)).map((group) => group.id)).toEqual([groupId])
+    expect(await descriptions(a, omkar, groupId)).toEqual(['Coffee'])
+  })
+
+  it('stays deleted when the only thing that arrives is the user\'s own change from their other device', async () => {
+    const { omkar, groupId } = await deletedByOmkar()
+    // Omkar's second device (`b`, as him) adds an expense and syncs; his first device reads it back.
+    await pgB.exec(`truncate ${TABLES} cascade`)
+    const omkarOnB = await self(b, 'omkar@gmail.com', 'Omkar')
+    const found = await syncService.findSharedGroups(b, omkarDrive(), 'omkar@gmail.com')
+    const me = found.renamed.get(omkarOnB) ?? omkarOnB
+    await addExpense(b, me, groupId, 'Coffee', 300)
+    await syncService.syncGroup(b, omkarDrive(), me, groupId)
+
+    const result = await syncService.syncGroup(a, omkarDrive(), omkar, groupId)
+
+    expect(result).toMatchObject({ restored: null })
+    expect(await groupService.listGroups(a, omkar)).toEqual([])
   })
 })

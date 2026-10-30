@@ -392,6 +392,26 @@ export const expensePayments = pgTable(
 )
 
 /**
+ * That the user deleted a group on this device (ADR-069). Private like `accounts`:
+ * in the backup, never in a group's file, so a deletion never reaches another
+ * member. A group is deleted here while it has a row with no `deleted_at`;
+ * restoring it sets the row's own `deleted_at`, and deleting it again clears that
+ * and sets `since`. At most one row per group.
+ */
+export const groupDeletions = pgTable(
+  'group_deletions',
+  {
+    ...syncColumns(),
+    groupId: uuid('group_id')
+      .notNull()
+      .references(() => groups.id),
+    /** When the group was deleted on this device. */
+    since: timestamp('since', { withTimezone: true }).notNull(),
+  },
+  (table) => [unique('group_deletions_group').on(table.groupId)],
+)
+
+/**
  * When this device last finished a backup or a group's sync (ADR-044). Local
  * to the device: it is never synced or backed up, so it has none of the sync
  * columns. `scope` is 'backup', or 'group:<group id>' for a group's sync.

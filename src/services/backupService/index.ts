@@ -7,6 +7,7 @@ import {
   expensePhotos,
   expenseShares,
   expenses,
+  groupDeletions,
   groupMembers,
   groups,
   people,
@@ -44,6 +45,7 @@ export const backupService = {
         expenseEvents: await tx.select().from(expenseEvents),
         accounts: await tx.select().from(accounts),
         expensePayments: await tx.select().from(expensePayments),
+        groupDeletions: await tx.select().from(groupDeletions),
       },
     }))
   },
@@ -95,12 +97,13 @@ export const backupService = {
         writtenAt: new Date(),
         writtenBy,
         // A local name is private to the device (ADR-045): it never goes into a group's file.
-        // Nor do the user's accounts and payment methods (ADR-061): they are private to the user.
+        // Nor do the user's accounts and payment methods (ADR-061), or which groups they deleted (ADR-069): they are private to the user.
         rows: {
           people: namedPeople.map((person) => ({ ...person, localName: undefined })),
           ...rows,
           accounts: [],
           expensePayments: [],
+          groupDeletions: [],
         },
       }
     })

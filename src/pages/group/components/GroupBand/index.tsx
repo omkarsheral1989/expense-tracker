@@ -23,6 +23,12 @@ type Props = {
   peopleCount: number
   /** Opens the list of members; left out while the members are still loading, which switches the chip off. */
   onOpenMembers?: () => void
+  /** The user deleted the group on this device (PRD 5.23): Edit group and Sync are switched off and a Restore button comes in place of Edit group. */
+  deleted?: boolean
+  /** Asks to delete the group (PRD 5.22): the bin button beside Edit group; left out, there is none (the feature is off, or the page is still loading). */
+  onDelete?: () => void
+  /** Restores a deleted group: the Restore button. */
+  onRestore?: () => void
 }
 
 /**
@@ -30,7 +36,7 @@ type Props = {
  * type: back, search, sync (this group only) and edit buttons, the group's icon and name, and a row
  * of chips with a fact or an action each.
  */
-export function GroupBand({ group, peopleCount, onOpenMembers }: Props) {
+export function GroupBand({ group, peopleCount, onOpenMembers, deleted = false, onDelete, onRestore }: Props) {
   const navigate = useAppNavigate()
   // What the edit page can show while it loads (ADR-054).
   const editState = { group: { id: group.id, name: group.name, type: group.type, defaultCurrency: group.defaultCurrency, memberCount: peopleCount } }
@@ -50,12 +56,21 @@ export function GroupBand({ group, peopleCount, onOpenMembers }: Props) {
         </Flex>
         <Flex gap={12}>
           <BandIconButton icon={<Icon name="search" />} label="Search" />
-          <SyncButton group={{ id: group.id, name: group.name }} onBand />
-          <BandIconButton
-            icon={<Icon name="pencil" />}
-            label="Edit group"
-            onClick={() => navigate(ROUTES.editGroup(group.id), { state: editState })}
-          />
+          {deleted ? (
+            <BandIconButton icon={<Icon name="sync" />} label="Sync" disabled />
+          ) : (
+            <SyncButton group={{ id: group.id, name: group.name }} onBand />
+          )}
+          {deleted ? (
+            <BandIconButton icon={<Icon name="undo" />} label="Restore group" onClick={onRestore} disabled={!onRestore} />
+          ) : (
+            <BandIconButton
+              icon={<Icon name="pencil" />}
+              label="Edit group"
+              onClick={() => navigate(ROUTES.editGroup(group.id), { state: editState })}
+            />
+          )}
+          {onDelete && !deleted && <BandIconButton icon={<Icon name="trash" />} label="Delete group" onClick={onDelete} />}
         </Flex>
       </Flex>
     )
