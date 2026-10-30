@@ -514,3 +514,36 @@ body .ant-drawer-bottom .ant-drawer-section {
     backdrop-filter: blur(4px);
   }
 }
+
+/* The page behind the photo viewer is blurred in both modes. !important, since Ant Design sets its own blur (none) on this mask. */
+.ant-image-preview-mask {
+  backdrop-filter: blur(4px) !important;
+}
+
+/* The photo viewer's close button sits where the Delete button of the expense page does: 16 px from the top (below the status bar) and
+   from the end of the 560 px column, and is the same 40 px round button. !important, since Ant Design places it with its own rule. */
+.ant-image-preview-close {
+  top: calc(16px + env(safe-area-inset-top)) !important;
+  inset-inline-end: max(16px, calc((100vw - 560px) / 2 + 16px)) !important;
+  width: 40px !important;
+  height: 40px !important;
+}
+
+/* The photo viewer's toolbar (flip, rotate, zoom) and close button are darker than Ant Design's 10% black, which hardly shows on the veil. */
+.ant-image-preview-actions,
+.ant-image-preview-close {
+  background: rgba(0, 0, 0, 0.75) !important;
+}
+
+/* The toolbar is 40 px high, like the app's controls. */
+.ant-image-preview-actions {
+  height: 40px !important;
+}
+
+/* The photo's number ("1 / 1") sits on the same dark pill, so it can be read on any veil. */
+.ant-image-preview-progress {
+  align-self: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.75);
+}
