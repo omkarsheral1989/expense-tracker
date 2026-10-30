@@ -506,3 +506,11 @@ body .ant-drawer-bottom .ant-drawer-section {
 .expense-form .ant-form-item-extra {
   min-height: 0;
 }
+
+/* In dark mode the veil behind a sheet or dialog (the theme's light mask color) also blurs the page a little. */
+@media (prefers-color-scheme: dark) {
+  .ant-drawer-mask,
+  .ant-modal-mask {
+    backdrop-filter: blur(4px);
+  }
+}
