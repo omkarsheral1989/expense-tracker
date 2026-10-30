@@ -1,12 +1,17 @@
 import { Icon } from '../Icon'
-import { Button, Dropdown } from 'antd'
+import { Button, Dropdown, Flex, Typography } from 'antd'
 import { GroupLabel } from '../GroupLabel'
-import { GROUP_TYPE_CONTENT } from '../GroupTypeIcon/content.tsx'
+import { GroupTypeIcon } from '../GroupTypeIcon'
+import { currencyService } from '../../services/currencyService'
 import type { GroupSummary } from '../../services/groupService/types.ts'
-import { PILL_RADIUS } from '../../theme/radius.ts'
-import { ICON_ONLY_SIZE } from '../../theme/controlHeight.ts'
+import { RADIUS } from '../../theme/radius.ts'
 
-type GroupSummaryFields = Pick<GroupSummary, 'id' | 'name' | 'type'>
+type GroupSummaryFields = Pick<GroupSummary, 'id' | 'name' | 'type'> & Partial<Pick<GroupSummary, 'defaultCurrency' | 'memberCount'>> & {
+    /** The group's members, when it is read in full: their number stands in for `memberCount`. */
+    members?: readonly unknown[]
+  }
+
+const { Text } = Typography
 
 type Props = { group: GroupSummaryFields } & (
   | {
@@ -34,23 +39,53 @@ type Props = { group: GroupSummaryFields } & (
  */
 export function GroupSwitcher(props: Props) {
   const { group } = props
-  const icon = GROUP_TYPE_CONTENT[group.type].icon
 
-  // Icon and name on the left, the arrow at the far right, like a field.
+  // The same content as a row of the menu, with the arrow at the far right, like a field. Taller than the 40 px
+  // controls (like a row of the menu: a 40 px tile and 10 px of padding), since it holds two lines beside a 40 px tile.
   function renderButton(label: string, disabled: boolean) {
     return (
       <Button
         block
         disabled={disabled}
         aria-label={label}
-        style={{ borderRadius: PILL_RADIUS, justifyContent: 'space-between' }}
+        style={{
+          borderRadius: RADIUS.card,
+          justifyContent: 'space-between',
+          height: 'auto',
+          padding: 10,
+          textAlign: 'left',
+          // A switched-off pill takes the page's own background, so it reads as sunk into the page next to the white (light) or
+          // dark grey (dark) of a working one; Ant Design's own disabled fill is hardly different from that in dark mode.
+          background: disabled ? 'var(--ant-color-bg-layout)' : undefined,
+        }}
       >
-        <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-          <span style={{ display: 'flex', fontSize: ICON_ONLY_SIZE }}>{icon}</span>
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{group.name}</span>
-        </span>
+        <span style={{ display: 'flex', flex: 1, minWidth: 0 }}>{renderRow(group, false)}</span>
         <Icon name="chevronDown" style={{ fontSize: 12 }} />
       </Button>
+    )
+  }
+
+  // One row of the menu, and the content of the button: the type's colored tile, the name, "₹ · 3 members" under it and, in the menu, a tick on the current group.
+  function renderRow(entry: GroupSummaryFields, inMenu = true) {
+    const currency = entry.defaultCurrency && (currencyService.symbol(entry.defaultCurrency, navigator.language) ?? entry.defaultCurrency)
+    const count = entry.memberCount ?? entry.members?.length
+    const members = count === undefined ? null : `${count} ${count === 1 ? 'member' : 'members'}`
+    const details = [currency, members].filter(Boolean).join(' · ')
+    return (
+      <Flex align="center" gap={12} style={{ height: 40 }}>
+        <GroupTypeIcon type={entry.type} size={40} iconSize={24} />
+        <Flex vertical flex={1} style={{ minWidth: 0 }}>
+          <Text ellipsis strong={inMenu && entry.id === group.id}>
+            {entry.name}
+          </Text>
+          {details && (
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              {details}
+            </Text>
+          )}
+        </Flex>
+        {inMenu && entry.id === group.id && <Icon name="check" style={{ fontSize: 18 }} />}
+      </Flex>
     )
   }
 
@@ -65,13 +100,14 @@ export function GroupSwitcher(props: Props) {
       menu={{
         items: groups.map((entry) => ({
           key: entry.id,
-          icon: GROUP_TYPE_CONTENT[entry.type].icon,
-          label: entry.name,
+          label: renderRow(entry),
+          style: { height: 'auto', padding: 10 },
         })),
         selectable: true,
         selectedKeys: [group.id],
         // A long list scrolls instead of running off the screen.
-        style: { maxHeight: 320, overflowY: 'auto' },
+        // The card radius, so the 10 px tiles sit closer to its corners than they do to the usual 24 px.
+        style: { maxHeight: 320, overflowY: 'auto', borderRadius: RADIUS.card },
         onClick: ({ key }) => {
           if (key !== group.id) onSwitch(key)
         },
