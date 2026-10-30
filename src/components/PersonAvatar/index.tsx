@@ -28,7 +28,7 @@ export function PersonAvatar({ name, picture, size = CONTROL_HEIGHT, style }: Pr
     <Avatar
       size={size}
       // No border: Ant Design's 1 px transparent one would leave the picture 2 px smaller than the avatar.
-      style={{ background: token.colorPrimaryBg, color: token.colorPrimary, border: 0, ...style }}
+      style={{ background: token.colorPrimaryBgHover, color: token.colorPrimary, border: 0, ...style }}
       src={
         showPicture ? (
           <img src={source} alt="" referrerPolicy="no-referrer" onError={() => setFailed(source)} />

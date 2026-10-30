@@ -36,7 +36,7 @@ describe('sharing a receipt into the app', () => {
 
     await user.type(screen.getByRole('textbox', { name: 'Description' }), 'Shack')
     await user.type(screen.getByRole('textbox', { name: 'Amount' }), '30')
-    await user.click(screen.getByRole('button', { name: 'Save' }))
+    await user.click(screen.getByRole('button', { name: 'Add expense' }))
 
     expect(await screen.findByText('Expense added.')).toBeInTheDocument()
     expect(await screen.findByText('Shack')).toBeInTheDocument()

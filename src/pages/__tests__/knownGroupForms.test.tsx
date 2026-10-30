@@ -54,12 +54,14 @@ type Case = {
   showsGroup: boolean
   /** The field that is on the page once the form has loaded. */
   field: string
+  /** What the button that saves the form says, once the form has loaded. */
+  save: string
 }
 
 const CASES: Case[] = [
-  { name: 'add expense', page: <AddExpensePage />, path: ROUTES.newExpense, pattern: ROUTES.newExpensePattern, heading: 'Add expense', title: 'Add expense · OwnLedger', showsGroup: true, field: 'Description' },
-  { name: 'settle up', page: <SettleUpPage />, path: ROUTES.settleUp, pattern: ROUTES.settleUpPattern, heading: 'Settle up', title: 'Settle up · OwnLedger', showsGroup: true, field: 'Amount' },
-  { name: 'edit group', page: <EditGroupPage />, path: ROUTES.editGroup, pattern: ROUTES.editGroupPattern, heading: 'Edit group', title: 'Edit group · OwnLedger', showsGroup: false, field: 'Group name' },
+  { name: 'add expense', page: <AddExpensePage />, path: ROUTES.newExpense, pattern: ROUTES.newExpensePattern, heading: 'Add expense', title: 'Add expense · OwnLedger', showsGroup: true, field: 'Description', save: 'Add expense' },
+  { name: 'settle up', page: <SettleUpPage />, path: ROUTES.settleUp, pattern: ROUTES.settleUpPattern, heading: 'Settle up', title: 'Settle up · OwnLedger', showsGroup: true, field: 'Amount', save: 'Save' },
+  { name: 'edit group', page: <EditGroupPage />, path: ROUTES.editGroup, pattern: ROUTES.editGroupPattern, heading: 'Edit group', title: 'Edit group · OwnLedger', showsGroup: false, field: 'Group name', save: 'Save' },
 ]
 
 function renderHeld(testCase: Case, id: string, state?: unknown) {
@@ -74,12 +76,12 @@ function renderHeld(testCase: Case, id: string, state?: unknown) {
 }
 
 describe.each(CASES)('$name while it loads, opened from the group page', (testCase) => {
-  it('shows its own header with Save switched off, and a spinner, at once', async () => {
+  it('shows its own header with no Save button yet, and a spinner, at once', async () => {
     const id = await createGroup()
     renderHeld(testCase, id, opened(id))
 
     expect(screen.getByRole('heading', { name: testCase.heading, level: 3 })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
+    expect(screen.queryByRole('button', { name: testCase.save })).not.toBeInTheDocument()
     expect(screen.getByRole('status', { name: 'Loading the group' })).toBeInTheDocument()
     expect(screen.queryByRole('textbox', { name: testCase.field })).not.toBeInTheDocument()
   })
@@ -112,7 +114,7 @@ describe.each(CASES)('$name while it loads, opened from the group page', (testCa
 
     expect(await screen.findByRole('textbox', { name: testCase.field })).toBeInTheDocument()
     expect(screen.queryByRole('status', { name: 'Loading the group' })).not.toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: testCase.save })).toBeEnabled()
   })
 
   it.each([

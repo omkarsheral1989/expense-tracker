@@ -1,6 +1,7 @@
 import { Icon } from '../Icon'
 import { Button, Divider, Flex, Select, Typography } from 'antd'
 import { useState } from 'react'
+import { PersonAvatar } from '../PersonAvatar'
 import { groupService } from '../../services/groupService'
 import type { KnownPerson } from '../../services/personService/types.ts'
 import { AddMemberDialog } from './AddMemberDialog'
@@ -87,9 +88,16 @@ export function MemberSelect({
           person,
         }))}
         optionRender={({ data }) => (
-          <Flex vertical>
-            <Text>{data.shortLabel}</Text>
-            {data.person.name && <Text type="secondary">{data.person.email ?? 'No email'}</Text>}
+          <Flex align="center" gap={12}>
+            <PersonAvatar name={data.shortLabel} picture={data.person.picture} style={{ flex: 'none' }} />
+            <Flex vertical style={{ minWidth: 0 }}>
+              <Text ellipsis>{data.shortLabel}</Text>
+              {data.person.name && (
+                <Text type="secondary" ellipsis style={{ fontSize: 12 }}>
+                  {data.person.email ?? 'No email'}
+                </Text>
+              )}
+            </Flex>
           </Flex>
         )}
       />

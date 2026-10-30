@@ -1,9 +1,13 @@
 import { Icon } from '../../../Icon'
-import { Button, Flex } from 'antd'
+import { Button, Flex, Typography } from 'antd'
 import { AdaptiveDialog } from '../../../AdaptiveDialog'
 import { ComingSoon } from '../../../ComingSoon'
+import { PersonAvatar } from '../../../PersonAvatar'
+import { groupService } from '../../../../services/groupService'
 import type { GroupMember } from '../../../../services/groupService/types.ts'
 import { ICON_ONLY_SIZE } from '../../../../theme/controlHeight.ts'
+
+const { Text } = Typography
 
 type Props = {
   open: boolean
@@ -15,10 +19,11 @@ type Props = {
   onPick: (personId: string) => void
 }
 
-/** Who paid the expense: one member. Several payers are not possible yet ("Coming soon"). */
+/** Who paid the expense: one member, with their picture, name and email; the chosen one is ticked and lightly highlighted. Several payers are not possible yet ("Coming soon"). */
 export function PayerDialog({ open, onClose, members, value, onPick }: Props) {
   function renderMember(member: GroupMember) {
     const selected = member.personId === value
+    const label = member.isYou ? 'You' : groupService.displayName(member)
     return (
       <Button
         key={member.personId}
@@ -26,10 +31,22 @@ export function PayerDialog({ open, onClose, members, value, onPick }: Props) {
         block
         aria-pressed={selected}
         onClick={() => onPick(member.personId)}
-        style={{ justifyContent: 'space-between', height: 'auto', padding: '10px 12px' }}
+        style={{
+          height: 'auto',
+          padding: 10,
+          background: selected ? 'var(--ant-color-primary-bg)' : undefined,
+        }}
       >
-        <span>{member.isYou ? 'You' : (member.name ?? member.email)}</span>
-        {selected && <Icon name="check" style={{ fontSize: ICON_ONLY_SIZE }} />}
+        <Flex align="center" gap={12} flex={1} style={{ minWidth: 0, textAlign: 'left' }}>
+          <PersonAvatar name={label} picture={member.picture} style={{ flex: 'none' }} />
+          <Flex vertical flex={1} style={{ minWidth: 0 }}>
+            <Text ellipsis>{label}</Text>
+            <Text type="secondary" ellipsis style={{ fontSize: 12 }}>
+              {member.email ?? 'No email'}
+            </Text>
+          </Flex>
+          {selected && <Icon name="check" style={{ fontSize: ICON_ONLY_SIZE, color: 'var(--ant-color-primary)' }} />}
+        </Flex>
       </Button>
     )
   }

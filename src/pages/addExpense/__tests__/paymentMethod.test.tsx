@@ -312,7 +312,7 @@ describe('the payment method on the add-expense page (PRD 5.5, 4.10)', () => {
     async function payBy(name: string) {
       await user.click(screen.getByRole('button', { name: 'you' }))
       const dialog = await screen.findByRole('dialog', { name: 'Who paid?' })
-      await user.click(within(dialog).getByRole('button', { name }))
+      await user.click(within(dialog).getByRole('button', { name: new RegExp(name) }))
       await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Who paid?' })).not.toBeInTheDocument())
     }
 
@@ -336,7 +336,7 @@ describe('the payment method on the add-expense page (PRD 5.5, 4.10)', () => {
 
       await user.click(screen.getByRole('button', { name: 'Priya' }))
       const dialog = await screen.findByRole('dialog', { name: 'Who paid?' })
-      await user.click(within(dialog).getByRole('button', { name: 'You' }))
+      await user.click(within(dialog).getByRole('button', { name: /You/ }))
 
       expect(await screen.findByRole('button', { name: 'Payment method' })).toBeInTheDocument()
     })

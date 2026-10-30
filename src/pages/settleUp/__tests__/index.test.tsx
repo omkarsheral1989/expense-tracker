@@ -429,6 +429,54 @@ describe('SettleUpPage', () => {
     })
   })
 
+  describe('Cancel and Save under the receipts', () => {
+    it('has only Back in the header, and ends the form with Cancel and Save, after the receipts', async () => {
+      const id = await createGroup()
+      renderSettleUp(id)
+      const heading = await screen.findByRole('heading', { name: 'Settle up', level: 3 })
+
+      const header = heading.closest('[data-vt="header"]') as HTMLElement
+      expect(within(header).getAllByRole('button').map((button) => button.getAttribute('aria-label'))).toEqual(['Back'])
+      const save = saveButton()
+      expect(save).toHaveAttribute('type', 'submit')
+      expect(save).toHaveClass('ant-btn-primary')
+      const row = save.parentElement as HTMLElement
+      expect(within(row).getByRole('button', { name: 'Cancel' })).toHaveAttribute('type', 'button')
+      expect(row).toHaveClass('ant-flex-justify-flex-end')
+      const camera = screen.getByRole('button', { name: 'Add receipt photos' })
+      expect(camera.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
+    it('leaves at once on Cancel while nothing is entered, and asks "Discard this payment?" after input', async () => {
+      const id = await createGroup()
+      const page = renderSettleUp(id)
+      await screen.findByRole('heading', { name: 'Settle up' })
+      await user.type(amountInput(), '5')
+
+      await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+      const dialog = await screen.findByRole('dialog', { name: 'Discard this payment?' })
+      expect(page.currentPath()).toBe(ROUTES.settleUp(id))
+      await user.click(within(dialog).getByRole('button', { name: 'Keep editing' }))
+      await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Discard this payment?' })).not.toBeInTheDocument())
+    })
+  })
+
+  describe('the group', () => {
+    it('shows it as the switched-off group pill (tile, name, "currency · members"), with no menu', async () => {
+      const id = await createGroup({ defaultCurrency: 'EUR' })
+      renderSettleUp(id)
+
+      const group = await screen.findByRole('button', { name: 'Group: Goa trip' })
+      expect(group).toBeDisabled()
+      expect(group).toHaveClass('ant-btn-block')
+      expect(group.querySelector('[role="img"][aria-label="Trip"]')).toHaveStyle({ width: '40px', height: '40px' })
+      expect(group).toHaveTextContent(/Goa trip€ · 3 members/)
+      await user.click(group)
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+    })
+  })
+
   describe('leaving', () => {
     it('goes straight back to the group on Back while nothing is entered', async () => {
       const id = await createGroup()

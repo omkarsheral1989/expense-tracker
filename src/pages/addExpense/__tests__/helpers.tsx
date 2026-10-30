@@ -51,7 +51,7 @@ export function named(text: string) {
 export const descriptionInput = () => screen.getByRole('textbox', { name: 'Description' })
 export const amountInput = () => screen.getByRole('textbox', { name: 'Amount' })
 export const notesInput = () => screen.getByRole('textbox', { name: 'Notes' })
-export const saveButton = () => screen.getByRole('button', { name: 'Save' })
+export const saveButton = () => screen.getByRole('button', { name: 'Add expense' })
 
 /**
  * Changes a field the way the browser does when a key is typed: the new text

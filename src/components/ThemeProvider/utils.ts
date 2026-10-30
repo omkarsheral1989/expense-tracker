@@ -15,6 +15,8 @@ export function themeFor(scheme: ColorScheme): ThemeConfig {
     token: {
       colorPrimary: PRIMARY,
       colorLink: PRIMARY,
+      // Behind a sheet or dialog in dark mode the default black dim leaves the page readable, so use a light veil there.
+      ...(scheme === 'dark' ? { colorBgMask: 'rgba(255, 255, 255, 0.3)' } : {}),
       // Two tiers only: inner for small controls, outer (LG) for containers.
       borderRadius: RADIUS.inner,
       borderRadiusSM: RADIUS.inner,

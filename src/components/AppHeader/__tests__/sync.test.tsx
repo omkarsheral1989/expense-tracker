@@ -424,7 +424,7 @@ describe('the backup already in Drive', () => {
     await waitFor(async () => expect(useSyncStore.getState().dataVersion).toBe(2))
     const lines = within(screen.getByRole('list', { name: 'Progress' })).getAllByRole('listitem').map((line) => line.textContent)
     // Goa trip still comes back, from its own folder.
-    expect(lines).toEqual(["BackupCouldn't back up. Press Sync to try again.", 'LisbonSynced', 'New group: Goa tripSynced'])
+    expect(lines).toEqual(["BackupCouldn't back up. Press Sync to try again.", 'New group: Goa tripSynced', 'LisbonSynced'])
     expect(fake.drive!.named('backup.json')!.content).toBe(before)
   })
 

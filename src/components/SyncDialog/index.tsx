@@ -1,15 +1,18 @@
 import { Icon } from '../Icon'
+import { useState } from 'react'
 import { App, Button, Flex, Typography, theme } from 'antd'
 import { getDb } from '../../db/client.ts'
 import { useAppNavigate } from '../../hooks/useAppNavigate'
 import { useAsyncData } from '../../hooks/useAsyncData'
 import { useLeaveWarning } from '../../hooks/useLeaveWarning'
+import { useSlideReorder } from '../../hooks/useSlideReorder'
 import { ROUTES } from '../../routes.ts'
 import { dateService } from '../../services/dateService'
 import { syncService } from '../../services/syncService'
 import { useSyncStore } from '../../stores/useSyncStore'
 import type { SyncScope, SyncStep } from '../../stores/useSyncStore/types.ts'
 import { AdaptiveDialog } from '../AdaptiveDialog'
+import { EMPTY_ORDER, nextOrder, sameOrder, type LineOrder } from './utils.ts'
 
 const { Text } = Typography
 
@@ -37,8 +40,18 @@ export function SyncDialog() {
   const { message } = App.useApp()
   const navigate = useAppNavigate()
   useLeaveWarning(running)
+  // The line that is working moves up under the backup, and the order the run ended in is kept.
+  const [lineOrder, setLineOrder] = useState<LineOrder>(EMPTY_ORDER)
+  const [wasRunning, setWasRunning] = useState(false)
+  // A run that starts takes the lines in their own order again.
+  if (running !== wasRunning) setWasRunning(running)
+  const wanted = nextOrder(running && !wasRunning ? EMPTY_ORDER : lineOrder, steps)
+  if (!sameOrder(wanted, lineOrder)) setLineOrder(wanted)
+  const register = useSlideReorder(wanted.keys, wanted.promoted)
+  const orderedSteps = wanted.keys.flatMap((key) => steps.filter((step) => step.key === key))
   const { state } = useAsyncData(() => lastSyncedAt(scope), `${scopeKey(scope)}:${dataVersion}`)
-  const lastSynced = !running && state.status === 'ready' ? state.data : null
+  // Shown while a run goes on too: it is when the previous sync finished.
+  const lastSynced = state.status === 'ready' ? state.data : null
 
   function openActivity() {
     closeDialog()
@@ -85,7 +98,7 @@ export function SyncDialog() {
   }
 
   function renderIcon(step: SyncStep) {
-    if (step.status === 'running') return <Icon name="loading" style={{ color: token.colorPrimary }} />
+    if (step.status === 'running') return <Icon name="loading" spin style={{ color: token.colorPrimary }} />
     if (step.status === 'done') return <Icon name="checkCircle" style={{ color: token.colorSuccess }} />
     if (step.status === 'waiting') return <Icon name="clock" style={{ color: token.colorTextSecondary }} />
     return <Icon name="closeCircle" style={{ color: token.colorError }} />
@@ -93,7 +106,7 @@ export function SyncDialog() {
 
   function renderStep(step: SyncStep) {
     return (
-      <Flex key={step.key} gap={12} align="flex-start" role="listitem">
+      <Flex key={step.key} ref={register(step.key)} gap={12} align="flex-start" role="listitem">
         <span style={{ fontSize: 20, lineHeight: '22px' }}>{renderIcon(step)}</span>
         <Flex vertical>
           <Text strong>{step.label}</Text>
@@ -137,7 +150,7 @@ export function SyncDialog() {
       dismissible={!running}
     >
       <Flex vertical gap={16} role="list" aria-label="Progress">
-        {steps.map(renderStep)}
+        {orderedSteps.map(renderStep)}
         {renderNewChanges()}
       </Flex>
     </AdaptiveDialog>

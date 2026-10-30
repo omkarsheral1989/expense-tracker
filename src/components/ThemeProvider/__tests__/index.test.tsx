@@ -57,6 +57,11 @@ describe('ThemeProvider', () => {
     }
   })
 
+  it('veils what is behind a sheet or dialog with light white in dark mode, and leaves Ant Design\'s black dim in light mode', () => {
+    expect(themeFor('dark').token?.colorBgMask).toBe('rgba(255, 255, 255, 0.3)')
+    expect(themeFor('light').token?.colorBgMask).toBeUndefined()
+  })
+
   it('follows the color scheme with its algorithm', () => {
     expect(themeFor('dark').algorithm).toBe(theme.darkAlgorithm)
     expect(themeFor('light').algorithm).toBe(theme.defaultAlgorithm)

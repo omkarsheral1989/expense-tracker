@@ -128,8 +128,44 @@ describe('EditExpensePage', () => {
       expect(group).toBeDisabled()
       expect(group).toHaveClass('ant-btn-block')
       expect(group.querySelector('.tabler-icon-chevron-down')).not.toBeNull()
+      // The same content as a row of the group menu: the type's tile, the name and "currency · members".
+      expect(group.querySelector('[role="img"][aria-label="Trip"]')).toHaveStyle({ width: '40px', height: '40px' })
+      expect(group).toHaveTextContent(/Goa trip.* · 3 members/)
       // An expense cannot move to another group, so there is no menu.
       expect(screen.queryByRole('button', { name: /Choose another group/ })).not.toBeInTheDocument()
+    })
+  })
+
+  describe('Cancel and Save under the receipts', () => {
+    it('has only Back in the header, and ends the form with Cancel and Save, after the receipts', async () => {
+      const id = await createGroup()
+      const expenseId = await addExpense(id)
+      await open(id, expenseId)
+
+      const header = screen.getByRole('heading', { name: 'Edit expense', level: 3 }).closest('[data-vt="header"]') as HTMLElement
+      expect(within(header).getAllByRole('button').map((button) => button.getAttribute('aria-label'))).toEqual(['Back'])
+      const save = saveButton()
+      expect(save).toHaveTextContent('Save')
+      expect(save).toHaveAttribute('type', 'submit')
+      const row = save.parentElement as HTMLElement
+      expect(within(row).getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+      expect(row).toHaveClass('ant-flex-justify-flex-end')
+      const camera = screen.getByRole('button', { name: 'Add receipt photos' })
+      expect(camera.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
+    it('goes straight back on Cancel while nothing was changed, and asks "Discard your changes?" after a change', async () => {
+      const id = await createGroup()
+      const expenseId = await addExpense(id)
+      const page = await open(id, expenseId)
+      await user.type(descriptionInput(), '!')
+
+      await user.click(screen.getByRole('button', { name: 'Cancel' }))
+
+      const dialog = await screen.findByRole('dialog', { name: 'Discard your changes?' })
+      expect(page.currentPath()).toBe(ROUTES.editExpense(id, expenseId))
+      await user.click(within(dialog).getByRole('button', { name: 'Keep editing' }))
+      await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Discard your changes?' })).not.toBeInTheDocument())
     })
   })
 
@@ -186,7 +222,7 @@ describe('EditExpensePage', () => {
 
       await user.click(screen.getByRole('button', { name: 'you' }))
       const payers = await screen.findByRole('dialog', { name: 'Who paid?' })
-      await user.click(within(payers).getByRole('button', { name: 'Priya Shah' }))
+      await user.click(within(payers).getByRole('button', { name: /Priya Shah/ }))
       await waitFor(() => expect(sentence()).toBe('Paid by Priya and split equally'))
       await user.click(saveButton())
 

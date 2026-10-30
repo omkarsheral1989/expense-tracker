@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getDb } from '../../../db/client.ts'
 import { ROUTES } from '../../../routes.ts'
 import { useAuthStore } from '../../../stores/useAuthStore'
-import { setUpAddExpenseTests, me, amountInput, descriptionInput, named, notesInput } from './helpers.tsx'
+import { setUpAddExpenseTests, me, amountInput, descriptionInput, notesInput } from './helpers.tsx'
 
 // Pages reach the database through `getDb`; point it at the in-memory one.
 vi.mock('../../../db/client.ts', async (importOriginal) => {
@@ -34,6 +34,9 @@ async function createTwoGroups() {
   return { goa, flat }
 }
 
+/** A row of the menu of groups: its name is the type's tile ("Trip"), the group's name, then "£ · 3 members". */
+const itemOf = (name: string) => new RegExp(name)
+
 const switcher = () => screen.findByRole('button', { name: /^Group: .*Choose another group$/ })
 
 describe('AddExpensePage: choosing the group', () => {
@@ -55,7 +58,7 @@ describe('AddExpensePage: choosing the group', () => {
   /** Opens the menu of groups and presses one by its name. */
   async function chooseGroup(name: string) {
     await user.click(await switcher())
-    await user.click(await screen.findByRole('menuitem', { name: named(name) }))
+    await user.click(await screen.findByRole('menuitem', { name: itemOf(name) }))
   }
 
   it('shows only the group\'s name, with no "With you and" text', async () => {
@@ -84,8 +87,8 @@ describe('AddExpensePage: choosing the group', () => {
     const menu = await screen.findByRole('menu')
     const items = within(menu).getAllByRole('menuitem')
     expect(items).toHaveLength(2)
-    expect(within(menu).getByRole('menuitem', { name: named('Goa trip') })).toHaveClass('ant-dropdown-menu-item-selected')
-    expect(within(menu).getByRole('menuitem', { name: named('Flat 4B') })).not.toHaveClass('ant-dropdown-menu-item-selected')
+    expect(within(menu).getByRole('menuitem', { name: itemOf('Goa trip') })).toHaveClass('ant-dropdown-menu-item-selected')
+    expect(within(menu).getByRole('menuitem', { name: itemOf('Flat 4B') })).not.toHaveClass('ant-dropdown-menu-item-selected')
   })
 
   it('does nothing when the group it already is in is chosen', async () => {

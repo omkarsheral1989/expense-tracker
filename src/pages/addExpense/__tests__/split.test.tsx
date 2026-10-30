@@ -69,12 +69,12 @@ describe('AddExpensePage', () => {
       }
     }
 
-    /** The texts of a dialog's buttons, leaving out its close button. */
+    /** The names in a dialog's buttons (a person's row also has their email), leaving out its close button. */
     function choicesIn(dialog: HTMLElement) {
       return within(dialog)
         .getAllByRole('button')
         .filter((button) => button.getAttribute('aria-label') !== 'Close')
-        .map((button) => button.textContent)
+        .map((button) => button.querySelector('.ant-typography')?.textContent ?? button.textContent)
     }
 
     function sentence() {
@@ -96,7 +96,7 @@ describe('AddExpensePage', () => {
         'Multiple people',
       ])
       expect(within(dialog).getByRole('button', { name: 'Multiple people' })).toBeDisabled()
-      await user.click(within(dialog).getByRole('button', { name: 'Priya Shah' }))
+      await user.click(within(dialog).getByRole('button', { name: /Priya Shah/ }))
 
       await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Who paid?' })).not.toBeInTheDocument())
       expect(sentence()).toBe('Paid by Priya and split equally')
@@ -119,7 +119,7 @@ describe('AddExpensePage', () => {
       await user.click(screen.getByRole('button', { name: 'you' }))
       const dialog = await screen.findByRole('dialog', { name: 'Who paid?' })
       expect(choicesIn(dialog)).toEqual(['You', 'Priya Shah', 'Rahul Rao', 'Multiple people'])
-      await user.click(within(dialog).getByRole('button', { name: 'Rahul Rao' }))
+      await user.click(within(dialog).getByRole('button', { name: /Rahul Rao/ }))
       await waitFor(() => expect(screen.getByRole('button', { name: 'Rahul' })).toBeInTheDocument())
       await user.click(saveButton())
 
@@ -344,7 +344,7 @@ describe('AddExpensePage', () => {
       const id = await groupOfThree()
       renderForm(id)
       await user.click(await screen.findByRole('button', { name: 'you' }))
-      await user.click(within(await screen.findByRole('dialog', { name: 'Who paid?' })).getByRole('button', { name: 'Priya Shah' }))
+      await user.click(within(await screen.findByRole('dialog', { name: 'Who paid?' })).getByRole('button', { name: /Priya Shah/ }))
 
       await user.click(screen.getByRole('button', { name: 'Back' }))
 
