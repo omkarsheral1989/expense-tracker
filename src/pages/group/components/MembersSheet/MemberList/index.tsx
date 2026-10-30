@@ -16,6 +16,8 @@ export function MemberList({ members, syncedIds }: Props) {
         <div key={member.personId}>
           {index > 0 && <Divider style={{ margin: '12px 0' }} />}
           <MemberRow member={member} synced={syncedIds.has(member.personId)} />
+          {/* A line after the last member too, between the list and the Add member button below it. */}
+          {index === members.length - 1 && <Divider style={{ margin: '12px 0 0' }} />}
         </div>
       ))}
     </Flex>
