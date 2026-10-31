@@ -1,4 +1,4 @@
-import { Flex, Typography, theme } from 'antd'
+import { Card, Flex, Typography, theme } from 'antd'
 import { AppLink } from '../../../../components/AppLink'
 import { CategoryIcon } from '../../../../components/CategoryIcon'
 import { historyLines } from '../../../../components/ExpenseWording'
@@ -8,7 +8,6 @@ import { ROUTES } from '../../../../routes.ts'
 import type { ActivityItem } from '../../../../services/activityService/types.ts'
 import { dateService } from '../../../../services/dateService'
 import { groupService } from '../../../../services/groupService'
-import { RADIUS } from '../../../../theme/radius.ts'
 import { activityDetail, activitySentence } from '../../utils.ts'
 import { ACTIVITY_FROM } from '../../constants.ts'
 
@@ -56,7 +55,7 @@ export function ActivityRow({ item, isNew }: Props) {
           name={groupService.shortName(item.by)}
           picture={item.by.picture}
           size={BADGE_SIZE}
-          style={{ position: 'absolute', right: -4, bottom: -4, boxShadow: `0 0 0 2px ${token.colorBgLayout}`, fontSize: 11 }}
+          style={{ position: 'absolute', right: -4, bottom: -4, boxShadow: `0 0 0 2px ${token.colorBgContainer}`, fontSize: 11 }}
         />
       </div>
     )
@@ -67,31 +66,30 @@ export function ActivityRow({ item, isNew }: Props) {
       <AppLink
         to={ROUTES.expenseVersion(item.groupId, item.expenseId, item.id)}
         state={{ from: ACTIVITY_FROM }}
-        className="tap-feedback"
-        style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: 12,
-          padding: '12px 8px',
-          borderRadius: RADIUS.inner,
-          color: 'inherit',
-          background: isNew ? `color-mix(in srgb, ${token.colorPrimary} 10%, transparent)` : undefined,
-        }}
+        style={{ display: 'block', color: 'inherit' }}
       >
-        {renderTile()}
-        <Flex vertical gap={2} style={{ flex: 1, minWidth: 0 }}>
-          <Text strong style={{ overflowWrap: 'anywhere' }}>
-            {isNew && <UnreadDot style={{ marginRight: 6, verticalAlign: 'middle' }} />}
-            {activitySentence(item)}
-          </Text>
-          <Text type="secondary" style={{ overflowWrap: 'anywhere' }}>
-            {activityDetail(item)}
-          </Text>
-          {lines.length > 0 && <ul style={{ margin: '2px 0 0', paddingInlineStart: 20, overflowWrap: 'anywhere' }}>{lines.map(renderLine)}</ul>}
-        </Flex>
-        <Text type="secondary" style={{ flex: 'none', maxWidth: 96, fontSize: 12, textAlign: 'right' }}>
-          {dateService.formatDateTime(item.entry.at, navigator.language)}
-        </Text>
+        <Card
+          className="tap-feedback"
+          // A new row has a faint wash of the primary color over the card's own white.
+          style={isNew ? { background: `color-mix(in srgb, ${token.colorPrimary} 10%, ${token.colorBgContainer})` } : undefined}
+        >
+          <Flex align="flex-start" gap={12}>
+            {renderTile()}
+            <Flex vertical gap={2} style={{ flex: 1, minWidth: 0 }}>
+              <Text strong style={{ overflowWrap: 'anywhere' }}>
+                {isNew && <UnreadDot style={{ marginRight: 6, verticalAlign: 'middle' }} />}
+                {activitySentence(item)}
+              </Text>
+              <Text type="secondary" style={{ overflowWrap: 'anywhere' }}>
+                {activityDetail(item)}
+              </Text>
+              {lines.length > 0 && <ul style={{ margin: '2px 0 0', paddingInlineStart: 20, overflowWrap: 'anywhere' }}>{lines.map(renderLine)}</ul>}
+            </Flex>
+            <Text type="secondary" style={{ flex: 'none', maxWidth: 96, fontSize: 12, textAlign: 'right' }}>
+              {dateService.formatDateTime(item.entry.at, navigator.language)}
+            </Text>
+          </Flex>
+        </Card>
       </AppLink>
     </div>
   )
