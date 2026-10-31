@@ -27,6 +27,8 @@ export function themeFor(scheme: ColorScheme): ThemeConfig {
       controlHeight: CONTROL_HEIGHT,
       controlHeightSM: CONTROL_HEIGHT,
       controlHeightLG: CONTROL_HEIGHT,
+      // A larger pointer on the tips (the switched-off pills'), so it is clear which button they speak of.
+      sizePopupArrow: 28,
     },
     // "Large" controls would otherwise pick up the outer radius and turn
     // into pills, so keep them on the inner tier.
@@ -41,6 +43,8 @@ export function themeFor(scheme: ColorScheme): ThemeConfig {
       },
       // Cards have a radius of their own, a little under the other containers', and one padding.
       Card: { borderRadiusLG: RADIUS.card, bodyPadding: CARD_PADDING },
+      // The tip's pointer is drawn with the small radius for its tip, which the app sets to 10 px: a pointed tip needs a small one.
+      Tooltip: { borderRadiusXS: 1 },
       Input: { borderRadiusLG: RADIUS.inner },
       InputNumber: { borderRadiusLG: RADIUS.inner },
       Select: { borderRadiusLG: RADIUS.inner },
