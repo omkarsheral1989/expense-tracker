@@ -501,9 +501,59 @@ body .ant-drawer-bottom .ant-drawer-section {
   }
 }
 
-/* The page behind the photo viewer is blurred in both modes. !important, since Ant Design sets its own blur (none) on this mask. */
+/* The page behind the photo viewer is blurred in both modes. !important, since Ant Design sets its own blur (none) on this mask.
+   Ant Design fades the whole viewer in by its opacity, and an element that is not fully opaque is a "backdrop root": the mask's blur
+   then sees nothing behind it until the fade ends, and the blur pops in at the end. So the viewer stays at full opacity and its pieces
+   fade themselves: the mask's color and blur grow, and the photo, number and buttons fade, over the same time. */
+.ant-image-preview {
+  opacity: 1 !important;
+  /* The viewer's motion ends when a transition of the viewer itself ends (not one of its children), and its opacity no longer
+     transitions, so an invisible outline color does: it is clear at the start of an opening and at the end of a closing. */
+  outline: 0 solid rgba(0, 0, 1, 0.01);
+  transition: outline-color var(--ant-motion-duration-slow) !important;
+}
+.ant-image-preview-fade-enter,
+.ant-image-preview-fade-appear,
+.ant-image-preview-fade-leave-active {
+  outline-color: transparent;
+}
+.ant-image-preview-fade-enter-active,
+.ant-image-preview-fade-appear-active {
+  outline-color: rgba(0, 0, 1, 0.01);
+}
 .ant-image-preview-mask {
   backdrop-filter: blur(4px) !important;
+  transition:
+    backdrop-filter var(--ant-motion-duration-slow),
+    background-color var(--ant-motion-duration-slow) !important;
+}
+.ant-image-preview-body,
+.ant-image-preview-footer,
+.ant-image-preview-close,
+.ant-image-preview-switch {
+  transition:
+    opacity var(--ant-motion-duration-slow),
+    transform var(--ant-motion-duration-slow) !important;
+}
+.ant-image-preview-fade-enter .ant-image-preview-mask,
+.ant-image-preview-fade-appear .ant-image-preview-mask,
+.ant-image-preview-fade-leave-active .ant-image-preview-mask {
+  backdrop-filter: blur(0) !important;
+  background-color: transparent !important;
+}
+.ant-image-preview-fade-enter :is(.ant-image-preview-body, .ant-image-preview-footer, .ant-image-preview-close, .ant-image-preview-switch),
+.ant-image-preview-fade-appear :is(.ant-image-preview-body, .ant-image-preview-footer, .ant-image-preview-close, .ant-image-preview-switch),
+.ant-image-preview-fade-leave-active :is(.ant-image-preview-body, .ant-image-preview-footer, .ant-image-preview-close, .ant-image-preview-switch) {
+  opacity: 0;
+}
+.ant-image-preview-fade-enter-active .ant-image-preview-mask,
+.ant-image-preview-fade-appear-active .ant-image-preview-mask {
+  backdrop-filter: blur(4px) !important;
+  background-color: var(--ant-color-bg-mask) !important;
+}
+.ant-image-preview-fade-enter-active :is(.ant-image-preview-body, .ant-image-preview-footer, .ant-image-preview-close, .ant-image-preview-switch),
+.ant-image-preview-fade-appear-active :is(.ant-image-preview-body, .ant-image-preview-footer, .ant-image-preview-close, .ant-image-preview-switch) {
+  opacity: 1;
 }
 
 /* The photo viewer's close button sits where the Delete button of the expense page does: 16 px from the top (below the status bar) and
