@@ -163,10 +163,11 @@ html[data-nav='hero-close']::view-transition-new(group-people-icon) {
   object-fit: fill;
 }
 
-/* The corners of the morphing band: the card's rounded left corners (`--hero-block-radius`: a group card's left corners, an expense tile's four) straighten while the block grows into the band, and come back when it shrinks into the row. */
+/* The corners of the morphing band: the card's rounded left corners (`--hero-block-radius`: a group card's left corners, an expense tile's four) straighten while the block grows into the band, and come back when it shrinks into the row.
+   Drawn with a clip-path on the picture pair (not `overflow: clip` and a border-radius, which iOS Safari did not apply to it: the pill's picture was
+   square from the first frame); the pair is the size of the moving box at every frame, so its corners never stretch. */
 html[data-nav='hero-open']::view-transition-image-pair(group-band),
 html[data-nav='hero-close']::view-transition-image-pair(group-band) {
-  overflow: clip;
   animation-duration: var(--group-open-ms, 600ms);
   animation-timing-function: var(--group-open-ease);
   animation-fill-mode: both;
@@ -174,19 +175,19 @@ html[data-nav='hero-close']::view-transition-image-pair(group-band) {
 html[data-nav='hero-open']::view-transition-image-pair(group-band) {
   animation-name: group-band-straighten;
   /* The browser shows the row's (square-taken) picture as soon as it is taken, while the new page is still being drawn, and starts the
-     animations only then; without its own radius the pair would show square corners for that moment. */
-  border-radius: var(--hero-block-radius, 20px 0 0 20px);
+     animations only then; without its own clip the pair would show square corners for that moment. */
+  clip-path: inset(0 round var(--hero-block-radius, 20px 0 0 20px));
 }
 html[data-nav='hero-close']::view-transition-image-pair(group-band) {
   animation-name: group-band-round;
 }
 @keyframes group-band-straighten {
-  from { border-radius: var(--hero-block-radius, 20px 0 0 20px); }
-  to { border-radius: 0; }
+  from { clip-path: inset(0 round var(--hero-block-radius, 20px 0 0 20px)); }
+  to { clip-path: inset(0 round 0); }
 }
 @keyframes group-band-round {
-  from { border-radius: 0; }
-  to { border-radius: var(--hero-block-radius, 20px 0 0 20px); }
+  from { clip-path: inset(0 round 0); }
+  to { clip-path: inset(0 round var(--hero-block-radius, 20px 0 0 20px)); }
 }
 
 /* The rest of the screen (`hero.ts`): the page's content is a picture of its own with no background (`group-page-old` on the page left,
