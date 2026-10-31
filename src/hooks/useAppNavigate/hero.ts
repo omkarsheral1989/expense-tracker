@@ -1,6 +1,5 @@
 import { ROUTES } from '../../routes.ts'
 import { RADIUS } from '../../theme/radius.ts'
-import { CONTROL_HEIGHT } from '../../theme/controlHeight.ts'
 import { FLOATING_BUTTON_HEIGHT } from '../../components/FloatingPillButton/constants.ts'
 import { GROUP_OPEN_MS, GROUP_OPEN_REST } from '../../theme/transition.ts'
 
@@ -62,7 +61,7 @@ export type GroupHero = {
   /** The corners of the row's block (`border-radius`), which straighten into the band's square ones (`--hero-block-radius`). */
   blockRadius: string
   /**
-   * `pill` when a pill grows into a whole page (Create group from the list, Add expense and Settle up from a group): the CSS layers
+   * `pill` when a pill grows into a whole page (Create group from the list, Add expense from a group): the CSS layers
    * it differently (`data-hero-kind`). `form` when Create group's chosen type tile grows into the new group's band: the band's chips,
    * which the form has nothing like, come in from the right. Left out for a row growing into a band.
    */
@@ -141,11 +140,6 @@ const PILL_END_RADIUS = `${FLOATING_BUTTON_HEIGHT / 2}px`
 /** The pages a group page's pills grow into, with the pill and the radius of its round ends (half its height). */
 const PILL_PAGES = [
   { pattern: /^\/groups\/([0-9a-f-]{36})\/expenses\/new\/?$/i, pill: floatingButtonOf, radius: PILL_END_RADIUS },
-  {
-    pattern: /^\/groups\/([0-9a-f-]{36})\/settle\/?$/i,
-    pill: () => document.querySelector<HTMLElement>('[data-settle-pill]'),
-    radius: `${CONTROL_HEIGHT / 2}px`,
-  },
 ]
 
 /** A group's card has rounded left corners; an expense's category tile is rounded all round. */
@@ -260,7 +254,7 @@ export function groupHeroFor(from: string, to: string): GroupHero | null {
         ),
     }
   }
-  // A group page's pill grows into the page it opens: the floating Add expense into Add expense, Settle up into Settle up. The group's band
+  // A group page's pill grows into the page it opens: the floating Add expense into Add expense. The group's band
   // goes up as when an expense opens, and the pill's page shrinks back into it on the way back (Back, Cancel, or Save).
   const pillPageOpened = PILL_PAGES.map((page) => ({ page, match: page.pattern.exec(to) })).find(({ match }) => match)
   if (closed && pillPageOpened?.match && closed[1] === pillPageOpened.match[1]) {
