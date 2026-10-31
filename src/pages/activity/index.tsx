@@ -138,7 +138,7 @@ export function ActivityPage() {
       )
     }
     return (
-      <Flex vertical role="list" aria-label="Activity">
+      <Flex vertical gap={8} role="list" aria-label="Activity">
         {items.map((item) => (
           <ActivityRow key={item.id} item={item} isNew={isNewItem(item, seenAt)} />
         ))}
