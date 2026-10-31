@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Icon } from '../../../../components/Icon'
 import { Button, Flex, Tooltip } from 'antd'
 import { useAppNavigate } from '../../../../hooks/useAppNavigate'
@@ -25,6 +26,9 @@ type Props = {
  * records a payment between two members and is switched off in a group of one;
  * "Balances" opens the balances page and is switched off in a group of one; "Totals" opens the totals page and is switched off while the group has no expenses.
  */
+/** The pills' round ends; `flex: 'none'` keeps each from shrinking in the sideways-scrolling row. */
+const PILL_STYLE = { borderRadius: PILL_RADIUS, flex: 'none' } as const
+
 export function ActionPills({ groupId, group, canSettle, loading = false, canTotal = false, readOnly = false }: Props) {
   const navigate = useAppNavigate()
   const settleUp = (
@@ -32,19 +36,19 @@ export function ActionPills({ groupId, group, canSettle, loading = false, canTot
       disabled={!canSettle || loading || readOnly}
       icon={<Icon name="exchange" />}
       onClick={() => navigate(ROUTES.settleUp(groupId), { state: group && { group } })}
-      style={{ borderRadius: PILL_RADIUS }}
+      style={PILL_STYLE}
     >
       Settle up
     </Button>
   )
 
-  // The same white pill with round ends; it opens the totals page, which has no piece that travels, so it needs no frame of its own.
+  // The same white pill with round ends; it opens the totals page and is switched off while the group has no expenses.
   const totals = (
     <Button
       disabled={!canTotal || loading}
       icon={<Icon name="chartBar" />}
       onClick={() => navigate(ROUTES.totals(groupId), { state: group && { group } })}
-      style={{ borderRadius: PILL_RADIUS }}
+      style={PILL_STYLE}
     >
       Totals
     </Button>
@@ -56,40 +60,30 @@ export function ActionPills({ groupId, group, canSettle, loading = false, canTot
       disabled={!canSettle || loading}
       icon={<Icon name="scale" />}
       onClick={() => navigate(ROUTES.balances(groupId), { state: group && { group } })}
-      style={{ borderRadius: PILL_RADIUS }}
+      style={PILL_STYLE}
     >
       Balances
     </Button>
   )
 
+  // A disabled button gets no pointer events, so its tip hangs on a wrapper; an enabled one needs none.
+  const renderPill = (pill: ReactNode, tip: string | null) =>
+    tip ? (
+      <Tooltip title={tip}>
+        <span style={{ flex: 'none' }}>{pill}</span>
+      </Tooltip>
+    ) : (
+      pill
+    )
+
+  const onlyMemberTip = 'You are the only member of this group.'
+  const settleTip = readOnly ? 'This group is deleted.' : canSettle || loading ? null : onlyMemberTip
+
   return (
     <Flex gap={8} style={{ overflowX: 'auto', paddingBottom: 4 }}>
-      {readOnly ? (
-        <Tooltip title="This group is deleted.">
-          <span style={{ flex: 'none' }}>{settleUp}</span>
-        </Tooltip>
-      ) : canSettle || loading ? (
-        settleUp
-      ) : (
-        // A disabled button gets no pointer events, so the tip hangs on a wrapper.
-        <Tooltip title="You are the only member of this group.">
-          <span style={{ flex: 'none' }}>{settleUp}</span>
-        </Tooltip>
-      )}
-      {canSettle || loading ? (
-        <span style={{ flex: 'none' }}>{balances}</span>
-      ) : (
-        <Tooltip title="You are the only member of this group.">
-          <span style={{ flex: 'none' }}>{balances}</span>
-        </Tooltip>
-      )}
-      {canTotal || loading ? (
-        <span style={{ flex: 'none' }}>{totals}</span>
-      ) : (
-        <Tooltip title="No expenses yet">
-          <span style={{ flex: 'none' }}>{totals}</span>
-        </Tooltip>
-      )}
+      {renderPill(settleUp, settleTip)}
+      {renderPill(balances, canSettle || loading ? null : onlyMemberTip)}
+      {renderPill(totals, canTotal || loading ? null : 'No expenses yet')}
     </Flex>
   )
 }
