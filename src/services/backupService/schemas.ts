@@ -29,6 +29,7 @@ const snapshotSchema = z.object({
   currency: z.string(),
   date: day,
   notes: z.string().nullable(),
+  merchant: z.string().nullable().optional(),
   method: z.enum(SPLIT_METHODS),
   shares: z.array(
     z.object({
@@ -49,7 +50,7 @@ const snapshotSchema = z.object({
 })
 
 const changeSchema = z.object({
-  field: z.enum(['description', 'category', 'amount', 'currency', 'date', 'notes', 'paidBy', 'split', 'receipts']),
+  field: z.enum(['description', 'category', 'amount', 'currency', 'date', 'notes', 'merchant', 'paidBy', 'split', 'receipts']),
   from: z.unknown(),
   to: z.unknown(),
 })
@@ -86,6 +87,7 @@ export const backupRowsSchema = z.object({
       currency: z.string(),
       date: day,
       notes: z.string().nullable(),
+      merchant: z.string().nullable().optional(),
       method: z.enum(SPLIT_METHODS),
       createdBy: z.uuid(),
       createdAt: timestamp,

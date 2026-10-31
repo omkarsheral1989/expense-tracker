@@ -17,6 +17,9 @@ export const GROUP_TYPE_LABELS: Record<GroupType, string> = {
 /** Longest expense description accepted by the database and the add-expense form. */
 export const EXPENSE_DESCRIPTION_MAX_LENGTH = 100
 
+/** Longest merchant (shop, app or website) on an expense. */
+export const EXPENSE_MERCHANT_MAX_LENGTH = 60
+
 /** Longest note on an expense. */
 export const EXPENSE_NOTES_MAX_LENGTH = 1000
 

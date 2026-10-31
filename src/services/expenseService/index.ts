@@ -1,5 +1,5 @@
 import { undeleteGroup } from '../../db/groupDeleted.ts'
-import { and, asc, desc, eq, inArray, isNull, max, ne, sql } from 'drizzle-orm'
+import { and, asc, desc, eq, inArray, isNotNull, isNull, max, ne, sql } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import { displayName } from '../groupService/utils.ts'
 import type { Database } from '../../db/client.ts'
@@ -21,6 +21,7 @@ import {
   CATEGORY_GROUPS,
   DEFAULT_CATEGORY,
   PAST_CHOICES_LIMIT,
+  MERCHANT_SUGGESTION_LIMIT,
   RECENT_CURRENCY_COUNT,
   SETTLEMENT_CATEGORY,
   SETTLEMENT_DESCRIPTION,
@@ -54,6 +55,7 @@ import {
   categoryMatches,
   categoryOf,
   computeShares,
+  distinctMerchants,
   expenseChanges,
   pairBalances,
   payerOf,
@@ -136,7 +138,7 @@ const expenseServiceBase = {
       }
       if (!parsed.success || !result?.ok) return { ok: false, errors }
 
-      const { description, category, currency, date, notes, split, receipts } = parsed.data
+      const { description, category, currency, date, notes, merchant, split, receipts } = parsed.data
       const id = crypto.randomUUID()
       const updatedAt = new Date()
       await tx.insert(expenses).values({
@@ -148,6 +150,7 @@ const expenseServiceBase = {
         currency,
         date,
         notes,
+        merchant,
         method: split.method,
         createdBy: userId,
         createdAt: updatedAt,
@@ -188,6 +191,7 @@ const expenseServiceBase = {
           currency,
           date,
           notes,
+          merchant,
           method: split.method,
           shares: result.shares,
           photos: receipts.map((receipt, position) => ({ ...receipt, position })),
@@ -319,6 +323,7 @@ const expenseServiceBase = {
         currency: expenses.currency,
         date: expenses.date,
         notes: expenses.notes,
+        merchant: expenses.merchant,
         method: expenses.method,
         createdById: expenses.createdBy,
         createdByEmail: people.email,
@@ -428,6 +433,7 @@ const expenseServiceBase = {
         currency: snapshot.currency,
         date: snapshot.date,
         notes: snapshot.notes,
+        merchant: snapshot.merchant ?? null,
         paidBy: payerOf(snapshot) ?? expense.createdBy,
         split: {
           method: snapshot.method,
@@ -478,7 +484,7 @@ const expenseServiceBase = {
       }
       if (!parsed.success || !result?.ok) return { ok: false, errors }
 
-      const { description, category, currency, date, notes, split, receipts } = parsed.data
+      const { description, category, currency, date, notes, merchant, split, receipts } = parsed.data
       const known = new Map(before.photos.map((photo) => [photo.id, photo]))
       const newShares = result.shares
       const after: ExpenseSnapshot = {
@@ -488,6 +494,7 @@ const expenseServiceBase = {
         currency,
         date,
         notes,
+        merchant,
         method: split.method,
         shares: newShares,
         photos: receipts.map((receipt, position) => ({ ...receipt, position })),
@@ -511,6 +518,7 @@ const expenseServiceBase = {
           currency,
           date,
           notes,
+          merchant,
           method: split.method,
           updatedBy: userId,
           updatedAt: editedAt,
@@ -752,6 +760,7 @@ const expenseServiceBase = {
         currency: snapshot.currency,
         date: snapshot.date,
         notes: snapshot.notes,
+        merchant: snapshot.merchant ?? null,
         method: snapshot.method,
         shares,
         receipts: snapshot.photos.map((photo) => ({ id: photo.id, mimeType: photo.mimeType })),
@@ -820,6 +829,7 @@ const expenseServiceBase = {
           currency: target.currency,
           date: target.date,
           notes: target.notes,
+          merchant: target.merchant ?? null,
           method: target.method,
           updatedBy: userId,
           updatedAt: at,
@@ -1019,6 +1029,29 @@ const expenseServiceBase = {
       .limit(RECENT_CURRENCY_COUNT)
     return rows.map((row) => row.currency)
   },
+
+  /**
+   * The merchants the merchant field suggests: those on expenses in the
+   * user's groups, the user's own first, each once (ignoring case and extra
+   * spaces), newest use first within each part.
+   */
+  async listMerchants(db: Database, userId: string): Promise<string[]> {
+    const rows = await db
+      .select({ merchant: expenses.merchant, createdBy: expenses.createdBy })
+      .from(expenses)
+      .innerJoin(
+        groupMembers,
+        and(
+          eq(groupMembers.groupId, expenses.groupId),
+          eq(groupMembers.personId, userId),
+          isNull(groupMembers.deletedAt),
+        ),
+      )
+      .where(isNotNull(expenses.merchant))
+      .orderBy(desc(expenses.createdAt), desc(expenses.id))
+      .limit(MERCHANT_SUGGESTION_LIMIT)
+    return distinctMerchants(rows, userId)
+  },
 }
 
 /** More rows than a group can have: Postgres reads `LIMIT ALL` as no limit, and a number is simpler here. */
@@ -1194,6 +1227,7 @@ async function loadSnapshot(tx: Reader, groupId: string, expenseId: string) {
     currency: expense.currency,
     date: expense.date,
     notes: expense.notes,
+    merchant: expense.merchant,
     method: expense.method,
     shares: shares.map((share) => ({
       personId: share.personId,

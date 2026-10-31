@@ -265,6 +265,7 @@ export function expenseChanges(before: ExpenseSnapshot, after: ExpenseSnapshot):
   note('currency', before.currency, after.currency)
   note('date', before.date, after.date)
   note('notes', before.notes, after.notes)
+  note('merchant', before.merchant ?? null, after.merchant ?? null)
   note('paidBy', payerOf(before), payerOf(after))
 
   if (!sameEntered(before, after)) {
@@ -303,8 +304,32 @@ export function sameSnapshot(a: ExpenseSnapshot, b: ExpenseSnapshot): boolean {
     a.currency === b.currency &&
     a.date === b.date &&
     a.notes === b.notes &&
+    (a.merchant ?? null) === (b.merchant ?? null) &&
     a.method === b.method &&
     shares(a) === shares(b) &&
     a.photos.map((photo) => photo.id).join() === b.photos.map((photo) => photo.id).join()
   )
+}
+
+/**
+ * The merchants to suggest from expenses newest first: the user's own first,
+ * then the others, each once ignoring case and extra spaces, the first
+ * spelling seen being the one kept.
+ */
+export function distinctMerchants(
+  rows: readonly { merchant: string | null; createdBy: string }[],
+  userId: string,
+): string[] {
+  const seen = new Set<string>()
+  const own: string[] = []
+  const others: string[] = []
+  for (const { merchant, createdBy } of rows) {
+    const name = merchant?.trim().replace(/\s+/g, ' ')
+    if (!name) continue
+    const key = name.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    ;(createdBy === userId ? own : others).push(name)
+  }
+  return [...own, ...others]
 }

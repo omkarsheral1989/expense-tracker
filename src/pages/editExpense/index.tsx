@@ -58,6 +58,7 @@ export function EditExpensePage() {
           datasetId={datasetId}
           userId={userId}
           recentCurrencies={state.data.recentCurrencies}
+          merchants={state.data.merchants}
           accounts={state.data.accounts}
           paymentMethod={state.data.paymentMethod}
         />

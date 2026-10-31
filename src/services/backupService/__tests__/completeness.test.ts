@@ -117,7 +117,7 @@ async function everything() {
   await source.update(groupMembers).set({ deletedAt: new Date() })
     .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.personId, dev)))
 
-  const dinner = await addTestExpense(source, omkar.email, groupId, { description: 'Dinner', notes: 'Window seat' })
+  const dinner = await addTestExpense(source, omkar.email, groupId, { description: 'Dinner', notes: 'Window seat', merchant: 'Blinkit' })
   const edited = await expenseService.updateExpense(source, userId, groupId, dinner, {
     ...(await expenseInput(source, omkar.email, groupId)),
     description: 'Beach dinner',

@@ -88,6 +88,10 @@ function lineFor(change: ExpenseChange, entry: ExpenseHistoryEntry, people: Peop
       if (change.from === null) return [{ text: `Notes added: ${quote(String(change.to))}` }]
       if (change.to === null) return [{ text: `Notes removed (were ${quote(String(change.from))})` }]
       return [{ text: `Notes changed from ${quote(String(change.from))} to ${quote(String(change.to))}` }]
+    case 'merchant':
+      if (change.from === null) return [{ text: `Merchant added: ${quote(String(change.to))}` }]
+      if (change.to === null) return [{ text: `Merchant removed (was ${quote(String(change.from))})` }]
+      return [{ text: `Merchant changed from ${quote(String(change.from))} to ${quote(String(change.to))}` }]
     case 'category':
       return [{ text: `Category changed from ${categoryName(change.from)} to ${categoryName(change.to)}` }]
     case 'amount':
@@ -132,6 +136,7 @@ function lineFor(change: ExpenseChange, entry: ExpenseHistoryEntry, people: Peop
 const FIELD_ORDER: ExpenseChange['field'][] = [
   'description',
   'notes',
+  'merchant',
   'category',
   'amount',
   'currency',

@@ -51,7 +51,7 @@ describe('migrations', () => {
   it('can run again without changing anything', async () => {
     await runMigrations(pg)
     const { rows } = await pg.query('select name from ownledger_migrations')
-    expect(rows).toHaveLength(15)
+    expect(rows).toHaveLength(16)
   })
 
   it('logs nothing when every migration has run, and each migration it applies', async () => {
@@ -542,5 +542,57 @@ describe('expenses', () => {
         updatedBy: owner,
       }),
     ).rejects.toThrow()
+  })
+})
+
+describe('migration 0015, which adds the merchant of an expense', () => {
+  const all = import.meta.glob('../migrations/*.sql', {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  }) as Record<string, string>
+
+  /** A database with the migrations run, a person, a group, and a function that adds an expense with a given merchant. */
+  async function setUp(upTo?: string) {
+    const old = new PGlite()
+    const names = Object.keys(all).sort()
+    const stop = upTo ? (names.find((name) => name.endsWith(upTo)) as string) : null
+    await runMigrations(old, Object.fromEntries(names.filter((name) => !stop || name < stop).map((name) => [name, all[name]])))
+    const [omkar, group] = [crypto.randomUUID(), crypto.randomUUID()]
+    await old.query('insert into people (id, email, updated_by) values ($1, $2, $1)', [omkar, 'omkar@gmail.com'])
+    await old.query("insert into groups (id, name, type, default_currency, created_by, updated_by) values ($1, 'G', 'trip', 'INR', $2, $2)", [group, omkar])
+    const add = (columns: string, values: unknown[]) =>
+      old.query(
+        `insert into expenses (group_id, description, category, amount_minor, currency, date, method, created_by, updated_by${columns})
+         values ($1, 'Milk', 'general', 100, 'INR', '2026-10-08', 'equal', $2, $2${values.map((_, i) => `, $${i + 3}`).join('')})`,
+        [group, omkar, ...values],
+      )
+    return { old, add }
+  }
+
+  it('leaves the expenses that exist with no merchant', async () => {
+    const { old, add } = await setUp('0015_expense_merchant.sql')
+    await add('', [])
+
+    await runMigrations(old, all)
+
+    expect((await old.query('select merchant from expenses')).rows).toEqual([{ merchant: null }])
+    await old.close()
+  })
+
+  it('accepts no merchant, and one of 1 to 60 characters', async () => {
+    const { old, add } = await setUp()
+    await add('', [])
+    await add(', merchant', ['a'])
+    await add(', merchant', ['a'.repeat(60)])
+    expect((await old.query('select count(*)::int as n from expenses')).rows).toEqual([{ n: 3 }])
+    await old.close()
+  })
+
+  it('refuses an empty merchant, and one above 60 characters', async () => {
+    const { old, add } = await setUp()
+    await expect(add(', merchant', [''])).rejects.toThrow()
+    await expect(add(', merchant', ['a'.repeat(61)])).rejects.toThrow()
+    await old.close()
   })
 })

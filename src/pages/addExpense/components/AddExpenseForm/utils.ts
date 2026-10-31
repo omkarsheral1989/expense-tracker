@@ -22,6 +22,7 @@ export function carriedOver(draft: ExpenseDraft, defaults: FormValues, group: Gr
     currency,
     date: draft.date,
     notes: draft.notes,
+    merchant: draft.merchant,
     receipts: draft.receipts,
     accountId: draft.accountId,
     charged: draft.charged,

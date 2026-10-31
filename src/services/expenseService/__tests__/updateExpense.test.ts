@@ -155,6 +155,7 @@ describe('expenseService.updateExpense', () => {
       currency: 'GBP',
       date: '2026-10-09',
       notes: 'Second',
+      merchant: null,
       method: 'equal',
       shares: expect.arrayContaining([
         { personId: omkarId, paidMinor: 0, owedMinor: 1200, inputValue: 1 },
@@ -172,6 +173,7 @@ describe('expenseService.updateExpense', () => {
       currency: 'INR',
       date: '2026-10-08',
       notes: 'First',
+      merchant: null,
       method: 'equal',
       shares: expect.arrayContaining([
         { personId: omkarId, paidMinor: 1000, owedMinor: 500, inputValue: 1 },
@@ -428,6 +430,7 @@ describe('expenseService.getExpenseToEdit', () => {
       currency: 'INR',
       date: '2026-10-08',
       notes: 'Cash',
+      merchant: null,
       paidBy: priyaId,
       split: { method: 'shares', values: { [omkarId]: 1, [priyaId]: 3 } },
       receipts: [a],

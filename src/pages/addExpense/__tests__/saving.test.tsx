@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getDb } from '../../../db/client.ts'
 import { expensePhotos, expenseShares, expenses, people } from '../../../db/schema.ts'
 import { ROUTES } from '../../../routes.ts'
+import { addTestExpense } from '../../../testing/expenses.ts'
 import { photoService } from '../../../services/photoService'
 import { useAuthStore } from '../../../stores/useAuthStore'
 import { setUpAddExpenseTests, me, named, descriptionInput, amountInput, notesInput, saveButton, fieldOf } from './helpers.tsx'
@@ -96,6 +97,33 @@ describe('AddExpensePage', () => {
       expect(button).toBeDisabled()
       await user.hover(button.parentElement as HTMLElement)
       expect(await screen.findByText('Up to 10 photos.')).toBeInTheDocument()
+    })
+
+    it('saves the merchant typed in the shop or app field, and none when it is left empty', async () => {
+      const id = await createGroup()
+      renderForm(id)
+      await user.type(await screen.findByRole('textbox', { name: 'Description' }), 'Milk')
+      await user.type(amountInput(), '12')
+      await user.type(screen.getByRole('combobox', { name: 'Merchant' }), '  Blinkit ')
+
+      await user.click(saveButton())
+      await screen.findByText('Expense added.')
+
+      const [saved] = await testDb.db.select({ merchant: expenses.merchant }).from(expenses)
+      expect(saved.merchant).toBe('Blinkit')
+    })
+
+    it('suggests merchants already used, filtered as the user types', async () => {
+      const id = await createGroup()
+      await addTestExpense(testDb.db, me.email, id, { merchant: 'Blinkit' })
+      await addTestExpense(testDb.db, me.email, id, { merchant: 'Astha Medico' })
+      renderForm(id)
+
+      const field = await screen.findByRole('combobox', { name: 'Merchant' })
+      await user.type(field, 'bl')
+
+      expect(await screen.findByRole('option', { name: 'Blinkit' })).toBeInTheDocument()
+      expect(screen.queryByRole('option', { name: 'Astha Medico' })).not.toBeInTheDocument()
     })
 
     it('keeps the photos on the device with the expense when it is saved', async () => {

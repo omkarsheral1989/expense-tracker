@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import {
   EXPENSE_DESCRIPTION_MAX_LENGTH,
+  EXPENSE_MERCHANT_MAX_LENGTH,
   EXPENSE_NOTES_MAX_LENGTH,
   MAX_RECEIPTS_PER_EXPENSE,
   SPLIT_METHODS,
@@ -49,6 +50,12 @@ export const createExpenseSchema = z
       .trim()
       .max(EXPENSE_NOTES_MAX_LENGTH, `Use at most ${EXPENSE_NOTES_MAX_LENGTH} characters.`)
       .transform((notes) => notes || null),
+    merchant: z
+      .string()
+      .nullish()
+      .transform((merchant) => (merchant ?? '').trim().replace(/\s+/g, ' '))
+      .pipe(z.string().max(EXPENSE_MERCHANT_MAX_LENGTH, `Use at most ${EXPENSE_MERCHANT_MAX_LENGTH} characters.`))
+      .transform((merchant) => merchant || null),
     paidBy: z.string({ error: 'Choose who paid.' }).min(1, 'Choose who paid.'),
     // Whether the numbers add up is checked against the group's members by
     // `computeShares`, once the amount is known.

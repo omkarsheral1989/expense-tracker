@@ -176,3 +176,36 @@ describe('the payment method on the expense page (PRD 5.6, 4.10)', () => {
     await waitFor(() => expect(screen.queryByText(/^Paid (with|from)/)).not.toBeInTheDocument())
   })
 })
+
+describe('the merchant on the expense page (PRD 5.6)', () => {
+  beforeEach(() => {
+    vi.stubGlobal('navigator', { language: 'en-GB', languages: ['en-GB'] })
+    useAuthStore.setState({ profile: me, token: null })
+  })
+  afterEach(() => {
+    cleanup()
+    vi.unstubAllGlobals()
+  })
+
+  async function openWith(merchant?: string) {
+    const result = await createTestGroup(testDb.db, me, { name: 'Goa trip', type: 'trip', defaultCurrency: 'GBP', memberEmails: [] })
+    if (!result.ok) throw new Error(JSON.stringify(result.errors))
+    const expenseId = await addTestExpense(testDb.db, me.email, result.groupId, { description: 'Milk', merchant })
+    renderPage(<ExpensePage />, {
+      path: ROUTES.expense(result.groupId, expenseId),
+      pattern: ROUTES.expensePattern,
+      routes: [ROUTES.groupPattern, ROUTES.editExpensePattern],
+    })
+    await screen.findByRole('list', { name: 'Who paid' })
+  }
+
+  it('says where it was bought', async () => {
+    await openWith('Blinkit')
+    expect(screen.getByText('Bought at Blinkit')).toBeInTheDocument()
+  })
+
+  it('says nothing when there is no merchant', async () => {
+    await openWith()
+    expect(screen.queryByText(/^Bought at/)).not.toBeInTheDocument()
+  })
+})

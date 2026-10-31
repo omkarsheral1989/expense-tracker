@@ -18,6 +18,7 @@ import {
   ACCOUNT_NAME_MAX_LENGTH,
   EXPENSE_DESCRIPTION_MAX_LENGTH,
   EXPENSE_EVENT_KINDS,
+  EXPENSE_MERCHANT_MAX_LENGTH,
   EXPENSE_NOTES_MAX_LENGTH,
   GROUP_NAME_MAX_LENGTH,
   GROUP_TYPES,
@@ -161,6 +162,8 @@ export const expenses = pgTable(
     /** The day the money was spent, without a time ('2026-10-08'). */
     date: date('date', { mode: 'string' }).notNull(),
     notes: text('notes'),
+    /** The shop, app or website it was bought from; shared with the group. */
+    merchant: text('merchant'),
     method: text('method').$type<SplitMethod>().notNull(),
     createdBy: uuid('created_by')
       .notNull()
@@ -176,6 +179,10 @@ export const expenses = pgTable(
     check(
       'expenses_notes_length',
       sql`char_length(${table.notes}) <= ${sql.raw(String(EXPENSE_NOTES_MAX_LENGTH))}`,
+    ),
+    check(
+      'expenses_merchant_length',
+      sql`char_length(${table.merchant}) between 1 and ${sql.raw(String(EXPENSE_MERCHANT_MAX_LENGTH))}`,
     ),
     check('expenses_amount_positive', sql`${table.amountMinor} > 0`),
     check('expenses_currency_format', sql`${table.currency} ~ '^[A-Z]{3}$'`),

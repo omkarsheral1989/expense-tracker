@@ -25,13 +25,14 @@ describe('hasUnsavedInput', () => {
   it('is false for an untouched form, and for spaces only', () => {
     expect(hasUnsavedInput(undefined, initial)).toBe(false)
     expect(hasUnsavedInput(initial, initial)).toBe(false)
-    expect(hasUnsavedInput({ ...initial, description: '  ', notes: ' ' }, initial)).toBe(false)
+    expect(hasUnsavedInput({ ...initial, description: '  ', notes: ' ', merchant: '  ' }, initial)).toBe(false)
   })
 
   it.each([
     ['description', { description: 'Dinner' }],
     ['amount', { amount: '0' }],
     ['notes', { notes: 'Card' }],
+    ['merchant', { merchant: 'Blinkit' }],
     ['category', { category: 'food.groceries' }],
     ['currency', { currency: 'EUR' }],
     ['date', { date: '2026-10-07' }],
@@ -98,6 +99,7 @@ describe('toFormFields', () => {
       { name: 'currency', errors: [] },
       { name: 'date', errors: [] },
       { name: 'notes', errors: [] },
+      { name: 'merchant', errors: [] },
       { name: 'split', errors: [] },
       { name: 'receipts', errors: [] },
     ])

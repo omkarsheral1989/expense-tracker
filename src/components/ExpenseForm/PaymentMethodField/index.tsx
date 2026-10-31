@@ -5,7 +5,7 @@ import { currencyService } from '../../../services/currencyService'
 import type { AccountKind } from '../../../db/types.ts'
 import type { AccountSummary } from '../../../services/accountService/types.ts'
 import { ICON_ONLY_SIZE } from '../../../theme/controlHeight.ts'
-import { PILL_RADIUS } from '../../../theme/radius.ts'
+import { PILL_RADIUS, RADIUS } from '../../../theme/radius.ts'
 import { AccountDialog } from '../../AccountDialog'
 import { AccountHeading } from '../../AccountHeading'
 import { AccountStats } from '../../AccountStats'
@@ -93,9 +93,20 @@ export function PaymentMethodField({ id, value, onChange, accounts, userId }: Pr
         style={{ justifyContent: 'flex-start' }}
       >
         {chosen ? chosen.name : <Text type="secondary">Payment method</Text>}
+        {/* Private to the user (PRD 4.10): the picker says so in words. */}
+        <Icon name="lock" style={{ marginInlineStart: 'auto', color: token.colorTextTertiary }} />
       </Button>
       <AdaptiveDialog open={open} onClose={() => setOpen(false)} title="Payment method">
         <Flex vertical gap={12}>
+          <Flex
+            align="center"
+            gap={10}
+            role="note"
+            style={{ padding: 12, background: token.colorPrimaryBg, borderRadius: RADIUS.inner }}
+          >
+            <Icon name="lock" style={{ fontSize: ICON_ONLY_SIZE, color: token.colorPrimary, flex: 'none' }} />
+            <Text strong>Only you can see this. It is not shared with the group.</Text>
+          </Flex>
           {renderCard('none', 'None', !chosen, () => pick(null), <Text style={{ lineHeight: '40px' }}>None</Text>)}
           {accounts.map((account) =>
             renderCard(

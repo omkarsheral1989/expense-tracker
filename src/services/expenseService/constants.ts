@@ -305,5 +305,8 @@ export const RECENT_CURRENCY_COUNT = 3
 /** How many of the user's latest expenses the add-expense form learns categories from (PRD 5.5). */
 export const PAST_CHOICES_LIMIT = 500
 
+/** How many of the newest expenses the merchant field suggests names from (PRD 5.5). */
+export const MERCHANT_SUGGESTION_LIMIT = 1000
+
 /** How many expenses the group page reads at a time (ADR-058). */
 export const EXPENSE_PAGE_SIZE = 30

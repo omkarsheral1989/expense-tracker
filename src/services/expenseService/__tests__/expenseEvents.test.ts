@@ -103,6 +103,7 @@ describe('the "added" event', () => {
       currency: 'INR',
       date: '2026-10-08',
       notes: 'Card',
+      merchant: null,
       method: 'equal',
       shares: expect.arrayContaining([
         { personId: await id(omkar), paidMinor: 1000, owedMinor: 500, inputValue: 1 },

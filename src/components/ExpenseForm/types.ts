@@ -29,6 +29,8 @@ export type FormValues = {
   /** 'YYYY-MM-DD'. */
   date: string
   notes: string
+  /** The shop, app or website it was bought from; empty for none. */
+  merchant?: string
   split: SplitValue
   /** The id of the account the user paid with, or none (PRD 4.10). Only meaningful when the user is the payer. */
   accountId?: string | null

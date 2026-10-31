@@ -158,6 +158,7 @@ export function ExpenseDetails({ expense, datasetId, userId, onChanged, showGrou
           currency={expense.currency}
           date={expense.date}
           notes={expense.notes}
+          merchant={expense.merchant}
           method={expense.method}
           shares={expense.shares}
           paymentMethod={expense.paymentMethod}

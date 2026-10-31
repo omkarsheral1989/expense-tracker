@@ -36,6 +36,14 @@ describe('historyLines', () => {
     expect(lines([{ field: 'notes', from: 'Cash', to: null }])).toEqual([{ text: "Notes removed (were 'Cash')" }])
   })
 
+  it('writes merchant changes, additions and removals', () => {
+    expect(lines([{ field: 'merchant', from: 'Blinkit', to: 'Zepto' }])).toEqual([
+      { text: "Merchant changed from 'Blinkit' to 'Zepto'" },
+    ])
+    expect(lines([{ field: 'merchant', from: null, to: 'Zepto' }])).toEqual([{ text: "Merchant added: 'Zepto'" }])
+    expect(lines([{ field: 'merchant', from: 'Zepto', to: null }])).toEqual([{ text: "Merchant removed (was 'Zepto')" }])
+  })
+
   it('cuts long text after 80 characters with an ellipsis, and leaves short text alone', () => {
     const long = 'a'.repeat(QUOTE_MAX_LENGTH + 20)
     const [line] = lines([{ field: 'description', from: long, to: 'b' }])

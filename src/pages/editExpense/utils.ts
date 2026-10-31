@@ -26,6 +26,7 @@ export async function loadExpenseToEdit(userId: string, groupId: string, expense
     group,
     expense,
     recentCurrencies: await expenseService.recentCurrencies(db, userId),
+    merchants: await expenseService.listMerchants(db, userId),
     accounts: await accountService.listAccounts(db, userId),
     paymentMethod: await accountService.getPaymentMethod(db, expenseId),
   }

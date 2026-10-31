@@ -40,6 +40,8 @@ export type ExpenseSnapshot = {
   /** 'YYYY-MM-DD'. */
   date: string
   notes: string | null
+  /** Absent in snapshots saved before merchants existed. */
+  merchant?: string | null
   method: SplitMethod
   shares: SnapshotShare[]
   photos: SnapshotPhoto[]
@@ -53,6 +55,7 @@ export type ExpenseChangeField =
   | 'currency'
   | 'date'
   | 'notes'
+  | 'merchant'
   | 'paidBy'
   | 'split'
   | 'receipts'

@@ -101,7 +101,33 @@ describe('the payment method on the add-expense page (PRD 5.5, 4.10)', () => {
     expect(row.compareDocumentPosition(date) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
+  it('marks the row with a lock, since the payment method is private to the user', async () => {
+    renderForm(await createGroup())
+    await screen.findByRole('textbox', { name: 'Description' })
+
+    expect(paymentRow().querySelector('.tabler-icon-lock')).not.toBeNull()
+  })
+
+  it('puts the merchant field right under the payment method row, before the date', async () => {
+    renderForm(await createGroup())
+    await screen.findByRole('textbox', { name: 'Description' })
+
+    const merchant = screen.getByRole('combobox', { name: 'Merchant' })
+    const date = screen.getByRole('button', { name: /^Date:/ })
+    expect(paymentRow().compareDocumentPosition(merchant) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(merchant.compareDocumentPosition(date) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
   describe('the picker', () => {
+    it('says that only the user can see the payment method, not the group', async () => {
+      renderForm(await createGroup())
+      await screen.findByRole('textbox', { name: 'Description' })
+
+      const dialog = await openPicker()
+
+      expect(within(dialog).getByRole('note')).toHaveTextContent('Only you can see this. It is not shared with the group.')
+    })
+
     it('offers only "None" and an Add account button before there is an account', async () => {
       renderForm(await createGroup())
       await screen.findByRole('textbox', { name: 'Description' })

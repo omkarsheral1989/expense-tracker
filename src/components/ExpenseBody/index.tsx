@@ -8,6 +8,7 @@ import { expenseService } from '../../services/expenseService'
 import type { ExpenseShareDetails } from '../../services/expenseService/types.ts'
 import { moneyService } from '../../services/moneyService'
 import { ACCOUNT_KIND_COLORS } from '../../theme/accountColors.ts'
+import { CATEGORY_GROUP_COLORS } from '../../theme/categoryColors.ts'
 import { CategoryIcon } from '../CategoryIcon'
 import { PersonAvatar } from '../PersonAvatar'
 import { displayName, owedSentence, paidSentence, SPLIT_METHOD_LABELS } from '../ExpenseWording'
@@ -23,6 +24,8 @@ type Props = {
   /** 'YYYY-MM-DD'. */
   date: string
   notes: string | null
+  /** Where it was bought (PRD 5.6), shown below who paid on the expense page; leave out elsewhere. */
+  merchant?: string | null
   method: SplitMethod
   /** The viewer first, then the others; the people who paid or owe something. */
   shares: ExpenseShareDetails[]
@@ -51,6 +54,7 @@ export function ExpenseBody({
   currency,
   date,
   notes,
+  merchant,
   method,
   shares,
   paymentMethod,
@@ -107,7 +111,7 @@ export function ExpenseBody({
   function renderPayerRows() {
     if (!withoutSummary) return null
     return (
-      <Flex vertical gap={12} role="list" aria-label="Who paid" style={{ marginBottom: paymentMethod ? 12 : 20 }}>
+      <Flex vertical gap={12} role="list" aria-label="Who paid" style={{ marginBottom: paymentMethod || merchant ? 12 : 20 }}>
         {shares
           .filter((share) => share.paidMinor > 0)
           .map((share) => (
@@ -126,7 +130,7 @@ export function ExpenseBody({
     const { accountCurrency, chargedMinor } = paymentMethod
     const rate = chargedMinor ? accountService.rateLine({ amountMinor, currency }, { minor: chargedMinor, currency: accountCurrency }) : null
     return (
-      <Flex align="center" gap={12} style={{ marginBottom: 20 }}>
+      <Flex align="center" gap={12} style={{ marginBottom: merchant ? 12 : 20 }}>
         <Avatar
           size={40}
           style={{ flex: 'none', background: ACCOUNT_KIND_COLORS[paymentMethod.accountKind] }}
@@ -149,6 +153,17 @@ export function ExpenseBody({
     )
   }
 
+  // Where it was bought, shared with the group like the description.
+  function renderMerchant() {
+    if (!withoutSummary || !merchant) return null
+    return (
+      <Flex align="center" gap={12} style={{ marginBottom: 20 }}>
+        <Avatar size={40} style={{ flex: 'none', background: CATEGORY_GROUP_COLORS.shopping }} icon={<Icon name="store" />} />
+        <Text style={{ overflowWrap: 'anywhere' }}>Bought at {merchant}</Text>
+      </Flex>
+    )
+  }
+
   function renderSplit() {
     if (isSettlement) return null
     return (
@@ -156,6 +171,7 @@ export function ExpenseBody({
         {withoutSummary ? null : <Divider style={{ margin: '16px 0' }} />}
         {renderPayerRows()}
         {renderPaymentMethod()}
+        {renderMerchant()}
         <Text strong>{SPLIT_METHOD_LABELS[method]}</Text>
         <Flex vertical gap={12} role="list" aria-label="Who owes" style={{ marginTop: 12 }}>
           {shares.filter((share) => share.owedMinor > 0).map(renderShare)}

@@ -85,6 +85,7 @@ export function AddExpensePage() {
             userId={userId}
             recentCurrencies={state.data.recentCurrencies}
             pastChoices={state.data.pastChoices}
+            merchants={state.data.merchants}
             accounts={state.data.accounts}
             groups={state.data.groups}
             draft={draft}

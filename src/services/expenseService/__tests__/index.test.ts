@@ -90,6 +90,7 @@ describe('createExpense', () => {
       currency: 'INR',
       date: '2026-10-08',
       notes: 'Paid by card',
+      merchant: null,
       method: 'equal',
       createdBy: me,
       updatedBy: me,
@@ -667,6 +668,7 @@ describe('getExpense', () => {
       currency: 'INR',
       date: '2026-10-08',
       notes: 'Card',
+      merchant: null,
       method: 'shares',
       createdBy: { email: 'omkar@gmail.com', name: 'Omkar', isYou: true },
       // Ana neither paid nor owes, so she is left out.

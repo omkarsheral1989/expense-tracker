@@ -18,6 +18,7 @@ import { NOTES_COUNTER_FROM } from './constants.ts'
 import { CurrencyField } from '../CurrencyField'
 import { DateField } from '../DateField'
 import { ReceiptsField } from '../ReceiptsField'
+import { MerchantField } from './MerchantField'
 import { PaymentMethodField } from './PaymentMethodField'
 import { SplitField } from './SplitField'
 import { splitProblem } from './SplitField/utils.ts'
@@ -52,6 +53,8 @@ type Props = {
    * until the user picks one themselves (PRD 5.5). Leave out to never pick it.
    */
   pastChoices?: PastCategoryChoice[]
+  /** The merchants to suggest in the merchant field, in the order to list them (PRD 5.5). */
+  merchants: string[]
   /** The heading, and the title of the browser tab before " · OwnLedger": "Add expense" or "Edit expense". */
   heading: string
   /** What the form has when nothing was entered: leaving asks for confirmation once the form differs from it. */
@@ -88,6 +91,7 @@ export function ExpenseForm({
   recentCurrencies,
   accounts,
   pastChoices,
+  merchants,
   heading,
   initialValues,
   startValues: carriedValues,
@@ -161,6 +165,7 @@ export function ExpenseForm({
           currency: values.currency,
           date: values.date,
           notes: values.notes,
+          merchant: values.merchant,
           paidBy: values.split.paidBy,
           split: { method: values.split.method, values: values.split.values },
           receipts: [...(values.keptReceipts ?? []), ...added],
@@ -336,6 +341,9 @@ export function ExpenseForm({
     return (
       <>
         {renderPaymentMethod()}
+        <Form.Item name="merchant" style={{ marginBottom: 16 }}>
+          <MerchantField merchants={merchants} />
+        </Form.Item>
         <Form.Item name="date" style={{ marginBottom: 16 }}>
           <DateField />
         </Form.Item>

@@ -44,6 +44,8 @@ export type CreateExpenseInput = {
   /** The day of the expense, 'YYYY-MM-DD'. */
   date: string
   notes: string
+  /** The shop, app or website it was bought from; empty or absent for none. */
+  merchant?: string | null
   /** The person id of the member who paid. */
   paidBy: string
   split: SplitInput
@@ -175,6 +177,7 @@ export type ExpenseDetails = {
   /** 'YYYY-MM-DD'. */
   date: string
   notes: string | null
+  merchant: string | null
   method: SplitMethod
   /** Who added it. */
   createdBy: { email: string | null; name: string | null; isYou: boolean }
@@ -231,6 +234,7 @@ export type ExpenseToEdit = {
   /** 'YYYY-MM-DD'. */
   date: string
   notes: string | null
+  merchant: string | null
   /** The person id of the member who paid. */
   paidBy: string
   split: SplitInput
@@ -275,6 +279,7 @@ export type ExpenseVersion = {
     /** 'YYYY-MM-DD'. */
     date: string
     notes: string | null
+    merchant: string | null
     method: SplitMethod
     /** The viewer first, then the others A to Z; only those who paid or owed something. */
     shares: ExpenseShareDetails[]

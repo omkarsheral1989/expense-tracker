@@ -27,6 +27,8 @@ type Props = {
   recentCurrencies: string[]
   /** What the user chose before, for picking a category from the description (PRD 5.5). */
   pastChoices: PastCategoryChoice[]
+  /** The merchants the merchant field suggests. */
+  merchants: string[]
   /** The user's accounts, for the payment method. */
   accounts: AccountSummary[]
   /** Every group of the user, for moving the expense to another one. */
@@ -40,7 +42,7 @@ type Props = {
  * user paid, split equally) or the fields carried over from another group,
  * and a switcher to move the expense to another group.
  */
-export function AddExpenseForm({ group, datasetId, userId, recentCurrencies, pastChoices, accounts, groups, draft }: Props) {
+export function AddExpenseForm({ group, datasetId, userId, recentCurrencies, pastChoices, merchants, accounts, groups, draft }: Props) {
   const navigate = useAppNavigate()
   const queryClient = useQueryClient()
 
@@ -51,6 +53,7 @@ export function AddExpenseForm({ group, datasetId, userId, recentCurrencies, pas
     currency: group.defaultCurrency,
     date: dateService.toDay(new Date()),
     notes: '',
+    merchant: '',
     split: initialSplit(group.members),
     accountId: null,
     charged: '',
@@ -75,6 +78,7 @@ export function AddExpenseForm({ group, datasetId, userId, recentCurrencies, pas
       currency: values.currency,
       date: values.date,
       notes: values.notes,
+      merchant: values.merchant,
       receipts: values.receipts,
       accountId: values.accountId,
       charged: values.charged,
@@ -110,6 +114,7 @@ export function AddExpenseForm({ group, datasetId, userId, recentCurrencies, pas
       recentCurrencies={recentCurrencies}
       accounts={accounts}
       pastChoices={pastChoices}
+      merchants={merchants}
       heading="Add expense"
       initialValues={initialValues}
       startValues={startValues}

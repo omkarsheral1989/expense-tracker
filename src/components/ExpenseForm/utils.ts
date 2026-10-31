@@ -8,7 +8,7 @@ import type { FormValues } from './types.ts'
 /** What `form.setFields` takes: a name and its messages for each field. */
 type FieldData = Parameters<FormInstance['setFields']>[0][number]
 
-const FIELDS = ['description', 'category', 'amount', 'currency', 'date', 'notes', 'split', 'receipts'] as const
+const FIELDS = ['description', 'category', 'amount', 'currency', 'date', 'notes', 'merchant', 'split', 'receipts'] as const
 
 /**
  * What the currency picker lists as "Recent": the group's default currency
@@ -36,6 +36,7 @@ export function hasUnsavedInput(
     moneyService.toMinor(values.amount ?? '', values.currency ?? initial.currency) !==
       moneyService.toMinor(initial.amount, initial.currency) ||
     (values.notes ?? '').trim() !== initial.notes.trim() ||
+    (values.merchant ?? '').trim() !== (initial.merchant ?? '').trim() ||
     values.category !== initial.category ||
     values.currency !== initial.currency ||
     values.date !== initial.date ||

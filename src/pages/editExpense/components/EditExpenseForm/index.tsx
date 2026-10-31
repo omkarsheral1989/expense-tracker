@@ -21,6 +21,8 @@ type Props = {
   userId: string
   /** The currencies of the user's latest expenses, most recent first. */
   recentCurrencies: string[]
+  /** The merchants the merchant field suggests. */
+  merchants: string[]
   /** The user's accounts, for the payment method. */
   accounts: AccountSummary[]
   /** The payment method this device has for the expense, or null. */
@@ -32,7 +34,7 @@ type Props = {
  * saved values. The group stays the expense's own, so it is shown as a plain
  * label. Saving with nothing changed just goes back.
  */
-export function EditExpenseForm({ group, expense, datasetId, userId, recentCurrencies, accounts, paymentMethod }: Props) {
+export function EditExpenseForm({ group, expense, datasetId, userId, recentCurrencies, merchants, accounts, paymentMethod }: Props) {
   const [initialValues] = useState<FormValues>(() => ({
     description: expense.description,
     category: expense.category,
@@ -40,6 +42,7 @@ export function EditExpenseForm({ group, expense, datasetId, userId, recentCurre
     currency: expense.currency,
     date: expense.date,
     notes: expense.notes ?? '',
+    merchant: expense.merchant ?? '',
     split: { paidBy: expense.paidBy, method: expense.split.method, values: { ...expense.split.values } },
     accountId: paymentMethod?.accountId ?? null,
     charged:
@@ -71,6 +74,7 @@ export function EditExpenseForm({ group, expense, datasetId, userId, recentCurre
       group={group}
       datasetId={datasetId}
       recentCurrencies={recentCurrencies}
+      merchants={merchants}
       accounts={accounts}
       heading="Edit expense"
       initialValues={initialValues}
