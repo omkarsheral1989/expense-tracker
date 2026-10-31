@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Icon } from '../../../../components/Icon'
 import { Button, Flex, Tooltip } from 'antd'
 import { useAppNavigate } from '../../../../hooks/useAppNavigate'
@@ -31,6 +31,8 @@ const PILL_STYLE = { borderRadius: PILL_RADIUS, flex: 'none' } as const
 
 export function ActionPills({ groupId, group, canSettle, loading = false, canTotal = false, readOnly = false }: Props) {
   const navigate = useAppNavigate()
+  // Which pill's tip is showing: one at a time, so a tap on another switched-off pill closes the earlier tip (a touch screen has no pointer leaving).
+  const [openTip, setOpenTip] = useState<string | null>(null)
   const settleUp = (
     <Button
       disabled={!canSettle || loading || readOnly}
@@ -67,9 +69,9 @@ export function ActionPills({ groupId, group, canSettle, loading = false, canTot
   )
 
   // A disabled button gets no pointer events, so its tip hangs on a wrapper; an enabled one needs none.
-  const renderPill = (pill: ReactNode, tip: string | null) =>
+  const renderPill = (name: string, pill: ReactNode, tip: string | null) =>
     tip ? (
-      <Tooltip title={tip}>
+      <Tooltip title={tip} open={openTip === name} onOpenChange={(open) => setOpenTip(open ? name : null)}>
         <span style={{ flex: 'none' }}>{pill}</span>
       </Tooltip>
     ) : (
@@ -81,9 +83,9 @@ export function ActionPills({ groupId, group, canSettle, loading = false, canTot
 
   return (
     <Flex gap={8} style={{ overflowX: 'auto', paddingBottom: 4 }}>
-      {renderPill(settleUp, settleTip)}
-      {renderPill(balances, canSettle || loading ? null : onlyMemberTip)}
-      {renderPill(totals, canTotal || loading ? null : 'No expenses yet')}
+      {renderPill('settleUp', settleUp, settleTip)}
+      {renderPill('balances', balances, canSettle || loading ? null : onlyMemberTip)}
+      {renderPill('totals', totals, canTotal || loading ? null : 'No expenses yet')}
     </Flex>
   )
 }
