@@ -1,6 +1,6 @@
 import { Icon } from '../Icon'
 import { App, Button, Flex, Image, Tooltip } from 'antd'
-import { useRef, type ChangeEvent } from 'react'
+import { useRef, type ChangeEvent, type RefObject } from 'react'
 import { MAX_RECEIPTS_PER_EXPENSE } from '../../db/constants.ts'
 import { useStoredPhotos } from '../../hooks/useStoredPhotos'
 import type { PhotoStore, ReceiptInput } from '../../services/photoService/types.ts'
@@ -24,14 +24,15 @@ type Props = {
 }
 
 /**
- * Receipt photos for the expense: a camera button that opens the device's own
- * file chooser (which offers the camera on phones), then the chosen photos as
+ * Receipt photos for the expense: a picture button that opens the device's own
+ * file chooser (several photos at once) and a camera button that opens the camera, then the chosen photos as
  * small squares, each with an x. Up to 10; files that are not pictures are
  * ignored. Works as an Ant Design form field.
  */
 export function ReceiptsField({ id, value = [], onChange, stored = [], onStoredChange, photoStore }: Props) {
   const { message } = App.useApp()
   const chooser = useRef<HTMLInputElement>(null)
+  const camera = useRef<HTMLInputElement>(null)
   const count = stored.length + value.length
   const full = count >= MAX_RECEIPTS_PER_EXPENSE
   // All the stored photos are read together, so their thumbnails join the viewer in the order shown (`useStoredPhotos`).
@@ -76,29 +77,34 @@ export function ReceiptsField({ id, value = [], onChange, stored = [], onStoredC
     )
   }
 
-  const button = (
-    <Button
-      id={id}
-      size="large"
-      icon={<Icon name="camera" />}
-      aria-label="Add receipt photos"
-      disabled={full}
-      onClick={() => chooser.current?.click()}
-      style={{ width: 64, height: 64 }}
-    />
-  )
+  // Two buttons: the picture one opens the device's chooser for several photos at once (Android's is a gallery with no camera),
+  // the camera one opens the camera for a single new photo.
+  function renderButton(input: RefObject<HTMLInputElement | null>, icon: 'picture' | 'camera', label: string, buttonId?: string) {
+    const button = (
+      <Button
+        id={buttonId}
+        size="large"
+        icon={<Icon name={icon} />}
+        aria-label={label}
+        disabled={full}
+        onClick={() => input.current?.click()}
+        style={{ width: 64, height: 64 }}
+      />
+    )
+    if (!full) return button
+    return (
+      <Tooltip title={`Up to ${MAX_RECEIPTS_PER_EXPENSE} photos.`}>
+        <span style={{ display: 'inline-flex' }}>{button}</span>
+      </Tooltip>
+    )
+  }
 
   return (
     // One viewer for all the photos, so they can be swiped through.
     <Image.PreviewGroup>
       <Flex wrap gap={12} align="center">
-        {full ? (
-          <Tooltip title={`Up to ${MAX_RECEIPTS_PER_EXPENSE} photos.`}>
-            <span style={{ display: 'inline-flex' }}>{button}</span>
-          </Tooltip>
-        ) : (
-          button
-        )}
+        {renderButton(chooser, 'picture', 'Add receipt photos', id)}
+        {renderButton(camera, 'camera', 'Take a receipt photo')}
         <input
           ref={chooser}
           type="file"
@@ -107,6 +113,15 @@ export function ReceiptsField({ id, value = [], onChange, stored = [], onStoredC
           // The `hidden` attribute loses to the input styles of the page, so it is hidden here.
           style={{ display: 'none' }}
           data-testid="receipt-chooser"
+          onChange={handleChosen}
+        />
+        <input
+          ref={camera}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          style={{ display: 'none' }}
+          data-testid="receipt-camera"
           onChange={handleChosen}
         />
         {stored.map(renderStored)}
