@@ -25,7 +25,7 @@ export function GroupCard({ group, backTo }: Props) {
 
   return (
     <AppLink to={ROUTES.group(group.id)} state={{ group, backTo } satisfies GroupPageState} style={{ display: 'block' }}>
-      <Card hoverable style={{ overflow: 'hidden' }} styles={{ body: { padding: 0 } }}>
+      <Card hoverable className="tap-feedback" style={{ overflow: 'hidden' }} styles={{ body: { padding: 0 } }}>
         <Flex align="stretch">
           <Flex align="center" justify="center" role="img" aria-label={label} style={{ flex: 'none', width: TYPE_BLOCK_WIDTH, fontSize: TYPE_ICON_SIZE, color: '#fff', background: color }}>
             {icon}

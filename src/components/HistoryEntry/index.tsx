@@ -1,6 +1,7 @@
 import { Icon } from '../Icon'
 import { Flex, Typography } from 'antd'
 import { AppLink } from '../AppLink'
+import { RADIUS } from '../../theme/radius.ts'
 import { dateService } from '../../services/dateService'
 import type { HistoryLine } from '../ExpenseWording'
 
@@ -52,7 +53,12 @@ export function HistoryEntry({ header, at, lines = [], to }: Props) {
   return (
     <div role="listitem">
       {to ? (
-        <AppLink to={to} style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'inherit' }}>
+        <AppLink
+          to={to}
+          className="tap-feedback"
+          // The padding and the matching negative margin give the pressed wash room around the text without moving it.
+          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', margin: '-6px -8px', borderRadius: RADIUS.inner, color: 'inherit' }}
+        >
           {content}
           <Icon name="chevronRight" style={{ flex: 'none', fontSize: 12, opacity: 0.45 }} />
         </AppLink>

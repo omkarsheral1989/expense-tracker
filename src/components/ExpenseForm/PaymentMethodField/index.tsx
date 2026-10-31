@@ -56,6 +56,7 @@ export function PaymentMethodField({ id, value, onChange, accounts, userId }: Pr
       <Card
         key={key}
         hoverable
+        className="tap-feedback"
         role="button"
         tabIndex={0}
         aria-label={label}

@@ -26,6 +26,7 @@ export function MemberItem({ person, onEdit }: Props) {
   return (
     <Card
       hoverable
+      className="tap-feedback"
       // The larger card radius, like the balance rows (PRD 5.9, 5.21).
       style={{ borderRadius: RADIUS.cardLarge }}
       role="button"

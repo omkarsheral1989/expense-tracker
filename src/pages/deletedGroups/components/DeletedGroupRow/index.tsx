@@ -32,7 +32,7 @@ export function DeletedGroupRow({ group }: Props) {
 
   return (
     <AppLink to={ROUTES.group(group.id)} state={opened satisfies GroupPageState} style={{ display: 'block' }}>
-      <Card hoverable style={{ overflow: 'hidden', borderRadius: RADIUS.cardLarge }} styles={{ body: { padding: 0 } }}>
+      <Card hoverable className="tap-feedback" style={{ overflow: 'hidden', borderRadius: RADIUS.cardLarge }} styles={{ body: { padding: 0 } }}>
         <Flex align="stretch">
           <Flex align="center" justify="center" role="img" aria-label={label} style={{ flex: 'none', width: TYPE_BLOCK_WIDTH, fontSize: TYPE_ICON_SIZE, color: '#fff', background: color }}>
             {icon}

@@ -67,6 +67,7 @@ export function ActivityRow({ item, isNew }: Props) {
       <AppLink
         to={ROUTES.expenseVersion(item.groupId, item.expenseId, item.id)}
         state={{ from: ACTIVITY_FROM }}
+        className="tap-feedback"
         style={{
           display: 'flex',
           alignItems: 'flex-start',

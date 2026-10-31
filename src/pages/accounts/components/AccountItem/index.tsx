@@ -19,6 +19,7 @@ export function AccountItem({ account, onEdit }: Props) {
   return (
     <Card
       hoverable
+      className="tap-feedback"
       role="button"
       tabIndex={0}
       aria-label={`Edit ${account.name}`}

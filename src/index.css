@@ -533,3 +533,28 @@ body .ant-drawer-bottom .ant-drawer-section {
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.75);
 }
+
+/* Feedback on a tappable row or card (the list rows, the member, account and payment method cards, the History entries): a wash of the
+   primary color over it, faint under a mouse (not on touch screens, where a hover would stay on after a tap) and stronger while pressed.
+   The overlay takes the row's own corners. */
+.tap-feedback {
+  position: relative;
+}
+.tap-feedback::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--ant-color-primary);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s ease-out;
+}
+@media (hover: hover) {
+  .tap-feedback:hover::after {
+    opacity: 0.06;
+  }
+}
+.tap-feedback:active::after {
+  opacity: 0.12;
+}

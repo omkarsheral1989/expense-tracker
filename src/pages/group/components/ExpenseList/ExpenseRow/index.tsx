@@ -10,6 +10,7 @@ import { groupService } from '../../../../../services/groupService'
 import type { ExpenseListItem, ExpensePayer } from '../../../../../services/expenseService/types.ts'
 import { moneyService } from '../../../../../services/moneyService'
 import { OWED_TO_YOU_COLOR, YOU_OWE_COLOR } from '../../../../../theme/balanceColors.ts'
+import { RADIUS } from '../../../../../theme/radius.ts'
 import { CATEGORY_GROUP_COLORS, DELETED_BAND_COLOR } from '../../../../../theme/categoryColors.ts'
 import type { ExpensePageState } from '../../../../expense/types.ts'
 import { dateParts, expenseStatus } from './utils.ts'
@@ -190,7 +191,9 @@ export function ExpenseRow({ expense, groupId, soloGroup = false, readOnly = fal
         state={opened}
         // Its pieces travel into the band of the expense's page when it opens (PRD 5.16); a deleted line keeps the plain slide.
         data-expense-row={expense.deleted ? undefined : expense.id}
-        style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', color: 'inherit' }}
+        className="tap-feedback"
+        // The side padding and the matching negative margin give the pressed wash room around the text without moving it.
+        style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 8px', margin: '0 -8px', borderRadius: RADIUS.inner, color: 'inherit' }}
       >
         {renderDate()}
         {renderBody()}

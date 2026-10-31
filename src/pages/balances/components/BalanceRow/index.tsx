@@ -50,7 +50,13 @@ export function BalanceRow({ member, totals, lines, members, onSettle, deleted =
 
   function renderHeading() {
     const content = (
-      <Flex align="center" gap={AVATAR_GAP} style={{ width: '100%' }}>
+      <Flex
+        align="center"
+        gap={AVATAR_GAP}
+        // A settled row is not pressable; the others get the pressed wash, with room around the row made by padding and a matching margin.
+        className={settled ? undefined : 'tap-feedback'}
+        style={{ width: 'calc(100% + 12px)', margin: -6, padding: 6, borderRadius: RADIUS.inner }}
+      >
         <PersonAvatar name={groupService.displayName(member)} picture={member.picture} />
         <Text type={settled ? 'secondary' : undefined} style={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere', lineHeight: '20px' }}>
           {summarySegments(member, totals).map(renderSegment)}

@@ -40,6 +40,7 @@ export function GroupRow({ group, balances, spent }: Props) {
       {/* The type's colored block fills the card's left edge, top to bottom; the card clips its corners. */}
       <Card
         hoverable
+        className="tap-feedback"
         style={{ overflow: 'hidden' }}
         styles={{ body: { padding: 0 } }}
       >
