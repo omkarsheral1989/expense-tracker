@@ -56,12 +56,12 @@ export function ExpenseRow({ expense, groupId, soloGroup = false, readOnly = fal
 
   function renderDate() {
     return (
-      // 48 px high: 16 px for the month and 32 px for the day, whatever the font's own line height.
-      <Flex vertical align="center" justify="center" style={{ width: 32, height: 48, flex: 'none' }}>
-        <Text type="secondary" style={{ fontSize: 12, lineHeight: '16px' }}>
+      // 40 px high: 14 px for the month and 26 px for the day, whatever the font's own line height.
+      <Flex vertical align="center" justify="center" style={{ width: 32, height: 40, flex: 'none' }}>
+        <Text type="secondary" style={{ fontSize: 12, lineHeight: '14px' }}>
           {month}
         </Text>
-        <Text style={{ fontSize: 20, lineHeight: '32px' }}>{day}</Text>
+        <Text style={{ fontSize: 20, lineHeight: '26px' }}>{day}</Text>
       </Flex>
     )
   }
