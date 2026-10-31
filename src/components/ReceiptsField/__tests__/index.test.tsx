@@ -106,3 +106,61 @@ describe('the photos of ReceiptsField open in a viewer (PRD 5.5)', () => {
     expect(onStoredChange).toHaveBeenCalledWith([])
   })
 })
+
+describe('the two buttons of ReceiptsField', () => {
+  const chooser = () => screen.getByTestId('receipt-chooser') as HTMLInputElement
+  const camera = () => screen.getByTestId('receipt-camera') as HTMLInputElement
+
+  it('has a picture button for the device chooser and a camera button that opens the camera, after it', () => {
+    renderPage(<ReceiptsField />)
+
+    const pictures = screen.getByRole('button', { name: 'Add receipt photos' })
+    const photo = screen.getByRole('button', { name: 'Take a receipt photo' })
+    expect(pictures.querySelector('.tabler-icon-photo')).not.toBeNull()
+    expect(photo.querySelector('.tabler-icon-camera')).not.toBeNull()
+    expect(pictures.compareDocumentPosition(photo) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('lets the chooser take several pictures and the camera one picture straight from the camera', () => {
+    renderPage(<ReceiptsField />)
+
+    expect(chooser()).toHaveAttribute('accept', 'image/*')
+    expect(chooser()).toHaveAttribute('multiple')
+    expect(chooser()).not.toHaveAttribute('capture')
+    expect(camera()).toHaveAttribute('accept', 'image/*')
+    expect(camera()).toHaveAttribute('capture', 'environment')
+    expect(camera()).not.toHaveAttribute('multiple')
+  })
+
+  it('opens each input from its own button', async () => {
+    renderPage(<ReceiptsField />)
+    const chooserClick = vi.spyOn(chooser(), 'click')
+    const cameraClick = vi.spyOn(camera(), 'click')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Take a receipt photo' }))
+    expect(cameraClick).toHaveBeenCalledTimes(1)
+    expect(chooserClick).not.toHaveBeenCalled()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Add receipt photos' }))
+    expect(chooserClick).toHaveBeenCalledTimes(1)
+    expect(cameraClick).toHaveBeenCalledTimes(1)
+  })
+
+  it('adds a photo taken with the camera after the photos already chosen', async () => {
+    const onChange = vi.fn()
+    renderPage(<ReceiptsField value={[picture('a.jpg')]} onChange={onChange} />)
+
+    await userEvent.upload(camera(), picture('new.jpg'))
+
+    expect(onChange).toHaveBeenCalledTimes(1)
+    expect(onChange.mock.calls[0][0].map((file: File) => file.name)).toEqual(['a.jpg', 'new.jpg'])
+  })
+
+  it('switches both buttons off at 10 photos', () => {
+    const ten = Array.from({ length: 10 }, (_, index) => picture(`${index}.jpg`))
+    renderPage(<ReceiptsField value={ten} />)
+
+    expect(screen.getByRole('button', { name: 'Add receipt photos' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Take a receipt photo' })).toBeDisabled()
+  })
+})

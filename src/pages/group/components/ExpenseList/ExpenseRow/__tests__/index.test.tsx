@@ -43,6 +43,31 @@ async function openRow(expense: ExpenseListItem) {
   return state === 'null' || state === '' ? null : JSON.parse(state ?? 'null')
 }
 
+describe('the row as a tappable link', () => {
+  it('has the pressed and hover wash with the small corner radius, padded so the wash has room without moving the row', () => {
+    renderPage(<ExpenseRow expense={item} groupId={GROUP} />, { path: '/list' })
+
+    const link = screen.getByRole('link')
+    expect(link).toHaveClass('tap-feedback')
+    expect(link).toHaveStyle({ borderRadius: '10px', padding: '10px 8px', margin: '0 -8px' })
+  })
+
+  it('gives a deleted line the same wash', () => {
+    renderPage(<ExpenseRow expense={{ ...item, deleted: { by: you, at: new Date('2026-10-21T10:00:00Z') } }} groupId={GROUP} />, { path: '/list' })
+
+    expect(screen.getByRole('link')).toHaveClass('tap-feedback')
+  })
+
+  it('has a date column 40 px high: 14 px for the month and 26 px for the day', () => {
+    renderPage(<ExpenseRow expense={item} groupId={GROUP} />, { path: '/list' })
+
+    const month = screen.getByText('Oct')
+    expect(month.parentElement).toHaveStyle({ height: '40px' })
+    expect(month).toHaveStyle({ lineHeight: '14px' })
+    expect(screen.getByText('5')).toHaveStyle({ lineHeight: '26px' })
+  })
+})
+
 describe('opening an expense from the list', () => {
   it('hands the expense page what the row knows: ids, description, category, amount, currency and day', async () => {
     expect(await openRow(item)).toEqual({

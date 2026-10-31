@@ -670,7 +670,7 @@ describe('GroupPage', () => {
       expect(currentPath()).toBe(ROUTES.expense(id, expenseId))
     })
 
-    it('shows the balance a payment leaves, and the date column keeps its 48 px height', async () => {
+    it('shows the balance a payment leaves, and the date column keeps its 40 px height', async () => {
       const id = await createGroup(me, { name: 'Goa trip', memberEmails: ['priya@gmail.com'] })
       await addExpense(me.email, id, { description: 'Dinner' })
       await addTestSettlement(testDb.db, 'priya@gmail.com', me.email, id, { amountMinor: 1500 })
@@ -678,7 +678,7 @@ describe('GroupPage', () => {
 
       expect(await screen.findByText("You're all settled up")).toBeInTheDocument()
       const [dateColumn] = (await screen.findAllByText('Oct')).map((month) => month.parentElement as HTMLElement)
-      expect(dateColumn).toHaveStyle({ height: '48px' })
+      expect(dateColumn).toHaveStyle({ height: '40px' })
     })
 
     it('puts a "month year" header above the expenses of each month, even the newest', async () => {

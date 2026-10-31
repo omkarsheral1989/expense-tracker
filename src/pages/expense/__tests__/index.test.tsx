@@ -482,6 +482,15 @@ describe('ExpensePage', () => {
       expect(card).toHaveAttribute('href', expect.stringContaining(ROUTES.group(id)))
     })
 
+    it('has the pressed and hover wash of a tappable card', async () => {
+      const id = await createGroup()
+      const expenseId = await addExpense(id)
+      renderExpense(id, expenseId)
+
+      await screen.findByText('Group')
+      expect(screen.getByText('Goa trip').closest('.ant-card')).toHaveClass('tap-feedback')
+    })
+
     it('is left out when the page is opened from the group list', async () => {
       const id = await createGroup()
       const expenseId = await addExpense(id)

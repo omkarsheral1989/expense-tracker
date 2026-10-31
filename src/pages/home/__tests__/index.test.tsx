@@ -293,6 +293,14 @@ describe('HomePage', () => {
       expect(screen.queryByText('Not mine')).not.toBeInTheDocument()
     })
 
+    it('gives each row the pressed and hover wash of a tappable card', async () => {
+      await createGroup(me, { name: 'Goa' })
+      renderHome()
+
+      const card = (await screen.findByRole('link', { name: /goa/i })).querySelector('.ant-card')
+      expect(card).toHaveClass('tap-feedback')
+    })
+
     it('makes every row a link to that group\'s page', async () => {
       const id = await createGroup(me, { name: 'Goa trip' })
       const page = renderHome()

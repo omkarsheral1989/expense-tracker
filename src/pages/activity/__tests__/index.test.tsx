@@ -88,6 +88,32 @@ describe('the Activity page', () => {
     expect(within(dinner).getByText(/\d{1,2} \w{3} 20\d\d, /)).toBeInTheDocument()
   })
 
+  it('shows each event in a card with the wash of a tappable one, 8 px from the next', async () => {
+    const groupId = (await testDb.db.query.groups.findFirst())!.id
+    await addTestExpense(testDb.db, me.email, groupId, { description: 'Dinner' })
+    await pause()
+    await addTestExpense(testDb.db, priya.email, groupId, { description: 'Taxi' })
+    renderActivity()
+
+    const list = await screen.findByRole('list', { name: 'Activity' })
+    expect(list).toHaveStyle({ gap: '8px' })
+    for (const row of rows()) {
+      expect(row.querySelector('a > .ant-card')).toHaveClass('tap-feedback')
+    }
+  })
+
+  it('makes a row with no detail lines as high as its 40 px tile: two 20 px lines and no gap', async () => {
+    const groupId = (await testDb.db.query.groups.findFirst())!.id
+    await addTestExpense(testDb.db, me.email, groupId, { description: 'Dinner' })
+    renderActivity()
+
+    await screen.findByRole('list', { name: 'Activity' })
+    const [row] = rows()
+    expect(within(row).getByText('You added Dinner')).toHaveStyle({ lineHeight: '20px' })
+    expect(within(row).getByText('Goa trip · £10.00')).toHaveStyle({ lineHeight: '20px' })
+    expect(within(row).getByText('Goa trip · £10.00').parentElement!.style.gap).toBe('')
+  })
+
   it('words each kind of event: edited, deleted, restored and restored to a version', async () => {
     const groupId = (await testDb.db.query.groups.findFirst())!.id
     const meId = await personIdOf(testDb.db, me.email)
@@ -218,10 +244,10 @@ describe('what is new on the Activity page', () => {
     await screen.findByRole('list', { name: 'Activity' })
     const [mine, fresh, old] = rows()
     expect(within(fresh).getByTestId('unread-dot')).toBeInTheDocument()
-    expect(fresh.querySelector('a')!.style.background).toContain('color-mix')
+    expect(fresh.querySelector<HTMLElement>('.ant-card')!.style.background).toContain('color-mix')
     for (const row of [mine, old]) {
       expect(within(row).queryByTestId('unread-dot')).not.toBeInTheDocument()
-      expect(row.querySelector('a')!.style.background).toBe('')
+      expect(row.querySelector<HTMLElement>('.ant-card')!.style.background).toBe('')
     }
   })
 

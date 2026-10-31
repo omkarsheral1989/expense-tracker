@@ -56,6 +56,13 @@ describe('the Group members page', () => {
     expect(screen.getByRole('button', { name: /Add member$/ })).toBeInTheDocument()
   })
 
+  it('gives each member card the pressed and hover wash of a tappable card', async () => {
+    renderMembers()
+
+    await screen.findByText('No members yet.')
+    expect(card('Omkar Sheral')).toHaveClass('tap-feedback')
+  })
+
   it('has the Add member button as a white one with round ends', async () => {
     renderMembers()
 

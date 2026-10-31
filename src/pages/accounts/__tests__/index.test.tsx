@@ -111,6 +111,14 @@ describe('the Accounts page', () => {
       expect(last).toHaveTextContent('Add account')
     })
 
+    it('gives each account card the pressed and hover wash of a tappable card', async () => {
+      await addAccount({ kind: 'bank', name: 'Barclays', currency: 'GBP' })
+
+      renderAccounts()
+
+      expect(await screen.findByRole('button', { name: 'Edit Barclays' })).toHaveClass('tap-feedback')
+    })
+
     it('shows each card\'s icon, name, and "£ · Bank account" or "₹ · Credit card"', async () => {
       await addAccount({ kind: 'bank', name: 'Barclays', currency: 'GBP' })
       await addAccount({ kind: 'card', name: 'HDFC Regalia', currency: 'INR' })

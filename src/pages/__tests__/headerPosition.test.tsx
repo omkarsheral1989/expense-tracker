@@ -6,6 +6,7 @@ import { cleanup, screen } from '@testing-library/react'
 import type { ReactElement } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getDb } from '../../db/client.ts'
+import { slide } from '../../hooks/useAppNavigate/utils.ts'
 import { expenseEvents } from '../../db/schema.ts'
 import { ROUTES } from '../../routes.ts'
 import { useAuthStore } from '../../stores/useAuthStore'
@@ -111,6 +112,9 @@ describe('the pages around the others', () => {
   it('puts the header of a form that is still loading the shared distance below the status bar', async () => {
     const { group } = await setUpGroup()
     vi.mocked(getDb).mockImplementation(() => new Promise(() => {}))
+    // Opened from the group page (not after a reload), so the loading view has the header.
+    slide.paths.set(0, ROUTES.group(group))
+    slide.paths.set(1, ROUTES.newExpense(group))
 
     renderPage(<AddExpensePage />, {
       path: ROUTES.newExpense(group),
@@ -121,6 +125,7 @@ describe('the pages around the others', () => {
 
     expect(await screen.findByRole('status', { name: 'Loading the group' })).toBeInTheDocument()
     expect(paddingAboveHeader()).toContain(EXPECTED)
+    slide.paths.clear()
   })
 
   it('puts the Back button of a page that could not load the shared distance below the status bar', async () => {

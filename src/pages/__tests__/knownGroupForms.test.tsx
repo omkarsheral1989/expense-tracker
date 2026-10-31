@@ -6,6 +6,7 @@ import userEvent from '@testing-library/user-event'
 import type { ReactElement } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getDb } from '../../db/client.ts'
+import { slide } from '../../hooks/useAppNavigate/utils.ts'
 import { ROUTES } from '../../routes.ts'
 import { useAuthStore } from '../../stores/useAuthStore'
 import { setUpTestDatabase } from '../../testing/database.ts'
@@ -28,10 +29,21 @@ vi.mock('../../db/client.ts', async (importOriginal) => {
 const me = { id: '1', email: 'omkar@gmail.com', name: 'Omkar Sheral' }
 const testDb = setUpTestDatabase()
 
-beforeEach(() => useAuthStore.setState({ profile: me, token: null }))
+/** The app has seen the group page and then this one (a page opened from inside the app); a reload leaves it with only this page. */
+function openedFromGroupPage() {
+  slide.paths.clear()
+  slide.paths.set(0, ROUTES.group('previous'))
+  slide.paths.set(1, ROUTES.home)
+}
+
+beforeEach(() => {
+  useAuthStore.setState({ profile: me, token: null })
+  openedFromGroupPage()
+})
 afterEach(() => {
   cleanup()
   vi.mocked(getDb).mockReset()
+  slide.paths.clear()
 })
 
 async function createGroup() {
@@ -115,6 +127,18 @@ describe.each(CASES)('$name while it loads, opened from the group page', (testCa
     expect(await screen.findByRole('textbox', { name: testCase.field })).toBeInTheDocument()
     expect(screen.queryByRole('status', { name: 'Loading the group' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: testCase.save })).toBeEnabled()
+  })
+
+  it('shows only the spinner after a reload, though the saved state is still there', async () => {
+    const id = await createGroup()
+    // After a reload the app has seen only this page.
+    slide.paths.clear()
+    slide.paths.set(0, testCase.path(id))
+    renderHeld(testCase, id, opened(id))
+
+    expect(screen.getByRole('status', { name: 'Loading the group' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: testCase.heading })).not.toBeInTheDocument()
+    expect(screen.queryByText('Goa trip')).not.toBeInTheDocument()
   })
 
   it.each([

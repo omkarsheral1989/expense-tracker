@@ -59,6 +59,17 @@ describe('the Deleted groups page', () => {
     await waitFor(() => expect(page.currentPath()).toBe(`/groups/${second.groupId}`))
   })
 
+  it('gives each group card the pressed and hover wash of a tappable card', async () => {
+    const group = await createTestGroup(testDb.db, me, { name: 'Goa trip', type: 'trip', defaultCurrency: 'GBP', memberEmails: [] })
+    if (!group.ok) throw new Error('group')
+    await groupDeletionService.deleteGroup(testDb.db, await personIdOf(testDb.db, me.email), group.groupId)
+
+    render()
+
+    const list = await screen.findByRole('list', { name: 'Deleted groups' })
+    expect(within(list).getByRole('link').querySelector('.ant-card')).toHaveClass('tap-feedback')
+  })
+
   it('has a Back button to the home page', async () => {
     const page = render()
     await userEvent.click(await screen.findByRole('button', { name: 'Back' }))

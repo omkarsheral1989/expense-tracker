@@ -97,21 +97,25 @@ describe('groupHeroFor', () => {
     expect(groupHeroFor(ROUTES.newGroup, ROUTES.home)).toMatchObject({ direction: 'hero-close', kind: 'pill' })
   })
 
-  it('grows the group page\'s Add expense and Settle up pills into their pages, each from its own round ends', () => {
+  it('grows the group page\'s floating Add expense pill into its page, and shrinks it back', () => {
     expect(groupHeroFor(ROUTES.group(GROUP), ROUTES.newExpense(GROUP))).toMatchObject({ direction: 'hero-open', kind: 'pill', blockRadius: '24px' })
-    expect(groupHeroFor(ROUTES.group(GROUP), ROUTES.settleUp(GROUP))).toMatchObject({ direction: 'hero-open', kind: 'pill', blockRadius: '20px' })
-    expect(groupHeroFor(ROUTES.settleUp(GROUP), ROUTES.group(GROUP))).toMatchObject({ direction: 'hero-close', kind: 'pill' })
+    expect(groupHeroFor(ROUTES.newExpense(GROUP), ROUTES.group(GROUP))).toMatchObject({ direction: 'hero-close', kind: 'pill' })
     // Only into the same group's pages.
-    expect(groupHeroFor(ROUTES.group(GROUP), ROUTES.settleUp(EXPENSE))).toBeNull()
+    expect(groupHeroFor(ROUTES.group(GROUP), ROUTES.newExpense(EXPENSE))).toBeNull()
   })
 
-  it('names the Settle up pill\'s square button, the wash and the page that comes when Settle up opens', () => {
-    page(`${GROUP_BAND}<span data-settle-pill><button data-vt="block"><span data-vt="pillLabel"></span></button></span>`)
-    const hero = groupHeroFor(ROUTES.group(GROUP), ROUTES.settleUp(GROUP))!
+  it('leaves Settle up to the plain slide, like Balances and Totals: no piece travels between the group page and it', () => {
+    expect(groupHeroFor(ROUTES.group(GROUP), ROUTES.settleUp(GROUP))).toBeNull()
+    expect(groupHeroFor(ROUTES.settleUp(GROUP), ROUTES.group(GROUP))).toBeNull()
+  })
+
+  it('names the floating Add expense pill\'s square button, the wash and the page that comes when Add expense opens', () => {
+    page(`${GROUP_BAND}<div data-floating-button><button data-vt="block"><span data-vt="pillLabel"></span></button></div>`)
+    const hero = groupHeroFor(ROUTES.group(GROUP), ROUTES.newExpense(GROUP))!
     hero.before()
 
-    expect(nameOf('[data-settle-pill] [data-vt="block"]')).toBe('group-band')
-    expect(nameOf('[data-settle-pill] [data-vt="pillLabel"]')).toBe('group-pill-label')
+    expect(nameOf('[data-floating-button] [data-vt="block"]')).toBe('group-band')
+    expect(nameOf('[data-floating-button] [data-vt="pillLabel"]')).toBe('group-pill-label')
     expect(nameOf('[data-group-band]')).toBe('group-app-header')
 
     page(`${TINT}<div data-vt="header"></div>`)

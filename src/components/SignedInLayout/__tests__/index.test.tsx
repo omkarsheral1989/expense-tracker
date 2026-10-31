@@ -90,7 +90,6 @@ describe('SignedInLayout', () => {
 
   describe('while the data cannot be used', () => {
     it.each([
-      ['is loading', { status: 'loading' } as const, 'Opening your data…'],
       ['is open in another tab', { status: 'locked' } as const, 'OwnLedger is open in another tab'],
       ['fails to open', { status: 'error', error: new Error('boom') } as const, "Couldn't open your data"],
     ])('shows the header on every page when the data %s', (_name, state, message) => {
@@ -102,6 +101,17 @@ describe('SignedInLayout', () => {
         expectCenteredMessage(screen.getByText(message))
         expect(accountMenu()).toHaveLength(1)
         expect(screen.queryByText(/^Page: /)).not.toBeInTheDocument()
+        view.unmount()
+      }
+    })
+
+    it('shows no header on any page while the data is loading, only the loading screen', () => {
+      for (const path of [ROUTES.home, ROUTES.newGroup, ROUTES.group('abc'), ROUTES.expense('abc', 'def')]) {
+        setDatabase({ status: 'loading' })
+        const view = renderAt(path)
+
+        expect(screen.getByText('Opening your data…')).toBeInTheDocument()
+        expect(accountMenu()).toHaveLength(0)
         view.unmount()
       }
     })

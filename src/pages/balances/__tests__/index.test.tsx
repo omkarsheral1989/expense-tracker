@@ -106,6 +106,15 @@ describe('the Balances page', () => {
     ])
   })
 
+  it('gives the heading of a row with something owed the pressed and hover wash, and a settled row none', async () => {
+    renderBalances(await createGroup())
+
+    await screen.findByRole('heading', { name: 'Balances' })
+    expect(rowButton('You get back').firstElementChild).toHaveClass('tap-feedback')
+    const settled = screen.getByText('Rima is settled up')
+    expect(settled.parentElement).not.toHaveClass('tap-feedback')
+  })
+
   it('colors only the amounts: green for what is owed to someone, orange-red for what they owe', async () => {
     renderBalances(await createGroup())
 

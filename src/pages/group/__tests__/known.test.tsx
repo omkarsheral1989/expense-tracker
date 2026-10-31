@@ -123,7 +123,7 @@ describe('the group page while it loads, opened from the home list', () => {
     expect(screen.getByRole('button', { name: 'Settle up' })).toBeDisabled()
     expect(screen.getByRole('button', { name: /2 members$/ })).toBeDisabled()
     // A pill wrapped for the "only member" tip would sit in a span of its own; while loading there is no such tip.
-    expect(screen.getByRole('button', { name: 'Settle up' }).closest('[data-settle-pill]')?.parentElement?.tagName).toBe('DIV')
+    expect(screen.getByRole('button', { name: 'Settle up' }).parentElement?.tagName).toBe('DIV')
   })
 
   it('sets the tab title from the known name', async () => {

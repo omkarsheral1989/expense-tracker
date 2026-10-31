@@ -116,6 +116,17 @@ describe('ExpensePage: history', () => {
     expect(entries()[0].textContent).toMatch(/^You added this expense · /)
   })
 
+  it('gives each entry that opens a version the pressed and hover wash, with the small corner radius', async () => {
+    const id = await createGroup()
+    const expenseId = await addExpense(id)
+    renderExpense(id, expenseId)
+
+    await screen.findByText('History')
+    const link = entries()[0].querySelector('a') as HTMLElement
+    expect(link).toHaveClass('tap-feedback')
+    expect(link).toHaveStyle({ borderRadius: '10px' })
+  })
+
   it('is shown for a payment between members, with the entry that it was added', async () => {
     const id = await createGroup()
     const payment = await addTestSettlement(testDb.db, me.email, 'priya@gmail.com', id)

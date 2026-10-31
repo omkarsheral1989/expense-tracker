@@ -148,11 +148,23 @@ describe('DatabaseGate', () => {
   describe('while the data cannot be used', () => {
     beforeEach(() => useAuthStore.setState({ profile }))
 
-    it('shows a loading screen under the header while the data opens', () => {
+    it('shows only a loading screen, with no header, while the data opens', () => {
       setDatabase({ status: 'loading' })
       renderGate()
       expect(screen.getByText('Opening your data…')).toBeInTheDocument()
-      expect(screen.getByText('Header')).toBeInTheDocument()
+      expect(screen.queryByText('Header')).not.toBeInTheDocument()
+    })
+
+    it('shows no header either while the user\'s own person is still being found in the open data', async () => {
+      let found: (user: { personId: string; name: string; email: string }) => void = () => {}
+      vi.mocked(userService.resolve).mockReturnValue(new Promise((resolve) => (found = resolve)))
+      renderGate()
+
+      expect(screen.getByText('Opening your data…')).toBeInTheDocument()
+      expect(screen.queryByText('Header')).not.toBeInTheDocument()
+
+      await act(async () => found({ personId: 'person-1', name: 'Omkar Sheral', email: 'omkar@gmail.com' }))
+      expect(await screen.findByText(/^Omkar Sheral\|/)).toBeInTheDocument()
     })
 
     it('says the app is open in another tab, and tries again', async () => {

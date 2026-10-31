@@ -11,11 +11,14 @@ const flat = { id: 'g2', name: 'Flat bills', type: 'home' as const }
 describe('GroupSwitcher', () => {
   afterEach(cleanup)
 
-  it('is a plain label when the user has only this group', () => {
+  it('is the same full-width pill, switched off and with no menu, when the user has only this group', async () => {
     render(<GroupSwitcher group={trip} groups={[trip]} onSwitch={() => {}} />)
 
+    const button = screen.getByRole('button', { name: 'Group: Goa trip' })
+    expect(button).toBeDisabled()
+    expect(button).toHaveClass('ant-btn-block')
+    expect(button.querySelector('.tabler-icon-plane')).not.toBeNull()
     expect(screen.getByText('Goa trip')).toBeInTheDocument()
-    expect(screen.queryByRole('button')).not.toBeInTheDocument()
   })
 
   it('is a full-width dropdown that lists the groups and calls onSwitch with the one chosen', async () => {

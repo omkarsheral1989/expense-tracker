@@ -62,6 +62,15 @@ describe('ThemeProvider', () => {
     expect(themeFor('light').token?.colorBgMask).toBeUndefined()
   })
 
+  it('draws the tip of a tooltip pointed (a 1 px tip radius, not the theme\'s 10 px) and larger than Ant Design\'s 16 px', () => {
+    for (const scheme of ['light', 'dark'] as const) {
+      expect(themeFor(scheme).components?.Tooltip, scheme).toMatchObject({ borderRadiusXS: 1 })
+      expect(themeFor(scheme).token?.sizePopupArrow, scheme).toBe(28)
+    }
+    // The other components keep the small radius, which is 10 px.
+    expect(themeFor('light').token?.borderRadiusXS).toBe(10)
+  })
+
   it('follows the color scheme with its algorithm', () => {
     expect(themeFor('dark').algorithm).toBe(theme.darkAlgorithm)
     expect(themeFor('light').algorithm).toBe(theme.defaultAlgorithm)

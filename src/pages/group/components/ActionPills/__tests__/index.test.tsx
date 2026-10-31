@@ -24,26 +24,42 @@ describe('ActionPills', () => {
     await waitFor(() => expect(page.currentPath()).toBe(ROUTES.settleUp(GROUP)))
   })
 
-  it('has the border of a button, drawn over the pill by its frame rather than under the button', () => {
-    renderPills({ canSettle: true })
+  it('is the same white pill with round ends as Balances and Totals, with no frame around it', () => {
+    renderPills({ canSettle: true, canTotal: true })
 
-    const frame = settleUp().closest('[data-settle-pill]') as HTMLElement
-    expect(frame).toHaveStyle({ borderRadius: '999px', overflow: 'hidden' })
-    // The border is the frame's ::after (src/index.css); an outline on the frame would be covered by the white button.
-    expect(frame.style.outline).toBe('')
-    expect(settleUp()).toHaveStyle({ borderRadius: '0px' })
+    expect(settleUp()).toHaveStyle({ borderRadius: '999px' })
+    expect(settleUp()).toHaveClass('ant-btn-default')
+    expect(settleUp().closest('[data-settle-pill]')).toBeNull()
+    // It takes the button's own border and its hover and pressed colors, like the other two.
+    expect(settleUp().style.border).toBe('')
+    for (const name of [/Balances$/, /Totals$/]) {
+      expect(screen.getByRole('button', { name }).className).toBe(settleUp().className)
+    }
   })
 
-  it('has an 18 px arrows icon before its label, inside the label so both fade together when the pill grows into the page', () => {
+  it('has an arrows icon before its label', () => {
     renderPills({ canSettle: true })
 
-    const icon = settleUp().querySelector('.tabler-icon-arrows-exchange') as SVGElement
+    const icon = settleUp().querySelector('.ant-btn-icon .tabler-icon-arrows-exchange')
     expect(icon).not.toBeNull()
-    expect(icon).toHaveAttribute('width', '18')
-    const label = settleUp().querySelector('[data-vt="pillLabel"]') as HTMLElement
-    expect(label).toContainElement(icon)
-    expect(label).toHaveTextContent('Settle up')
-    expect(label).toHaveStyle({ gap: '8px' })
+    expect(settleUp()).toHaveTextContent('Settle up')
+  })
+
+  it('is not a piece that travels into the settle-up page: the page change is the plain slide', () => {
+    renderPills({ canSettle: true })
+
+    expect(settleUp().hasAttribute('data-vt')).toBe(false)
+    expect(settleUp().querySelector('[data-vt]')).toBeNull()
+  })
+
+  it.each([
+    ['Settle up', () => settleUp()],
+    ['Balances', () => screen.getByRole('button', { name: /Balances$/ })],
+    ['Totals', () => screen.getByRole('button', { name: /Totals$/ })],
+  ])('keeps %s from shrinking in the scrolling row', (_name, pill) => {
+    renderPills({ canSettle: true, canTotal: true })
+
+    expect(pill().style.flexShrink).toBe('0')
   })
 
   it('switches Settle up off, with a tip, in a group of one', async () => {
@@ -51,6 +67,19 @@ describe('ActionPills', () => {
     expect(settleUp()).toBeDisabled()
     await userEvent.hover(settleUp().parentElement as HTMLElement)
     expect(await screen.findByText(TIP)).toBeInTheDocument()
+  })
+
+  it('shows one tip at a time: pressing another switched-off pill closes the earlier tip', async () => {
+    renderPills({ canSettle: false, canTotal: false })
+    const totals = screen.getByRole('button', { name: /Totals$/ })
+
+    await userEvent.hover(settleUp().parentElement as HTMLElement)
+    const onlyMember = await screen.findByText(TIP)
+    expect(onlyMember.closest('.ant-tooltip')).not.toHaveClass('ant-tooltip-hidden')
+
+    await userEvent.hover(totals.parentElement as HTMLElement)
+    expect(await screen.findByText('No expenses yet')).toBeInTheDocument()
+    await waitFor(() => expect(onlyMember.closest('.ant-tooltip')).toHaveClass('ant-tooltip-hidden'))
   })
 
   it('switches Settle up off, without that tip, while the members are still loading', async () => {

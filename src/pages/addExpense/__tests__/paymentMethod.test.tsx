@@ -129,6 +129,16 @@ describe('the payment method on the add-expense page (PRD 5.5, 4.10)', () => {
       expect(within(cardOf(dialog, 'Forex card')).getByText(/₹ · Credit card$/)).toBeInTheDocument()
     })
 
+    it('gives each card of the picker the pressed and hover wash', async () => {
+      const { groupId } = await groupWithAccounts()
+      renderForm(groupId)
+      await screen.findByRole('textbox', { name: 'Description' })
+
+      const dialog = await openPicker()
+
+      for (const name of ['None', 'Barclays Savings', 'Forex card']) expect(cardOf(dialog, name)).toHaveClass('tap-feedback')
+    })
+
     it('puts the chosen account on the row, and closes', async () => {
       const { groupId } = await groupWithAccounts()
       renderForm(groupId)
