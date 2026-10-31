@@ -1,6 +1,5 @@
 import { Icon } from '../Icon'
 import { Button, Dropdown, Flex, Typography } from 'antd'
-import { GroupLabel } from '../GroupLabel'
 import { GroupTypeIcon } from '../GroupTypeIcon'
 import { currencyService } from '../../services/currencyService'
 import type { GroupSummary } from '../../services/groupService/types.ts'
@@ -92,7 +91,8 @@ export function GroupSwitcher(props: Props) {
   if (props.disabled) return renderButton(`Group: ${group.name}`, true)
 
   const { groups, onSwitch } = props
-  if (groups.length <= 1) return <GroupLabel group={group} />
+  // With nobody to switch to, the same full-width pill, switched off and with no menu (as on Edit expense).
+  if (groups.length <= 1) return renderButton(`Group: ${group.name}`, true)
 
   return (
     <Dropdown
