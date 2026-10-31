@@ -75,17 +75,18 @@ export function ActivityRow({ item, isNew }: Props) {
         >
           <Flex align="flex-start" gap={12}>
             {renderTile()}
-            <Flex vertical gap={2} style={{ flex: 1, minWidth: 0 }}>
-              <Text strong style={{ overflowWrap: 'anywhere' }}>
+            {/* Two 20 px lines, so a row without detail lines is as high as the 40 px tile. */}
+            <Flex vertical style={{ flex: 1, minWidth: 0 }}>
+              <Text strong style={{ overflowWrap: 'anywhere', lineHeight: '20px' }}>
                 {isNew && <UnreadDot style={{ marginRight: 6, verticalAlign: 'middle' }} />}
                 {activitySentence(item)}
               </Text>
-              <Text type="secondary" style={{ overflowWrap: 'anywhere' }}>
+              <Text type="secondary" style={{ overflowWrap: 'anywhere', lineHeight: '20px' }}>
                 {activityDetail(item)}
               </Text>
               {lines.length > 0 && <ul style={{ margin: '2px 0 0', paddingInlineStart: 20, overflowWrap: 'anywhere' }}>{lines.map(renderLine)}</ul>}
             </Flex>
-            <Text type="secondary" style={{ flex: 'none', maxWidth: 96, fontSize: 12, textAlign: 'right' }}>
+            <Text type="secondary" style={{ flex: 'none', maxWidth: 96, fontSize: 12, lineHeight: '20px', textAlign: 'right' }}>
               {dateService.formatDateTime(item.entry.at, navigator.language)}
             </Text>
           </Flex>
