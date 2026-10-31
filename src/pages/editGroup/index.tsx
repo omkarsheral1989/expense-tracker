@@ -1,5 +1,5 @@
 import { Flex } from 'antd'
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useLocation, useParams } from 'react-router'
 import { CenteredMessage } from '../../components/CenteredMessage'
 import { FormLoadingShell } from '../../components/FormLoadingShell'
@@ -11,6 +11,7 @@ import { ROUTES } from '../../routes.ts'
 import { GroupNotFound } from '../../components/GroupNotFound'
 import { useCachedData } from '../../hooks/useCachedData'
 import { useCurrentUser } from '../../hooks/useCurrentUser'
+import { slide } from '../../hooks/useAppNavigate/utils.ts'
 import { aboveScreenEdge, belowStatusBar, HEADER_TOP_PADDING } from '../../theme/safeArea.ts'
 import { EditGroupForm } from './components/EditGroupForm'
 import { EDIT_GROUP_PAGE, editGroupKey, loadGroupToEdit } from './utils.ts'
@@ -20,7 +21,10 @@ export function EditGroupPage() {
   const user = useCurrentUser()
   const { id = '' } = useParams()
   // What the group's page knew when it opened this one, if it did (ADR-054).
-  const known = knownGroupFrom(useLocation().state, id)
+  const savedState = useLocation().state
+  // Not after a reload (the app has then seen only this page): the saved state survives it, but nothing is read yet, so the loading view shows the spinner alone.
+  const [openedInApp] = useState(() => slide.paths.size > 1)
+  const known = openedInApp ? knownGroupFrom(savedState, id) : null
 
   const userId = user?.personId ?? ''
   // Read when the group's page opened (ADR-055), so the form usually opens at once.
