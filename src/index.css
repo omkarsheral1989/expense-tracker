@@ -14,6 +14,8 @@ body {
   margin: 0;
   -webkit-font-smoothing: antialiased;
   -webkit-text-size-adjust: 100%;
+  /* No square blue flash on tap in Chrome on Android; buttons show their own pressed state. */
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* A notification at the bottom of the screen (the update prompt) stays above the home indicator and the rounded corners. */
