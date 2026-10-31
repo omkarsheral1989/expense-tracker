@@ -24,7 +24,7 @@ type Props = {
   /** 'YYYY-MM-DD'. */
   date: string
   notes: string | null
-  /** Where it was bought (PRD 5.6), shown below who paid on the expense page; leave out elsewhere. */
+  /** Where it was bought (PRD 5.6): a row above the split, on the expense page and the version page. */
   merchant?: string | null
   method: SplitMethod
   /** The viewer first, then the others; the people who paid or owe something. */
@@ -66,18 +66,6 @@ export function ExpenseBody({
   // A settlement is worded by who paid whom ("You paid Priya"), and has no split to show.
   const isSettlement = category === expenseService.settlementCategory
 
-  // A settlement's title already says who paid whom.
-  function renderPayers() {
-    if (isSettlement) return null
-    return shares
-      .filter((share) => share.paidMinor > 0)
-      .map((share) => (
-        <Text key={share.personId} type="secondary">
-          {paidSentence(share, currency)}
-        </Text>
-      ))
-  }
-
   function renderSummary() {
     return (
       <Flex align="flex-start" gap={16}>
@@ -91,7 +79,6 @@ export function ExpenseBody({
             {categoryOf.label === 'Other' ? `${categoryOf.groupLabel}: Other` : categoryOf.label} ·{' '}
             {dateService.formatDay(date, dateService.toDay(new Date()))}
           </Text>
-          {renderPayers()}
         </Flex>
       </Flex>
     )
@@ -107,9 +94,8 @@ export function ExpenseBody({
     )
   }
 
-  // On the expense page, where the band holds no payer line, who paid sits above the split like its rows (a payment has no split section, so no rows).
+  // Who paid sits above the split, like its rows, on the expense page and the version page (a payment has no split section, so no rows).
   function renderPayerRows() {
-    if (!withoutSummary) return null
     return (
       <Flex vertical gap={12} role="list" aria-label="Who paid" style={{ marginBottom: paymentMethod || merchant ? 12 : 20 }}>
         {shares
@@ -155,7 +141,7 @@ export function ExpenseBody({
 
   // Where it was bought, shared with the group like the description.
   function renderMerchant() {
-    if (!withoutSummary || !merchant) return null
+    if (!merchant) return null
     return (
       <Flex align="center" gap={12} style={{ marginBottom: 20 }}>
         <Avatar size={40} style={{ flex: 'none', background: CATEGORY_GROUP_COLORS.shopping }} icon={<Icon name="store" />} />

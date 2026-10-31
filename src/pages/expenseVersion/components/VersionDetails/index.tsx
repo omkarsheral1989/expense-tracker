@@ -121,6 +121,7 @@ export function VersionDetails({ data, datasetId, userId, onChanged }: Props) {
         currency={version.currency}
         date={version.date}
         notes={version.notes}
+        merchant={version.merchant}
         method={version.method}
         shares={version.shares}
         receipts={version.receipts}

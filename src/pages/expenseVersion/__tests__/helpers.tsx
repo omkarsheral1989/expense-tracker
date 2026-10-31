@@ -64,6 +64,7 @@ export function setUpVersionTests() {
       currency: saved.currency,
       date: saved.date,
       notes: saved.notes ?? '',
+      merchant: saved.merchant,
       paidBy: saved.paidBy,
       split: saved.split,
       receipts: saved.receipts,

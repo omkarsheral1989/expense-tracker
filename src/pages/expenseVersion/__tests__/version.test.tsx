@@ -77,6 +77,47 @@ describe('ExpenseVersionPage', () => {
       expect(screen.getByText('Card')).toBeInTheDocument()
     })
 
+    it('lists who paid as a row with the payer\'s picture, below the summary and above the split, as the expense page does', async () => {
+      const { groupId, expenseId, added } = await editedExpense()
+      renderVersion(groupId, expenseId, added.id)
+      await screen.findByRole('heading', { name: 'Beach shack dinner' })
+
+      const paid = screen.getByRole('list', { name: 'Who paid' })
+      expect(within(paid).getByText('You paid £9.00')).toBeInTheDocument()
+      // Not repeated as a line in the summary.
+      expect(screen.getAllByText('You paid £9.00')).toHaveLength(1)
+      const day = screen.getByText('Dining out · Mon, 5 Oct 2026')
+      const split = screen.getByText('Split equally')
+      expect(day.compareDocumentPosition(paid) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      expect(paid.compareDocumentPosition(split) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
+    it('shows where it was bought as it was in that version, above the split', async () => {
+      const groupId = await createGroup()
+      const expenseId = await addExpense(groupId, { merchant: 'Blinkit' })
+      await editAt(me.email, groupId, expenseId, 14, 30, { merchant: 'Zepto' })
+      const [added, edited] = await eventsOf(expenseId)
+
+      renderVersion(groupId, expenseId, added.id)
+      const first = await screen.findByText('Bought at Blinkit')
+      expect(first.compareDocumentPosition(screen.getByText('Split equally')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      // Who paid comes first, as on the expense page.
+      expect(screen.getByText('You paid £9.00').compareDocumentPosition(first) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      cleanup()
+
+      renderVersion(groupId, expenseId, edited.id)
+      expect(await screen.findByText('Bought at Zepto')).toBeInTheDocument()
+      expect(screen.queryByText('Bought at Blinkit')).not.toBeInTheDocument()
+    })
+
+    it('has no "Bought at" row for a version without a merchant', async () => {
+      const { groupId, expenseId, added } = await editedExpense()
+      renderVersion(groupId, expenseId, added.id)
+      await screen.findByRole('heading', { name: 'Beach shack dinner' })
+
+      expect(screen.queryByText(/^Bought at/)).not.toBeInTheDocument()
+    })
+
     it('puts the amount above the description, on a line of 40 px, beside a 40 px category tile with a 24 px icon', async () => {
       const { groupId, expenseId, added } = await editedExpense()
       renderVersion(groupId, expenseId, added.id)
