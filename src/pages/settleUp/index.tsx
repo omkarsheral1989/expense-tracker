@@ -25,7 +25,9 @@ export function SettleUpPage() {
   const { id = '' } = useParams()
   // What the group's page knew when it opened this one, if it did (ADR-054).
   const location = useLocation()
-  const known = knownGroupFrom(location.state, id)
+  // Not after a reload (the app has then seen only this page): the saved state survives it, but nothing is read yet, so the loading view shows the spinner alone.
+  const [openedInApp] = useState(() => slide.paths.size > 1)
+  const known = openedInApp ? knownGroupFrom(location.state, id) : null
   const backTo = settleBackTo(location.state, id)
 
   const userId = user?.personId ?? ''

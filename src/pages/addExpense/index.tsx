@@ -28,7 +28,9 @@ export function AddExpensePage() {
   const location = useLocation()
   const draft = (location.state as AddExpenseLocationState)?.draft
   // What the group's page knew when it opened this one, if it did (ADR-054).
-  const known = knownGroupFrom(location.state, id)
+  // Not after a reload (the app has then seen only this page): the saved state survives it, but nothing is read yet, so the loading view shows the spinner alone.
+  const [openedInApp] = useState(() => slide.paths.size > 1)
+  const known = openedInApp ? knownGroupFrom(location.state, id) : null
 
   const userId = user?.personId ?? ''
   const datasetId = user?.datasetId ?? ''
