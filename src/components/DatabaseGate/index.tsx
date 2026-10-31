@@ -18,9 +18,9 @@ const { Text } = Typography
 type Props = {
   children: ReactNode
   /**
-   * Shown above the loading, locked and error screens, and not once the data is
-   * ready (the page decides then whether it has a header). It keeps Sign out
-   * within reach while the data cannot be used. Comes from `SignedInLayout`.
+   * Shown above the locked and error screens, and not while the data is loading
+   * or once it is ready (the page decides then whether it has a header). It keeps
+   * Sign out within reach while the data cannot be used. Comes from `SignedInLayout`.
    */
   header?: ReactNode
 }
@@ -146,7 +146,7 @@ function OpenData({ record, profile, header, children }: Opening & { record: Dev
     case 'error':
       return withHeader(renderError(state.error))
     case 'loading':
-      return withHeader(renderLoading())
+      return renderLoading()
   }
 }
 
@@ -188,12 +188,7 @@ function WithUser({ db, record, profile, header, children }: Opening & { db: Dat
     )
   }
   if (!value) {
-    return (
-      <>
-        {header}
-        <LoadingMessage label="Opening your data" />
-      </>
-    )
+    return <LoadingMessage label="Opening your data" />
   }
   return <CurrentUserContext.Provider value={value}>{children}</CurrentUserContext.Provider>
 }
