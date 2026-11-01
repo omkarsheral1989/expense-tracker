@@ -77,7 +77,7 @@ describe('AddExpensePage: the category follows the description', () => {
     expect(category()).toHaveAccessibleName('Category: Fuel')
   })
 
-  it('leaves the category as it is when the description fits nothing', async () => {
+  it('puts General back when the description fits nothing, so a half-typed word does not leave its pick', async () => {
     await open()
     await user.type(descriptionInput(), 'movie')
 
@@ -85,7 +85,26 @@ describe('AddExpensePage: the category follows the description', () => {
     fireEvent.change(descriptionInput(), { target: { value: 'zzzz' } })
 
     expect(descriptionInput()).toHaveValue('zzzz')
-    expect(category()).toHaveAccessibleName('Category: Movies')
+    expect(category()).toHaveAccessibleName('Category: General')
+  })
+
+  it('does not keep the Dairy pick of "batter" (close to "butter") once "battery" is typed', async () => {
+    await open()
+    await user.type(descriptionInput(), 'batter')
+    expect(category()).toHaveAccessibleName('Category: Dairy and milk')
+
+    await user.type(descriptionInput(), 'y')
+
+    expect(category()).toHaveAccessibleName('Category: General')
+  })
+
+  it('keeps a category chosen by hand when the description fits nothing', async () => {
+    await open()
+    await chooseCategory('Groceries')
+
+    await user.type(descriptionInput(), 'zzzz')
+
+    expect(category()).toHaveAccessibleName('Category: Groceries')
   })
 
   it('puts General back when the description is cleared', async () => {

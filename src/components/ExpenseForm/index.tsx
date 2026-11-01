@@ -221,12 +221,13 @@ export function ExpenseForm({
     }
 
     // The category follows the description until the user picks one: a similar past choice, else the keywords.
-    // Nothing that fits leaves it as it is; clearing the description puts the default back.
+    // Nothing that fits (or an empty description) puts the default back, so an earlier keystroke's pick ("batter" is
+    // close to "butter") does not stay once the word is finished ("battery").
     if (changed.category !== undefined) {
       form.setFieldValue('categoryChosen', true)
     } else if (pastChoices && changed.description !== undefined && !all.categoryChosen) {
-      const suggestion = changed.description.trim() ? expenseService.suggestCategory(changed.description, pastChoices) : expenseService.defaultCategory
-      if (suggestion) form.setFieldValue('category', suggestion)
+      const suggestion = changed.description.trim() ? expenseService.suggestCategory(changed.description, pastChoices) : null
+      form.setFieldValue('category', suggestion ?? expenseService.defaultCategory)
     }
 
     // The payment method is only for the user's own payments: it starts again if someone else pays and the user takes over.
