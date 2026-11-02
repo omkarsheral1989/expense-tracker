@@ -4,6 +4,8 @@ import { defineConfig } from 'vitest/config'
 
 // Kept separate from vite.config.ts so tests do not load the PWA plugin.
 export default defineConfig({
+  // The version the About page shows; tests do not depend on the one in package.json.
+  define: { __APP_VERSION__: JSON.stringify('0.0.0-test') },
   resolve: {
     // The update prompt imports the PWA plugin's virtual module, which exists only in the build.
     alias: {

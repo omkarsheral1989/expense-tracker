@@ -1,29 +1,22 @@
-import { Button, Flex, theme, Typography } from 'antd'
+import { Flex, theme, Typography } from 'antd'
 import type { ReactNode } from 'react'
-import { useAppNavigate } from '../../../../hooks/useAppNavigate'
-import { BrandLogo } from '../../../../components/BrandLogo'
+import { BrandLogo } from '../../../BrandLogo'
 import { HIGHLIGHTS, type Highlight } from './content.tsx'
-import { ROUTES } from '../../../../routes.ts'
 
-const { Title, Paragraph, Text, Link } = Typography
+const { Title, Paragraph, Text } = Typography
 
 type HeroProps = {
+  /** The app's version, shown under its name (the About page); left out on the welcome page. */
+  version?: string
   /**
-   * Whether getting started is locked until the app is installed (iPhone/iPad
-   * only; see `gated` on `InstallCard`). When true the Open OwnLedger button is
-   * not shown, because the install card is the call to action instead.
+   * What sits under the highlight lines: on the welcome page the install card, the Open OwnLedger
+   * button and the sign-in note. The About page has nothing there.
    */
-  gated: boolean
-  /**
-   * The install card, shown just above the Open OwnLedger button. Leave it out once
-   * the app is installed.
-   */
-  installCard?: ReactNode
+  children?: ReactNode
 }
 
-export function Hero({ gated, installCard }: HeroProps) {
+export function Hero({ version, children }: HeroProps) {
   const { token } = theme.useToken()
-  const navigate = useAppNavigate()
 
   function renderTitles() {
     return (
@@ -34,6 +27,7 @@ export function Hero({ gated, installCard }: HeroProps) {
         >
           OwnLedger
         </Title>
+        {version && <Text type="secondary">Version {version}</Text>}
         <Title
           level={2}
           type="secondary"
@@ -63,16 +57,6 @@ export function Hero({ gated, installCard }: HeroProps) {
     )
   }
 
-  function renderDriveNote() {
-    return (
-      <Text type="secondary" style={{ maxWidth: 440, fontSize: 13 }}>
-        No account needed. Sign in with Google to back up and share your
-        groups through your Google Drive. Nothing is sent to our servers.{' '}
-        <Link href="#faq">Why does it need Drive?</Link>
-      </Text>
-    )
-  }
-
   return (
     <header
       style={{
@@ -91,14 +75,7 @@ export function Hero({ gated, installCard }: HeroProps) {
         <Flex vertical gap={12} style={{ maxWidth: 460, textAlign: 'left' }}>
           {HIGHLIGHTS.map(renderHighlight)}
         </Flex>
-        {installCard}
-        {/* While gated, the install card above is the call to action. */}
-        {!gated && (
-          <Button type="primary" size="large" onClick={() => navigate(ROUTES.getStarted)}>
-            Open OwnLedger
-          </Button>
-        )}
-        {renderDriveNote()}
+        {children}
       </Flex>
     </header>
   )

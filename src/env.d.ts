@@ -7,3 +7,6 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }
+
+/** The app's version, from package.json at build time (PRD 5.24). */
+declare const __APP_VERSION__: string

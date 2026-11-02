@@ -19,6 +19,10 @@ if [ -n "$(git -C "$pages" status --porcelain)" ]; then
 fi
 
 cd "$root"
+# Each deployment gets its own version (shown on the About page). The change to package.json is
+# left for you to commit.
+version="$(node scripts/bump-version.mjs)"
+echo "Version $version"
 bun run build
 
 # Refuses a build that would not install or work offline, or that GitHub Pages
@@ -33,5 +37,5 @@ cp -R "$root/dist" "$pages/ownledger"
 cp "$root/deploy/404.html" "$pages/404.html"
 
 echo
-echo "Copied to $pages/ownledger. Review, commit and push there:"
+echo "Version $version copied to $pages/ownledger. Commit the change to package.json here, and review, commit and push there:"
 git -C "$pages" status --short | head -20

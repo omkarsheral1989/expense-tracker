@@ -50,6 +50,12 @@ describe('WelcomePage', () => {
     expect(screen.queryByRole('button', { name: /Sign in with Google/ })).not.toBeInTheDocument()
   })
 
+  it('does not show a version (that is on the About page)', () => {
+    renderIt()
+
+    expect(screen.queryByText(/^Version/)).not.toBeInTheDocument()
+  })
+
   it('says no account is needed, and what signing in with Google is for', () => {
     renderIt()
 

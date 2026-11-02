@@ -14,6 +14,7 @@ import { ExpenseVersionPage } from './pages/expenseVersion'
 import { GetStartedPage } from './pages/getStarted'
 import { GroupPage } from './pages/group'
 import { HomePage } from './pages/home'
+import { AboutPage } from './pages/about'
 import { AccountsPage } from './pages/accounts'
 import { ActivityPage } from './pages/activity'
 import { MembersPage } from './pages/members'
@@ -52,6 +53,7 @@ function App() {
           <Route path={ROUTES.home} element={<HomePage />} />
           <Route path={ROUTES.members} element={<MembersPage />} />
           <Route path={ROUTES.activity} element={<ActivityPage />} />
+          <Route path={ROUTES.about} element={<AboutPage />} />
           <Route path={ROUTES.accounts} element={<AccountsPage />} />
           <Route path={ROUTES.deletedGroups} element={<DeletedGroupsPage />} />
           <Route path={ROUTES.newGroup} element={<CreateGroupPage />} />

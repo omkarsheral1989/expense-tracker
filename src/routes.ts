@@ -8,6 +8,8 @@ export const ROUTES = {
   members: '/members',
   /** The user's own bank accounts and credit cards (PRD 5.17). */
   accounts: '/accounts',
+  /** What the app is and which version this is (PRD 5.24). */
+  about: '/about',
   /** What happened to expenses across the user's groups (PRD 5.18). */
   activity: '/activity',
   /** The groups the user deleted on this device (PRD 5.23); only with the feature on. */

@@ -2,13 +2,9 @@ import { Navigate } from 'react-router'
 import { useAuthStore } from '../../stores/useAuthStore'
 import { useInstallGate } from '../../hooks/useInstallGate'
 import { ROUTES } from '../../routes.ts'
-import { Faq } from './components/Faq'
-import { Features } from './components/Features'
-import { Footer } from './components/Footer'
-import { Hero } from './components/Hero'
-import { HowItWorks } from './components/HowItWorks'
+import { AppInfo } from '../../components/AppInfo'
 import { InstallCard } from './components/InstallCard'
-import { Privacy } from './components/Privacy'
+import { StartActions } from './components/StartActions'
 
 export function WelcomePage() {
   // Getting started is locked behind installing the app: only on iPhone/iPad,
@@ -37,13 +33,8 @@ export function WelcomePage() {
   }
 
   return (
-    <main>
-      <Hero gated={gated} installCard={renderInstallCard()} />
-      <Features />
-      <Privacy />
-      <HowItWorks />
-      <Faq />
-      <Footer />
-    </main>
+    <AppInfo>
+      <StartActions gated={gated} installCard={renderInstallCard()} />
+    </AppInfo>
   )
 }

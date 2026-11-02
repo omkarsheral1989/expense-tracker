@@ -1,5 +1,5 @@
 import { Icon } from '../../../Icon'
-import { Button, Dropdown, Flex, Typography } from 'antd'
+import { Button, Dropdown } from 'antd'
 import { useAppNavigate } from '../../../../hooks/useAppNavigate'
 import { useUnreadActivity } from '../../../../hooks/useUnreadActivity'
 import { ROUTES } from '../../../../routes.ts'
@@ -7,10 +7,9 @@ import { userService } from '../../../../services/userService'
 import { useAuthStore } from '../../../../stores/useAuthStore'
 import { GoogleLogo } from '../../../GoogleLogo'
 import { ProfileAvatar } from '../../../ProfileAvatar'
+import { accountMenuItem } from '../../accountMenuItem.tsx'
 import { activityMenuItem } from '../../activityMenuItem.tsx'
 import { deletedGroupsMenuItems } from '../../deletedGroupsMenuItem.tsx'
-
-const { Text } = Typography
 
 type Props = {
   /** Starts the Google sign-in, which makes that account the owner of this device's data. */
@@ -36,17 +35,8 @@ export function GuestMenuView({ onSignIn, loading }: Props) {
       classNames={{ root: 'roomy-menu' }}
       menu={{
         items: [
-          {
-            key: 'account',
-            // Shows who is using the app; there is nothing to choose here.
-            label: (
-              <Flex vertical>
-                <Text strong>{userService.guestName}</Text>
-                <Text type="secondary">Your data is only on this device</Text>
-              </Flex>
-            ),
-            style: { cursor: 'default' },
-          },
+          // Shows who is using the app, and opens the About page.
+          accountMenuItem(userService.guestName, 'Your data is only on this device', navigate),
           { type: 'divider' },
           activityMenuItem(unread, navigate),
           {

@@ -15,7 +15,7 @@ import { GetStartedPage } from '../getStarted/index.tsx'
 import { GroupPage } from '../group/index.tsx'
 import { MembersPage } from '../members/index.tsx'
 import { SettleUpPage } from '../settleUp/index.tsx'
-import { Footer } from '../welcome/components/Footer/index.tsx'
+import { Footer } from '../../components/AppInfo/components/Footer/index.tsx'
 
 // The data never arrives, so every page shows its loading state, inside the column whose padding is checked.
 vi.mock('../../db/client.ts', async (importOriginal) => ({

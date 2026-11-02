@@ -9,6 +9,7 @@ import { BrandLogo } from '../BrandLogo'
 import { ProfileAvatar } from '../ProfileAvatar'
 import { SyncButton } from '../SyncButton'
 import { UnreadDot } from '../UnreadDot'
+import { accountMenuItem } from './accountMenuItem.tsx'
 import { activityMenuItem } from './activityMenuItem.tsx'
 import { deletedGroupsMenuItems } from './deletedGroupsMenuItem.tsx'
 import { GuestMenu } from './GuestMenu'
@@ -18,9 +19,9 @@ const { Text } = Typography
 /**
  * The bar at the top of every page of the app: the logo and name on the left,
  * which do nothing when pressed, and on the right the Sync button and the
- * user's avatar, which opens a menu with their name, email and Sign out (or,
- * for a guest, "Guest", Sign in with Google and Exit guest mode). Sync appears
- * once the data is open.
+ * user's avatar, which opens a menu with their name and email (opening the About
+ * page) and Sign out (or, for a guest, "Guest", Sign in with Google and Exit guest
+ * mode). Sync appears once the data is open.
  */
 export function AppHeader() {
   const profile = useAuthStore((state) => state.profile)
@@ -54,17 +55,8 @@ export function AppHeader() {
       classNames={{ root: 'roomy-menu' }}
         menu={{
           items: [
-            {
-              key: 'account',
-              // Shows who is signed in; there is nothing to choose here.
-              label: (
-                <Flex vertical>
-                  <Text strong>{name}</Text>
-                  <Text type="secondary">{email}</Text>
-                </Flex>
-              ),
-              style: { cursor: 'default' },
-            },
+            // Shows who is signed in, and opens the About page.
+            accountMenuItem(name, email, navigate),
             { type: 'divider' },
             activityMenuItem(unread, navigate),
             {

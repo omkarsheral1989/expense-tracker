@@ -13,7 +13,7 @@ vi.mock('../../../config.ts', () => ({ GOOGLE_CLIENT_ID: '', REQUIRE_INSTALL: tr
 const profile = { id: '1', email: 'omkar@gmail.com', name: 'Omkar Sheral' }
 
 function renderHeader(path: string = ROUTES.newGroup) {
-  return renderPage(<AppHeader />, { path, routes: [ROUTES.home, ROUTES.members, ROUTES.activity] })
+  return renderPage(<AppHeader />, { path, routes: [ROUTES.home, ROUTES.members, ROUTES.activity, ROUTES.about] })
 }
 
 describe('AppHeader', () => {
@@ -99,6 +99,19 @@ describe('AppHeader', () => {
     expect(page.currentPath()).toBe(ROUTES.activity)
   })
 
+  it('opens the About page from the name and email at the top, which have a small arrow', async () => {
+    const page = renderHeader()
+    await userEvent.click(screen.getByRole('button', { name: 'Account menu' }))
+
+    const menu = await screen.findByRole('menu')
+    const row = within(menu).getAllByRole('menuitem')[0]
+    expect(row.querySelector('.tabler-icon-chevron-right')).not.toBeNull()
+    expect(row).not.toHaveStyle({ cursor: 'default' })
+    await userEvent.click(within(menu).getByText('Omkar Sheral'))
+
+    expect(page.currentPath()).toBe(ROUTES.about)
+  })
+
   it('opens the accounts page from the entry below Group members', async () => {
     const page = renderHeader()
     await userEvent.click(screen.getByRole('button', { name: 'Account menu' }))
@@ -151,6 +164,17 @@ describe('AppHeader', () => {
         expect.stringMatching(/Exit guest mode$/),
       ])
       expect(within(menu).queryByText('Sign out')).not.toBeInTheDocument()
+    })
+
+    it('opens the About page from "Guest" at the top, which has a small arrow', async () => {
+      const page = renderHeader()
+      await userEvent.click(screen.getByRole('button', { name: 'Account menu' }))
+
+      const menu = await screen.findByRole('menu')
+      expect(within(menu).getAllByRole('menuitem')[0].querySelector('.tabler-icon-chevron-right')).not.toBeNull()
+      await userEvent.click(within(menu).getByText('Guest'))
+
+      expect(page.currentPath()).toBe(ROUTES.about)
     })
 
     it('opens the members page from the menu', async () => {
