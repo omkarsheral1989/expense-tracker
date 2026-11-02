@@ -198,7 +198,9 @@ describe('the payment method on the edit-expense page (PRD 5.6a, 4.10)', () => {
     const moved = await expenseService.updateExpense(testDb.db, priyaId, groupId, expenseId, { ...saved, paidBy: priyaId, notes: saved.notes ?? '' })
     if (!moved.ok) throw new Error('not moved')
     await open(groupId, expenseId)
-    expect(screen.queryByRole('button', { name: /^Payment method/ })).not.toBeInTheDocument()
+    // The row stays, switched off, and says that saving takes this one away.
+    expect(screen.getByRole('button', { name: /^Payment method/ })).toBeDisabled()
+    expect(screen.getByText('Only the person who paid can add a payment method. Saving removes this one.')).toBeInTheDocument()
 
     await user.type(screen.getByRole('textbox', { name: 'Notes' }), ' and a tip')
     await user.click(saveButton())
@@ -215,7 +217,10 @@ describe('the payment method on the edit-expense page (PRD 5.6a, 4.10)', () => {
     await user.click(screen.getByRole('button', { name: 'you' }))
     const dialog = await screen.findByRole('dialog', { name: 'Who paid?' })
     await user.click(within(dialog).getByRole('button', { name: /Priya Shah/ }))
-    await waitFor(() => expect(screen.queryByRole('button', { name: /^Payment method/ })).not.toBeInTheDocument())
+    await waitFor(() => expect(screen.getByRole('button', { name: /^Payment method/ })).toBeDisabled())
+    // The account is cleared at once, so the row is empty and the note has no "Saving removes" part.
+    expect(screen.getByRole('button', { name: 'Payment method' })).toBeInTheDocument()
+    expect(screen.getByText('Only the person who paid can add a payment method.')).toBeInTheDocument()
 
     await user.click(saveButton())
     await screen.findByText('Expense updated.')

@@ -1,5 +1,5 @@
 import { Icon } from '../../Icon'
-import { Button, Card, Flex, theme, Typography } from 'antd'
+import { Button, Card, Flex, theme, Tooltip, Typography } from 'antd'
 import { useState, type ReactNode } from 'react'
 import { currencyService } from '../../../services/currencyService'
 import type { AccountKind } from '../../../db/types.ts'
@@ -23,6 +23,12 @@ type Props = {
   accounts: AccountSummary[]
   /** The user's person id: they add an account from the picker. */
   userId: string
+  /**
+   * Set when the user did not pay, which is why the row is switched off: it explains why in a tip (a
+   * switched-off button has no pointer, so the tip sits on a wrapper around it). Pressing the row does
+   * nothing. Left out when the user paid, and the row opens its picker.
+   */
+  disabledReason?: string
 }
 
 /** The icon of a kind of account. */
@@ -36,7 +42,7 @@ function KindIcon({ kind }: { kind?: AccountKind }) {
  * a picker that lists the user's accounts as the same cards the accounts page
  * shows, with a "None" card to clear it. Works as an Ant Design form field.
  */
-export function PaymentMethodField({ id, value, onChange, accounts, userId }: Props) {
+export function PaymentMethodField({ id, value, onChange, accounts, userId, disabledReason }: Props) {
   const [open, setOpen] = useState(false)
   // The dialog for a new account; each opening gets a fresh form (an Ant Design form keeps what was typed in it).
   const [adding, setAdding] = useState(false)
@@ -81,11 +87,12 @@ export function PaymentMethodField({ id, value, onChange, accounts, userId }: Pr
     )
   }
 
-  return (
-    <>
+  function renderRow() {
+    const row = (
       <Button
         id={id}
         block
+        disabled={disabledReason !== undefined}
         icon={<KindIcon kind={chosen?.kind} />}
         aria-label={chosen ? `Payment method: ${chosen.name}` : 'Payment method'}
         onClick={() => setOpen(true)}
@@ -96,6 +103,19 @@ export function PaymentMethodField({ id, value, onChange, accounts, userId }: Pr
         {/* Private to the user (PRD 4.10): the picker says so in words. */}
         <Icon name="lock" style={{ marginInlineStart: 'auto', color: token.colorTextTertiary }} />
       </Button>
+    )
+    if (disabledReason === undefined) return row
+    // A switched-off button gets no pointer events, so the tip sits on a wrapper.
+    return (
+      <Tooltip title={disabledReason}>
+        <span style={{ display: 'block' }}>{row}</span>
+      </Tooltip>
+    )
+  }
+
+  return (
+    <>
+      {renderRow()}
       <AdaptiveDialog open={open} onClose={() => setOpen(false)} title="Payment method">
         <Flex vertical gap={12}>
           <Flex

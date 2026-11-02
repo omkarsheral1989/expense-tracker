@@ -113,7 +113,9 @@ export function ExpenseForm({
   const amount = Form.useWatch('amount', form) ?? startValues.amount
   const split = Form.useWatch('split', form) ?? startValues.split
   const keptReceipts = Form.useWatch('keptReceipts', form) ?? startValues.keptReceipts ?? []
-  const accountId = Form.useWatch('accountId', form) ?? startValues.accountId ?? null
+  // A cleared account (null) stays cleared: only before the form has a value does the starting one count.
+  const watchedAccountId = Form.useWatch('accountId', form)
+  const accountId = watchedAccountId === undefined ? (startValues.accountId ?? null) : watchedAccountId
   const charged = Form.useWatch('charged', form) ?? startValues.charged ?? ''
   // The payment method is only for expenses the user paid.
   const you = group.members.find((member) => member.isYou)
@@ -200,6 +202,8 @@ export function ExpenseForm({
 
   /** The account the user paid with, and what it was debited when its currency differs from the expense's. */
   function paymentMethodOf(values: FormValues): PaymentMethodInput | null {
+    // Only the payer has one: when someone else paid, saving takes away what this device had.
+    if (!youPaid) return null
     const chosen = accounts.find((option) => option.id === values.accountId)
     if (!chosen) return null
     const differs = chosen.currency !== values.currency
@@ -319,8 +323,22 @@ export function ExpenseForm({
     )
   }
 
+  /** The row for an expense someone else paid: switched off, with the reason as a tip and a note under it. */
+  function renderSwitchedOffPaymentMethod() {
+    const reason = 'Only the person who paid can add a payment method.'
+    return (
+      <Form.Item
+        name="accountId"
+        style={{ marginBottom: 16 }}
+        extra={account ? `${reason} Saving removes this one.` : reason}
+      >
+        <PaymentMethodField accounts={accounts} userId={you?.personId ?? ''} disabledReason={reason} />
+      </Form.Item>
+    )
+  }
+
   function renderPaymentMethod() {
-    if (!youPaid) return null
+    if (!youPaid) return renderSwitchedOffPaymentMethod()
     return (
       <>
         <Form.Item name="accountId" style={{ marginBottom: 16 }}>

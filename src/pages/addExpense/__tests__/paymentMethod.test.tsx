@@ -352,7 +352,9 @@ describe('the payment method on the add-expense page (PRD 5.5, 4.10)', () => {
       await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Who paid?' })).not.toBeInTheDocument())
     }
 
-    it('takes the row away, and clears the account chosen', async () => {
+    const NOTE = 'Only the person who paid can add a payment method.'
+
+    it('switches the row off instead of hiding it, with a note under it, and clears the account chosen', async () => {
       const { groupId } = await groupWithAccounts()
       renderForm(groupId)
       await describeExpense()
@@ -360,7 +362,43 @@ describe('the payment method on the add-expense page (PRD 5.5, 4.10)', () => {
 
       await payBy('Priya Shah')
 
-      expect(screen.queryByRole('button', { name: /^Payment method/ })).not.toBeInTheDocument()
+      const row = screen.getByRole('button', { name: 'Payment method' })
+      expect(row).toBeDisabled()
+      expect(screen.getByText(NOTE)).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: /Barclays Savings/ })).not.toBeInTheDocument()
+    })
+
+    it('has no note, and a working row, while the user is the payer', async () => {
+      const { groupId } = await groupWithAccounts()
+      renderForm(groupId)
+      await describeExpense()
+
+      expect(screen.getByRole('button', { name: 'Payment method' })).toBeEnabled()
+      expect(screen.queryByText(NOTE)).not.toBeInTheDocument()
+    })
+
+    it('says why in a tip on the switched-off row, and pressing the row opens nothing', async () => {
+      const { groupId } = await groupWithAccounts()
+      renderForm(groupId)
+      await describeExpense()
+      await payBy('Priya Shah')
+
+      // A switched-off button gets no pointer events, so the tip is on a wrapper around it.
+      const wrapper = screen.getByRole('button', { name: 'Payment method' }).parentElement as HTMLElement
+      await user.hover(wrapper)
+      expect(await screen.findByRole('tooltip')).toHaveTextContent(NOTE)
+
+      await user.click(screen.getByRole('button', { name: 'Payment method' }))
+      expect(screen.queryByRole('dialog', { name: 'Payment method' })).not.toBeInTheDocument()
+    })
+
+    it('shows no field for what the account was charged', async () => {
+      const { groupId } = await groupWithAccounts()
+      renderForm(groupId)
+      await describeExpense()
+      await payBy('Priya Shah')
+
+      expect(screen.queryByText('Charged to the account')).not.toBeInTheDocument()
     })
 
     it('starts empty again when the user pays after all', async () => {
@@ -374,7 +412,8 @@ describe('the payment method on the add-expense page (PRD 5.5, 4.10)', () => {
       const dialog = await screen.findByRole('dialog', { name: 'Who paid?' })
       await user.click(within(dialog).getByRole('button', { name: /You/ }))
 
-      expect(await screen.findByRole('button', { name: 'Payment method' })).toBeInTheDocument()
+      expect(await screen.findByRole('button', { name: 'Payment method' })).toBeEnabled()
+      expect(screen.queryByText(NOTE)).not.toBeInTheDocument()
     })
 
     it('saves the expense with no payment method', async () => {
