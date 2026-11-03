@@ -290,6 +290,44 @@ describe('two devices', () => {
     expect(world.files.get(shortcuts[0].parentId!)).toMatchObject({ name: 'Groups', owner: 'priya@gmail.com' })
   })
 
+  it('renames the member\'s shortcut when the group is renamed, once the creator has renamed the folder', async () => {
+    const { omkar, groupId, priyaOnB } = await shared()
+    await syncService.syncGroup(b, priyaDrive(), priyaOnB, groupId)
+    await groupService.updateGroup(a, omkar, groupId, { name: 'Goa 2026', type: 'trip', defaultCurrency: 'GBP' })
+    await syncService.syncGroup(a, omkarDrive(), omkar, groupId)
+    expect(filesOf('group-shortcut')[0].name).toBe('Goa trip')
+
+    await syncService.syncGroup(b, priyaDrive(), priyaOnB, groupId)
+
+    const shortcuts = filesOf('group-shortcut')
+    expect(shortcuts).toHaveLength(1)
+    expect(shortcuts[0]).toMatchObject({ name: 'Goa 2026', shortcutTo: filesOf('group')[0].id })
+    expect(filesOf('group')[0].name).toBe('Goa 2026')
+  })
+
+  it('names the member\'s shortcut after a rename she made herself, while the folder keeps its name until the creator syncs', async () => {
+    const { groupId, priyaOnB } = await shared()
+    await syncService.syncGroup(b, priyaDrive(), priyaOnB, groupId)
+    await groupService.updateGroup(b, priyaOnB, groupId, { name: 'Goa 2026', type: 'trip', defaultCurrency: 'GBP' })
+
+    await syncService.syncGroup(b, priyaDrive(), priyaOnB, groupId)
+
+    expect(filesOf('group-shortcut')[0].name).toBe('Goa 2026')
+    expect(filesOf('group')[0].name).toBe('Goa trip')
+  })
+
+  it('does not rename a shortcut whose name is already the group\'s', async () => {
+    const { groupId, priyaOnB } = await shared()
+    await syncService.syncGroup(b, priyaDrive(), priyaOnB, groupId)
+    const renames: string[] = []
+    const drive = priyaDrive()
+    const counting = { ...drive, rename: async (fileId: string, name: string) => (renames.push(name), drive.rename(fileId, name)) }
+
+    await syncService.syncGroup(b, counting, priyaOnB, groupId)
+
+    expect(renames).toEqual([])
+  })
+
   it('carries each member\'s changes to the other, so both have the same expenses and balances', async () => {
     const { omkar, groupId, priyaOnB } = await shared()
     await addExpense(b, priyaOnB, groupId, 'Taxi', 900)

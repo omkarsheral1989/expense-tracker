@@ -174,6 +174,8 @@ export const groupSync = {
       const tags = { [GROUP_ID_PROPERTY]: groupId, [FOLDER_ID_PROPERTY]: folder.id }
       const shortcut = await drive.findOwn(DRIVE_ITEM_KINDS.groupShortcut, parent.id, tags)
       if (!shortcut) await drive.createShortcut(now.name, DRIVE_ITEM_KINDS.groupShortcut, parent.id, folder.id, tags)
+      // It follows the group's name, as the folder does for the creator.
+      else if (shortcut.name !== now.name) await drive.rename(shortcut.id, now.name)
     }
 
     await recordStatus(db, `group:${groupId}`, new Date())
