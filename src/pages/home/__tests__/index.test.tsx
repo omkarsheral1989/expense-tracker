@@ -134,10 +134,24 @@ describe('HomePage', () => {
       )
     })
 
+    it('tells someone who only tracks their own spending to create a group called Personal, in smaller grey text under the message', async () => {
+      renderHome()
+
+      const message = await screen.findByText('No groups yet. Create one to start sharing expenses.')
+      const tip = screen.getByText(
+        'Tracking only your own spending? Create a group called Personal. Nobody else is in it, so its expenses stay yours.',
+      )
+      expect(message.compareDocumentPosition(tip) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      expect(tip).toHaveClass('ant-typography-secondary')
+      expect(tip).toHaveStyle({ fontSize: '13px' })
+      // Plain text: nothing in it opens the create-group page.
+      expect(tip.querySelector('a, button')).toBeNull()
+    })
+
     it('centers the message in a box that ends just above the floating Create group button', async () => {
       renderHome()
 
-      const wrapper = (await screen.findByText(/no groups yet/i)).closest('.ant-flex-align-center') as HTMLElement
+      const wrapper = (await screen.findByText(/no groups yet/i)).closest('[style*="flex: 1"]') as HTMLElement
       // Ant Design's Flex centers through these classes; `flex: 1` makes the box fill the rest.
       expect(wrapper).toHaveClass('ant-flex-align-center', 'ant-flex-justify-center')
       expect(wrapper).toHaveStyle({ flex: '1' })
@@ -163,6 +177,14 @@ describe('HomePage', () => {
   })
 
   describe('with groups', () => {
+    it('shows no tip about a Personal group', async () => {
+      await createGroup(me, { name: 'Goa trip' })
+      renderHome()
+
+      await screen.findByText('Goa trip')
+      expect(screen.queryByText(/Create a group called Personal/)).not.toBeInTheDocument()
+    })
+
     it('lists each group with its name, members, currency and status', async () => {
       await createGroup(me, {
         name: 'Goa trip',
