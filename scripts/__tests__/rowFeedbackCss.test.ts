@@ -61,3 +61,24 @@ describe('the photo viewer\'s fade', () => {
     expect(css).toMatch(/\.ant-image-preview-fade-leave-active \{\s*outline-color: transparent/)
   })
 })
+
+describe('the side shade in a page transition', () => {
+  it('has a picture of its own, so it stays still while the pages slide', () => {
+    expect(rule('[data-side-shade]')).toContain('view-transition-name: side-shade')
+  })
+
+  it('sits above the pages and below a message and a dialog layer', () => {
+    expect(rule('::view-transition-group(side-shade) {')).toContain('z-index: 98')
+  })
+
+  it('shows only the live shade, since the old picture over it would darken the sides twice, and does not animate', () => {
+    expect(rule('::view-transition-group(side-shade),\n::view-transition-new(side-shade)')).toContain('animation: none')
+    expect(rule('::view-transition-old(side-shade)')).toContain('display: none')
+  })
+})
+
+describe('the photo viewer\'s close button', () => {
+  it('ends at the edge of the 720 px column, or 16 px from the screen\'s edge', () => {
+    expect(rule('.ant-image-preview-close {')).toContain('inset-inline-end: max(16px, calc((100vw - 720px) / 2))')
+  })
+})

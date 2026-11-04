@@ -66,6 +66,13 @@ describe('SignedInLayout', () => {
       expect(screen.queryByRole('link', { name: /ownledger/i })).not.toBeInTheDocument()
     })
 
+    it('has the side shade on every page, outside the page itself', async () => {
+      renderAt(ROUTES.newGroup)
+
+      await screen.findByText(`Page: ${ROUTES.newGroup}`)
+      expect(document.querySelector('[data-side-shade]')).not.toBeNull()
+    })
+
     it('fills at least the height of the screen, so a page can fill what is left below its header', async () => {
       const view = renderAt(ROUTES.home)
       await screen.findByText(`Page: ${ROUTES.home}`)

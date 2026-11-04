@@ -37,6 +37,13 @@ describe('FloatingPillButton', () => {
     expect(button).toHaveStyle({ borderRadius: '0px' })
   })
 
+  it('ends at the right edge of the 720 px column, or 16 px from the screen edge on a phone', () => {
+    const button = renderButton()
+
+    // jsdom writes calc(x / 2) as 0.5 * x.
+    expect(button.parentElement?.getAttribute('style')).toContain('right: max(16px, 0.5 * (100vw - 720px))')
+  })
+
   it('calls onClick when it is pressed', async () => {
     const onClick = vi.fn()
     await userEvent.click(renderButton(onClick))
