@@ -1,10 +1,11 @@
 import { Icon } from '../Icon'
 import { App, Button, Flex, Image, Tooltip } from 'antd'
-import { useRef, type ChangeEvent, type RefObject } from 'react'
+import { useEffect, useRef, type ChangeEvent, type RefObject } from 'react'
 import { MAX_RECEIPTS_PER_EXPENSE } from '../../db/constants.ts'
 import { useStoredPhotos } from '../../hooks/useStoredPhotos'
 import type { PhotoStore, ReceiptInput } from '../../services/photoService/types.ts'
 import { ReceiptPreview } from './ReceiptPreview'
+import { pastedPictures } from './utils'
 
 type Props = {
   /** Given by the form item, so that its messages are tied to the button. */
@@ -26,8 +27,8 @@ type Props = {
 /**
  * Receipt photos for the expense: a picture button that opens the device's own
  * file chooser (several photos at once) and a camera button that opens the camera, then the chosen photos as
- * small squares, each with an x. Up to 10; files that are not pictures are
- * ignored. Works as an Ant Design form field.
+ * small squares, each with an x. A picture copied to the clipboard is attached by pasting (Cmd+V) anywhere on the page.
+ * Up to 10; files that are not pictures are ignored. Works as an Ant Design form field.
  */
 export function ReceiptsField({ id, value = [], onChange, stored = [], onStoredChange, photoStore }: Props) {
   const { message } = App.useApp()
@@ -40,16 +41,33 @@ export function ReceiptsField({ id, value = [], onChange, stored = [], onStoredC
   // Chosen photos wait for the stored ones, so every thumbnail appears in the same step and the viewer keeps the order shown.
   const storedReady = stored.length === 0 || storedPhotos !== null
 
-  function handleChosen(event: ChangeEvent<HTMLInputElement>) {
-    const pictures = [...(event.target.files ?? [])].filter((file) => file.type.startsWith('image/'))
-    // Cleared, so choosing the same file again is noticed.
-    event.target.value = ''
+  function addPictures(files: File[]) {
+    const pictures = files.filter((file) => file.type.startsWith('image/'))
     const room = MAX_RECEIPTS_PER_EXPENSE - count
     if (pictures.length > room) {
       message.warning(`An expense can have up to ${MAX_RECEIPTS_PER_EXPENSE} photos.`)
     }
     if (pictures.length > 0 && room > 0) onChange?.([...value, ...pictures.slice(0, room)])
   }
+
+  function handleChosen(event: ChangeEvent<HTMLInputElement>) {
+    const files = [...(event.target.files ?? [])]
+    // Cleared, so choosing the same file again is noticed.
+    event.target.value = ''
+    addPictures(files)
+  }
+
+  // Cmd+V (Ctrl+V) anywhere on the page attaches a copied picture.
+  useEffect(() => {
+    function handlePaste(event: ClipboardEvent) {
+      const pictures = pastedPictures(event)
+      if (pictures.length === 0) return
+      event.preventDefault()
+      addPictures(pictures)
+    }
+    document.addEventListener('paste', handlePaste)
+    return () => document.removeEventListener('paste', handlePaste)
+  })
 
   function renderStored(photo: ReceiptInput, index: number) {
     if (!photoStore) return null
