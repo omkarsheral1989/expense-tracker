@@ -60,7 +60,7 @@ export function KnownExpensePage({ expense }: Props) {
         travels={!expense.deleted}
         deleted={Boolean(expense.deleted)}
       />
-      <Flex vertical style={{ flex: 1, width: '100%', maxWidth: 560, margin: '0 auto', padding: `${UNDER_BAND_PADDING}px 16px ${aboveScreenEdge(24)}` }}>
+      <Flex vertical style={{ flex: 1, width: '100%', maxWidth: 752, margin: '0 auto', padding: `${UNDER_BAND_PADDING}px 16px ${aboveScreenEdge(24)}` }}>
         {renderPayment()}
         <LoadingMessage label="Loading the expense" />
       </Flex>

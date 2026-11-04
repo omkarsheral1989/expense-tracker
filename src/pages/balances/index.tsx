@@ -18,8 +18,8 @@ import { BALANCES_PAGE, balancesKey, linesOf, loadBalances, orderedMembers, tota
 
 const { Title } = Typography
 
-/** A column about 560 px wide, centered, like the totals page. */
-const COLUMN_STYLE = { width: '100%', maxWidth: 560, margin: '0 auto', padding: `${belowStatusBar(HEADER_TOP_PADDING)} 16px ${aboveScreenEdge(24)}` } as const
+/** A column about 720 px wide, centered, like the totals page. */
+const COLUMN_STYLE = { width: '100%', maxWidth: 752, margin: '0 auto', padding: `${belowStatusBar(HEADER_TOP_PADDING)} 16px ${aboveScreenEdge(24)}` } as const
 
 /**
  * What each member of a group is owed or owes (PRD 5.21), with the fewest payments that settle it under each row that is open,

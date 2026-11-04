@@ -129,7 +129,7 @@ export function ExpenseBand({ expense, title, actions, onEdit, travels, deleted 
       data-vt={vt('block')}
       style={{ padding: `${belowStatusBar(HEADER_TOP_PADDING)} 16px ${BAND_BOTTOM_PADDING}px`, background: bandBackground(deleted ? DELETED_BAND_COLOR : CATEGORY_GROUP_COLORS[category.group]) }}
     >
-      <Flex vertical gap={20} style={{ maxWidth: 560, margin: '0 auto' }}>
+      <Flex vertical gap={20} style={{ maxWidth: 720, margin: '0 auto' }}>
         {renderHeader()}
         {renderSummary()}
         {renderChips()}

@@ -11,8 +11,8 @@ import { aboveScreenEdge, belowStatusBar, HEADER_TOP_PADDING } from '../../theme
 import { EditExpenseForm } from './components/EditExpenseForm'
 import { EDIT_EXPENSE_PAGE, editExpenseKey, loadExpenseToEdit } from './utils.ts'
 
-/** A column about 560 px wide, centered, like the add-expense page. */
-const COLUMN_STYLE = { width: '100%', maxWidth: 560, margin: '0 auto', padding: `${belowStatusBar(HEADER_TOP_PADDING)} 16px ${aboveScreenEdge(24)}` } as const
+/** A column about 720 px wide, centered, like the add-expense page. */
+const COLUMN_STYLE = { width: '100%', maxWidth: 752, margin: '0 auto', padding: `${belowStatusBar(HEADER_TOP_PADDING)} 16px ${aboveScreenEdge(24)}` } as const
 
 /** Where any member of a group edits one of its expenses. */
 export function EditExpensePage() {

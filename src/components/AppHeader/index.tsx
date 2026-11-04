@@ -109,7 +109,7 @@ export function AppHeader() {
       <Flex
         justify="space-between"
         align="center"
-        style={{ width: '100%', maxWidth: 960, margin: '0 auto' }}
+        style={{ width: '100%', maxWidth: 720, margin: '0 auto' }}
       >
         {renderBrand()}
         <Flex align="center" gap={12}>

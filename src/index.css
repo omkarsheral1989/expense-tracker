@@ -333,6 +333,22 @@ html[data-nav='hero-close']::view-transition-new(group-floating-new) {
 ::view-transition-new(app-message) {
   animation: none;
 }
+/* The side shade (`SideShade`) belongs to no page: it is inside the app's content, which slides, so it would slide with it. Its own picture
+   keeps it still, above the pages and below a message or a dialog. Like the dialog layer, only the new picture is shown (the live shade),
+   since the old one drawn over it would darken the sides twice. */
+[data-side-shade] {
+  view-transition-name: side-shade;
+}
+::view-transition-group(side-shade) {
+  z-index: 98;
+}
+::view-transition-group(side-shade),
+::view-transition-new(side-shade) {
+  animation: none;
+}
+::view-transition-old(side-shade) {
+  display: none;
+}
 /* The confirmations that start a page change open in a layer of their own (`dialogLayer`), for the same reason as a message: its own
    picture, above the pages and below a message. It covers the screen (its dialog's mask and box are fixed to it; a layer with no
    height would be an empty picture) but lets clicks through to the page; the dialog inside takes them. */
@@ -558,7 +574,7 @@ body .ant-drawer-bottom .ant-drawer-section {
 }
 
 /* The photo viewer's close button sits where the Delete button of the expense page does: 16 px from the top (below the status bar) and
-   from the end of the 560 px column, and is the same 40 px round button. !important, since Ant Design places it with its own rule. */
+   from the end of the 720 px column, and is the same 40 px round button. !important, since Ant Design places it with its own rule. */
 .ant-image-preview-close {
   top: calc(16px + env(safe-area-inset-top)) !important;
   inset-inline-end: max(16px, calc((100vw - 560px) / 2 + 16px)) !important;

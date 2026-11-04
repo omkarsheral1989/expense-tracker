@@ -16,8 +16,8 @@ import { loadSettleUp, SETTLE_UP_PAGE, settleBackTo, settleUpKey } from './utils
 import { aboveScreenEdge, belowStatusBar, HEADER_TOP_PADDING } from '../../theme/safeArea.ts'
 import { SettleUpForm } from './components/SettleUpForm'
 
-/** A column about 560 px wide, centered, like the add-expense page. */
-const COLUMN_STYLE = { width: '100%', maxWidth: 560, margin: '0 auto', padding: `${belowStatusBar(HEADER_TOP_PADDING)} 16px ${aboveScreenEdge(24)}` } as const
+/** A column about 720 px wide, centered, like the add-expense page. */
+const COLUMN_STYLE = { width: '100%', maxWidth: 752, margin: '0 auto', padding: `${belowStatusBar(HEADER_TOP_PADDING)} 16px ${aboveScreenEdge(24)}` } as const
 
 /** Where a signed-in user records a payment between two members of one of their groups. */
 export function SettleUpPage() {

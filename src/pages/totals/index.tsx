@@ -21,8 +21,8 @@ import { colorsOf, loadTotals, rowName, TOTALS_PAGE, totalsKey } from './utils.t
 
 const { Text, Title } = Typography
 
-/** A column about 560 px wide, centered, like the settle-up page. */
-const COLUMN_STYLE = { width: '100%', maxWidth: 560, margin: '0 auto', padding: `${belowStatusBar(HEADER_TOP_PADDING)} 16px ${aboveScreenEdge(24)}` } as const
+/** A column about 720 px wide, centered, like the settle-up page. */
+const COLUMN_STYLE = { width: '100%', maxWidth: 752, margin: '0 auto', padding: `${belowStatusBar(HEADER_TOP_PADDING)} 16px ${aboveScreenEdge(24)}` } as const
 
 /**
  * What a group has spent and how it splits (PRD 5.20): the total, then a donut of what each member owes and one of what each paid,

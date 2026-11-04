@@ -39,10 +39,10 @@ import type { KnownGroup } from './types.ts'
 import { ABOVE_FLOATING_BUTTON, FLOATING_BUTTON_ROOM } from '../../components/FloatingPillButton/constants.ts'
 import { aboveScreenEdge, UNDER_BAND_PADDING } from '../../theme/safeArea.ts'
 
-/** A column about 720 px wide, centered, which holds everything below the band. */
+/** A column centered under the band, 720 px wide inside its 16 px side padding (as the band's own content is), which holds everything below the band. */
 const COLUMN_STYLE = {
   width: '100%',
-  maxWidth: 720,
+  maxWidth: 752,
   margin: '0 auto',
   padding: `${UNDER_BAND_PADDING}px 16px ${aboveScreenEdge(FLOATING_BUTTON_ROOM)}`,
 } as const

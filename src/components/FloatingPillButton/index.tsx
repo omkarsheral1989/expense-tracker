@@ -27,7 +27,7 @@ export function FloatingPillButton({ children, onClick }: Props) {
       style={{
         position: 'fixed',
         bottom: aboveScreenEdge(FLOATING_BUTTON_BOTTOM),
-        right: 'max(16px, calc((100vw - 720px) / 2 + 16px))',
+        right: 'max(16px, calc((100vw - 720px) / 2))',
         zIndex: 10,
         // The frame rounds the pill and casts its shadow; the button inside is square, so a picture of it alone is square
         // (the browser leaves out its parents' clipping), which Create group's page grows out of (PRD 5.16, ADR-060).

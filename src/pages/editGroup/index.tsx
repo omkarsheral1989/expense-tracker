@@ -74,7 +74,7 @@ export function EditGroupPage() {
   function wrap(content: ReactNode) {
     return (
       <Flex justify="center" style={{ padding: `${belowStatusBar(HEADER_TOP_PADDING)} 16px ${aboveScreenEdge(32)}` }}>
-        <div style={{ width: '100%', maxWidth: 560 }}>{content}</div>
+        <div style={{ width: '100%', maxWidth: 720 }}>{content}</div>
       </Flex>
     )
   }

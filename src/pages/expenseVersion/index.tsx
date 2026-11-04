@@ -12,8 +12,8 @@ import { aboveScreenEdge, belowStatusBar, HEADER_TOP_PADDING } from '../../theme
 import { VersionDetails } from './components/VersionDetails'
 import { VersionNotFound } from './components/VersionNotFound'
 
-/** A column about 560 px wide, centered, like the details page. */
-const COLUMN_STYLE = { width: '100%', maxWidth: 560, margin: '0 auto', padding: `${belowStatusBar(HEADER_TOP_PADDING)} 16px ${aboveScreenEdge(24)}` } as const
+/** A column about 720 px wide, centered, like the details page. */
+const COLUMN_STYLE = { width: '100%', maxWidth: 752, margin: '0 auto', padding: `${belowStatusBar(HEADER_TOP_PADDING)} 16px ${aboveScreenEdge(24)}` } as const
 
 /**
  * One version of an expense of a group: the expense as it was right after an

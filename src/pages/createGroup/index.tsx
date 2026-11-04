@@ -13,7 +13,7 @@ export function CreateGroupPage() {
   return (
     <Flex justify="center" style={{ padding: `${belowStatusBar(HEADER_TOP_PADDING)} 16px ${aboveScreenEdge(32)}` }}>
       <title>Create a group · OwnLedger</title>
-      <div style={{ width: '100%', maxWidth: 560 }}>
+      <div style={{ width: '100%', maxWidth: 720 }}>
         <CreateGroupForm creatorId={user.personId} />
       </div>
     </Flex>
